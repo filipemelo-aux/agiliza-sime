@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split } from "lucide-react";
 import { exportToCsv } from "@/lib/csvExport";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -152,6 +152,9 @@ const buildParcelaPatch = (source: ItemRow, target: ItemRow): Partial<ItemRow> =
   return patch;
 };
 
+import VehicleRateioEditor from "./VehicleRateioEditor";
+import { type RateioRow, validateRateio, sumRateio, distribuirIgualmente } from "@/lib/rateio";
+
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
   fitid: string;
@@ -174,6 +177,7 @@ interface ItemRow {
   fornecedor_cnpj?: string | null;
   itens_nota?: any;
   xml_original?: string | null;
+  rateio_veiculos?: RateioRow[] | null;
   possible_duplicate?: boolean;
   duplicate_note?: string;
 }
@@ -372,6 +376,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: r.fornecedor_cnpj ?? null,
         itens_nota: r.itens_nota ?? null,
         xml_original: r.xml_original ?? null,
+        rateio_veiculos: (r.rateio_veiculos as any) ?? null,
       }));
       setItems(mapped);
       setOriginalItems(mapped);
@@ -673,6 +678,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   // ----- Nota Fiscal (NF-e / NFS-e) vinculada ao lançamento do cartão -----
   const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
   const [fiscalAttachIdx, setFiscalAttachIdx] = useState<number | null>(null);
+  const [rateioIdx, setRateioIdx] = useState<number | null>(null);
   const [pendingExpandFitid, setPendingExpandFitid] = useState<string | null>(null);
 
   const handleFiscalConfirm = useCallback((data: FiscalDocResult) => {
@@ -683,6 +689,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       fornecedor_cnpj: data.fornecedor_cnpj || null,
       itens_nota: data.itens.length ? data.itens : null,
       xml_original: data.xml_original || null,
+      rateio_veiculos: data.rateio && data.rateio.length > 0 ? data.rateio : null,
     };
 
     if (fiscalAttachIdx !== null) {
@@ -691,6 +698,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           ? {
               ...it,
               ...fiscalPatch,
+              veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
               favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
               observacoes: it.observacoes?.trim()
                 || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
@@ -1023,6 +1031,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           fornecedor_cnpj: item.fornecedor_cnpj || null,
           itens_nota: item.itens_nota ?? null,
           xml_original: item.xml_original || null,
+          rateio_veiculos: (item.rateio_veiculos && item.rateio_veiculos.length > 0) ? (item.rateio_veiculos as any) : null,
         })
         .eq("id", item.id);
       if (updErr) throw updErr;
@@ -1050,6 +1059,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           fornecedor_cnpj: item.fornecedor_cnpj || null,
           itens_nota: item.itens_nota ?? null,
           xml_original: item.xml_original || null,
+          rateio_veiculos: (item.rateio_veiculos && item.rateio_veiculos.length > 0) ? (item.rateio_veiculos as any) : null,
         })
         .select("id")
         .single();
@@ -1136,6 +1146,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: item.fornecedor_cnpj || null,
         itens_nota: item.itens_nota ?? null,
         xml_original: item.xml_original || null,
+        rateio_veiculos: (item.rateio_veiculos && item.rateio_veiculos.length > 0) ? item.rateio_veiculos : null,
       };
 
       const existingItems: ItemRow[] = ((existingRows as any[]) || []).map((r) => ({
@@ -1237,6 +1248,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       fornecedor_cnpj: r.fornecedor_cnpj ?? null,
       itens_nota: r.itens_nota ?? null,
       xml_original: r.xml_original ?? null,
+      rateio_veiculos: (r.rateio_veiculos as any) ?? null,
     }));
     setItems(mapped);
     setOriginalItems(mapped);
@@ -1451,6 +1463,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: it.fornecedor_cnpj || null,
         itens_nota: it.itens_nota ?? null,
         xml_original: it.xml_original || null,
+        rateio_veiculos: (it.rateio_veiculos && it.rateio_veiculos.length > 0) ? it.rateio_veiculos : null,
       }));
 
       if (id) {
@@ -1926,6 +1939,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         onToggleSelected={() => toggleSelected(originalIdx)}
                         onExpandParcelas={() => expandParcelas(originalIdx)}
                         onAttachFiscal={() => { setFiscalAttachIdx(originalIdx); setFiscalDialogOpen(true); }}
+                        onOpenRateio={() => setRateioIdx(originalIdx)}
                         expanding={expanding}
                         referenceYM={referenceYM}
                       />
@@ -2137,8 +2151,55 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         attachMode={fiscalAttachIdx !== null}
         attachDescription={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.description : undefined}
         attachAmount={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.amount : undefined}
+        vehicles={vehicles}
         onConfirm={handleFiscalConfirm}
       />
+
+      {/* Rateio por veículo do lançamento do cartão */}
+      <Dialog open={rateioIdx !== null} onOpenChange={(o) => { if (!o) setRateioIdx(null); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Rateio entre veículos</DialogTitle>
+          </DialogHeader>
+          {rateioIdx !== null && items[rateioIdx] && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                {items[rateioIdx].description} — {formatCurrency(items[rateioIdx].amount)}
+              </p>
+              <VehicleRateioEditor
+                rows={items[rateioIdx].rateio_veiculos || []}
+                onChange={(rows) => updateItem(rateioIdx, { rateio_veiculos: rows })}
+                vehicles={vehicles}
+                valorTotal={items[rateioIdx].amount}
+              />
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { updateItem(rateioIdx, { rateio_veiculos: null }); setRateioIdx(null); }}
+                >
+                  Remover rateio
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const rows = items[rateioIdx].rateio_veiculos || [];
+                    const err = validateRateio(rows, items[rateioIdx].amount);
+                    if (err) return toast.error(err);
+                    updateItem(rateioIdx, { veiculo_id: null });
+                    setRateioIdx(null);
+                    toast.success("Rateio definido. Salve a fatura para gravar.");
+                  }}
+                >
+                  Confirmar rateio
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
 
     </Dialog>
 
@@ -2159,6 +2220,7 @@ interface InvoiceItemRowProps {
   onToggleSelected: () => void;
   onExpandParcelas: () => void;
   onAttachFiscal: () => void;
+  onOpenRateio: () => void;
   expanding: boolean;
   referenceYM: string;
 }
@@ -2166,10 +2228,11 @@ interface InvoiceItemRowProps {
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
   onUpdate, onRemove, onOpenCreate, wasEdited,
-  selected, onToggleSelected, onExpandParcelas, onAttachFiscal, expanding, referenceYM,
+  selected, onToggleSelected, onExpandParcelas, onAttachFiscal, onOpenRateio, expanding, referenceYM,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
+  const rateioCount = (item.rateio_veiculos || []).filter((r) => r.veiculo_id).length;
   const [favorecidoLocal, setFavorecidoLocal] = useState(item.favorecido_nome);
   const [descriptionLocal, setDescriptionLocal] = useState(item.description);
 
@@ -2495,23 +2558,43 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </Select>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-[100px]">
-        <Select
-          value={item.veiculo_id ?? "__none__"}
-          onValueChange={(v) => onUpdate(idx, { veiculo_id: v === "__none__" ? null : v })}
-          disabled={isClosed}
-        >
-          <SelectTrigger className="h-7 text-[11px] px-2 min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
-            <SelectValue placeholder="—" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-xs text-muted-foreground">— Nenhum —</SelectItem>
-            {vehicles.map((v) => (
-              <SelectItem key={v.id} value={v.id} className="text-xs">
-                {v.plate}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {rateioCount > 0 ? (
+          <button
+            type="button"
+            onClick={onOpenRateio}
+            className="flex items-center gap-1 w-full h-7 px-1.5 rounded border border-primary/40 bg-primary/10 text-[10px] text-primary truncate"
+            title="Rateio entre veículos"
+          >
+            <Split className="h-3 w-3 shrink-0" /> {rateioCount} veíc.
+          </button>
+        ) : (
+          <div className="flex items-center gap-1">
+            <Select
+              value={item.veiculo_id ?? "__none__"}
+              onValueChange={(v) => onUpdate(idx, { veiculo_id: v === "__none__" ? null : v })}
+              disabled={isClosed}
+            >
+              <SelectTrigger className="h-7 text-[11px] px-2 min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-xs text-muted-foreground">— Nenhum —</SelectItem>
+                {vehicles.map((v) => (
+                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                    {v.plate}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button" variant="ghost" size="icon" className="h-7 w-6 shrink-0"
+              title="Ratear entre múltiplos veículos"
+              onClick={onOpenRateio}
+            >
+              <Split className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-10">
         <Button

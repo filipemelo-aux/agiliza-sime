@@ -124,7 +124,19 @@ export default function VehicleMetrics() {
         expQ.eq("veiculo_id", veiculoId);
       }
 
-      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes, expRes] = await Promise.all([cteQ, fuelQ, maintQ, colheitaQ, cardQ, expQ]);
+      // Rateio por veículo: despesas/lançamentos de cartão divididos entre múltiplos veículos
+      const rateioQ = (supabase.from("despesa_rateio_veiculos") as any)
+        .select(`id, veiculo_id, valor_rateado,
+          expense:expenses(id, data_emissao, descricao, favorecido_nome, plano:chart_of_accounts(nome)),
+          card:credit_card_invoice_items(id, posted_date, description, invoice_id, plano_contas_id, plano:chart_of_accounts(nome))`);
+      if (!isAll) rateioQ.eq("veiculo_id", veiculoId);
+
+      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes, expRes, rateioRes] = await Promise.all([cteQ, fuelQ, maintQ, colheitaQ, cardQ, expQ, rateioQ]);
+
+      const rateioAll = ((rateioRes as any)?.data as any[]) || [];
+      const inRange = (d?: string | null) => !!d && d.slice(0, 10) >= dataInicio && d.slice(0, 10) <= dataFim;
+      const rateioCard = rateioAll.filter((r) => r.card && inRange(r.card.posted_date));
+      const rateioExp = rateioAll.filter((r) => r.expense && inRange(r.expense.data_emissao));
 
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
@@ -143,16 +155,32 @@ export default function VehicleMetrics() {
           });
       setColheitas(colheitasResolved as any);
 
-      setCardItems(((cardRes.data as any[]) || []).map((r: any) => ({
-        id: r.id, posted_date: r.posted_date, description: r.description, amount: Number(r.amount),
-        plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
-        veiculo_id: r.veiculo_id,
-      })));
-      setExpensesV(((expRes.data as any[]) || []).map((r: any) => ({
-        id: r.id, data_emissao: r.data_emissao, descricao: r.descricao,
-        favorecido_nome: r.favorecido_nome, valor_total: Number(r.valor_total || 0),
-        veiculo_id: r.veiculo_id, plano_nome: r.plano?.nome || null,
-      })));
+      setCardItems([
+        ...((cardRes.data as any[]) || []).map((r: any) => ({
+          id: r.id, posted_date: r.posted_date, description: r.description, amount: Number(r.amount),
+          plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
+          veiculo_id: r.veiculo_id,
+        })),
+        ...rateioCard.map((r: any) => ({
+          id: `rateio-${r.id}`, posted_date: r.card.posted_date,
+          description: `${r.card.description} (rateio)`, amount: Number(r.valor_rateado || 0),
+          plano_contas_id: r.card.plano_contas_id, invoice_id: r.card.invoice_id,
+          plano_nome: r.card.plano?.nome || null, veiculo_id: r.veiculo_id,
+        })),
+      ]);
+      setExpensesV([
+        ...((expRes.data as any[]) || []).map((r: any) => ({
+          id: r.id, data_emissao: r.data_emissao, descricao: r.descricao,
+          favorecido_nome: r.favorecido_nome, valor_total: Number(r.valor_total || 0),
+          veiculo_id: r.veiculo_id, plano_nome: r.plano?.nome || null,
+        })),
+        ...rateioExp.map((r: any) => ({
+          id: `rateio-${r.id}`, data_emissao: r.expense.data_emissao,
+          descricao: `${r.expense.descricao} (rateio)`,
+          favorecido_nome: r.expense.favorecido_nome, valor_total: Number(r.valor_rateado || 0),
+          veiculo_id: r.veiculo_id, plano_nome: r.expense.plano?.nome || null,
+        })),
+      ]);
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);

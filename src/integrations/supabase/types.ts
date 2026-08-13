@@ -656,6 +656,7 @@ export type Database = {
           parcelas_expandidas: boolean
           plano_contas_id: string | null
           posted_date: string
+          rateio_veiculos: Json | null
           updated_at: string
           veiculo_id: string | null
           xml_original: string | null
@@ -682,6 +683,7 @@ export type Database = {
           parcelas_expandidas?: boolean
           plano_contas_id?: string | null
           posted_date: string
+          rateio_veiculos?: Json | null
           updated_at?: string
           veiculo_id?: string | null
           xml_original?: string | null
@@ -708,6 +710,7 @@ export type Database = {
           parcelas_expandidas?: boolean
           plano_contas_id?: string | null
           posted_date?: string
+          rateio_veiculos?: Json | null
           updated_at?: string
           veiculo_id?: string | null
           xml_original?: string | null
@@ -1173,6 +1176,67 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesa_rateio_veiculos: {
+        Row: {
+          card_item_id: string | null
+          created_at: string
+          created_by: string | null
+          expense_id: string | null
+          id: string
+          observacao: string | null
+          percentual: number | null
+          updated_at: string
+          valor_rateado: number
+          veiculo_id: string
+        }
+        Insert: {
+          card_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string | null
+          id?: string
+          observacao?: string | null
+          percentual?: number | null
+          updated_at?: string
+          valor_rateado?: number
+          veiculo_id: string
+        }
+        Update: {
+          card_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string | null
+          id?: string
+          observacao?: string | null
+          percentual?: number | null
+          updated_at?: string
+          valor_rateado?: number
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesa_rateio_veiculos_card_item_id_fkey"
+            columns: ["card_item_id"]
+            isOneToOne: false
+            referencedRelation: "credit_card_invoice_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_rateio_veiculos_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_rateio_veiculos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -4071,6 +4135,10 @@ export type Database = {
       }
       save_credit_card_invoice_edit: {
         Args: { _invoice: Json; _invoice_id: string; _items: Json }
+        Returns: undefined
+      }
+      sync_card_item_rateio: {
+        Args: { _invoice_id: string }
         Returns: undefined
       }
       update_freight_contract_with_payable: {

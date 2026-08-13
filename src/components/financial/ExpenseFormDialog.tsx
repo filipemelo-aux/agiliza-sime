@@ -15,7 +15,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer, Split } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,8 @@ import { splitPdfPages } from "@/lib/pdfSplitter";
 import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
+import VehicleRateioEditor from "./VehicleRateioEditor";
+import { type RateioRow, loadRateio, saveRateio, validateRateio } from "@/lib/rateio";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -171,6 +173,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // Maintenance fields
   const [isManutencao, setIsManutencao] = useState(false);
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
+  const [rateioAtivo, setRateioAtivo] = useState(false);
+  const [rateioRows, setRateioRows] = useState<RateioRow[]>([]);
   const [tipoManutencao, setTipoManutencao] = useState("corretiva");
   const [kmAtual, setKmAtual] = useState("");
   const [descricaoServico, setDescricaoServico] = useState("");
@@ -305,6 +309,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const hasMaintData = !!(expense.veiculo_id || expense.tipo_manutencao || expense.km_atual);
       setIsManutencao(expAccount?.tipo_operacional === "manutencao" || hasMaintData);
       setVeiculoId(expense.veiculo_id || null);
+      loadRateio({ expense_id: expense.id }).then((rr) => { setRateioRows(rr); setRateioAtivo(rr.length > 0); });
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
       setFornecedorMecanica(expense.fornecedor_mecanica || "");
@@ -471,7 +476,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
     setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
-    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
+    setVeiculoId(null); setRateioAtivo(false); setRateioRows([]); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
@@ -659,6 +664,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       : selectedAccount?.tipo_operacional === "combustivel" ? "combustivel"
       : "outros";
 
+    if (rateioAtivo && !isMaintenanceType) {
+      const rErr = validateRateio(rateioRows, Number(valorTotal) || 0);
+      if (rErr) return toast.error(rErr);
+    }
+
     setSaving(true);
     const payload: any = {
       empresa_id: empresaId || null, unidade_id: empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
@@ -673,7 +683,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       numero_cheque: formaPagamento === "cheque" ? (numeroCheque.trim() || null) : null,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      veiculo_id: veiculoId || null,
+      veiculo_id: (rateioAtivo && !isMaintenanceType) ? null : (veiculoId || null),
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
@@ -697,6 +707,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setSaving(false); return;
       }
       expenseId = data.id;
+    }
+
+    // Rateio por veículo (múltiplos veículos)
+    if (expenseId) {
+      try {
+        await saveRateio({ expense_id: expenseId }, rateioAtivo && !isMaintenanceType ? rateioRows : [], user?.id);
+      } catch (e: any) {
+        toast.warning("Despesa salva, mas houve erro ao gravar o rateio: " + (e?.message || ""));
+      }
     }
 
     if (expenseId && itensNota.length > 0) {
@@ -1419,37 +1438,66 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Vinculação opcional de veículo (qualquer despesa não-manutenção) ── */}
           {!isMaintenanceType && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Veículo (opcional)</Label>
-                <Select
-                  value={veiculoId || "__none__"}
-                  onValueChange={(v) => {
-                    if (v === "__none__") { setVeiculoId(null); setVeiculoPlaca(""); return; }
-                    setVeiculoId(v);
-                    const found = fleetVehicles.find(x => x.id === v);
-                    if (found) setVeiculoPlaca(found.plate);
-                  }}
-                >
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Sem vínculo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sem vínculo</SelectItem>
-                    {fleetVehicles.map(v => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.plate}{v.brand || v.model ? ` - ${[v.brand, v.model].filter(Boolean).join(" ")}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {isCategoryWithVehicle && !veiculoId && (
-                <div>
-                  <Label className="text-xs">Placa Veículo</Label>
-                  <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+            <div className="space-y-3">
+              {!rateioAtivo ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">Veículo (opcional)</Label>
+                    <Select
+                      value={veiculoId || "__none__"}
+                      onValueChange={(v) => {
+                        if (v === "__none__") { setVeiculoId(null); setVeiculoPlaca(""); return; }
+                        setVeiculoId(v);
+                        const found = fleetVehicles.find(x => x.id === v);
+                        if (found) setVeiculoPlaca(found.plate);
+                      }}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Sem vínculo" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem vínculo</SelectItem>
+                        {fleetVehicles.map(v => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.plate}{v.brand || v.model ? ` - ${[v.brand, v.model].filter(Boolean).join(" ")}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button" variant="outline" size="sm" className="h-7 mt-1.5 text-[11px] gap-1"
+                      onClick={() => {
+                        setRateioAtivo(true);
+                        setRateioRows(veiculoId
+                          ? [{ veiculo_id: veiculoId, valor_rateado: Number(valorTotal) || 0, percentual: 100 }]
+                          : [{ veiculo_id: null, valor_rateado: 0, percentual: null }]);
+                      }}
+                    >
+                      <Split className="h-3 w-3" /> Ratear entre múltiplos veículos
+                    </Button>
+                  </div>
+                  {isCategoryWithVehicle && !veiculoId && (
+                    <div>
+                      <Label className="text-xs">Placa Veículo</Label>
+                      <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <VehicleRateioEditor
+                    rows={rateioRows}
+                    onChange={setRateioRows}
+                    vehicles={fleetVehicles}
+                    valorTotal={Number(valorTotal) || 0}
+                  />
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]"
+                    onClick={() => { setRateioAtivo(false); setRateioRows([]); }}>
+                    Cancelar rateio e usar um único veículo
+                  </Button>
                 </div>
               )}
             </div>
           )}
+
           {showFuelFields && (
             <div className="grid grid-cols-2 gap-4">
               <div>
