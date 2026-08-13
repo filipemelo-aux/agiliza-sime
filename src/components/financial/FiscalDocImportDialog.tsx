@@ -366,7 +366,17 @@ export function FiscalDocImportDialog({
                     <AlertTriangle className="w-3 h-3" /> diverge do total do documento
                   </span>
                 )}
+                <span className="ml-2">(valores já com IPI, ST, frete, seguro e descontos)</span>
               </div>
+              {rateioItens.length > 0 && (
+                <div className="px-2 py-1 text-[10px] text-muted-foreground border-t">
+                  Rateio automático por veículo:{" "}
+                  {rateioItens.map((r) => {
+                    const v = vehicles.find((x) => x.id === r.veiculo_id);
+                    return `${v?.plate || "?"} ${formatCurrency(r.valor_rateado)} (${(r.percentual || 0).toFixed(1)}%)`;
+                  }).join(" • ")}
+                </div>
+              )}
             </div>
           )}
 
