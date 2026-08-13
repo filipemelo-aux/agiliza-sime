@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split } from "lucide-react";
 import { exportToCsv } from "@/lib/csvExport";
+import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -1591,6 +1592,54 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       setSaving(false); setClosing(false);
     }
   };
+
+  const singleIdx = selectedIdxs.size === 1 ? Array.from(selectedIdxs)[0] : null;
+  const singleItem = singleIdx !== null ? items[singleIdx] : null;
+
+  const exportItemsCsv = useCallback(() => {
+    const chartById = new Map(chartAccounts.map((c) => [c.id, c] as const));
+    const rows = items.map((it) => {
+      const p = it.plano_contas_id ? chartById.get(it.plano_contas_id) : null;
+      const tot = Number(it.parcela_total || 0);
+      const atual = Number(it.parcela_atual || 0);
+      return {
+        data: it.posted_date ? formatDateBR(it.posted_date) : "",
+        descricao: it.description,
+        parcela: tot > 0 ? `${atual}/${tot}` : "",
+        favorecido: it.favorecido_nome || "",
+        plano_contas: p ? `${p.codigo} ${p.nome}` : "",
+        centro_custo: it.centro_custo || "",
+        valor: Number(it.amount || 0).toFixed(2).replace(".", ","),
+        observacoes: it.observacoes || "",
+      };
+    });
+    const label = (cardName || "cartao").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+    exportToCsv(`fatura-${label}-${referenceYM}.csv`, rows, [
+      { key: "data", label: "Data" },
+      { key: "descricao", label: "Descrição" },
+      { key: "parcela", label: "Parcela" },
+      { key: "favorecido", label: "Favorecido" },
+      { key: "plano_contas", label: "Plano de Contas" },
+      { key: "centro_custo", label: "Centro de Custo" },
+      { key: "valor", label: "Valor" },
+      { key: "observacoes", label: "Observações" },
+    ]);
+  }, [items, chartAccounts, cardName, referenceYM]);
+
+  const toolbarActions: ToolbarAction[] = [
+    { key: "ofx", label: "Importar OFX", icon: Upload, mode: "always", disabled: isClosed, onClick: () => fileRef.current?.click() },
+    { key: "novo", label: "Novo lançamento", icon: Plus, mode: "always", disabled: isClosed, onClick: addManualItem },
+    { key: "xml", label: "XML / Nota de Serviço", icon: FileText, mode: "always", disabled: isClosed, onClick: () => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); } },
+    { key: "sugerir", label: "Sugerir remoções", icon: Search, mode: "always", disabled: isClosed || items.length === 0, onClick: suggestRemovalsForTarget },
+    { key: "csv", label: "Exportar CSV", icon: Download, mode: "always", disabled: items.length === 0, onClick: exportItemsCsv },
+    { key: "vincular", label: "Vincular XML/NFS-e", icon: FileText, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx === null) return; setFiscalAttachIdx(singleIdx); setFiscalDialogOpen(true); } },
+    { key: "favorecido", label: "Cadastrar favorecido", icon: Plus, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setCreatePersonOpenIdx(singleIdx); } },
+    { key: "rateio", label: "Ratear veículos", icon: Split, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setRateioIdx(singleIdx); } },
+    { key: "parcelas", label: "Gerar parcelas", icon: Layers, mode: "single+batch", disabled: isClosed || expanding, onClick: expandParcelasBatch },
+    { key: "manter", label: "Não é duplicidade", icon: Check, mode: "single+batch", disabled: isClosed, hidden: !Array.from(selectedIdxs).some((i) => items[i]?.possible_duplicate), onClick: () => { selectedIdxs.forEach((i) => updateItem(i, { possible_duplicate: false, duplicate_note: undefined })); } },
+    { key: "excluir", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: isClosed, onClick: removeSelected },
+    { key: "limpar", label: "Limpar seleção", icon: X, mode: "batch", variant: "ghost", onClick: () => setSelectedIdxs(new Set()) },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (expanding) return; onOpenChange(o); }}>
