@@ -349,6 +349,12 @@ export type Database = {
           cruzamento_espaco_mm: number
           cruzamento_x: number
           cruzamento_y: number
+          data_ano_x: number
+          data_ano_y: number
+          data_dia_x: number
+          data_dia_y: number
+          data_mes_x: number
+          data_mes_y: number
           data_x: number
           data_y: number
           id: string
@@ -388,6 +394,12 @@ export type Database = {
           cruzamento_espaco_mm?: number
           cruzamento_x?: number
           cruzamento_y?: number
+          data_ano_x?: number
+          data_ano_y?: number
+          data_dia_x?: number
+          data_dia_y?: number
+          data_mes_x?: number
+          data_mes_y?: number
           data_x?: number
           data_y?: number
           id?: string
@@ -427,6 +439,12 @@ export type Database = {
           cruzamento_espaco_mm?: number
           cruzamento_x?: number
           cruzamento_y?: number
+          data_ano_x?: number
+          data_ano_y?: number
+          data_dia_x?: number
+          data_dia_y?: number
+          data_mes_x?: number
+          data_mes_y?: number
           data_x?: number
           data_y?: number
           id?: string
