@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Fuel, Printer, Loader2, Mail, Trash2 } from "lucide-react";
@@ -162,119 +165,51 @@ export default function AdminFuelOrders() {
   };
 
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedOrders = orders.filter((o) => selectedIds.has(o.id));
+  const single = selectedOrders.length === 1 ? selectedOrders[0] : null;
+  const withDriver = (o: any) => ({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" });
+
+  const columns: DataGridColumn<any>[] = [
+    { key: "numero", header: "Nº", width: "80px", sortValue: (o) => o.order_number, cell: (o) => <span className="font-semibold tabular-nums">#{o.order_number}</span> },
+    { key: "data", header: "Data", width: "110px", sortValue: (o) => o.created_at, cell: (o) => <span className="tabular-nums">{format(new Date(o.created_at), "dd/MM/yyyy")}</span> },
+    { key: "fornecedor", header: "Fornecedor", sortValue: (o) => o.supplier_name || "", cell: (o) => <span className="truncate block max-w-[240px]">{o.supplier_name}</span> },
+    { key: "veiculo", header: "Veículo", width: "110px", sortValue: (o) => o.vehicle_plate || "", cell: (o) => <span className="font-medium">{o.vehicle_plate}</span> },
+    { key: "motorista", header: "Motorista", width: "180px", sortValue: (o) => (o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : ""), cell: (o) => <span className="truncate block max-w-[180px] text-muted-foreground">{(o.vehicle_id && driverMap.get(o.vehicle_id)) || "—"}</span> },
+    { key: "combustivel", header: "Combustível", width: "120px", sortValue: (o) => o.fuel_type, cell: (o) => FUEL_LABELS[o.fuel_type] || o.fuel_type },
+    { key: "qtd", header: "Quantidade", width: "110px", align: "right", sortValue: (o) => (o.fill_mode === "completar" ? -1 : Number(o.liters) || 0), cell: (o) => <span className="font-mono">{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span> },
+    { key: "email", header: "E-mail", width: "130px", sortValue: (o) => o.email_sent_at || "", cell: (o) => <span className="text-[11px] text-muted-foreground">{o.email_sent_at ? format(new Date(o.email_sent_at), "dd/MM/yy HH:mm") : "—"}</span> },
+    { key: "status", header: "Status", width: "110px", align: "center", sortValue: (o) => o.status, cell: (o) => <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge> },
+  ];
+
+  const actions = [
+    { key: "new", label: "Nova Ordem", icon: Plus, mode: "always" as const, variant: "default" as const, onClick: () => setShowForm(true) },
+    { key: "print", label: "Imprimir", icon: Printer, mode: "single" as const, disabled: !single, onClick: () => single && printFuelOrderPDF(withDriver(single), unifiedLabel, unifiedCnpjs) },
+    { key: "email", label: "E-mail", icon: Mail, mode: "single" as const, disabled: !single, onClick: () => single && setEmailOrder(withDriver(single)) },
+    ...(canDelete ? [{ key: "delete", label: "Excluir", icon: Trash2, mode: "single" as const, variant: "destructive" as const, disabled: !single, onClick: () => single && handleDelete(single) }] : []),
+  ];
+
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold font-display">Ordens de Abastecimento</h1>
-            <p className="text-sm text-muted-foreground">Gerencie ordens de abastecimento de veículos</p>
-          </div>
-          <Button onClick={() => setShowForm(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Nova Ordem
-          </Button>
+      <main className="container mx-auto px-4 py-6 space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold font-display">Ordens de Abastecimento</h1>
+          <p className="text-sm text-muted-foreground">Gerencie ordens de abastecimento de veículos</p>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : orders.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center py-12 gap-4">
-              <Fuel className="h-10 w-10 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhuma ordem de abastecimento encontrada</p>
-              <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Criar primeira ordem
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {orders.map((o) => (
-              <Card key={o.id} className="flex flex-col">
-                <CardContent className="p-4 flex flex-col gap-4 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-base">#{o.order_number}</span>
-                    <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge>
-                  </div>
+        <GlobalToolbar actions={actions} selectedCount={selectedIds.size} />
 
-                  <div className="space-y-1.5 text-sm flex-1">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Data</span>
-                      <span>{format(new Date(o.created_at), "dd/MM/yyyy")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Empresa</span>
-                      <span className="text-right truncate max-w-[55%]">{unifiedLabel}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Fornecedor</span>
-                      <span className="text-right truncate max-w-[55%]">{o.supplier_name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Veículo</span>
-                      <span>{o.vehicle_plate}</span>
-                    </div>
-                    {o.vehicle_id && driverMap.get(o.vehicle_id) && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Motorista</span>
-                        <span className="text-right truncate max-w-[55%]">{driverMap.get(o.vehicle_id)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Combustível</span>
-                      <span>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</span>
-                    </div>
-                    <div className="flex justify-between font-medium">
-                      <span className="text-muted-foreground">Quantidade</span>
-                      <span>{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span>
-                    </div>
-                    {o.email_sent_at && (
-                      <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed border-border/60">
-                        <span>E-mail enviado</span>
-                        <span className="text-right truncate max-w-[60%]" title={o.email_sent_to || ""}>
-                          {format(new Date(o.email_sent_at), "dd/MM/yyyy HH:mm")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+        <DataGrid
+          rows={orders}
+          columns={columns}
+          rowId={(o) => o.id}
+          selected={selectedIds}
+          onSelectedChange={setSelectedIds}
+          loading={loading}
+          minWidth={1160}
+          emptyMessage="Nenhuma ordem de abastecimento encontrada"
+        />
 
-
-                  <div className="flex gap-2 pt-2 border-t border-border">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => printFuelOrderPDF({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" }, unifiedLabel, unifiedCnpjs)}
-                    >
-                      <Printer className="h-4 w-4 mr-1" /> Imprimir
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setEmailOrder({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" })}
-                    >
-                      <Mail className="h-4 w-4 mr-1" /> E-mail
-                    </Button>
-                    {canDelete && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(o)}
-                        title="Excluir ordem"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
 
         <FuelOrderFormDialog
           open={showForm}

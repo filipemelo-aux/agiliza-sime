@@ -22,8 +22,9 @@ import { buildFullContractHtml, openPrintWindow } from "@/components/freight/fre
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
-import { SortableTh } from "@/components/ui/sortable-th";
-import { DragScroll } from "@/components/ui/drag-scroll";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
@@ -233,6 +234,82 @@ export default function FreightContracts() {
     return <Badge className={map[st] || ""}>{st}</Badge>;
   };
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedRows = sorted.filter((r) => selectedIds.has(r.id));
+  const single = selectedRows.length === 1 ? selectedRows[0] : null;
+  const deletable = selectedRows.filter(
+    (r) => r.payable?.status !== "pago" && r.payable?.status !== "parcial"
+  );
+
+  const handleBatchDelete = async () => {
+    if (deletable.length === 0) return;
+    const ok = await confirm({
+      title: "Excluir contrato(s) de frete",
+      description: `Excluir ${deletable.length} contrato(s)?\n\nAs contas a pagar pendentes vinculadas serão removidas.\nOs CT-e NÃO serão afetados.`,
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    for (const r of deletable) {
+      const { error } = await supabase.from("freight_contracts").delete().eq("id", r.id);
+      if (error) {
+        toast({ title: "Erro ao excluir contrato", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    toast({ title: `${deletable.length} contrato(s) excluído(s)` });
+    setSelectedIds(new Set());
+    fetchData();
+  };
+
+  const contractColumns: DataGridColumn<FreightContractRow>[] = [
+    {
+      key: "numero", header: "Nº", width: "90px",
+      sortValue: (r) => r.numero,
+      cell: (r) => <span className="font-mono text-muted-foreground">#{String(r.numero).padStart(6, "0")}</span>,
+    },
+    {
+      key: "data", header: "Data", width: "100px",
+      sortValue: (r) => r.data_contrato,
+      cell: (r) => <span className="tabular-nums whitespace-nowrap">{formatDateBR(r.data_contrato)}</span>,
+    },
+    {
+      key: "contratado", header: "Contratado",
+      sortValue: (r) => r.contratado_nome,
+      cell: (r) => (
+        <div className="min-w-0">
+          <div className="font-medium truncate max-w-[260px]">{r.contratado_nome}</div>
+          <div className="text-[10px] text-muted-foreground truncate">{r.contratado_documento || ""}</div>
+        </div>
+      ),
+    },
+    {
+      key: "trecho", header: "Trecho",
+      sortValue: (r) => `${r.municipio_origem || ""}${r.municipio_destino || ""}`,
+      cell: (r) => (
+        <span className="text-muted-foreground truncate block max-w-[260px]">
+          {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "placa", header: "Placa", width: "90px",
+      sortValue: (r) => r.placa_veiculo || "",
+      cell: (r) => <span className="tabular-nums">{r.placa_veiculo || "—"}</span>,
+    },
+    {
+      key: "valor", header: "Valor", width: "120px", align: "right",
+      sortValue: (r) => r.valor_total,
+      cell: (r) => <span className="tabular-nums font-medium">{formatCurrency(r.valor_total)}</span>,
+    },
+    {
+      key: "status", header: "Status", width: "110px", align: "center",
+      sortValue: (r) => r.payable?.status || "",
+      cell: (r) => renderPayableStatus(r),
+    },
+  ];
+
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-6 space-y-4">
@@ -310,101 +387,54 @@ export default function FreightContracts() {
           </CardContent>
         </Card>
 
-        {/* Lista */}
-        {loading ? (
-          <div className="text-center text-sm text-muted-foreground py-10">Carregando...</div>
-        ) : sorted.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              Nenhum contrato encontrado.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="border border-border rounded-md overflow-hidden bg-card">
-            <DragScroll className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[860px]">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr className="text-left">
-                    <SortableTh className="px-3 py-2 font-medium w-[90px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "contratado"} direction={sort.direction} onSort={() => toggle("contratado")}>Contratado</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "trecho"} direction={sort.direction} onSort={() => toggle("trecho")}>Trecho</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium w-[90px]" active={sort.key === "placa"} direction={sort.direction} onSort={() => toggle("placa")}>Placa</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium text-center w-[100px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
-                    <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((r) => {
-                    const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
-                    return (
-                      <tr key={r.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="px-3 py-2 font-mono text-muted-foreground">#{String(r.numero).padStart(6, "0")}</td>
-                        <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data_contrato)}</td>
-                        <td className="px-3 py-2 truncate max-w-[280px]">
-                          <div className="font-medium truncate">{r.contratado_nome}</div>
-                          <div className="text-[10px] text-muted-foreground truncate">{r.contratado_documento || ""}</div>
-                        </td>
-                        <td className="px-3 py-2 truncate max-w-[260px] text-muted-foreground">
-                          {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap tabular-nums">{r.placa_veiculo || "—"}</td>
-                        <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(r.valor_total)}</td>
-                        <td className="px-2 py-2 text-center">{renderPayableStatus(r)}</td>
-                        <td className="px-2 py-2 text-right">
-                          <div className="flex items-center justify-end gap-0.5">
-                            <Button
-                              size="sm" variant="ghost" className="h-7 w-7 p-0"
-                              disabled={editDisabled}
-                              title={editDisabled ? "Estorne o pagamento antes de editar" : "Editar contrato"}
-                              onClick={async () => {
-                                const { data: cteData } = await supabase.from("ctes").select("*").eq("id", r.cte_id).maybeSingle();
-                                if (cteData) setEditing({ contractId: r.id, cte: cteData as any });
-                              }}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
-                              <Printer className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCteDetail(r.cte_id)} title="CT-e vinculado">
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              size="sm" variant="ghost"
-                              className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              disabled={editDisabled}
-                              title={editDisabled ? "Estorne o pagamento antes de excluir" : "Excluir contrato (não afeta o CT-e)"}
-                              onClick={async () => {
-                                const ok = await confirm({
-                                  title: "Excluir contrato de frete",
-                                  description: `Excluir o contrato Nº ${String(r.numero).padStart(6, "0")}?\n\nA conta a pagar pendente vinculada será removida.\nO CT-e ${r.cte?.numero ?? ""} NÃO será afetado.`,
-                                  variant: "destructive",
-                                  confirmLabel: "Excluir",
-                                });
-                                if (!ok) return;
-                                const { error } = await supabase.from("freight_contracts").delete().eq("id", r.id);
-                                if (error) {
-                                  toast({ title: "Erro ao excluir contrato", description: error.message, variant: "destructive" });
-                                  return;
-                                }
-                                toast({ title: "Contrato excluído" });
-                                fetchData();
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </DragScroll>
-          </div>
-        )}
+        {/* Toolbar + Lista */}
+        <GlobalToolbar
+          actions={[
+            {
+              key: "edit", label: "Editar", icon: Pencil, mode: "single",
+              disabled: !single || single.payable?.status === "pago" || single.payable?.status === "parcial",
+              onClick: async () => {
+                if (!single) return;
+                const { data: cteData } = await supabase.from("ctes").select("*").eq("id", single.cte_id).maybeSingle();
+                if (cteData) setEditing({ contractId: single.id, cte: cteData as any });
+              },
+            },
+            {
+              key: "print", label: "Imprimir", icon: Printer, mode: "single",
+              disabled: !single,
+              onClick: () => single && handlePrint(single),
+            },
+            {
+              key: "cte", label: "CT-e vinculado", icon: ExternalLink, mode: "single",
+              disabled: !single,
+              onClick: () => single && openCteDetail(single.cte_id),
+            },
+            {
+              key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
+              disabled: deletable.length === 0,
+              onClick: handleBatchDelete,
+            },
+          ]}
+          selectedCount={selectedIds.size}
+        >
+          {selectedIds.size > 0 && (
+            <span className="text-[11px] font-mono text-primary">
+              {formatCurrency(selectedRows.reduce((s, r) => s + r.valor_total, 0))}
+            </span>
+          )}
+        </GlobalToolbar>
+
+        <DataGrid
+          rows={sorted}
+          columns={contractColumns}
+          rowId={(r) => r.id}
+          selected={selectedIds}
+          onSelectedChange={setSelectedIds}
+          loading={loading}
+          minWidth={900}
+          emptyMessage="Nenhum contrato encontrado."
+        />
+
       </div>
 
       <FreightContractDialog

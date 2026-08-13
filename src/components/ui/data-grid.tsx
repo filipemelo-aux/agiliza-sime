@@ -1,0 +1,205 @@
+import { useMemo, useState } from "react";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+
+export interface DataGridColumn<T> {
+  key: string;
+  header: string;
+  /** conteúdo da célula */
+  cell: (row: T) => React.ReactNode;
+  /** valor usado na ordenação (se omitido, coluna não ordena) */
+  sortValue?: (row: T) => string | number | null | undefined;
+  className?: string;
+  headerClassName?: string;
+  width?: string;
+  align?: "left" | "right" | "center";
+}
+
+interface DataGridProps<T> {
+  rows: T[];
+  columns: DataGridColumn<T>[];
+  rowId: (row: T) => string;
+  selected: Set<string>;
+  onSelectedChange: (next: Set<string>) => void;
+  /** ids não selecionáveis */
+  isSelectable?: (row: T) => boolean;
+  loading?: boolean;
+  emptyMessage?: string;
+  minWidth?: number;
+  footer?: React.ReactNode;
+  rowClassName?: (row: T) => string;
+  maxHeight?: string;
+}
+
+export function DataGrid<T>({
+  rows,
+  columns,
+  rowId,
+  selected,
+  onSelectedChange,
+  isSelectable,
+  loading,
+  emptyMessage = "Nenhum registro encontrado",
+  minWidth = 900,
+  footer,
+  rowClassName,
+  maxHeight,
+}: DataGridProps<T>) {
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const selectableRows = useMemo(
+    () => rows.filter((r) => (isSelectable ? isSelectable(r) : true)),
+    [rows, isSelectable]
+  );
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return rows;
+    const col = columns.find((c) => c.key === sortKey);
+    if (!col?.sortValue) return rows;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const av = col.sortValue!(a);
+      const bv = col.sortValue!(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av).localeCompare(String(bv), "pt-BR", { numeric: true }) * dir;
+    });
+  }, [rows, columns, sortKey, sortDir]);
+
+  const toggleSort = (col: DataGridColumn<T>) => {
+    if (!col.sortValue) return;
+    if (sortKey === col.key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(col.key);
+      setSortDir("asc");
+    }
+  };
+
+  const toggleRow = (id: string) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    onSelectedChange(next);
+  };
+
+  const allSelected =
+    selectableRows.length > 0 && selectableRows.every((r) => selected.has(rowId(r)));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      onSelectedChange(new Set());
+    } else {
+      onSelectedChange(new Set(selectableRows.map(rowId)));
+    }
+  };
+
+  const alignCls = (a?: string) =>
+    a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
+
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
+        <table className="w-full border-collapse text-xs" style={{ minWidth }}>
+          <thead className="sticky top-0 z-10 bg-muted/60">
+            <tr className="border-b border-border">
+              <th className="w-8 px-2 py-1.5">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={toggleAll}
+                  aria-label="Selecionar todos"
+                />
+              </th>
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  style={col.width ? { width: col.width } : undefined}
+                  onClick={() => toggleSort(col)}
+                  className={cn(
+                    "px-2 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
+                    alignCls(col.align),
+                    col.sortValue && "cursor-pointer select-none hover:text-foreground",
+                    col.headerClassName
+                  )}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.header}
+                    {col.sortValue &&
+                      (sortKey === col.key ? (
+                        sortDir === "asc" ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                      ))}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={columns.length + 1} className="py-10 text-center text-muted-foreground">
+                  Carregando...
+                </td>
+              </tr>
+            ) : sorted.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length + 1} className="py-10 text-center text-muted-foreground">
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : (
+              sorted.map((row) => {
+                const id = rowId(row);
+                const selectable = isSelectable ? isSelectable(row) : true;
+                const isSel = selected.has(id);
+                return (
+                  <tr
+                    key={id}
+                    onClick={() => selectable && toggleRow(id)}
+                    className={cn(
+                      "border-b border-border/60 transition-colors",
+                      selectable ? "cursor-pointer hover:bg-muted/40" : "opacity-70",
+                      isSel && "bg-primary/10 hover:bg-primary/15",
+                      rowClassName?.(row)
+                    )}
+                  >
+                    <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      {selectable && (
+                        <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} />
+                      )}
+                    </td>
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={cn("px-2 py-1 align-middle", alignCls(col.align), col.className)}
+                      >
+                        {col.cell(row)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+          {footer && (
+            <tfoot className="sticky bottom-0 bg-muted/60">
+              <tr>
+                <td colSpan={columns.length + 1} className="px-2 py-1.5">
+                  {footer}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+}

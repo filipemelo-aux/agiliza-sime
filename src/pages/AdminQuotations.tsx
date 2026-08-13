@@ -3,6 +3,9 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -176,151 +179,96 @@ export default function AdminQuotations() {
     setShowForm(true);
   };
 
-  const renderFreteCard = (q: Quotation) => {
-    const st = STATUS_MAP[q.status] || STATUS_MAP.rascunho;
-    return (
-      <Card key={q.id} className="flex flex-col justify-between">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Cotação #{q.numero}</CardTitle>
-            <Badge variant={st.variant}>{st.label}</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">{format(new Date(q.created_at), "dd/MM/yyyy HH:mm")}</p>
-        </CardHeader>
-        <CardContent className="space-y-4 flex-1">
-          <div className="space-y-1 text-sm">
-            <p><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{q.client?.razao_social || q.client?.full_name || "—"}</span></p>
-            <p><span className="text-muted-foreground">Rota:</span> <span className="font-medium">{q.origem_cidade}/{q.origem_uf} → {q.destino_cidade}/{q.destino_uf}</span></p>
-            <p><span className="text-muted-foreground">Produto:</span> <span className="font-medium">{q.produto || "—"}</span></p>
-            <div className="flex gap-4">
-              <p><span className="text-muted-foreground">Peso:</span> <span className="font-medium">{q.peso_kg?.toLocaleString("pt-BR") || "—"} kg</span></p>
-              <p><span className="text-muted-foreground">Valor:</span> <span className="font-semibold text-primary">{formatCurrency(q.valor_frete)}</span></p>
-            </div>
-            {q.creator?.full_name && <p><span className="text-muted-foreground">Responsável:</span> <span className="font-medium">{q.creator.full_name}</span></p>}
-          </div>
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedQuotations = quotations.filter((q) => selectedIds.has(q.id));
+  const single = selectedQuotations.length === 1 ? selectedQuotations[0] : null;
 
-          {/* Status buttons */}
-          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
-            {q.status !== "rascunho" && (
-              <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleStatusChange(q, "rascunho")}>
-                <Clock className="h-3 w-3 mr-1" /> Rascunho
-              </Button>
-            )}
-            {q.status !== "em_aprovacao" && (
-              <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleStatusChange(q, "em_aprovacao")}>
-                <Send className="h-3 w-3 mr-1" /> Em Aprovação
-              </Button>
-            )}
-            {q.status !== "aprovada" && (
-              <Button size="sm" variant="outline" className="text-xs h-7 border-green-500/50 text-green-700 hover:bg-green-50" onClick={() => handleStatusChange(q, "aprovada")}>
-                <CheckCircle className="h-3 w-3 mr-1" /> Aprovar
-              </Button>
-            )}
-          </div>
+  const baseColumns: DataGridColumn<Quotation>[] = [
+    {
+      key: "numero", header: "Nº", width: "80px",
+      sortValue: (q) => q.numero,
+      cell: (q) => <span className="font-semibold tabular-nums">#{q.numero}</span>,
+    },
+    {
+      key: "data", header: "Emissão", width: "110px",
+      sortValue: (q) => q.created_at,
+      cell: (q) => <span className="tabular-nums">{format(new Date(q.created_at), "dd/MM/yyyy")}</span>,
+    },
+    {
+      key: "tipo", header: "Tipo", width: "100px", align: "center",
+      sortValue: (q) => q.type,
+      cell: (q) => (
+        <Badge variant="outline" className="text-[10px]">
+          {q.type === "colheita" ? "Colheita" : "Frete"}
+        </Badge>
+      ),
+    },
+    {
+      key: "cliente", header: "Cliente",
+      sortValue: (q) => q.client?.razao_social || q.client?.full_name || "",
+      cell: (q) => <span className="truncate block max-w-[240px]">{q.client?.razao_social || q.client?.full_name || "—"}</span>,
+    },
+    {
+      key: "detalhe", header: "Detalhe",
+      sortValue: (q) => q.type === "colheita" ? (q.previsao_inicio || "") : `${q.origem_cidade || ""}`,
+      cell: (q) => q.type === "colheita" ? (
+        <span className="truncate block max-w-[240px] text-muted-foreground">
+          {q.previsao_inicio ? format(new Date(q.previsao_inicio + "T12:00:00"), "dd/MM/yy") : "?"} — {q.previsao_termino ? format(new Date(q.previsao_termino + "T12:00:00"), "dd/MM/yy") : "?"} · {q.quantidade_caminhoes || 1} cam.
+        </span>
+      ) : (
+        <span className="truncate block max-w-[240px] text-muted-foreground">
+          {q.origem_cidade}/{q.origem_uf} → {q.destino_cidade}/{q.destino_uf}
+        </span>
+      ),
+    },
+    {
+      key: "valor", header: "Valor", width: "130px", align: "right",
+      sortValue: (q) => q.valor_frete ?? q.valor_mensal_por_caminhao ?? 0,
+      cell: (q) => (
+        <span className="font-mono font-semibold">
+          {formatCurrency(q.type === "colheita" ? q.valor_mensal_por_caminhao : q.valor_frete)}
+        </span>
+      ),
+    },
+    {
+      key: "responsavel", header: "Responsável", width: "160px",
+      sortValue: (q) => q.creator?.full_name || "",
+      cell: (q) => <span className="truncate block max-w-[160px] text-muted-foreground">{q.creator?.full_name || "—"}</span>,
+    },
+    {
+      key: "status", header: "Status", width: "120px", align: "center",
+      sortValue: (q) => q.status,
+      cell: (q) => {
+        const st = STATUS_MAP[q.status] || STATUS_MAP.rascunho;
+        return <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>;
+      },
+    },
+  ];
 
-          {/* Action buttons */}
-          <div className="flex gap-1 pt-1">
-            <Button size="sm" variant="ghost" onClick={() => setDetailQuotation(q)} title="Ver"><Eye className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditQuotation(q)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => exportQuotationPDF(q, establishments)} title="PDF"><Download className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(q.id)} title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderColheitaCard = (q: Quotation) => {
-    const st = STATUS_MAP[q.status] || STATUS_MAP.rascunho;
-    const diaria = q.valor_mensal_por_caminhao ? q.valor_mensal_por_caminhao / 30 : null;
-    const totalDiaria = diaria != null ? diaria + (q.alimentacao_por_conta === "contratante" && q.valor_alimentacao_dia ? q.valor_alimentacao_dia : 0) : null;
-
-    return (
-      <Card key={q.id} className="flex flex-col justify-between">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Cotação #{q.numero}</CardTitle>
-            <Badge variant={st.variant}>{st.label}</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">{format(new Date(q.created_at), "dd/MM/yyyy HH:mm")}</p>
-        </CardHeader>
-        <CardContent className="space-y-4 flex-1">
-          <div className="space-y-1 text-sm">
-            <p><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{q.client?.razao_social || q.client?.full_name || "—"}</span></p>
-            <p><span className="text-muted-foreground">Período:</span> <span className="font-medium">
-              {q.previsao_inicio ? format(new Date(q.previsao_inicio + "T12:00:00"), "dd/MM/yy") : "?"} — {q.previsao_termino ? format(new Date(q.previsao_termino + "T12:00:00"), "dd/MM/yy") : "?"}
-            </span></p>
-            <div className="flex gap-4">
-              <p><span className="text-muted-foreground">Caminhões:</span> <span className="font-medium">{q.quantidade_caminhoes || 1}</span></p>
-              <p><span className="text-muted-foreground">Mensal:</span> <span className="font-medium">{formatCurrency(q.valor_mensal_por_caminhao)}</span></p>
-            </div>
-            <div className="flex gap-4">
-              <p><span className="text-muted-foreground">Diária:</span> <span className="font-medium">{diaria ? formatCurrency(diaria) : "—"}</span></p>
-              {totalDiaria != null && (
-                <p><span className="text-muted-foreground">Diária Total:</span> <span className="font-semibold text-primary">{formatCurrency(totalDiaria)}</span></p>
-              )}
-            </div>
-            {q.creator?.full_name && <p><span className="text-muted-foreground">Responsável:</span> <span className="font-medium">{q.creator.full_name}</span></p>}
-          </div>
-
-          {/* Status buttons */}
-          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
-            {q.status !== "rascunho" && (
-              <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleStatusChange(q, "rascunho")}>
-                <Clock className="h-3 w-3 mr-1" /> Rascunho
-              </Button>
-            )}
-            {q.status !== "em_aprovacao" && (
-              <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleStatusChange(q, "em_aprovacao")}>
-                <Send className="h-3 w-3 mr-1" /> Em Aprovação
-              </Button>
-            )}
-            {q.status !== "aprovada" && (
-              <Button size="sm" variant="outline" className="text-xs h-7 border-green-500/50 text-green-700 hover:bg-green-50" onClick={() => handleStatusChange(q, "aprovada")}>
-                <CheckCircle className="h-3 w-3 mr-1" /> Aprovar
-              </Button>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-1 pt-1">
-            <Button size="sm" variant="ghost" onClick={() => setDetailQuotation(q)} title="Ver"><Eye className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditQuotation(q)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => exportQuotationPDF(q, establishments)} title="PDF"><Download className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => handleDelete(q.id)} title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+  const toolbarActions = [
+    { key: "new-frete", label: "Nova Cotação de Frete", icon: FileText, mode: "always" as const, variant: "default" as const, onClick: () => openNewForm("frete") },
+    { key: "new-colheita", label: "Nova Cotação de Colheita", icon: Sprout, mode: "always" as const, variant: "outline" as const, onClick: () => openNewForm("colheita") },
+    { key: "detail", label: "Detalhes", icon: Eye, mode: "single" as const, disabled: !single, onClick: () => single && setDetailQuotation(single) },
+    { key: "edit", label: "Editar", icon: Pencil, mode: "single" as const, disabled: !single, onClick: () => single && setEditQuotation(single) },
+    { key: "pdf", label: "PDF", icon: Download, mode: "single" as const, disabled: !single, onClick: () => single && exportQuotationPDF(single, establishments) },
+    { key: "rascunho", label: "Rascunho", icon: Clock, mode: "single" as const, disabled: !single || single.status === "rascunho", onClick: () => single && handleStatusChange(single, "rascunho") },
+    { key: "aprovacao", label: "Em Aprovação", icon: Send, mode: "single" as const, disabled: !single || single.status === "em_aprovacao", onClick: () => single && handleStatusChange(single, "em_aprovacao") },
+    { key: "aprovar", label: "Aprovar", icon: CheckCircle, mode: "single" as const, disabled: !single || single.status === "aprovada", onClick: () => single && handleStatusChange(single, "aprovada") },
+    { key: "delete", label: "Excluir", icon: Trash2, mode: "single" as const, variant: "destructive" as const, disabled: !single, onClick: () => single && handleDelete(single.id) },
+  ];
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Cotações</h1>
-            <p className="text-muted-foreground">Gerencie propostas de frete e serviços de colheita</p>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" /> Nova Cotação
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => openNewForm("frete")} className="gap-2">
-                <FileText className="h-4 w-4" /> Cotação de Frete
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openNewForm("colheita")} className="gap-2">
-                <Sprout className="h-4 w-4" /> Cotação de Colheita
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <main className="container mx-auto px-4 py-6 space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold font-display">Cotações</h1>
+          <p className="text-sm text-muted-foreground">Gerencie propostas de frete e serviços de colheita</p>
         </div>
 
-        <Tabs defaultValue="todos" className="space-y-4">
-          <div className="flex items-center justify-between">
+        <GlobalToolbar actions={toolbarActions} selectedCount={selectedIds.size} />
+
+        <Tabs defaultValue="todos" className="space-y-4" onValueChange={() => setSelectedIds(new Set())}>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <TabsList>
               <TabsTrigger value="todos" className="gap-2">
                 Todos <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">{quotations.length}</Badge>
@@ -351,43 +299,39 @@ export default function AdminQuotations() {
           </div>
 
           <TabsContent value="todos">
-            {quotations.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">Nenhuma cotação criada</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {sortedAll.map((q) => q.type === "colheita" ? renderColheitaCard(q) : renderFreteCard(q))}
-              </div>
-            )}
+            <DataGrid
+              rows={sortedAll}
+              columns={baseColumns}
+              rowId={(q) => q.id}
+              selected={selectedIds}
+              onSelectedChange={setSelectedIds}
+              minWidth={1100}
+              emptyMessage="Nenhuma cotação criada"
+            />
           </TabsContent>
 
           <TabsContent value="frete">
-            <div className="flex justify-end mb-4">
-              <Button onClick={() => openNewForm("frete")} className="gap-2">
-                <Plus className="h-4 w-4" /> Nova Cotação de Frete
-              </Button>
-            </div>
-            {freteQuotations.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">Nenhuma cotação de frete criada</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {freteQuotations.map(renderFreteCard)}
-              </div>
-            )}
+            <DataGrid
+              rows={freteQuotations}
+              columns={baseColumns}
+              rowId={(q) => q.id}
+              selected={selectedIds}
+              onSelectedChange={setSelectedIds}
+              minWidth={1100}
+              emptyMessage="Nenhuma cotação de frete criada"
+            />
           </TabsContent>
 
           <TabsContent value="colheita">
-            <div className="flex justify-end mb-4">
-              <Button onClick={() => openNewForm("colheita")} className="gap-2">
-                <Plus className="h-4 w-4" /> Nova Cotação de Colheita
-              </Button>
-            </div>
-            {colheitaQuotations.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">Nenhuma cotação de colheita criada</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {colheitaQuotations.map(renderColheitaCard)}
-              </div>
-            )}
+            <DataGrid
+              rows={colheitaQuotations}
+              columns={baseColumns}
+              rowId={(q) => q.id}
+              selected={selectedIds}
+              onSelectedChange={setSelectedIds}
+              minWidth={1100}
+              emptyMessage="Nenhuma cotação de colheita criada"
+            />
           </TabsContent>
         </Tabs>
       </main>
@@ -427,3 +371,4 @@ export default function AdminQuotations() {
     </AdminLayout>
   );
 }
+

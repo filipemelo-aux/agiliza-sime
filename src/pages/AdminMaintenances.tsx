@@ -19,6 +19,9 @@ import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
 import { toast } from "sonner";
 import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 
 
 interface Maintenance {
@@ -221,20 +224,86 @@ export default function AdminMaintenances() {
     return maint.nfse_expense_id ? true : false;
   };
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedMaints = filtered.filter(m => selectedIds.has(m.id));
+  const singleMaint = selectedMaints.length === 1 ? selectedMaints[0] : null;
+
+  const maintColumns: DataGridColumn<Maintenance>[] = [
+    {
+      key: "placa", header: "Veículo", width: "140px",
+      sortValue: (m) => vehicleMap[m.veiculo_id]?.plate || "",
+      cell: (m) => {
+        const v = vehicleMap[m.veiculo_id];
+        return (
+          <div className="min-w-0">
+            <p className="font-semibold">{v?.plate || "—"}</p>
+            {v && <p className="text-[10px] text-muted-foreground truncate">{v.brand} {v.model}</p>}
+          </div>
+        );
+      },
+    },
+    {
+      key: "data", header: "Data", width: "100px",
+      sortValue: (m) => m.data_manutencao,
+      cell: (m) => <span className="tabular-nums">{format(new Date(m.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span>,
+    },
+    {
+      key: "tipo", header: "Tipo", width: "100px", align: "center",
+      sortValue: (m) => m.tipo_manutencao,
+      cell: (m) => (
+        <Badge variant="outline" className="text-[10px]">
+          {m.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}
+        </Badge>
+      ),
+    },
+    {
+      key: "descricao", header: "Descrição",
+      sortValue: (m) => m.descricao || "",
+      cell: (m) => <span className="truncate block max-w-[300px]">{m.descricao}</span>,
+    },
+    {
+      key: "fornecedor", header: "Fornecedor", width: "180px",
+      sortValue: (m) => m.fornecedor || "",
+      cell: (m) => <span className="truncate block max-w-[180px] text-muted-foreground">{m.fornecedor || "—"}</span>,
+    },
+    {
+      key: "docs", header: "Docs", width: "100px", align: "center",
+      sortValue: (m) => `${m.expense_id ? "1" : "0"}${m.nfse_expense_id ? "1" : "0"}`,
+      cell: (m) => (
+        <span className="inline-flex gap-1">
+          {m.expense_id && <Badge variant="outline" className="text-[9px]">NFe</Badge>}
+          {getNfseInfo(m) && <Badge variant="secondary" className="text-[9px]">NFSe</Badge>}
+        </span>
+      ),
+    },
+    {
+      key: "km", header: "KM", width: "100px", align: "right",
+      sortValue: (m) => Number(m.odometro),
+      cell: (m) => <span className="font-mono">{Number(m.odometro).toLocaleString("pt-BR")}</span>,
+    },
+    {
+      key: "custo", header: "Custo", width: "120px", align: "right",
+      sortValue: (m) => Number(m.custo_total),
+      cell: (m) => <span className="font-mono font-semibold">{formatCurrency(Number(m.custo_total))}</span>,
+    },
+    {
+      key: "status", header: "Status", width: "100px", align: "center",
+      sortValue: (m) => m.status,
+      cell: (m) => (
+        <Badge variant={STATUS_MAP[m.status]?.variant || "outline"} className="text-[10px]">
+          {STATUS_MAP[m.status]?.label || m.status}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h1 className="text-2xl font-bold text-foreground">Manutenções</h1>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => navigate("/admin/financial/payables")} className="gap-1.5 text-xs">
-              <FileText className="h-3.5 w-3.5" /> Via Contas a Pagar
-            </Button>
-            <Button size="sm" onClick={() => { setEditId(null); setFormOpen(true); }} className="gap-1.5 text-xs">
-              <Plus className="h-3.5 w-3.5" /> Nova Manutenção
-            </Button>
-          </div>
         </div>
+
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -293,92 +362,40 @@ export default function AdminMaintenances() {
           )}
         </div>
 
-        {/* Cards */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <Wrench className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground text-sm">Nenhuma manutenção encontrada</p>
-            <p className="text-xs text-muted-foreground mt-1">Crie uma despesa de manutenção em Contas a Pagar para registrar automaticamente.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map(item => {
-              const v = vehicleMap[item.veiculo_id];
-              const hasNfse = getNfseInfo(item);
-              return (
-                <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => openDetail(item)}>
-                  <CardContent className="p-4 space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Car className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{v?.plate || "—"}</p>
-                          {v && <p className="text-[11px] text-muted-foreground">{v.brand} {v.model}</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Badge variant="outline" className="text-[10px]">
-                          {item.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}
-                        </Badge>
-                        <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px]">
-                          {STATUS_MAP[item.status]?.label || item.status}
-                        </Badge>
-                      </div>
-                    </div>
+        <GlobalToolbar
+          actions={[
+            { key: "new", label: "Nova Manutenção", icon: Plus, mode: "always", variant: "default", onClick: () => { setEditId(null); setFormOpen(true); } },
+            { key: "payables", label: "Via Contas a Pagar", icon: FileText, mode: "always", variant: "outline", onClick: () => navigate("/admin/financial/payables") },
+            {
+              key: "detail", label: "Detalhes", icon: Eye, mode: "single",
+              disabled: !singleMaint,
+              onClick: () => singleMaint && openDetail(singleMaint),
+            },
+            {
+              key: "edit", label: "Editar", icon: Pencil, mode: "single",
+              disabled: !singleMaint,
+              onClick: () => { if (singleMaint) { setEditId(singleMaint.id); setFormOpen(true); } },
+            },
+            {
+              key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive",
+              disabled: !singleMaint,
+              onClick: () => singleMaint && setDeleteTarget(singleMaint),
+            },
+          ]}
+          selectedCount={selectedIds.size}
+        />
 
-                    {/* Description */}
-                    <p className="text-sm text-foreground line-clamp-2">{item.descricao}</p>
-                    {item.fornecedor && <p className="text-xs text-muted-foreground">Fornecedor: {item.fornecedor}</p>}
+        <DataGrid
+          rows={filtered}
+          columns={maintColumns}
+          rowId={(m) => m.id}
+          selected={selectedIds}
+          onSelectedChange={setSelectedIds}
+          loading={loading}
+          minWidth={1040}
+          emptyMessage="Nenhuma manutenção encontrada"
+        />
 
-                    {/* Docs badges */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {item.expense_id && (
-                        <Badge variant="outline" className="text-[10px] gap-1">
-                          <FileText className="h-3 w-3" /> NFe
-                        </Badge>
-                      )}
-                      {hasNfse && (
-                        <Badge variant="secondary" className="text-[10px] gap-1">
-                          <FileText className="h-3 w-3" /> NFSe
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Info grid */}
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Data</span>
-                        <p className="font-medium text-foreground">{format(new Date(item.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">KM</span>
-                        <p className="font-mono font-medium text-foreground">{Number(item.odometro).toLocaleString("pt-BR")}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Custo Total</span>
-                        <p className="font-mono font-semibold text-foreground">
-                          {formatCurrency(Number(item.custo_total))}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="pt-1 border-t border-border flex items-center justify-end">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={(e) => { e.stopPropagation(); openDetail(item); }}>
-                        <Eye className="h-3.5 w-3.5" /> Detalhes
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
 
         {/* Detail Dialog */}
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
