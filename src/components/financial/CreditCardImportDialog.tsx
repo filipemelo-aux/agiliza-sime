@@ -675,6 +675,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
     const amountNum = manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
     if (!amountNum || amountNum <= 0) { toast.error("Valor da parcela inválido."); return; }
+    if (manualItens.length > 0) {
+      if (gruposInvalidosManual(manualItens).length > 0) {
+        toast.error("As quantidades desmembradas não conferem com o item original.");
+        return;
+      }
+      if (Math.abs(somaItens(manualItens) - Number(amountNum.toFixed(2))) >= 0.01) {
+        toast.error("A soma dos itens precisa ser igual ao valor do lançamento.");
+        return;
+      }
+    }
+    const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
       posted_date: manualForm.posted_date,
@@ -689,11 +700,21 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: parcelaAtual,
       parcela_total: parcelaTotal,
       parcelas_expandidas: false,
+      itens_nota: manualItens.length > 0
+        ? manualItens.map((i) => ({
+            descricao: i.descricao,
+            quantidade: i.quantidade,
+            valor_unitario: i.valor_unitario,
+            valor_total: i.valor_total,
+            veiculo_id: i.veiculo_id || null,
+          }))
+        : null,
+      rateio_veiculos: rateio.length > 0 ? rateio : null,
     };
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
-  }, [manualForm, manualParcelaCalc]);
+  }, [manualForm, manualParcelaCalc, manualItens]);
 
   // ----- Nota Fiscal (NF-e / NFS-e) vinculada ao lançamento do cartão -----
   const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
