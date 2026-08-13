@@ -2064,10 +2064,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               />
               <p className="text-[10px] text-muted-foreground mt-1">Opcional — pode ser classificado depois na grade.</p>
             </div>
+
+            <ManualItemsEditor
+              itens={manualItens}
+              onChange={setManualItens}
+              vehicles={vehicles}
+              valorAlvo={manualValorLancado}
+              selectedUids={manualItemSel}
+              onSelectedChange={setManualItemSel}
+              novoDesc={manualNovoItem.desc}
+              novoQtd={manualNovoItem.qtd}
+              novoValor={manualNovoItem.valor}
+              onNovoChange={(p) => setManualNovoItem((f) => ({ ...f, ...p }))}
+            />
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={confirmManualItem}>Adicionar</Button>
+            <Button size="sm" onClick={confirmManualItem} disabled={!manualItensOk}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
