@@ -103,6 +103,7 @@ export function FiscalDocImportDialog({
   // Campos de item manual (NFS-e)
   const [novoItemDesc, setNovoItemDesc] = useState("");
   const [novoItemValor, setNovoItemValor] = useState("");
+  const [selectedUids, setSelectedUids] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
