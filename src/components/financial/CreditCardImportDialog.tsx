@@ -166,6 +166,13 @@ interface ItemRow {
   parcela_atual: number | null;
   parcela_total: number | null;
   parcelas_expandidas: boolean;
+  // Vínculo fiscal (NF-e / NFS-e) — a obrigação de pagamento permanece na fatura do cartão
+  documento_fiscal_tipo?: string | null;
+  documento_fiscal_numero?: string | null;
+  chave_nfe?: string | null;
+  fornecedor_cnpj?: string | null;
+  itens_nota?: any;
+  xml_original?: string | null;
   possible_duplicate?: boolean;
   duplicate_note?: string;
 }
