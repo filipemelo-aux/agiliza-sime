@@ -1291,6 +1291,19 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
   };
 
+  // Após adicionar um lançamento fiscal parcelado, replica automaticamente
+  // as parcelas nas faturas do cartão (mês a mês).
+  useEffect(() => {
+    if (!pendingExpandFitid) return;
+    const idx = items.findIndex((it) => it.fitid === pendingExpandFitid);
+    if (idx < 0) return;
+    setPendingExpandFitid(null);
+    void expandParcelas(idx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingExpandFitid, items]);
+
+
+
   const expandParcelasBatch = async () => {
     if (selectedIdxs.size === 0) return;
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
