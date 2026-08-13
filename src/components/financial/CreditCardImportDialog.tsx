@@ -654,7 +654,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
-  }, [manualForm]);
+  }, [manualForm, manualParcelaCalc]);
 
 
   const toggleSelected = useCallback((idx: number) => {
