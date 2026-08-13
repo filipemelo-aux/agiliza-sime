@@ -1925,6 +1925,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         selected={selectedIdxs.has(originalIdx)}
                         onToggleSelected={() => toggleSelected(originalIdx)}
                         onExpandParcelas={() => expandParcelas(originalIdx)}
+                        onAttachFiscal={() => { setFiscalAttachIdx(originalIdx); setFiscalDialogOpen(true); }}
                         expanding={expanding}
                         referenceYM={referenceYM}
                       />
