@@ -13,8 +13,8 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
-import VehicleRateioEditor, { type RateioVehicleOption } from "./VehicleRateioEditor";
-import { type RateioRow, validateRateio, distribuirIgualmente } from "@/lib/rateio";
+import { type RateioVehicleOption } from "./VehicleRateioEditor";
+import { type RateioRow } from "@/lib/rateio";
 
 export interface FiscalChartAccount {
   id: string; codigo: string; nome: string; tipo: string;
@@ -33,13 +33,13 @@ export interface FiscalDocResult {
   valor_parcela: number;
   parcela_atual: number | null;
   parcela_total: number | null;
-  itens: Array<{ descricao: string; quantidade: number; valor_unitario: number; valor_total: number }>;
+  itens: Array<{ descricao: string; quantidade: number; valor_unitario: number; valor_total: number; veiculo_id?: string | null }>;
   parcelas: NfeDuplicata[];
   xml_original: string | null;
   plano_contas_id: string | null;
   centro_custo: string;
   expandir: boolean;
-  /** Rateio do valor da parcela entre múltiplos veículos (opcional) */
+  /** Rateio do valor da parcela entre veículos, calculado a partir dos itens (opcional) */
   rateio: RateioRow[] | null;
 }
 
@@ -91,8 +91,6 @@ export function FiscalDocImportDialog({
   // Campos de item manual (NFS-e)
   const [novoItemDesc, setNovoItemDesc] = useState("");
   const [novoItemValor, setNovoItemValor] = useState("");
-  const [rateioAtivo, setRateioAtivo] = useState(false);
-  const [rateioRows, setRateioRows] = useState<RateioRow[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,7 +103,6 @@ export function FiscalDocImportDialog({
     setPlanoContasId(null); setCentroCusto("");
     setParcelaAtual("1"); setParcelaTotal("1"); setExpandir(true); setXmlLoaded(false);
     setNovoItemDesc(""); setNovoItemValor("");
-    setRateioAtivo(false); setRateioRows([]);
   }, [open, defaultDate, attachMode, attachDescription, attachAmount]);
 
   const valorTotal = Number(unmaskCurrency(valorTotalStr)) || 0;
@@ -119,6 +116,36 @@ export function FiscalDocImportDialog({
     }
     return valorTotal / nParcelas;
   }, [parcelas, parcelaAtual, valorTotal, nParcelas]);
+
+  /**
+   * Rateio automático por veículo: proporcional ao peso de cada item (já com impostos)
+   * sobre o valor lançado nesta fatura. Invisível ao usuário.
+   */
+  const rateioItens = useMemo<RateioRow[]>(() => {
+    const comVeiculo = itens.filter((i) => i.veiculo_id);
+    if (comVeiculo.length === 0 || itensTotal <= 0) return [];
+    const base = Number(valorParcela.toFixed(2));
+    const porVeiculo = new Map<string, number>();
+    for (const it of comVeiculo) {
+      const key = it.veiculo_id as string;
+      porVeiculo.set(key, (porVeiculo.get(key) || 0) + it.valor_total);
+    }
+    const entries = [...porVeiculo.entries()];
+    const somaAtribuida = entries.reduce((s, [, v]) => s + v, 0);
+    const totalCents = Math.round(base * 100 * (somaAtribuida / itensTotal));
+    let acc = 0;
+    return entries.map(([veiculo_id, valor], idx) => {
+      const cents = idx === entries.length - 1
+        ? totalCents - acc
+        : Math.round((valor / somaAtribuida) * totalCents);
+      acc += cents;
+      return {
+        veiculo_id,
+        valor_rateado: cents / 100,
+        percentual: base ? (cents / 100 / base) * 100 : null,
+      };
+    });
+  }, [itens, itensTotal, valorParcela]);
 
   const handleXmlFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,7 +162,7 @@ export function FiscalDocImportDialog({
         setValorTotalStr(maskCurrency(String(Math.round((parsed.valor_total || 0) * 100))));
         setItens((parsed.itens || []).map((i: NfeItem) => ({
           descricao: i.descricao, quantidade: i.quantidade,
-          valor_unitario: i.valor_unitario, valor_total: i.valor_total,
+          valor_unitario: i.valor_unitario, valor_total: i.valor_total, veiculo_id: null,
         })));
         setParcelas(parsed.duplicatas || []);
         setXmlOriginal(parsed.xml_original || null);
@@ -160,7 +187,7 @@ export function FiscalDocImportDialog({
     const d = novoItemDesc.trim();
     const v = Number(unmaskCurrency(novoItemValor)) || 0;
     if (!d || v <= 0) { toast.error("Informe descrição e valor do serviço."); return; }
-    setItens((prev) => [...prev, { descricao: d, quantidade: 1, valor_unitario: v, valor_total: v }]);
+    setItens((prev) => [...prev, { descricao: d, quantidade: 1, valor_unitario: v, valor_total: v, veiculo_id: null }]);
     setNovoItemDesc(""); setNovoItemValor("");
   };
 
@@ -174,10 +201,6 @@ export function FiscalDocImportDialog({
     if (!attachMode && total > 1 && expandir) {
       if (!planoContasId) { toast.error("Selecione o plano de contas para lançar as parcelas nas faturas."); return; }
       if (!centroCusto) { toast.error("Selecione o centro de custo para lançar as parcelas nas faturas."); return; }
-    }
-    if (rateioAtivo) {
-      const rErr = validateRateio(rateioRows, Number(valorParcela.toFixed(2)));
-      if (rErr) { toast.error(rErr); return; }
     }
     onConfirm({
       tipo: isNfse ? "nfse" : "nfe",
@@ -197,7 +220,7 @@ export function FiscalDocImportDialog({
       plano_contas_id: planoContasId,
       centro_custo: centroCusto,
       expandir: total > 1 && expandir && !attachMode,
-      rateio: rateioAtivo && rateioRows.length > 0 ? rateioRows : null,
+      rateio: rateioItens.length > 0 ? rateioItens : null,
     });
     onOpenChange(false);
   };
