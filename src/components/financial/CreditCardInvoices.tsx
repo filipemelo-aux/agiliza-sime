@@ -109,10 +109,10 @@ export function CreditCardInvoices() {
     {
       key: "card_name",
       header: "Cartão",
-      width: "300px",
+      width: "230px",
       sortValue: (r) => r.card_name,
       cell: (r) => (
-        <span className="font-medium text-foreground block truncate max-w-[300px]" title={r.card_name}>
+        <span className="font-medium text-foreground block truncate max-w-[230px]" title={r.card_name}>
           {r.card_name}
         </span>
       ),
