@@ -13,6 +13,8 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import VehicleRateioEditor, { type RateioVehicleOption } from "./VehicleRateioEditor";
+import { type RateioRow, validateRateio, distribuirIgualmente } from "@/lib/rateio";
 
 export interface FiscalChartAccount {
   id: string; codigo: string; nome: string; tipo: string;
@@ -37,6 +39,8 @@ export interface FiscalDocResult {
   plano_contas_id: string | null;
   centro_custo: string;
   expandir: boolean;
+  /** Rateio do valor da parcela entre múltiplos veículos (opcional) */
+  rateio: RateioRow[] | null;
 }
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -56,11 +60,13 @@ interface Props {
   attachMode?: boolean;
   attachDescription?: string;
   attachAmount?: number;
+  /** Veículos disponíveis para rateio (frota própria) */
+  vehicles?: RateioVehicleOption[];
   onConfirm: (data: FiscalDocResult) => void;
 }
 
 export function FiscalDocImportDialog({
-  open, onOpenChange, chartAccounts, defaultDate, attachMode, attachDescription, attachAmount, onConfirm,
+  open, onOpenChange, chartAccounts, defaultDate, attachMode, attachDescription, attachAmount, vehicles = [], onConfirm,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [isNfse, setIsNfse] = useState(false);
@@ -85,6 +91,8 @@ export function FiscalDocImportDialog({
   // Campos de item manual (NFS-e)
   const [novoItemDesc, setNovoItemDesc] = useState("");
   const [novoItemValor, setNovoItemValor] = useState("");
+  const [rateioAtivo, setRateioAtivo] = useState(false);
+  const [rateioRows, setRateioRows] = useState<RateioRow[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,6 +105,7 @@ export function FiscalDocImportDialog({
     setPlanoContasId(null); setCentroCusto("");
     setParcelaAtual("1"); setParcelaTotal("1"); setExpandir(true); setXmlLoaded(false);
     setNovoItemDesc(""); setNovoItemValor("");
+    setRateioAtivo(false); setRateioRows([]);
   }, [open, defaultDate, attachMode, attachDescription, attachAmount]);
 
   const valorTotal = Number(unmaskCurrency(valorTotalStr)) || 0;
@@ -166,6 +175,10 @@ export function FiscalDocImportDialog({
       if (!planoContasId) { toast.error("Selecione o plano de contas para lançar as parcelas nas faturas."); return; }
       if (!centroCusto) { toast.error("Selecione o centro de custo para lançar as parcelas nas faturas."); return; }
     }
+    if (rateioAtivo) {
+      const rErr = validateRateio(rateioRows, Number(valorParcela.toFixed(2)));
+      if (rErr) { toast.error(rErr); return; }
+    }
     onConfirm({
       tipo: isNfse ? "nfse" : "nfe",
       numero: numero.trim(),
@@ -184,6 +197,7 @@ export function FiscalDocImportDialog({
       plano_contas_id: planoContasId,
       centro_custo: centroCusto,
       expandir: total > 1 && expandir && !attachMode,
+      rateio: rateioAtivo && rateioRows.length > 0 ? rateioRows : null,
     });
     onOpenChange(false);
   };
