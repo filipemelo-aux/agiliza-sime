@@ -2144,7 +2144,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         <div className="flex items-center gap-0.5">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
-              className="h-6 text-[10px] w-full truncate pl-0.5 pr-1"
+              className="h-6 text-[10px] w-full truncate pl-0 pr-1"
               value={favorecidoLocal}
               onChange={(e) => {
                 const v = e.target.value;
