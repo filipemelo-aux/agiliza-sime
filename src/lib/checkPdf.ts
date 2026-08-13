@@ -109,8 +109,9 @@ export async function buildCheckPdf({
     const y0 = Number(layout.cruzamento_y) || 2;
     const altura = Number(layout.cruzamento_altura_mm) || 30;
     const espaco = Number(layout.cruzamento_espaco_mm) || 6;
-    doc.line(x0, y0, x0 + altura, y0 + altura);
-    doc.line(x0 + espaco, y0, x0 + espaco + altura, y0 + altura);
+    // Diagonais no sentido contrário: iniciam na direita e terminam na esquerda
+    doc.line(x0 + altura, y0, x0, y0 + altura);
+    doc.line(x0 + espaco + altura, y0, x0 + espaco, y0 + altura);
     doc.setDrawColor(255, 255, 255);
   }
 
