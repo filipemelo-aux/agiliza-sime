@@ -216,9 +216,10 @@ export function FiscalDocImportDialog({
         setFornecedorCnpj(parsed.fornecedor_cnpj || "");
         if (parsed.data_emissao) setDataEmissao(parsed.data_emissao);
         setValorTotalStr(maskCurrency(String(Math.round((parsed.valor_total || 0) * 100))));
-        setItens((parsed.itens || []).map((i: NfeItem) => ({
+        setItens((parsed.itens || []).map((i: NfeItem, ix: number) => ({
           descricao: i.descricao, quantidade: i.quantidade,
           valor_unitario: i.valor_unitario, valor_total: i.valor_total, veiculo_id: null,
+          grupo: `x${ix}`, qtd_original: i.quantidade, total_original: i.valor_total,
         })));
         setParcelas(parsed.duplicatas || []);
         setXmlOriginal(parsed.xml_original || null);
