@@ -580,6 +580,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       posted_date: defaultDate,
       description: "",
       amount: "",
+      amount_mode: "parcela",
       parcela_atual: "",
       parcela_total: "",
       plano_contas_id: null,
@@ -587,6 +588,26 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
+
+  // Quando o usuário informa o valor TOTAL da compra, calcula o valor da parcela
+  const manualParcelaCalc = useMemo(() => {
+    const valor = Number(unmaskCurrency(manualForm.amount)) || 0;
+    const nParcelas = Number(manualForm.parcela_total) || 0;
+    const atual = Number(manualForm.parcela_atual) || 0;
+    if (manualForm.amount_mode !== "total" || valor <= 0 || nParcelas <= 0) {
+      return { valorParcela: valor, valorTotal: valor * (nParcelas || 1), ajustada: false };
+    }
+    const totalCents = Math.round(valor * 100);
+    const baseCents = Math.floor(totalCents / nParcelas);
+    const restoCents = totalCents - baseCents * nParcelas;
+    const isUltima = atual > 0 && atual === nParcelas;
+    const parcelaCents = isUltima ? baseCents + restoCents : baseCents;
+    return {
+      valorParcela: parcelaCents / 100,
+      valorTotal: valor,
+      ajustada: isUltima && restoCents > 0,
+    };
+  }, [manualForm.amount, manualForm.amount_mode, manualForm.parcela_total, manualForm.parcela_atual]);
 
   const addManualItem = useCallback(() => {
     setManualForm(emptyManualForm());
@@ -596,8 +617,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const confirmManualItem = useCallback(() => {
     const desc = manualForm.description.trim();
     if (!desc) { toast.error("Informe a descrição do lançamento."); return; }
-    const amountNum = Number(unmaskCurrency(manualForm.amount));
-    if (!amountNum || amountNum <= 0) { toast.error("Informe um valor válido."); return; }
+    const informado = Number(unmaskCurrency(manualForm.amount));
+    if (!informado || informado <= 0) { toast.error("Informe um valor válido."); return; }
     if (!manualForm.posted_date) { toast.error("Informe a data do lançamento."); return; }
     const parcelaAtual = manualForm.parcela_atual ? Number(manualForm.parcela_atual) : null;
     const parcelaTotal = manualForm.parcela_total ? Number(manualForm.parcela_total) : null;
@@ -609,6 +630,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       toast.error("Parcela atual não pode ser maior que o total.");
       return;
     }
+    if (manualForm.amount_mode === "total" && !parcelaTotal) {
+      toast.error("Informe o total de parcelas para calcular o valor da parcela.");
+      return;
+    }
+    const amountNum = manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
+    if (!amountNum || amountNum <= 0) { toast.error("Valor da parcela inválido."); return; }
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
       posted_date: manualForm.posted_date,
