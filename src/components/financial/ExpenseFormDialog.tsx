@@ -476,7 +476,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
     setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
-    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
+    setVeiculoId(null); setRateioAtivo(false); setRateioRows([]); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
@@ -664,6 +664,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       : selectedAccount?.tipo_operacional === "combustivel" ? "combustivel"
       : "outros";
 
+    if (rateioAtivo && !isMaintenanceType) {
+      const rErr = validateRateio(rateioRows, Number(valorTotal) || 0);
+      if (rErr) return toast.error(rErr);
+    }
+
     setSaving(true);
     const payload: any = {
       empresa_id: empresaId || null, unidade_id: empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
@@ -678,7 +683,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       numero_cheque: formaPagamento === "cheque" ? (numeroCheque.trim() || null) : null,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      veiculo_id: veiculoId || null,
+      veiculo_id: (rateioAtivo && !isMaintenanceType) ? null : (veiculoId || null),
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
@@ -702,6 +707,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setSaving(false); return;
       }
       expenseId = data.id;
+    }
+
+    // Rateio por veículo (múltiplos veículos)
+    if (expenseId) {
+      try {
+        await saveRateio({ expense_id: expenseId }, rateioAtivo && !isMaintenanceType ? rateioRows : [], user?.id);
+      } catch (e: any) {
+        toast.warning("Despesa salva, mas houve erro ao gravar o rateio: " + (e?.message || ""));
+      }
     }
 
     if (expenseId && itensNota.length > 0) {
