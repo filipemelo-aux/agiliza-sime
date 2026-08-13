@@ -2144,7 +2144,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           );
         })()}
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle min-w-[150px] w-[15%]">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[130px] w-[14%]">
         <div className="flex items-center gap-1">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
@@ -2226,7 +2226,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </Button>
         </div>
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle min-w-[180px] w-[20%]">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[160px] w-[18%]">
         <Input
           className="h-7 text-[11px] w-full min-w-0 truncate"
           value={descriptionLocal}
