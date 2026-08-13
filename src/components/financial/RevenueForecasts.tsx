@@ -23,6 +23,8 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+
 
 interface Previsao {
   id: string;
