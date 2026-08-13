@@ -2296,7 +2296,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
       <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap w-[100px]">
         {formatCurrency(item.amount)}
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle min-w-[130px] w-[14%]">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[110px] w-[12%]">
         {item.possible_duplicate ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
             <div className="flex items-start gap-1.5">
@@ -2336,7 +2336,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           <span className="text-[10px] text-muted-foreground">—</span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle min-w-[170px] w-[16%]">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[150px] w-[14%]">
 
         <PlanoContasCombobox
           value={item.plano_contas_id}
