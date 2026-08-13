@@ -128,8 +128,14 @@ export async function buildCheckPdf({
   }
 
   if (imprimirCanhoto) {
-    doc.setFontSize(8);
+    // Valor do canhoto: mesmo tamanho e negrito do valor numérico do talão
+    doc.setFont("courier", "bold");
+    doc.setFontSize(10);
     doc.text(valorStr.slice(0, 17), Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic", align: "left" });
+
+    // Demais campos do canhoto voltam ao tamanho padrão
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8);
     doc.text(formatDateBR(dataISO).toUpperCase().slice(0, 17), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic", align: "left" });
     const nominalUp = (nominal || "").toUpperCase();
     doc.text(nominalUp.slice(0, 17), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic", align: "left" });
@@ -140,7 +146,9 @@ export async function buildCheckPdf({
     }
     doc.text((historico || "").toUpperCase().slice(0, 17), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic", align: "left" });
     if (bomParaCanhoto) {
+      doc.setFont("courier", "bold");
       doc.text(bomParaCanhoto.slice(0, 17), Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic", align: "left" });
+      doc.setFont("courier", "normal");
     }
     doc.setFontSize(10);
   }
