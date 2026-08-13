@@ -2339,19 +2339,36 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-1 align-middle min-w-[160px] w-[18%]">
-        <Input
-          className="h-6 text-[10px] w-full min-w-0 truncate px-1"
-          value={descriptionLocal}
-          onChange={(e) => setDescriptionLocal(e.target.value)}
-          onBlur={() => {
-            if (descriptionLocal !== item.description) {
-              onUpdate(idx, { description: descriptionLocal });
+        <div className="flex items-center gap-1 min-w-0">
+          <Input
+            className="h-6 text-[10px] w-full min-w-0 truncate px-1"
+            value={descriptionLocal}
+            onChange={(e) => setDescriptionLocal(e.target.value)}
+            onBlur={() => {
+              if (descriptionLocal !== item.description) {
+                onUpdate(idx, { description: descriptionLocal });
+              }
+            }}
+            disabled={isClosed}
+            title={descriptionLocal}
+            placeholder="Descrição do gasto"
+          />
+          <Button
+            type="button"
+            variant={item.documento_fiscal_numero ? "secondary" : "outline"}
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            disabled={isClosed}
+            onClick={onAttachFiscal}
+            title={
+              item.documento_fiscal_numero
+                ? `${item.documento_fiscal_tipo === "nfse" ? "NFS-e" : "NF-e"} ${item.documento_fiscal_numero} vinculada — clique para substituir`
+                : "Vincular XML (NF-e) ou Nota de Serviço a este lançamento"
             }
-          }}
-          disabled={isClosed}
-          title={descriptionLocal}
-          placeholder="Descrição do gasto"
-        />
+          >
+            <FileText className="w-3 h-3" />
+          </Button>
+        </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-[110px]">
         <div className="flex items-center gap-1 justify-end">
