@@ -155,6 +155,7 @@ const buildParcelaPatch = (source: ItemRow, target: ItemRow): Partial<ItemRow> =
 
 import VehicleRateioEditor from "./VehicleRateioEditor";
 import { type RateioRow, validateRateio, sumRateio, distribuirIgualmente } from "@/lib/rateio";
+import ManualItemsEditor, { type ManualItem, gruposInvalidosManual, somaItens, rateioFromItens } from "./ManualItemsEditor";
 
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
