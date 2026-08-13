@@ -2152,6 +2152,52 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         onConfirm={handleFiscalConfirm}
       />
 
+      {/* Rateio por veículo do lançamento do cartão */}
+      <Dialog open={rateioIdx !== null} onOpenChange={(o) => { if (!o) setRateioIdx(null); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Rateio entre veículos</DialogTitle>
+          </DialogHeader>
+          {rateioIdx !== null && items[rateioIdx] && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                {items[rateioIdx].description} — {formatCurrency(items[rateioIdx].amount)}
+              </p>
+              <VehicleRateioEditor
+                rows={items[rateioIdx].rateio_veiculos || []}
+                onChange={(rows) => updateItem(rateioIdx, { rateio_veiculos: rows })}
+                vehicles={vehicles}
+                valorTotal={items[rateioIdx].amount}
+              />
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { updateItem(rateioIdx, { rateio_veiculos: null }); setRateioIdx(null); }}
+                >
+                  Remover rateio
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const rows = items[rateioIdx].rateio_veiculos || [];
+                    const err = validateRateio(rows, items[rateioIdx].amount);
+                    if (err) return toast.error(err);
+                    updateItem(rateioIdx, { veiculo_id: null });
+                    setRateioIdx(null);
+                    toast.success("Rateio definido. Salve a fatura para gravar.");
+                  }}
+                >
+                  Confirmar rateio
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
+
     </Dialog>
 
   );
