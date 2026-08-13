@@ -324,6 +324,26 @@ export function FiscalDocImportDialog({
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{it.quantidade}</TableCell>
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{formatCurrency(it.valor_unitario)}</TableCell>
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{formatCurrency(it.valor_total)}</TableCell>
+                        {vehicles.length > 0 && (
+                          <TableCell className="py-1">
+                            <Select
+                              value={it.veiculo_id || "__none__"}
+                              onValueChange={(v) =>
+                                setItens((prev) => prev.map((r, j) => (j === i ? { ...r, veiculo_id: v === "__none__" ? null : v } : r)))
+                              }
+                            >
+                              <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="—" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__" className="text-xs">— sem veículo —</SelectItem>
+                                {vehicles.map((v) => (
+                                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                                    {v.plate}{v.model ? ` • ${v.model}` : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        )}
                         {isNfse && (
                           <TableCell className="py-1">
                             <Button
