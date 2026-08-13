@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split, X } from "lucide-react";
 import { exportToCsv } from "@/lib/csvExport";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
