@@ -86,11 +86,21 @@ export async function buildCheckPdf({
   if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
   doc.text((nominal || "").toUpperCase(), Number(layout.nominal_x), Number(layout.nominal_y));
   doc.text(cidade.trim().toUpperCase(), Number(layout.cidade_x), Number(layout.cidade_y));
-  doc.text(
-    `${String(d).padStart(2, "0")} ${(MESES[m - 1] || "").toUpperCase()} ${y}`,
-    Number(layout.data_x),
-    Number(layout.data_y),
-  );
+  const diaTxt = String(d).padStart(2, "0");
+  const mesTxt = (MESES[m - 1] || "").toUpperCase();
+  const anoTxt = String(y);
+  const diaX = Number(layout.data_dia_x) || 0;
+  const mesX = Number(layout.data_mes_x) || 0;
+  const anoX = Number(layout.data_ano_x) || 0;
+  if (diaX || mesX || anoX) {
+    // Posicionamento individual de dia, mês e ano
+    const dataY = Number(layout.data_y) || 0;
+    if (diaX) doc.text(diaTxt, diaX, Number(layout.data_dia_y) || dataY);
+    if (mesX) doc.text(mesTxt, mesX, Number(layout.data_mes_y) || dataY);
+    if (anoX) doc.text(anoTxt, anoX, Number(layout.data_ano_y) || dataY);
+  } else {
+    doc.text(`${diaTxt} ${mesTxt} ${anoTxt}`, Number(layout.data_x), Number(layout.data_y));
+  }
 
   if (cruzado) {
     doc.setDrawColor(0, 0, 0);
