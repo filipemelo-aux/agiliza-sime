@@ -554,7 +554,7 @@ export function FiscalDocImportDialog({
 
         <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="button" onClick={handleConfirm}>
+          <Button type="button" onClick={handleConfirm} disabled={gruposInvalidos.length > 0}>
             {attachMode ? "Vincular nota" : "Adicionar à fatura"}
           </Button>
         </DialogFooter>
