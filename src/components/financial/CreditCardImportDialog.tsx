@@ -1734,11 +1734,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 )}
               </div>
 
-              <div className="border rounded-md">
-                <Table className="table-fixed w-full text-[11px]">
+              <div className="border rounded-md overflow-x-auto">
+                <Table className="w-full text-[11px] min-w-[1100px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead style={{ width: 32 }} className="px-1">
+                      <TableHead className="px-1 w-8">
                         <Checkbox
                           checked={items.length > 0 && selectedIdxs.size === items.length}
                           onCheckedChange={toggleSelectAll}
@@ -1747,34 +1747,34 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
-                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[88px]">
                         <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 160 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] min-w-[150px] w-[15%]">
                         <SortHeader label="Favorecido" sortKey="favorecido" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] w-[28%]">
+                      <TableHead className="px-1 text-[11px] min-w-[180px] w-[20%]">
                         <SortHeader label="Descrição" sortKey="description" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[110px]">
                         <SortHeader label="Parcelas" sortKey="parcelas" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 80 }} className="px-1 text-right text-[11px]">
+                      <TableHead className="px-1 text-right text-[11px] w-[100px]">
                         <SortHeader label="Valor" sortKey="amount" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] w-[22%]">
+                      <TableHead className="px-1 text-[11px] min-w-[130px] w-[14%]">
                         Conferência
                       </TableHead>
-                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] min-w-[170px] w-[16%]">
                         <SortHeader label="Plano de Contas" sortKey="plano_contas" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 104 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[120px]">
                         <SortHeader label="C. Custo" sortKey="centro_custo" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 88 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[100px]">
                         <SortHeader label="Veículo" sortKey="veiculo" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 32 }} className="px-1"></TableHead>
+                      <TableHead className="px-1 w-10"></TableHead>
 
                     </TableRow>
                   </TableHeader>
