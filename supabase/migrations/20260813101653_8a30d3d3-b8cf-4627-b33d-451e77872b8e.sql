@@ -1,0 +1,7 @@
+ALTER TABLE public.check_layouts
+  ADD COLUMN IF NOT EXISTS data_dia_x numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS data_dia_y numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS data_mes_x numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS data_mes_y numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS data_ano_x numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS data_ano_y numeric NOT NULL DEFAULT 0;
