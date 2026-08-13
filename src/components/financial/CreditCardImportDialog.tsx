@@ -2012,8 +2012,6 @@ interface InvoiceItemRowProps {
   vehicles: VehicleOption[];
   onUpdate: (idx: number, patch: Partial<ItemRow>) => void;
   onRemove: (idx: number) => void;
-  searchOpen: boolean;
-  onSearchOpenChange: (o: boolean) => void;
   onOpenCreate: () => void;
   wasEdited: boolean;
   selected: boolean;
