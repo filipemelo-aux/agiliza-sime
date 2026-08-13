@@ -409,35 +409,75 @@ export function FiscalDocImportDialog({
           )}
 
           {itens.length > 0 && (
-            <div className="border rounded-md">
-              <ScrollArea className="max-h-48">
+            <div className="space-y-2">
+              <GlobalToolbar
+                selectedCount={selectedRows.length}
+                actions={[
+                  {
+                    key: "split", label: "Desmembrar", icon: Split, mode: "single",
+                    onClick: splitSelected, disabled: !canDesmembrar,
+                  },
+                  {
+                    key: "undo-split", label: "Desfazer desmembramento", icon: Undo2, mode: "single+batch",
+                    onClick: undoSplitSelected, disabled: !canDesfazer,
+                  },
+                  {
+                    key: "remove", label: "Remover item", icon: Trash2, mode: "batch",
+                    variant: "destructive", onClick: removeSelected, hidden: !isNfse,
+                  },
+                ]}
+              >
+                <span className="text-[11px] text-muted-foreground">
+                  Selecione uma linha para desmembrar em múltiplos veículos
+                </span>
+              </GlobalToolbar>
+
+              <div className="border rounded-md">
+              <ScrollArea className="max-h-56">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-8" />
                       <TableHead className="text-[10px]">Item</TableHead>
                       <TableHead className="text-[10px] w-20 text-right">Qtd</TableHead>
                       <TableHead className="text-[10px] w-28 text-right">Unit.</TableHead>
                       <TableHead className="text-[10px] w-28 text-right">Total</TableHead>
                       {vehicles.length > 0 && <TableHead className="text-[10px] w-40">Veículo</TableHead>}
-                      {isNfse && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {itens.map((it, i) => {
-                      const desmembrado = !!it.grupo && itens.filter((r) => r.grupo === it.grupo).length > 1;
+                    {itens.map((it) => {
+                      const uid = it.uid as string;
+                      const desmembrado = !!it.grupo && (grupoCount.get(it.grupo) || 0) > 1;
+                      const selected = selectedUids.includes(uid);
                       return (
-                      <TableRow key={i}>
-                        <TableCell className="text-[11px] py-1">
-                          {it.descricao}
-                          {desmembrado && <span className="ml-1 text-[9px] text-muted-foreground">(desmembrado)</span>}
+                      <TableRow
+                        key={uid}
+                        data-state={selected ? "selected" : undefined}
+                        className="cursor-pointer"
+                        onClick={() =>
+                          setSelectedUids((prev) => (prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]))
+                        }
+                      >
+                        <TableCell className="py-1" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selected}
+                            onCheckedChange={() =>
+                              setSelectedUids((prev) => (prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]))
+                            }
+                          />
                         </TableCell>
-                        <TableCell className="text-[11px] py-1 text-right tabular-nums">
+                        <TableCell className="text-[11px] py-1">
+                          {desmembrado && <span className="mr-1 text-muted-foreground">↳</span>}
+                          {it.descricao}
+                        </TableCell>
+                        <TableCell className="text-[11px] py-1 text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
                           {desmembrado ? (
                             <Input
                               className="h-6 text-[11px] text-right px-1"
                               inputMode="decimal"
                               value={String(it.quantidade)}
-                              onChange={(e) => updateQuantidade(i, e.target.value)}
+                              onChange={(e) => updateQuantidade(uid, e.target.value)}
                             />
                           ) : (
                             it.quantidade
@@ -446,57 +486,23 @@ export function FiscalDocImportDialog({
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{formatCurrency(it.valor_unitario)}</TableCell>
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{formatCurrency(it.valor_total)}</TableCell>
                         {vehicles.length > 0 && (
-                          <TableCell className="py-1">
-                            <div className="flex items-center gap-1">
-                              <Select
-                                value={it.veiculo_id || "__none__"}
-                                onValueChange={(v) =>
-                                  setItens((prev) => prev.map((r, j) => (j === i ? { ...r, veiculo_id: v === "__none__" ? null : v } : r)))
-                                }
-                              >
-                                <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="—" /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__" className="text-xs">— sem veículo —</SelectItem>
-                                  {vehicles.map((v) => (
-                                    <SelectItem key={v.id} value={v.id} className="text-xs">
-                                      {v.plate}{v.model ? ` • ${v.model}` : ""}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0"
-                                      onClick={() => splitItem(i)}
-                                    >
-                                      <Split className="w-3 h-3" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="text-xs">Desmembrar item para múltiplos veículos</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              {desmembrado && (
-                                <Button
-                                  type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0"
-                                  title="Remover esta sub-linha"
-                                  onClick={() => setItens((prev) => prev.filter((_, j) => j !== i))}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        )}
-                        {isNfse && (
-                          <TableCell className="py-1">
-                            <Button
-                              type="button" variant="ghost" size="icon" className="h-6 w-6"
-                              onClick={() => setItens((prev) => prev.filter((_, j) => j !== i))}
+                          <TableCell className="py-1" onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={it.veiculo_id || "__none__"}
+                              onValueChange={(v) =>
+                                setItens((prev) => prev.map((r) => (r.uid === uid ? { ...r, veiculo_id: v === "__none__" ? null : v } : r)))
+                              }
                             >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                              <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="—" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__" className="text-xs">— sem veículo —</SelectItem>
+                                {vehicles.map((v) => (
+                                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                                    {v.plate}{v.model ? ` • ${v.model}` : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                         )}
                       </TableRow>
