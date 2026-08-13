@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -390,11 +391,14 @@ export default function AdminMaintenances() {
           columns={maintColumns}
           rowId={(m) => m.id}
           selected={selectedIds}
+          rowClassName={(m) => rowToneClass(m.status === "realizada" ? "resolved" : "pending")}
           onSelectedChange={setSelectedIds}
           loading={loading}
           minWidth={1040}
           emptyMessage="Nenhuma manutenção encontrada"
         />
+
+        <StatusLegend className="px-1" items={[{ tone: "pending", label: "Pendente" }, { tone: "resolved", label: "Realizada" }]} />
 
 
         {/* Detail Dialog */}

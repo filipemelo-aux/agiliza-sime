@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -844,6 +845,7 @@ export function FinancialPaid() {
         selected={selectedIds}
         onSelectedChange={setSelectedIds}
         isSelectable={(r) => r.source === "expense_payment" || r.source === "group"}
+        rowClassName={() => rowToneClass("resolved")}
         loading={loading}
         minWidth={1060}
         emptyMessage="Nenhuma conta paga encontrada."
@@ -854,6 +856,8 @@ export function FinancialPaid() {
           </div>
         }
       />
+
+      <StatusLegend className="px-1" items={[{ tone: "resolved", label: "Pago / quitado" }]} />
 
 
       {/* Detail Dialog */}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Printer } from "lucide-react";
@@ -108,37 +109,42 @@ export function CreditCardInvoices() {
     {
       key: "card_name",
       header: "Cartão",
+      width: "230px",
       sortValue: (r) => r.card_name,
-      cell: (r) => <span className="font-medium text-foreground whitespace-nowrap">{r.card_name}</span>,
+      cell: (r) => (
+        <span className="font-medium text-foreground block truncate max-w-[230px]" title={r.card_name}>
+          {r.card_name}
+        </span>
+      ),
     },
     {
       key: "reference_label",
       header: "Referência",
-      width: "140px",
+      width: "110px",
       sortValue: (r) => r.reference_label || "",
-      cell: (r) => r.reference_label || "—",
+      cell: (r) => <span className="whitespace-nowrap">{r.reference_label || "—"}</span>,
     },
     {
       key: "closing_date",
       header: "Fechamento",
-      width: "110px",
+      width: "100px",
       sortValue: (r) => r.closing_date || "",
       cell: (r) => formatDate(r.closing_date),
     },
     {
       key: "due_date",
       header: "Vencimento",
-      width: "110px",
+      width: "100px",
       sortValue: (r) => r.due_date,
       cell: (r) => formatDate(r.due_date),
     },
     {
       key: "ofx_file_name",
       header: "OFX",
-      width: "140px",
+      width: "120px",
       sortValue: (r) => r.ofx_file_name || "",
       cell: (r) => (
-        <span className="truncate block max-w-[140px] text-muted-foreground" title={r.ofx_file_name || ""}>
+        <span className="truncate block max-w-[120px] text-muted-foreground" title={r.ofx_file_name || ""}>
           {r.ofx_file_name || "—"}
         </span>
       ),
@@ -146,7 +152,7 @@ export function CreditCardInvoices() {
     {
       key: "status",
       header: "Status",
-      width: "110px",
+      width: "92px",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => (
@@ -158,10 +164,10 @@ export function CreditCardInvoices() {
     {
       key: "total_amount",
       header: "Total",
-      width: "130px",
+      width: "120px",
       align: "right",
       sortValue: (r) => Number(r.total_amount),
-      cell: (r) => <span className="font-mono font-semibold">{formatCurrency(Number(r.total_amount))}</span>,
+      cell: (r) => <span className="font-mono font-semibold whitespace-nowrap">{formatCurrency(Number(r.total_amount))}</span>,
     },
   ];
 
@@ -182,9 +188,10 @@ export function CreditCardInvoices() {
         columns={columns}
         rowId={(r) => r.id}
         selected={selected}
+        rowClassName={(r) => rowToneClass(r.status === "fechada" ? "resolved" : "pending")}
         onSelectedChange={setSelected}
         loading={loading}
-        minWidth={980}
+        minWidth={760}
         emptyMessage='Nenhuma fatura registrada. Clique em "Nova Fatura" para começar.'
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
@@ -198,6 +205,8 @@ export function CreditCardInvoices() {
           </div>
         }
       />
+
+      <StatusLegend className="px-1" items={[{ tone: "pending", label: "Fatura aberta" }, { tone: "resolved", label: "Fechada / lançada no Contas a Pagar" }]} />
 
       <CreditCardImportDialog
         open={openDialog}

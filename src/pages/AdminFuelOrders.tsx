@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -204,11 +205,14 @@ export default function AdminFuelOrders() {
           columns={columns}
           rowId={(o) => o.id}
           selected={selectedIds}
+          rowClassName={(o) => rowToneClass(o.status === "aprovada" ? "resolved" : o.status === "cancelada" ? "overdue" : "pending")}
           onSelectedChange={setSelectedIds}
           loading={loading}
           minWidth={1160}
           emptyMessage="Nenhuma ordem de abastecimento encontrada"
         />
+
+        <StatusLegend className="px-1" items={[{ tone: "pending", label: "Pendente / enviada" }, { tone: "resolved", label: "Aprovada" }, { tone: "overdue", label: "Cancelada" }]} />
 
 
         <FuelOrderFormDialog

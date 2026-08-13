@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -1117,9 +1118,6 @@ export function FinancialPayables() {
           <Badge variant={STATUS_MAP[r.status]?.variant || "outline"} className="text-[10px]">
             {STATUS_MAP[r.status]?.label || r.status}
           </Badge>
-          {r.isDueToday && (
-            <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 pointer-events-none">Hoje</Badge>
-          )}
         </span>
       ),
     },
@@ -1609,7 +1607,9 @@ tfoot{display:table-row-group}
         loading={loading}
         minWidth={1120}
         emptyMessage="Nenhuma despesa encontrada"
-        rowClassName={(r) => (r.isOverdue ? "text-destructive" : "")}
+        rowClassName={(r) =>
+          rowToneClass(r.status === "pago" ? "resolved" : r.isOverdue || r.status === "atrasado" ? "overdue" : "pending")
+        }
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{flatRows.length} registro(s)</span>
@@ -1620,6 +1620,14 @@ tfoot{display:table-row-group}
         }
       />
 
+      <StatusLegend
+        className="px-1"
+        items={[
+          { tone: "pending", label: "A vencer / pendente" },
+          { tone: "resolved", label: "Pago / quitado" },
+          { tone: "overdue", label: "Vencido / atrasado" },
+        ]}
+      />
 
       <ExpenseFormDialog
         open={formOpen}

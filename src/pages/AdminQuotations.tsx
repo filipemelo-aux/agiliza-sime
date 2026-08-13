@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -303,6 +304,7 @@ export default function AdminQuotations() {
               rows={sortedAll}
               columns={baseColumns}
               rowId={(q) => q.id}
+              rowClassName={(q) => rowToneClass(q.status === "aprovada" ? "resolved" : q.status === "recusada" ? "overdue" : "pending")}
               selected={selectedIds}
               onSelectedChange={setSelectedIds}
               minWidth={1100}
@@ -315,6 +317,7 @@ export default function AdminQuotations() {
               rows={freteQuotations}
               columns={baseColumns}
               rowId={(q) => q.id}
+              rowClassName={(q) => rowToneClass(q.status === "aprovada" ? "resolved" : q.status === "recusada" ? "overdue" : "pending")}
               selected={selectedIds}
               onSelectedChange={setSelectedIds}
               minWidth={1100}
@@ -327,6 +330,7 @@ export default function AdminQuotations() {
               rows={colheitaQuotations}
               columns={baseColumns}
               rowId={(q) => q.id}
+              rowClassName={(q) => rowToneClass(q.status === "aprovada" ? "resolved" : q.status === "recusada" ? "overdue" : "pending")}
               selected={selectedIds}
               onSelectedChange={setSelectedIds}
               minWidth={1100}
@@ -334,6 +338,8 @@ export default function AdminQuotations() {
             />
           </TabsContent>
         </Tabs>
+
+        <StatusLegend className="px-1 pt-2" items={[{ tone: "pending", label: "Rascunho / em aprovação" }, { tone: "resolved", label: "Aprovada" }, { tone: "overdue", label: "Recusada" }]} />
       </main>
 
       {showForm && user && (

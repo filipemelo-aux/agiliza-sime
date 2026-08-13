@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -593,11 +594,14 @@ export default function FreightCte() {
             columns={cteColumns}
             rowId={(c) => c.id}
             selected={selectedIds}
+            rowClassName={(c) => rowToneClass(c.status === "autorizado" ? "resolved" : ["cancelado", "rejeitado", "denegado"].includes(c.status) ? "overdue" : "pending")}
             onSelectedChange={setSelectedIds}
             loading={loading}
             minWidth={860}
             emptyMessage='Nenhum CT-e encontrado. Clique em "Novo CT-e" para criar o primeiro.'
           />
+
+          <StatusLegend className="px-1 pt-2" items={[{ tone: "pending", label: "Rascunho / processando" }, { tone: "resolved", label: "Autorizado" }, { tone: "overdue", label: "Cancelado / rejeitado" }]} />
         </div>
 
       </div>
