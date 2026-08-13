@@ -1686,6 +1686,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             >
               <Plus className="w-3 h-3 mr-1" /> Novo lançamento
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); }}
+              disabled={isClosed}
+              title="Importar XML (NF-e) ou lançar Nota de Serviço (NFS-e) direto na fatura do cartão"
+            >
+              <FileText className="w-3 h-3 mr-1" /> XML / Nota de Serviço
+            </Button>
             {ofxFileName && (
               <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 truncate max-w-[40%]">
                 <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">{ofxFileName}{ofxBank ? ` • ${ofxBank}` : ""}</span>
