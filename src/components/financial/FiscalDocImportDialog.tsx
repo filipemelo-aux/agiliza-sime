@@ -37,6 +37,8 @@ export interface FiscalDocResult {
   itens: Array<{
     descricao: string; quantidade: number; valor_unitario: number; valor_total: number;
     veiculo_id?: string | null;
+    /** Identificador único da linha na UI */
+    uid?: string;
     /** Identificador do item original da nota (linhas desmembradas compartilham o grupo) */
     grupo?: string;
     /** Quantidade original do item no XML (para validar o desmembramento) */
