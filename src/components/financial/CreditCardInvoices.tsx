@@ -109,10 +109,10 @@ export function CreditCardInvoices() {
     {
       key: "card_name",
       header: "Cartão",
-      width: "260px",
+      width: "300px",
       sortValue: (r) => r.card_name,
       cell: (r) => (
-        <span className="font-medium text-foreground block truncate max-w-[260px]" title={r.card_name}>
+        <span className="font-medium text-foreground block truncate max-w-[300px]" title={r.card_name}>
           {r.card_name}
         </span>
       ),
@@ -164,10 +164,10 @@ export function CreditCardInvoices() {
     {
       key: "total_amount",
       header: "Total",
-      width: "110px",
+      width: "120px",
       align: "right",
       sortValue: (r) => Number(r.total_amount),
-      cell: (r) => <span className="font-mono font-semibold">{formatCurrency(Number(r.total_amount))}</span>,
+      cell: (r) => <span className="font-mono font-semibold whitespace-nowrap">{formatCurrency(Number(r.total_amount))}</span>,
     },
   ];
 
