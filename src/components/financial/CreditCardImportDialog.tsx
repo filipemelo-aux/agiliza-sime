@@ -26,6 +26,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
+import { FiscalDocImportDialog, type FiscalDocResult } from "./FiscalDocImportDialog";
 
 
 const MONTHS_PT_LONG = [
