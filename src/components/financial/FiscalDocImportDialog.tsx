@@ -583,12 +583,7 @@ export function FiscalDocImportDialog({
                     onCheckedChange={(v) => setExpandir(!!v)}
                     className="mt-0.5"
                   />
-                  <span>
-                    Lançar as parcelas nas faturas do cartão (mês a mês).
-                    <span className="block text-muted-foreground">
-                      A dívida fica na fatura do cartão — não gera títulos no Contas a Pagar.
-                    </span>
-                  </span>
+                  <span>Lançar as parcelas mês a mês</span>
                 </label>
               </div>
             </div>
