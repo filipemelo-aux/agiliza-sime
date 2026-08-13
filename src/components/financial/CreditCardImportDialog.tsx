@@ -564,6 +564,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     posted_date: string;
     description: string;
     amount: string; // masked currency string
+    amount_mode: "parcela" | "total";
     parcela_atual: string;
     parcela_total: string;
     plano_contas_id: string | null;
