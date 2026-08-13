@@ -1177,6 +1177,67 @@ export type Database = {
           },
         ]
       }
+      despesa_rateio_veiculos: {
+        Row: {
+          card_item_id: string | null
+          created_at: string
+          created_by: string | null
+          expense_id: string | null
+          id: string
+          observacao: string | null
+          percentual: number | null
+          updated_at: string
+          valor_rateado: number
+          veiculo_id: string
+        }
+        Insert: {
+          card_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string | null
+          id?: string
+          observacao?: string | null
+          percentual?: number | null
+          updated_at?: string
+          valor_rateado?: number
+          veiculo_id: string
+        }
+        Update: {
+          card_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string | null
+          id?: string
+          observacao?: string | null
+          percentual?: number | null
+          updated_at?: string
+          valor_rateado?: number
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesa_rateio_veiculos_card_item_id_fkey"
+            columns: ["card_item_id"]
+            isOneToOne: false
+            referencedRelation: "credit_card_invoice_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_rateio_veiculos_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesa_rateio_veiculos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_documents: {
         Row: {
           cnh_category: string | null
