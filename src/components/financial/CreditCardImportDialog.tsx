@@ -2003,7 +2003,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       {ConfirmDialog}
 
       <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Lançamento Manual</DialogTitle>
           </DialogHeader>
