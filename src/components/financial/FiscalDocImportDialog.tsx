@@ -55,6 +55,9 @@ export interface FiscalDocResult {
   rateio: RateioRow[] | null;
 }
 
+let uidSeq = 0;
+const newUid = (p: string) => `${p}${Date.now()}-${++uidSeq}`;
+
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
   { value: "frota_terceiros", label: "Frota Terceiros" },
@@ -115,7 +118,7 @@ export function FiscalDocImportDialog({
     setItens([]); setParcelas([]); setXmlOriginal(null);
     setPlanoContasId(null); setCentroCusto("");
     setParcelaAtual("1"); setParcelaTotal("1"); setExpandir(true); setXmlLoaded(false);
-    setNovoItemDesc(""); setNovoItemValor("");
+    setNovoItemDesc(""); setNovoItemValor(""); setSelectedUids([]);
   }, [open, defaultDate, attachMode, attachDescription, attachAmount]);
 
   const valorTotal = Number(unmaskCurrency(valorTotalStr)) || 0;
@@ -260,7 +263,7 @@ export function FiscalDocImportDialog({
         setItens((parsed.itens || []).map((i: NfeItem, ix: number) => ({
           descricao: i.descricao, quantidade: i.quantidade,
           valor_unitario: i.valor_unitario, valor_total: i.valor_total, veiculo_id: null,
-          grupo: `x${ix}`, qtd_original: i.quantidade, total_original: i.valor_total,
+          uid: newUid("i"), grupo: newUid("x"), qtd_original: i.quantidade, total_original: i.valor_total,
         })));
         setParcelas(parsed.duplicatas || []);
         setXmlOriginal(parsed.xml_original || null);
@@ -287,7 +290,7 @@ export function FiscalDocImportDialog({
     if (!d || v <= 0) { toast.error("Informe descrição e valor do serviço."); return; }
     setItens((prev) => [...prev, {
       descricao: d, quantidade: 1, valor_unitario: v, valor_total: v, veiculo_id: null,
-      grupo: `m${Date.now()}`, qtd_original: 1, total_original: v,
+      uid: newUid("i"), grupo: newUid("m"), qtd_original: 1, total_original: v,
     }]);
     setNovoItemDesc(""); setNovoItemValor("");
   };
