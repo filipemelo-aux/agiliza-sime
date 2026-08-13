@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Printer } from "lucide-react";
@@ -182,6 +183,7 @@ export function CreditCardInvoices() {
         columns={columns}
         rowId={(r) => r.id}
         selected={selected}
+        rowClassName={(r) => rowToneClass(r.status === "fechada" ? "resolved" : "pending")}
         onSelectedChange={setSelected}
         loading={loading}
         minWidth={980}
@@ -198,6 +200,8 @@ export function CreditCardInvoices() {
           </div>
         }
       />
+
+      <StatusLegend className="px-1" items={[{ tone: "pending", label: "Fatura aberta" }, { tone: "resolved", label: "Fechada / lançada no Contas a Pagar" }]} />
 
       <CreditCardImportDialog
         open={openDialog}

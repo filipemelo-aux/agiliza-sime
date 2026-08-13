@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -226,11 +227,14 @@ export default function AdminFuelings() {
           columns={columns}
           rowId={(i) => i.id}
           selected={selected}
+          rowClassName={(i) => rowToneClass(i.status_faturamento === "faturado" ? "resolved" : "pending")}
           onSelectedChange={setSelected}
           loading={loading}
           minWidth={1020}
           emptyMessage="Nenhum abastecimento encontrado"
         />
+
+        <StatusLegend className="px-1" items={[{ tone: "pending", label: "Não faturado" }, { tone: "resolved", label: "Faturado" }]} />
 
 
         <FuelingFormDialog open={formOpen} onOpenChange={setFormOpen} empresaId={empresaId} userId={user?.id || ""} fueling={editing} onSaved={fetchData} />

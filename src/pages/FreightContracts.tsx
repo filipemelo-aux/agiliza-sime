@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -429,11 +430,14 @@ export default function FreightContracts() {
           columns={contractColumns}
           rowId={(r) => r.id}
           selected={selectedIds}
+          rowClassName={(r) => rowToneClass(r.payable?.status === "pago" ? "resolved" : r.payable?.status === "atrasado" ? "overdue" : "pending")}
           onSelectedChange={setSelectedIds}
           loading={loading}
           minWidth={900}
           emptyMessage="Nenhum contrato encontrado."
         />
+
+        <StatusLegend className="px-1" items={[{ tone: "pending", label: "A pagar / parcial" }, { tone: "resolved", label: "Pago" }, { tone: "overdue", label: "Atrasado" }]} />
 
       </div>
 

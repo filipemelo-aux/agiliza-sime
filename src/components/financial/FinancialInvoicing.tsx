@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { supabase } from "@/integrations/supabase/client";
@@ -1647,6 +1648,7 @@ ${hasRecebimentos ? `
         columns={faturaColumns}
         rowId={(f) => f.id}
         selected={selectedFaturaIds}
+        rowClassName={(f) => rowToneClass(f.status === "paga" ? "resolved" : "pending")}
         onSelectedChange={setSelectedFaturaIds}
         loading={loading}
         minWidth={1000}
