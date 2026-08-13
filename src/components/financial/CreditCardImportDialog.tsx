@@ -230,7 +230,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [existingExpenseId, setExistingExpenseId] = useState<string | null>(null);
   const [existingStatus, setExistingStatus] = useState<string>("aberta");
   const [createPersonOpenIdx, setCreatePersonOpenIdx] = useState<number | null>(null);
-  const [searchPersonOpenIdx, setSearchPersonOpenIdx] = useState<number | null>(null);
+  
   const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
