@@ -1968,6 +1968,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 />
               </div>
             </div>
+            {manualForm.amount_mode === "total" && (
+              Number(manualForm.parcela_total) > 0 && Number(unmaskCurrency(manualForm.amount)) > 0 ? (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Valor desta parcela: </span>
+                  <span className="font-semibold text-foreground">{formatCurrency(manualParcelaCalc.valorParcela)}</span>
+                  <span className="text-muted-foreground">
+                    {" "}({manualForm.parcela_atual || "?"}/{manualForm.parcela_total} de {formatCurrency(manualParcelaCalc.valorTotal)})
+                  </span>
+                  {manualParcelaCalc.ajustada && (
+                    <span className="text-muted-foreground"> — última parcela ajustada para fechar o total.</span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">Informe o valor total e o total de parcelas para calcular automaticamente o valor da parcela.</p>
+              )
+            )}
             <div>
               <Label className="text-xs text-muted-foreground">Plano de contas</Label>
               <PlanoContasCombobox
