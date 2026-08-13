@@ -80,7 +80,7 @@ export async function buildCheckPdf({
   const linha2 = linha2Base ? linha2Base.padEnd(maxChars1, "*").toUpperCase() : "";
 
   doc.setFont("courier", "bold");
-  doc.text(`## ${valorStr} ##`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
+  doc.text(`#${valorStr}#`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
   doc.setFont("courier", "normal");
   doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
   if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
@@ -95,18 +95,12 @@ export async function buildCheckPdf({
   if (cruzado) {
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
-    const folhaH = Math.min(Number(layout.altura_folha_mm) || 90, pageH);
-    const canhotoDireita = Number(layout.canhoto_valor_x) > folhaW / 2;
-    const topo = 2;
-    const base = Math.max(topo + 5, folhaH - 2);
-    const desloc = base - topo; // inclinação 45°
-    if (canhotoDireita) {
-      doc.line(6, topo, 6 + desloc, base);
-      doc.line(12, topo, 12 + desloc, base);
-    } else {
-      doc.line(folhaW - 6, topo, folhaW - 6 - desloc, base);
-      doc.line(folhaW - 12, topo, folhaW - 12 - desloc, base);
-    }
+    const x0 = Number(layout.cruzamento_x) || 6;
+    const y0 = Number(layout.cruzamento_y) || 2;
+    const altura = Number(layout.cruzamento_altura_mm) || 30;
+    const espaco = Number(layout.cruzamento_espaco_mm) || 6;
+    doc.line(x0, y0, x0 + altura, y0 + altura);
+    doc.line(x0 + espaco, y0, x0 + espaco + altura, y0 + altura);
     doc.setDrawColor(255, 255, 255);
   }
 
