@@ -470,6 +470,12 @@ export function FiscalDocImportDialog({
                 )}
                 <span className="ml-2">(valores já com IPI, ST, frete, seguro e descontos)</span>
               </div>
+              {gruposInvalidos.length > 0 && (
+                <div className="px-2 py-1 text-[10px] text-destructive border-t inline-flex flex-wrap items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {gruposInvalidos.map((g) => `${g.desc}: soma ${g.soma} ≠ quantidade original ${g.original}`).join(" • ")}
+                </div>
+              )}
               {rateioItens.length > 0 && (
                 <div className="px-2 py-1 text-[10px] text-muted-foreground border-t">
                   Rateio automático por veículo:{" "}
