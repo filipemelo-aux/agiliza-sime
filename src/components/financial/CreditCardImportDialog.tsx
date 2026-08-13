@@ -632,10 +632,26 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
   }, [manualForm.amount, manualForm.amount_mode, manualForm.parcela_total, manualForm.parcela_atual]);
 
+  /** Valor efetivamente lançado nesta fatura (o que os itens precisam fechar) */
+  const manualValorLancado = useMemo(() => {
+    const informado = Number(unmaskCurrency(manualForm.amount)) || 0;
+    return manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
+  }, [manualForm.amount, manualForm.amount_mode, manualParcelaCalc]);
+
+  const manualItensOk = useMemo(() => {
+    if (manualItens.length === 0) return true;
+    if (gruposInvalidosManual(manualItens).length > 0) return false;
+    return Math.abs(somaItens(manualItens) - Number(manualValorLancado.toFixed(2))) < 0.01;
+  }, [manualItens, manualValorLancado]);
+
   const addManualItem = useCallback(() => {
     setManualForm(emptyManualForm());
+    setManualItens([]);
+    setManualItemSel([]);
+    setManualNovoItem({ desc: "", qtd: "1", valor: "" });
     setManualDialogOpen(true);
   }, [referenceYM]);
+
 
   const confirmManualItem = useCallback(() => {
     const desc = manualForm.description.trim();
