@@ -564,6 +564,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     posted_date: string;
     description: string;
     amount: string; // masked currency string
+    amount_mode: "parcela" | "total";
     parcela_atual: string;
     parcela_total: string;
     plano_contas_id: string | null;
@@ -579,6 +580,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       posted_date: defaultDate,
       description: "",
       amount: "",
+      amount_mode: "parcela",
       parcela_atual: "",
       parcela_total: "",
       plano_contas_id: null,
@@ -586,6 +588,26 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
+
+  // Quando o usuário informa o valor TOTAL da compra, calcula o valor da parcela
+  const manualParcelaCalc = useMemo(() => {
+    const valor = Number(unmaskCurrency(manualForm.amount)) || 0;
+    const nParcelas = Number(manualForm.parcela_total) || 0;
+    const atual = Number(manualForm.parcela_atual) || 0;
+    if (manualForm.amount_mode !== "total" || valor <= 0 || nParcelas <= 0) {
+      return { valorParcela: valor, valorTotal: valor * (nParcelas || 1), ajustada: false };
+    }
+    const totalCents = Math.round(valor * 100);
+    const baseCents = Math.floor(totalCents / nParcelas);
+    const restoCents = totalCents - baseCents * nParcelas;
+    const isUltima = atual > 0 && atual === nParcelas;
+    const parcelaCents = isUltima ? baseCents + restoCents : baseCents;
+    return {
+      valorParcela: parcelaCents / 100,
+      valorTotal: valor,
+      ajustada: isUltima && restoCents > 0,
+    };
+  }, [manualForm.amount, manualForm.amount_mode, manualForm.parcela_total, manualForm.parcela_atual]);
 
   const addManualItem = useCallback(() => {
     setManualForm(emptyManualForm());
@@ -595,8 +617,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const confirmManualItem = useCallback(() => {
     const desc = manualForm.description.trim();
     if (!desc) { toast.error("Informe a descrição do lançamento."); return; }
-    const amountNum = Number(unmaskCurrency(manualForm.amount));
-    if (!amountNum || amountNum <= 0) { toast.error("Informe um valor válido."); return; }
+    const informado = Number(unmaskCurrency(manualForm.amount));
+    if (!informado || informado <= 0) { toast.error("Informe um valor válido."); return; }
     if (!manualForm.posted_date) { toast.error("Informe a data do lançamento."); return; }
     const parcelaAtual = manualForm.parcela_atual ? Number(manualForm.parcela_atual) : null;
     const parcelaTotal = manualForm.parcela_total ? Number(manualForm.parcela_total) : null;
@@ -608,6 +630,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       toast.error("Parcela atual não pode ser maior que o total.");
       return;
     }
+    if (manualForm.amount_mode === "total" && !parcelaTotal) {
+      toast.error("Informe o total de parcelas para calcular o valor da parcela.");
+      return;
+    }
+    const amountNum = manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
+    if (!amountNum || amountNum <= 0) { toast.error("Valor da parcela inválido."); return; }
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
       posted_date: manualForm.posted_date,
@@ -626,7 +654,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
-  }, [manualForm]);
+  }, [manualForm, manualParcelaCalc]);
 
 
   const toggleSelected = useCallback((idx: number) => {
@@ -1879,7 +1907,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Valor (R$) <span className="text-destructive">*</span></Label>
+                <Label className="text-xs text-muted-foreground">
+                  {manualForm.amount_mode === "total" ? "Valor total da compra (R$)" : "Valor da parcela (R$)"} <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   placeholder="0,00"
                   className="h-9"
@@ -1887,6 +1917,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                   onChange={(e) => setManualForm((f) => ({ ...f, amount: maskCurrency(e.target.value) }))}
                 />
               </div>
+            </div>
+            <div className="flex items-center gap-1 rounded-md border p-1 w-fit">
+              {([
+                { key: "parcela", label: "Informar valor da parcela" },
+                { key: "total", label: "Informar valor total" },
+              ] as const).map((opt) => (
+                <Button
+                  key={opt.key}
+                  type="button"
+                  size="sm"
+                  variant={manualForm.amount_mode === opt.key ? "default" : "ghost"}
+                  className="h-7 text-xs"
+                  onClick={() => setManualForm((f) => ({ ...f, amount_mode: opt.key }))}
+                >
+                  {opt.label}
+                </Button>
+              ))}
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Descrição <span className="text-destructive">*</span></Label>
@@ -1921,6 +1968,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 />
               </div>
             </div>
+            {manualForm.amount_mode === "total" && (
+              Number(manualForm.parcela_total) > 0 && Number(unmaskCurrency(manualForm.amount)) > 0 ? (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Valor desta parcela: </span>
+                  <span className="font-semibold text-foreground">{formatCurrency(manualParcelaCalc.valorParcela)}</span>
+                  <span className="text-muted-foreground">
+                    {" "}({manualForm.parcela_atual || "?"}/{manualForm.parcela_total} de {formatCurrency(manualParcelaCalc.valorTotal)})
+                  </span>
+                  {manualParcelaCalc.ajustada && (
+                    <span className="text-muted-foreground"> — última parcela ajustada para fechar o total.</span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">Informe o valor total e o total de parcelas para calcular automaticamente o valor da parcela.</p>
+              )
+            )}
             <div>
               <Label className="text-xs text-muted-foreground">Plano de contas</Label>
               <PlanoContasCombobox
