@@ -2104,7 +2104,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </TableCell>
-      <TableCell className="text-xs px-1 py-1.5 align-middle whitespace-nowrap w-[88px]">
+      <TableCell className="text-[11px] pl-1 pr-0 py-1 align-middle whitespace-nowrap w-[82px]">
         {(() => {
           const refFirst = referenceYM ? `${referenceYM}-01` : "";
           const posted = item.posted_date || "";
