@@ -1445,6 +1445,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: it.parcela_atual,
         parcela_total: it.parcela_total,
         parcelas_expandidas: it.parcelas_expandidas,
+        documento_fiscal_tipo: it.documento_fiscal_tipo || null,
+        documento_fiscal_numero: it.documento_fiscal_numero || null,
+        chave_nfe: it.chave_nfe || null,
+        fornecedor_cnpj: it.fornecedor_cnpj || null,
+        itens_nota: it.itens_nota ?? null,
+        xml_original: it.xml_original || null,
       }));
 
       if (id) {
