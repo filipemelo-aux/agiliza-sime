@@ -1661,6 +1661,8 @@ ${hasRecebimentos ? `
         }
       />
 
+      <StatusLegend className="px-1" items={[{ tone: "pending", label: "Em aberto / parcial" }, { tone: "resolved", label: "Recebida / paga" }]} />
+
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
