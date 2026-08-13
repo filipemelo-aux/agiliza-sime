@@ -23,6 +23,8 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+
 
 interface Previsao {
   id: string;
@@ -433,15 +435,53 @@ export function RevenueForecasts() {
   const totalPendente = pendentes.reduce((s, p) => s + Number(p.valor), 0);
   const totalFaturado = faturadas.reduce((s, p) => s + Number(p.valor), 0);
 
+  const selectedList = previsoes.filter((p) => selected.has(p.id));
+  const singleSelected = selectedList.length === 1 ? selectedList[0] : null;
+  const loteGroups = combinedGroups.filter((g: any) => g.kind !== "single") as any[];
+  const loteForSelection =
+    selected.size > 0
+      ? loteGroups.find((g) => g.items.every((i: any) => selected.has(i.id)) && g.items.length === selected.size)
+      : undefined;
+
+  const toolbarActions: ToolbarAction[] = [
+    { key: "new", label: "Nova Previsão Manual", icon: Plus, mode: "always", variant: "default", onClick: () => setManualDialogOpen(true) },
+    { key: "invoice", label: "Gerar Faturas", icon: Receipt, mode: "single+batch", onClick: openIndividualDialog },
+    {
+      key: "invoice-single",
+      label: "Gerar Fatura Única",
+      icon: Layers,
+      mode: "batch",
+      disabled: selected.size < 2 || !sameClient,
+      onClick: openInvoiceDialog,
+    },
+    {
+      key: "append",
+      label: "Adicionar ao Lote",
+      icon: Plus,
+      mode: "single+batch",
+      variant: "outline",
+      disabled: !loteForSelection,
+      onClick: () => loteForSelection && openAppendDialog(loteForSelection.loteId, loteForSelection.items[0].cliente_id),
+    },
+    {
+      key: "edit",
+      label: "Editar",
+      icon: PencilLine,
+      mode: "single",
+      disabled: !singleSelected || singleSelected.origem_tipo !== "manual" || singleSelected.status !== "pendente",
+      onClick: () => singleSelected && openEditDialog(singleSelected),
+    },
+    { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDeleteSelected },
+  ];
+
+  const cellCls = "px-2 py-1 align-middle";
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {ConfirmDialog}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div>
         <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
-        <Button onClick={() => setManualDialogOpen(true)} className="gap-1.5 shadow-sm">
-          <Plus className="h-4 w-4" />
-          Nova Previsão Manual
-        </Button>
+        <p className="text-xs text-muted-foreground">Previsões geradas por CT-e, colheita ou lançamento manual.</p>
       </div>
 
       <ManualForecastDialog
@@ -464,401 +504,198 @@ export function RevenueForecasts() {
         <SummaryCard icon={CheckCircle2} label="Faturadas" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
-      {/* Action bar - fixed at top when items selected */}
-      {pendentes.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap p-2.5 bg-muted/50 rounded-lg border border-border">
-          <Button onClick={openIndividualDialog} disabled={selected.size === 0} className="gap-1.5 shadow-sm">
-            <Receipt className="h-4 w-4" />
-            Gerar Faturas ({selected.size})
-          </Button>
-          <Button
-            onClick={openInvoiceDialog}
-            disabled={selected.size < 2 || !sameClient}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            title={selected.size < 2 ? "Selecione 2 ou mais previsões" : !sameClient ? "Todas devem ser do mesmo cliente" : "Consolidar em uma única fatura"}
-          >
-            <Layers className="h-4 w-4" />
-            Gerar Fatura Única
-          </Button>
-          <Button onClick={handleDeleteSelected} disabled={selected.size === 0} variant="destructive" size="sm" className="gap-1.5">
-            <Trash2 className="h-4 w-4" />
-            Excluir ({selected.size})
-          </Button>
-          {selected.size > 0 && (
-            <span className="text-xs text-muted-foreground">
-              Total: <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong>
-              {!sameClient && <span className="text-destructive ml-2">⚠ Clientes diferentes</span>}
-            </span>
-          )}
-        </div>
-      )}
+      <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
 
-      {loading ? (
-        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
-      ) : previsoes.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground text-sm">Nenhuma previsão de recebimento encontrada.</p>
-            <p className="text-muted-foreground text-xs mt-1">Previsões são geradas automaticamente ao autorizar CT-e ou registrar pagamentos de colheita. Você também pode criar uma previsão manual no botão acima.</p>
-          </CardContent>
-        </Card>
-      ) : isMobile ? (
-        <div className="grid grid-cols-1 gap-2">
-          {[...pendentesGroups, ...faturadasGroups].map((g) => {
-            if (g.kind === "single") {
-              const p = g.previsao;
-              const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
-              const isPendente = p.status === "pendente";
-              return (
-                <Card
-                  key={p.id}
-                  className={cn(isPendente && "cursor-pointer", selected.has(p.id) && "ring-2 ring-primary/40 bg-accent/20")}
-                  onClick={isPendente ? () => toggleSelect(p.id) : undefined}
-                >
-
-                  <CardContent className="p-3 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+      <div className="rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-xs" style={{ minWidth: 900 }}>
+            <thead className="sticky top-0 z-10 bg-muted/60">
+              <tr className="border-b border-border">
+                <th className="w-8 px-2 py-1.5">
+                  <Checkbox
+                    checked={pendentes.length > 0 && selected.size === pendentes.length}
+                    onCheckedChange={toggleAll}
+                    aria-label="Selecionar todos"
+                  />
+                </th>
+                <th className="w-6 px-1 py-1.5"></th>
+                <SortableTh active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")} className="text-[11px] uppercase tracking-wide px-2 py-1.5">
+                  Origem
+                </SortableTh>
+                <SortableTh active={sort.key === "documento"} direction={sort.direction} onSort={() => toggle("documento")} className="text-[11px] uppercase tracking-wide px-2 py-1.5">
+                  Documento
+                </SortableTh>
+                <SortableTh active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")} className="text-[11px] uppercase tracking-wide px-2 py-1.5">
+                  Cliente
+                </SortableTh>
+                <SortableTh active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")} className="text-[11px] uppercase tracking-wide px-2 py-1.5">
+                  Data Prevista
+                </SortableTh>
+                <SortableTh active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")} className="text-[11px] uppercase tracking-wide px-2 py-1.5" align="right">
+                  Valor
+                </SortableTh>
+                <SortableTh active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")} className="text-[11px] uppercase tracking-wide px-2 py-1.5">
+                  Status
+                </SortableTh>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className="py-10 text-center text-muted-foreground">Carregando...</td></tr>
+              ) : previsoes.length === 0 ? (
+                <tr><td colSpan={8} className="py-10 text-center text-muted-foreground">Nenhuma previsão de recebimento encontrada.</td></tr>
+              ) : combinedGroups.map((g) => {
+                if (g.kind === "single") {
+                  const p = g.previsao;
+                  const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
+                  const isPendente = p.status === "pendente";
+                  return (
+                    <tr
+                      key={p.id}
+                      className={cn(
+                        "border-b border-border/60 transition-colors",
+                        isPendente ? "cursor-pointer hover:bg-muted/40" : "opacity-70",
+                        selected.has(p.id) && "bg-primary/10 hover:bg-primary/15"
+                      )}
+                      onClick={isPendente ? () => toggleSelect(p.id) : undefined}
+                    >
+                      <td className={cellCls} onClick={(e) => e.stopPropagation()}>
                         {isPendente && (
-                          <Checkbox checked={selected.has(p.id)} onClick={(e) => e.stopPropagation()} onCheckedChange={() => toggleSelect(p.id)} />
+                          <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
                         )}
-                        <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {isPendente && p.origem_tipo === "manual" && (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
-
-                            title="Editar previsão"
-                          >
-                            <PencilLine className="h-3 w-3" />
-                          </Button>
-                        )}
+                      </td>
+                      <td className={cellCls}></td>
+                      <td className={cellCls}>
+                        <div className="flex items-center gap-1.5">
+                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="uppercase">{getOrigemTipoLabel(p)}</span>
+                        </div>
+                      </td>
+                      <td className={cn(cellCls, "tabular-nums")}>{getDocumentoLabel(p)}</td>
+                      <td className={cn(cellCls, "truncate max-w-[240px]")}>{p.cliente_nome}</td>
+                      <td className={cellCls}>{formatDateBR(p.data_prevista)}</td>
+                      <td className={cn(cellCls, "text-right font-mono font-semibold")}>{formatCurrency(Number(p.valor))}</td>
+                      <td className={cellCls}>
                         <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
                           {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
                           {isPendente ? "Pendente" : "Faturado"}
                         </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Icon className="h-3 w-3" />
-                        <span className="uppercase">{getOrigemLabel(p)}</span>
-                        <span>· {formatDateBR(p.data_prevista)}</span>
-                      </div>
-                      <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            }
-            // Lote group (mobile)
-            const ids = g.items.map((i) => i.id);
-            const allPendente = g.items.every((i) => i.status === "pendente");
-            const allSelected = allPendente && ids.every((id) => selected.has(id));
-            const someSelected = allPendente && ids.some((id) => selected.has(id));
-            const total = g.items.reduce((s, i) => s + Number(i.valor), 0);
-            const cliente = g.items[0].cliente_nome;
-            const isOpen = expandedLotes.has(g.id);
-            const datas = g.items.map((i) => i.data_prevista).sort();
-            const dateRange = datas[0] === datas[datas.length - 1]
-              ? formatDateBR(datas[0])
-              : `${formatDateBR(datas[0])} – ${formatDateBR(datas[datas.length - 1])}`;
-            return (
-              <Card key={g.id} className="border-primary/30">
-                <CardContent className="p-3 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {allPendente && (
-                        <Checkbox
-                          checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                          onCheckedChange={() => toggleSelectGroup(ids)}
-                        />
+                      </td>
+                    </tr>
+                  );
+                }
+                // Lote group
+                const ids = g.items.map((i) => i.id);
+                const allPendente = g.items.every((i) => i.status === "pendente");
+                const allSelected = allPendente && ids.every((id) => selected.has(id));
+                const someSelected = allPendente && ids.some((id) => selected.has(id));
+                const total = g.items.reduce((s, i) => s + Number(i.valor), 0);
+                const isOpen = expandedLotes.has(g.id);
+                const datas = g.items.map((i) => i.data_prevista).sort();
+                const dateRange = datas[0] === datas[datas.length - 1]
+                  ? formatDateBR(datas[0])
+                  : `${formatDateBR(datas[0])} – ${formatDateBR(datas[datas.length - 1])}`;
+                const Icon = ORIGEM_ICON[g.items[0].origem_tipo] || FileText;
+                return (
+                  <Fragment key={g.id}>
+                    <tr
+                      className={cn(
+                        "border-b border-border/60 border-l-2 border-l-primary/60",
+                        allSelected ? "bg-primary/10" : "bg-primary/5"
                       )}
-                      <button onClick={() => toggleExpanded(g.id)} className="flex items-center gap-1 min-w-0">
-                        {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                        <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <p className="text-sm font-semibold text-foreground truncate">{cliente}</p>
-                      </button>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0 border-primary/40 text-primary">
-                      Lote · {g.items.length}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{dateRange}</span>
-                    <span className="font-mono font-bold text-foreground">{formatCurrency(total)}</span>
-                  </div>
-                  {allPendente && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[10px] gap-1 w-full"
-                      onClick={() => openAppendDialog(g.loteId, g.items[0].cliente_id)}
                     >
-                      <Plus className="h-3 w-3" />
-                      Adicionar serviço ao lote
-                    </Button>
-                  )}
-                  {isOpen && (
-                    <div className="mt-2 pt-2 border-t border-border space-y-1">
-                      {g.items.map((p) => (
-                        <div
-                          key={p.id}
-                          className={cn(
-                            "flex items-center justify-between gap-2 text-[11px] pl-5 rounded",
-                            p.status === "pendente" && "cursor-pointer hover:bg-accent/30",
-                            selected.has(p.id) && "bg-accent/40 ring-1 ring-primary/40"
-                          )}
-                          onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
+                      <td className={cellCls} onClick={(e) => e.stopPropagation()}>
+                        {allPendente && (
+                          <Checkbox
+                            checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                            onCheckedChange={() => toggleSelectGroup(ids)}
+                          />
+                        )}
+                      </td>
+                      <td className={cellCls}>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(g.id)}
+                          className="text-muted-foreground hover:text-foreground"
+                          title={isOpen ? "Recolher" : "Expandir"}
                         >
-                          <span className="text-muted-foreground truncate">
-                            {formatDateBR(p.data_prevista)}
-                            {p.metadata?.placa ? ` · ${p.metadata.placa}` : ""}
-                          </span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <span className="font-mono">{formatCurrency(Number(p.valor))}</span>
-                            {p.status === "pendente" && p.origem_tipo === "manual" && (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5"
-                                onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
-                                title="Editar previsão"
-                              >
-                                <PencilLine className="h-2.5 w-2.5" />
-                              </Button>
-                            )}
-                          </div>
+                          {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </button>
+                      </td>
+                      <td className={cellCls}>
+                        <div className="flex items-center gap-1.5">
+                          <Layers className="h-3.5 w-3.5 text-primary" />
+                          <span className="uppercase font-semibold text-primary">Lote · {g.items.length}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="border border-border rounded-md overflow-hidden bg-card">
-          <div className="overflow-x-auto">
-            <Table>
-
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={pendentes.length > 0 && selected.size === pendentes.length}
-                        onCheckedChange={toggleAll}
-                      />
-                    </TableHead>
-                    <TableHead className="w-6"></TableHead>
-                    <SortableTh active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")} className="text-xs">
-                      Origem
-                    </SortableTh>
-                    <SortableTh active={sort.key === "documento"} direction={sort.direction} onSort={() => toggle("documento")} className="text-xs">
-                      Documento
-                    </SortableTh>
-                    <SortableTh active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")} className="text-xs">
-                      Cliente
-                    </SortableTh>
-                    <SortableTh active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")} className="text-xs">
-                      Data Prevista
-                    </SortableTh>
-                    <SortableTh active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")} className="text-xs" align="right">
-                      Valor
-                    </SortableTh>
-                    <SortableTh active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")} className="text-xs">
-                      Status
-                    </SortableTh>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {combinedGroups.map((g) => {
-                    if (g.kind === "single") {
-                      const p = g.previsao;
-                      const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
-                      const isPendente = p.status === "pendente";
-                      return (
-                        <TableRow
-                          key={p.id}
-                          className={cn(isPendente && "cursor-pointer", selected.has(p.id) && "bg-accent/30")}
-                          onClick={isPendente ? () => toggleSelect(p.id) : undefined}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            {isPendente && (
-                              <Checkbox
-                                checked={selected.has(p.id)}
-                                onCheckedChange={() => toggleSelect(p.id)}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell></TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs uppercase">{getOrigemTipoLabel(p)}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs tabular-nums">{getDocumentoLabel(p)}</TableCell>
-                          <TableCell className="text-xs">{p.cliente_nome}</TableCell>
-                          <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
-                          <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                                {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                                {isPendente ? "Pendente" : "Faturado"}
-                              </Badge>
-                              {isPendente && p.origem_tipo === "manual" && (
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6"
-                                  onClick={() => openEditDialog(p)}
-                                  title="Editar previsão"
-                                >
-                                  <PencilLine className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }
-                    // Lote group (desktop)
-                    const ids = g.items.map((i) => i.id);
-                    const allPendente = g.items.every((i) => i.status === "pendente");
-                    const allSelected = allPendente && ids.every((id) => selected.has(id));
-                    const someSelected = allPendente && ids.some((id) => selected.has(id));
-                    const total = g.items.reduce((s, i) => s + Number(i.valor), 0);
-                    const isOpen = expandedLotes.has(g.id);
-                    const datas = g.items.map((i) => i.data_prevista).sort();
-                    const dateRange = datas[0] === datas[datas.length - 1]
-                      ? formatDateBR(datas[0])
-                      : `${formatDateBR(datas[0])} – ${formatDateBR(datas[datas.length - 1])}`;
-                    const Icon = ORIGEM_ICON[g.items[0].origem_tipo] || FileText;
-                    return (
-                      <Fragment key={g.id}>
-                        <TableRow
-                          key={g.id}
-                          className={cn(
-                            "border-l-2 border-l-primary/60",
-                            allSelected ? "bg-accent/30" : "bg-primary/5"
+                      </td>
+                      <td className={cn(cellCls, "text-muted-foreground")}>—</td>
+                      <td className={cn(cellCls, "font-medium truncate max-w-[240px]")}>{g.items[0].cliente_nome}</td>
+                      <td className={cellCls}>{dateRange}</td>
+                      <td className={cn(cellCls, "text-right font-mono font-semibold")}>{formatCurrency(total)}</td>
+                      <td className={cellCls}>
+                        <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                          {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                          {allPendente ? "Pendente" : "Faturado"}
+                        </Badge>
+                      </td>
+                    </tr>
+                    {isOpen && g.items.map((p) => (
+                      <tr
+                        key={p.id}
+                        className={cn(
+                          "border-b border-border/60 bg-muted/20 transition-colors",
+                          p.status === "pendente" ? "cursor-pointer hover:bg-muted/40" : "opacity-70",
+                          selected.has(p.id) && "bg-primary/10 hover:bg-primary/15"
+                        )}
+                        onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
+                      >
+                        <td className={cellCls} onClick={(e) => e.stopPropagation()}>
+                          {p.status === "pendente" && (
+                            <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
                           )}
-                        >
-                          <TableCell>
-                            {allPendente && (
-                              <Checkbox
-                                checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                                onCheckedChange={() => toggleSelectGroup(ids)}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <button
-                              type="button"
-                              onClick={() => toggleExpanded(g.id)}
-                              className="text-muted-foreground hover:text-foreground"
-                              title={isOpen ? "Recolher" : "Expandir"}
-                            >
-                              {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                            </button>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Layers className="h-3.5 w-3.5 text-primary" />
-                              <span className="text-xs uppercase font-semibold text-primary">Lote · {g.items.length}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                          <TableCell className="text-xs font-medium">{g.items[0].cliente_nome}</TableCell>
-                          <TableCell className="text-xs">{dateRange}</TableCell>
-                          <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(total)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                                {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                                {allPendente ? "Pendente" : "Faturado"}
-                              </Badge>
-                              {allPendente && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 px-2 text-[10px] gap-1"
-                                  onClick={() => openAppendDialog(g.loteId, g.items[0].cliente_id)}
-                                  title="Adicionar serviços ao lote"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                  Adicionar
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        {isOpen && g.items.map((p) => (
-                          <TableRow
-                            key={p.id}
-                            className={cn("bg-muted/20", p.status === "pendente" && "cursor-pointer", selected.has(p.id) && "bg-accent/20")}
-                            onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
-                          >
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                              {p.status === "pendente" && (
-                                <Checkbox
-                                  checked={selected.has(p.id)}
-                                  onCheckedChange={() => toggleSelect(p.id)}
-                                />
-                              )}
-                            </TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="pl-8">
-                              <div className="flex items-center gap-1.5">
-                                <Icon className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemTipoLabel(p)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground tabular-nums">{getDocumentoLabel(p)}</TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">
-                              {p.metadata?.placa || "—"}
-                              {p.metadata?.motorista ? ` · ${p.metadata.motorista}` : ""}
-                            </TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">{formatDateBR(p.data_prevista)}</TableCell>
-                            <TableCell className="text-[11px] text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                              {p.status === "pendente" && p.origem_tipo === "manual" && (
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6"
-                                  onClick={() => openEditDialog(p)}
-                                  title="Editar previsão"
-                                >
-                                  <PencilLine className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </Fragment>
-                    );
-                  })}
-              </TableBody>
-            </Table>
-          </div>
+                        </td>
+                        <td className={cellCls}></td>
+                        <td className={cn(cellCls, "pl-8")}>
+                          <div className="flex items-center gap-1.5">
+                            <Icon className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-[10px] uppercase text-muted-foreground">{getOrigemTipoLabel(p)}</span>
+                          </div>
+                        </td>
+                        <td className={cn(cellCls, "text-[11px] text-muted-foreground tabular-nums")}>{getDocumentoLabel(p)}</td>
+                        <td className={cn(cellCls, "text-[11px] text-muted-foreground truncate max-w-[240px]")}>
+                          {p.metadata?.placa || "—"}
+                          {p.metadata?.motorista ? ` · ${p.metadata.motorista}` : ""}
+                        </td>
+                        <td className={cn(cellCls, "text-[11px] text-muted-foreground")}>{formatDateBR(p.data_prevista)}</td>
+                        <td className={cn(cellCls, "text-[11px] text-right font-mono")}>{formatCurrency(Number(p.valor))}</td>
+                        <td className={cellCls}></td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+            <tfoot className="sticky bottom-0 bg-muted/60">
+              <tr>
+                <td colSpan={8} className="px-2 py-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{previsoes.length} previsão(ões)</span>
+                    <span className="font-mono">
+                      {selected.size > 0 && (
+                        <span className={cn("mr-4", sameClient ? "text-primary" : "text-destructive")}>
+                          Selecionado: {formatCurrency(selectedTotal)}{!sameClient && " · clientes diferentes"}
+                        </span>
+                      )}
+                      Pendente: {formatCurrency(totalPendente)}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
-      )}
+      </div>
+
 
       {/* Invoice creation dialog */}
       <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>

@@ -108,9 +108,8 @@ export function CreditCardInvoices() {
     {
       key: "card_name",
       header: "Cartão",
-      width: "220px",
       sortValue: (r) => r.card_name,
-      cell: (r) => <span className="font-medium text-foreground">{r.card_name}</span>,
+      cell: (r) => <span className="font-medium text-foreground whitespace-nowrap">{r.card_name}</span>,
     },
     {
       key: "reference_label",
@@ -136,8 +135,13 @@ export function CreditCardInvoices() {
     {
       key: "ofx_file_name",
       header: "OFX",
+      width: "140px",
       sortValue: (r) => r.ofx_file_name || "",
-      cell: (r) => <span className="truncate block max-w-[220px]">{r.ofx_file_name || "—"}</span>,
+      cell: (r) => (
+        <span className="truncate block max-w-[140px] text-muted-foreground" title={r.ofx_file_name || ""}>
+          {r.ofx_file_name || "—"}
+        </span>
+      ),
     },
     {
       key: "status",
