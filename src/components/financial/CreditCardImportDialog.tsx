@@ -1916,7 +1916,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       <TableHead className="px-1 text-[11px] w-[100px]">
                         <SortHeader label="Veículo" sortKey="veiculo" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 w-10"></TableHead>
 
                     </TableRow>
                   </TableHeader>
@@ -2390,17 +2389,6 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
               </div>
             )}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-6 w-6 shrink-0"
-            disabled={isClosed}
-            onClick={onOpenCreate}
-            title="Cadastrar novo favorecido"
-          >
-            <Plus className="w-3 h-3" />
-          </Button>
         </div>
       </TableCell>
       <TableCell className="px-1 py-1 align-middle min-w-[160px] w-[18%]">
@@ -2418,21 +2406,6 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             title={descriptionLocal}
             placeholder="Descrição do gasto"
           />
-          <Button
-            type="button"
-            variant={item.documento_fiscal_numero ? "secondary" : "outline"}
-            size="icon"
-            className="h-6 w-6 shrink-0"
-            disabled={isClosed}
-            onClick={onAttachFiscal}
-            title={
-              item.documento_fiscal_numero
-                ? `${item.documento_fiscal_tipo === "nfse" ? "NFS-e" : "NF-e"} ${item.documento_fiscal_numero} vinculada — clique para substituir`
-                : "Vincular XML (NF-e) ou Nota de Serviço a este lançamento"
-            }
-          >
-            <FileText className="w-3 h-3" />
-          </Button>
         </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-[110px]">
@@ -2468,22 +2441,6 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
               placeholder="00"
             />
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-7 w-7 shrink-0"
-            disabled={
-              isClosed || expanding ||
-              item.parcelas_expandidas ||
-              !item.parcela_atual || !item.parcela_total ||
-              (item.parcela_total ?? 0) < 2
-            }
-            onClick={onExpandParcelas}
-            title={item.parcelas_expandidas ? "Parcelas já geradas para este lançamento" : "Gerar parcelas anteriores e posteriores nas faturas correspondentes"}
-          >
-            <Layers className="w-3 h-3" />
-          </Button>
         </div>
       </TableCell>
 
@@ -2498,30 +2455,6 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
               <div className="min-w-0 space-y-1">
                 <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight truncate" title={item.duplicate_note}>
                   {item.duplicate_note}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px] border-amber-300 hover:bg-amber-100 text-amber-900"
-                    disabled={isClosed}
-                    onClick={() => onRemove(idx)}
-                    title="Remover este lançamento importado (já existe outro igual)"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" /> Excluir
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px] border-amber-300 hover:bg-amber-100 text-amber-900"
-                    disabled={isClosed}
-                    onClick={() => onUpdate(idx, { possible_duplicate: false, duplicate_note: undefined })}
-                    title="Manter este lançamento (não é duplicidade)"
-                  >
-                    <Check className="w-3 h-3 mr-1" /> Manter
-                  </Button>
                 </div>
               </div>
             </div>
@@ -2586,27 +2519,8 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              type="button" variant="ghost" size="icon" className="h-7 w-6 shrink-0"
-              title="Ratear entre múltiplos veículos"
-              onClick={onOpenRateio}
-            >
-              <Split className="h-3 w-3" />
-            </Button>
           </div>
         )}
-      </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle w-10">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => onRemove(idx)}
-          disabled={isClosed}
-        >
-          <Trash2 className="w-3 h-3" />
-        </Button>
       </TableCell>
     </TableRow>
   );
