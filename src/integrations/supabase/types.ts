@@ -637,14 +637,19 @@ export type Database = {
         Row: {
           amount: number
           centro_custo: string | null
+          chave_nfe: string | null
           created_at: string
           description: string
+          documento_fiscal_numero: string | null
+          documento_fiscal_tipo: string | null
           favorecido_id: string | null
           favorecido_nome: string | null
           fitid: string | null
+          fornecedor_cnpj: string | null
           id: string
           ignored: boolean
           invoice_id: string
+          itens_nota: Json | null
           observacoes: string | null
           parcela_atual: number | null
           parcela_total: number | null
@@ -653,18 +658,24 @@ export type Database = {
           posted_date: string
           updated_at: string
           veiculo_id: string | null
+          xml_original: string | null
         }
         Insert: {
           amount: number
           centro_custo?: string | null
+          chave_nfe?: string | null
           created_at?: string
           description: string
+          documento_fiscal_numero?: string | null
+          documento_fiscal_tipo?: string | null
           favorecido_id?: string | null
           favorecido_nome?: string | null
           fitid?: string | null
+          fornecedor_cnpj?: string | null
           id?: string
           ignored?: boolean
           invoice_id: string
+          itens_nota?: Json | null
           observacoes?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
@@ -673,18 +684,24 @@ export type Database = {
           posted_date: string
           updated_at?: string
           veiculo_id?: string | null
+          xml_original?: string | null
         }
         Update: {
           amount?: number
           centro_custo?: string | null
+          chave_nfe?: string | null
           created_at?: string
           description?: string
+          documento_fiscal_numero?: string | null
+          documento_fiscal_tipo?: string | null
           favorecido_id?: string | null
           favorecido_nome?: string | null
           fitid?: string | null
+          fornecedor_cnpj?: string | null
           id?: string
           ignored?: boolean
           invoice_id?: string
+          itens_nota?: Json | null
           observacoes?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
@@ -693,6 +710,7 @@ export type Database = {
           posted_date?: string
           updated_at?: string
           veiculo_id?: string | null
+          xml_original?: string | null
         }
         Relationships: [
           {
