@@ -244,11 +244,15 @@ export function FiscalDocImportDialog({
     const d = novoItemDesc.trim();
     const v = Number(unmaskCurrency(novoItemValor)) || 0;
     if (!d || v <= 0) { toast.error("Informe descrição e valor do serviço."); return; }
-    setItens((prev) => [...prev, { descricao: d, quantidade: 1, valor_unitario: v, valor_total: v, veiculo_id: null }]);
+    setItens((prev) => [...prev, {
+      descricao: d, quantidade: 1, valor_unitario: v, valor_total: v, veiculo_id: null,
+      grupo: `m${Date.now()}`, qtd_original: 1, total_original: v,
+    }]);
     setNovoItemDesc(""); setNovoItemValor("");
   };
 
   const handleConfirm = () => {
+    if (gruposInvalidos.length > 0) { toast.error("As quantidades desmembradas não conferem com o item original."); return; }
     if (!descricao.trim()) { toast.error("Informe a descrição do lançamento."); return; }
     if (valorTotal <= 0) { toast.error("Informe o valor total do documento."); return; }
     if (isNfse && !numero.trim()) { toast.error("Informe o número da NFS-e."); return; }
