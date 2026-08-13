@@ -132,6 +132,12 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     downloadPdfBytes(pdfBytes, `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`);
   };
 
+  const handlePrint = () => {
+    if (!pdfBytes) return;
+    printPdfBytes(pdfBytes);
+  };
+
+
   const handleClose = () => {
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     setPdfBlobUrl(null);
