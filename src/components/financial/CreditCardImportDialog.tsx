@@ -1907,7 +1907,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Valor (R$) <span className="text-destructive">*</span></Label>
+                <Label className="text-xs text-muted-foreground">
+                  {manualForm.amount_mode === "total" ? "Valor total da compra (R$)" : "Valor da parcela (R$)"} <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   placeholder="0,00"
                   className="h-9"
