@@ -2157,6 +2157,7 @@ interface InvoiceItemRowProps {
   selected: boolean;
   onToggleSelected: () => void;
   onExpandParcelas: () => void;
+  onAttachFiscal: () => void;
   expanding: boolean;
   referenceYM: string;
 }
@@ -2164,7 +2165,7 @@ interface InvoiceItemRowProps {
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
   onUpdate, onRemove, onOpenCreate, wasEdited,
-  selected, onToggleSelected, onExpandParcelas, expanding, referenceYM,
+  selected, onToggleSelected, onExpandParcelas, onAttachFiscal, expanding, referenceYM,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
