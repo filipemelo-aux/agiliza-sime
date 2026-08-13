@@ -46,12 +46,20 @@ export async function buildCheckPdf({
     format: "a4",
     putOnlyUsedFonts: true,
     compress: false,
-  });
-  (doc as any).setDisplayMode?.("fullwidth");
+    precision: 16,
+    floatPrecision: 16,
+  } as any);
+  // Zoom 100% (tamanho real) ao abrir e impressão sem redimensionamento
+  (doc as any).setDisplayMode?.(100, "UseNone");
   (doc as any).viewerPreferences?.({
     PrintScaling: "None",
     PickTrayByPDFSize: true,
+    NumCopies: 1,
+    Duplex: "Simplex",
+    FitWindow: false,
+    CenterWindow: false,
   });
+
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
