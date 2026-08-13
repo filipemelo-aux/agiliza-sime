@@ -15,7 +15,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer, Split } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,8 @@ import { splitPdfPages } from "@/lib/pdfSplitter";
 import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
+import VehicleRateioEditor from "./VehicleRateioEditor";
+import { type RateioRow, loadRateio, saveRateio, validateRateio } from "@/lib/rateio";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -171,6 +173,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // Maintenance fields
   const [isManutencao, setIsManutencao] = useState(false);
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
+  const [rateioAtivo, setRateioAtivo] = useState(false);
+  const [rateioRows, setRateioRows] = useState<RateioRow[]>([]);
   const [tipoManutencao, setTipoManutencao] = useState("corretiva");
   const [kmAtual, setKmAtual] = useState("");
   const [descricaoServico, setDescricaoServico] = useState("");
@@ -305,6 +309,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const hasMaintData = !!(expense.veiculo_id || expense.tipo_manutencao || expense.km_atual);
       setIsManutencao(expAccount?.tipo_operacional === "manutencao" || hasMaintData);
       setVeiculoId(expense.veiculo_id || null);
+      loadRateio({ expense_id: expense.id }).then((rr) => { setRateioRows(rr); setRateioAtivo(rr.length > 0); });
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
       setFornecedorMecanica(expense.fornecedor_mecanica || "");
