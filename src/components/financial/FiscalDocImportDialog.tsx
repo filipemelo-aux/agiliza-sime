@@ -533,8 +533,10 @@ export function FiscalDocImportDialog({
                     const v = vehicles.find((x) => x.id === r.veiculo_id);
                     return `${v?.plate || "?"} ${formatCurrency(r.valor_rateado)} (${(r.percentual || 0).toFixed(1)}%)`;
                   }).join(" • ")}
+                  <span className="ml-1">— gera 1 único lançamento na fatura (idêntico ao extrato); o rateio é interno, só para DRE e relatórios de frota.</span>
                 </div>
               )}
+
               </div>
             </div>
           )}
