@@ -1734,11 +1734,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 )}
               </div>
 
-              <div className="border rounded-md">
-                <Table className="table-fixed w-full text-[11px]">
+              <div className="border rounded-md overflow-x-auto overscroll-x-contain">
+                <Table className="w-full text-[11px] min-w-[980px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead style={{ width: 32 }} className="px-1">
+                      <TableHead className="px-1 w-8">
                         <Checkbox
                           checked={items.length > 0 && selectedIdxs.size === items.length}
                           onCheckedChange={toggleSelectAll}
@@ -1747,34 +1747,34 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
-                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[88px]">
                         <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 160 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] min-w-[130px] w-[14%]">
                         <SortHeader label="Favorecido" sortKey="favorecido" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] w-[28%]">
+                      <TableHead className="px-1 text-[11px] min-w-[160px] w-[18%]">
                         <SortHeader label="Descrição" sortKey="description" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[110px]">
                         <SortHeader label="Parcelas" sortKey="parcelas" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 80 }} className="px-1 text-right text-[11px]">
+                      <TableHead className="px-1 text-right text-[11px] w-[100px]">
                         <SortHeader label="Valor" sortKey="amount" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] w-[22%]">
+                      <TableHead className="px-1 text-[11px] min-w-[110px] w-[12%]">
                         Conferência
                       </TableHead>
-                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] min-w-[150px] w-[14%]">
                         <SortHeader label="Plano de Contas" sortKey="plano_contas" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 104 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[120px]">
                         <SortHeader label="C. Custo" sortKey="centro_custo" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 88 }} className="px-1 text-[11px]">
+                      <TableHead className="px-1 text-[11px] w-[100px]">
                         <SortHeader label="Veículo" sortKey="veiculo" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead style={{ width: 32 }} className="px-1"></TableHead>
+                      <TableHead className="px-1 w-10"></TableHead>
 
                     </TableRow>
                   </TableHeader>
@@ -2099,7 +2099,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         onToggleSelected();
       }}
     >
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle w-8">
         <Checkbox
           checked={selected}
           onCheckedChange={onToggleSelected}
@@ -2108,7 +2108,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </TableCell>
-      <TableCell className="text-xs px-1 py-1.5 align-middle whitespace-nowrap">
+      <TableCell className="text-xs px-1 py-1.5 align-middle whitespace-nowrap w-[88px]">
         {(() => {
           const refFirst = referenceYM ? `${referenceYM}-01` : "";
           const posted = item.posted_date || "";
@@ -2144,11 +2144,11 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           );
         })()}
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[130px] w-[14%]">
         <div className="flex items-center gap-1">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
-              className="h-7 text-[11px] w-full"
+              className="h-7 text-[11px] w-full truncate"
               value={favorecidoLocal}
               onChange={(e) => {
                 const v = e.target.value;
@@ -2226,9 +2226,9 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </Button>
         </div>
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[160px] w-[18%]">
         <Input
-          className="h-7 text-[11px] w-full min-w-0"
+          className="h-7 text-[11px] w-full min-w-0 truncate"
           value={descriptionLocal}
           onChange={(e) => setDescriptionLocal(e.target.value)}
           onBlur={() => {
@@ -2241,7 +2241,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           placeholder="Descrição do gasto"
         />
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle w-[110px]">
         <div className="flex items-center gap-1 justify-end">
           <div className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
             <Input
@@ -2293,16 +2293,16 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
 
-      <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap">
+      <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap w-[100px]">
         {formatCurrency(item.amount)}
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[110px] w-[12%]">
         {item.possible_duplicate ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
             <div className="flex items-start gap-1.5">
               <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-600 shrink-0" />
               <div className="min-w-0 space-y-1">
-                <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight">
+                <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight truncate" title={item.duplicate_note}>
                   {item.duplicate_note}
                 </div>
                 <div className="flex items-center gap-1">
@@ -2336,7 +2336,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           <span className="text-[10px] text-muted-foreground">—</span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle min-w-[150px] w-[14%]">
 
         <PlanoContasCombobox
           value={item.plano_contas_id}
@@ -2345,7 +2345,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           disabled={isClosed}
         />
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle w-[120px]">
         <Select
           value={item.centro_custo || undefined}
           onValueChange={(v) => onUpdate(idx, { centro_custo: v })}
@@ -2363,7 +2363,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle w-[100px]">
         <Select
           value={item.veiculo_id ?? "__none__"}
           onValueChange={(v) => onUpdate(idx, { veiculo_id: v === "__none__" ? null : v })}
@@ -2382,7 +2382,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle w-10">
         <Button
           type="button"
           variant="ghost"
