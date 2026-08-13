@@ -345,6 +345,10 @@ export type Database = {
           cidade_x: number
           cidade_y: number
           created_at: string
+          cruzamento_altura_mm: number
+          cruzamento_espaco_mm: number
+          cruzamento_x: number
+          cruzamento_y: number
           data_x: number
           data_y: number
           id: string
@@ -380,6 +384,10 @@ export type Database = {
           cidade_x?: number
           cidade_y?: number
           created_at?: string
+          cruzamento_altura_mm?: number
+          cruzamento_espaco_mm?: number
+          cruzamento_x?: number
+          cruzamento_y?: number
           data_x?: number
           data_y?: number
           id?: string
@@ -415,6 +423,10 @@ export type Database = {
           cidade_x?: number
           cidade_y?: number
           created_at?: string
+          cruzamento_altura_mm?: number
+          cruzamento_espaco_mm?: number
+          cruzamento_x?: number
+          cruzamento_y?: number
           data_x?: number
           data_y?: number
           id?: string

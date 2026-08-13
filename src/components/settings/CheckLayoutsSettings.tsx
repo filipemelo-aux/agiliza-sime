@@ -19,6 +19,8 @@ type Layout = Record<string, any>;
 const FOLHA_FIELDS: { key: string; label: string }[] = [
   { key: "largura_folha_mm", label: "Largura da folha (mm)" },
   { key: "altura_folha_mm", label: "Altura da folha (mm)" },
+  { key: "cruzamento_altura_mm", label: "Cruzamento — comprimento (mm)" },
+  { key: "cruzamento_espaco_mm", label: "Cruzamento — espaço entre linhas (mm)" },
 ];
 
 const COORD_GROUPS: { title: string; fields: { base: string; label: string }[] }[] = [
@@ -32,6 +34,7 @@ const COORD_GROUPS: { title: string; fields: { base: string; label: string }[] }
       { base: "cidade", label: "Cidade" },
       { base: "data", label: "Data" },
       { base: "bom_para", label: "Bom para (pré-datado)" },
+      { base: "cruzamento", label: "Cruzamento (início das linhas)" },
     ],
   },
   {
