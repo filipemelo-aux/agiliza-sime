@@ -376,6 +376,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: r.fornecedor_cnpj ?? null,
         itens_nota: r.itens_nota ?? null,
         xml_original: r.xml_original ?? null,
+        rateio_veiculos: (r.rateio_veiculos as any) ?? null,
       }));
       setItems(mapped);
       setOriginalItems(mapped);
@@ -1028,6 +1029,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           fornecedor_cnpj: item.fornecedor_cnpj || null,
           itens_nota: item.itens_nota ?? null,
           xml_original: item.xml_original || null,
+          rateio_veiculos: (item.rateio_veiculos && item.rateio_veiculos.length > 0) ? (item.rateio_veiculos as any) : null,
         })
         .eq("id", item.id);
       if (updErr) throw updErr;
@@ -1055,6 +1057,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           fornecedor_cnpj: item.fornecedor_cnpj || null,
           itens_nota: item.itens_nota ?? null,
           xml_original: item.xml_original || null,
+          rateio_veiculos: (item.rateio_veiculos && item.rateio_veiculos.length > 0) ? (item.rateio_veiculos as any) : null,
         })
         .select("id")
         .single();
@@ -1141,6 +1144,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: item.fornecedor_cnpj || null,
         itens_nota: item.itens_nota ?? null,
         xml_original: item.xml_original || null,
+        rateio_veiculos: (item.rateio_veiculos && item.rateio_veiculos.length > 0) ? item.rateio_veiculos : null,
       };
 
       const existingItems: ItemRow[] = ((existingRows as any[]) || []).map((r) => ({
@@ -1242,6 +1246,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       fornecedor_cnpj: r.fornecedor_cnpj ?? null,
       itens_nota: r.itens_nota ?? null,
       xml_original: r.xml_original ?? null,
+      rateio_veiculos: (r.rateio_veiculos as any) ?? null,
     }));
     setItems(mapped);
     setOriginalItems(mapped);
