@@ -1918,6 +1918,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 />
               </div>
             </div>
+            <div className="flex items-center gap-1 rounded-md border p-1 w-fit">
+              {([
+                { key: "parcela", label: "Informar valor da parcela" },
+                { key: "total", label: "Informar valor total" },
+              ] as const).map((opt) => (
+                <Button
+                  key={opt.key}
+                  type="button"
+                  size="sm"
+                  variant={manualForm.amount_mode === opt.key ? "default" : "ghost"}
+                  className="h-7 text-xs"
+                  onClick={() => setManualForm((f) => ({ ...f, amount_mode: opt.key }))}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
             <div>
               <Label className="text-xs text-muted-foreground">Descrição <span className="text-destructive">*</span></Label>
               <Input
