@@ -535,8 +535,10 @@ export function FiscalDocImportDialog({
                   }).join(" • ")}
                 </div>
               )}
+              </div>
             </div>
           )}
+
 
           {!attachMode && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2 border-t pt-3">
