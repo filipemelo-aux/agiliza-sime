@@ -608,6 +608,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
+  const [manualItens, setManualItens] = useState<ManualItem[]>([]);
+  const [manualItemSel, setManualItemSel] = useState<string[]>([]);
+  const [manualNovoItem, setManualNovoItem] = useState({ desc: "", qtd: "1", valor: "" });
 
   // Quando o usuário informa o valor TOTAL da compra, calcula o valor da parcela
   const manualParcelaCalc = useMemo(() => {
