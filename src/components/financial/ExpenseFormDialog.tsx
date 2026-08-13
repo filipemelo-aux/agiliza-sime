@@ -1419,37 +1419,66 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Vinculação opcional de veículo (qualquer despesa não-manutenção) ── */}
           {!isMaintenanceType && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Veículo (opcional)</Label>
-                <Select
-                  value={veiculoId || "__none__"}
-                  onValueChange={(v) => {
-                    if (v === "__none__") { setVeiculoId(null); setVeiculoPlaca(""); return; }
-                    setVeiculoId(v);
-                    const found = fleetVehicles.find(x => x.id === v);
-                    if (found) setVeiculoPlaca(found.plate);
-                  }}
-                >
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Sem vínculo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sem vínculo</SelectItem>
-                    {fleetVehicles.map(v => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.plate}{v.brand || v.model ? ` - ${[v.brand, v.model].filter(Boolean).join(" ")}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {isCategoryWithVehicle && !veiculoId && (
-                <div>
-                  <Label className="text-xs">Placa Veículo</Label>
-                  <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+            <div className="space-y-3">
+              {!rateioAtivo ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">Veículo (opcional)</Label>
+                    <Select
+                      value={veiculoId || "__none__"}
+                      onValueChange={(v) => {
+                        if (v === "__none__") { setVeiculoId(null); setVeiculoPlaca(""); return; }
+                        setVeiculoId(v);
+                        const found = fleetVehicles.find(x => x.id === v);
+                        if (found) setVeiculoPlaca(found.plate);
+                      }}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Sem vínculo" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem vínculo</SelectItem>
+                        {fleetVehicles.map(v => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.plate}{v.brand || v.model ? ` - ${[v.brand, v.model].filter(Boolean).join(" ")}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button" variant="outline" size="sm" className="h-7 mt-1.5 text-[11px] gap-1"
+                      onClick={() => {
+                        setRateioAtivo(true);
+                        setRateioRows(veiculoId
+                          ? [{ veiculo_id: veiculoId, valor_rateado: Number(valorTotal) || 0, percentual: 100 }]
+                          : [{ veiculo_id: null, valor_rateado: 0, percentual: null }]);
+                      }}
+                    >
+                      <Split className="h-3 w-3" /> Ratear entre múltiplos veículos
+                    </Button>
+                  </div>
+                  {isCategoryWithVehicle && !veiculoId && (
+                    <div>
+                      <Label className="text-xs">Placa Veículo</Label>
+                      <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <VehicleRateioEditor
+                    rows={rateioRows}
+                    onChange={setRateioRows}
+                    vehicles={fleetVehicles}
+                    valorTotal={Number(valorTotal) || 0}
+                  />
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]"
+                    onClick={() => { setRateioAtivo(false); setRateioRows([]); }}>
+                    Cancelar rateio e usar um único veículo
+                  </Button>
                 </div>
               )}
             </div>
           )}
+
           {showFuelFields && (
             <div className="grid grid-cols-2 gap-4">
               <div>
