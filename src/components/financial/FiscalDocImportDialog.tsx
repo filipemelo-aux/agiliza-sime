@@ -456,7 +456,8 @@ export function FiscalDocImportDialog({
                           </TableCell>
                         )}
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </ScrollArea>
