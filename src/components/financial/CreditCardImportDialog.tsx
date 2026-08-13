@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle } from "lucide-react";
 import { exportToCsv } from "@/lib/csvExport";
@@ -230,7 +230,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [existingExpenseId, setExistingExpenseId] = useState<string | null>(null);
   const [existingStatus, setExistingStatus] = useState<string>("aberta");
   const [createPersonOpenIdx, setCreatePersonOpenIdx] = useState<number | null>(null);
-  const [searchPersonOpenIdx, setSearchPersonOpenIdx] = useState<number | null>(null);
+  
   const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
@@ -1791,8 +1791,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         vehicles={vehicles}
                         onUpdate={updateItem}
                         onRemove={removeItem}
-                        searchOpen={searchPersonOpenIdx === originalIdx}
-                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? originalIdx : null)}
                         onOpenCreate={() => setCreatePersonOpenIdx(originalIdx)}
                         wasEdited={hasRowChanged(originalIdx)}
                         selected={selectedIdxs.has(originalIdx)}
@@ -2014,8 +2012,6 @@ interface InvoiceItemRowProps {
   vehicles: VehicleOption[];
   onUpdate: (idx: number, patch: Partial<ItemRow>) => void;
   onRemove: (idx: number) => void;
-  searchOpen: boolean;
-  onSearchOpenChange: (o: boolean) => void;
   onOpenCreate: () => void;
   wasEdited: boolean;
   selected: boolean;
@@ -2027,7 +2023,7 @@ interface InvoiceItemRowProps {
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
-  onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate, wasEdited,
+  onUpdate, onRemove, onOpenCreate, wasEdited,
   selected, onToggleSelected, onExpandParcelas, expanding, referenceYM,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
@@ -2144,11 +2140,11 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           );
         })()}
       </TableCell>
-      <TableCell className="px-1 py-1 align-middle min-w-[130px] w-[14%]">
+      <TableCell className="pl-0.5 pr-1 py-1 align-middle min-w-[130px] w-[14%]">
         <div className="flex items-center gap-0.5">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
-              className="h-6 text-[10px] w-full truncate px-1"
+              className="h-6 text-[10px] w-full truncate pl-0.5 pr-1"
               value={favorecidoLocal}
               onChange={(e) => {
                 const v = e.target.value;
@@ -2189,30 +2185,6 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
               </div>
             )}
           </div>
-          <Popover open={searchOpen} onOpenChange={onSearchOpenChange}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-6 w-6 shrink-0"
-                disabled={isClosed}
-                title="Vincular cadastro existente"
-              >
-                <Search className="w-3 h-3" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-2" align="end">
-              <PersonSearchInput
-                categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
-                placeholder="Buscar..."
-                onSelect={(p) => {
-                  onUpdate(idx, { favorecido_nome: p.full_name, favorecido_id: p.id });
-                  onSearchOpenChange(false);
-                }}
-              />
-            </PopoverContent>
-          </Popover>
           <Button
             type="button"
             variant="outline"
