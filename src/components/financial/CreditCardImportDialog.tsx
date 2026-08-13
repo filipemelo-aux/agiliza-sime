@@ -155,6 +155,7 @@ const buildParcelaPatch = (source: ItemRow, target: ItemRow): Partial<ItemRow> =
 
 import VehicleRateioEditor from "./VehicleRateioEditor";
 import { type RateioRow, validateRateio, sumRateio, distribuirIgualmente } from "@/lib/rateio";
+import ManualItemsEditor, { type ManualItem, gruposInvalidosManual, somaItens, rateioFromItens } from "./ManualItemsEditor";
 
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
@@ -608,6 +609,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
+  const [manualItens, setManualItens] = useState<ManualItem[]>([]);
+  const [manualItemSel, setManualItemSel] = useState<string[]>([]);
+  const [manualNovoItem, setManualNovoItem] = useState({ desc: "", qtd: "1", valor: "" });
 
   // Quando o usuário informa o valor TOTAL da compra, calcula o valor da parcela
   const manualParcelaCalc = useMemo(() => {
@@ -629,10 +633,26 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
   }, [manualForm.amount, manualForm.amount_mode, manualForm.parcela_total, manualForm.parcela_atual]);
 
+  /** Valor efetivamente lançado nesta fatura (o que os itens precisam fechar) */
+  const manualValorLancado = useMemo(() => {
+    const informado = Number(unmaskCurrency(manualForm.amount)) || 0;
+    return manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
+  }, [manualForm.amount, manualForm.amount_mode, manualParcelaCalc]);
+
+  const manualItensOk = useMemo(() => {
+    if (manualItens.length === 0) return true;
+    if (gruposInvalidosManual(manualItens).length > 0) return false;
+    return Math.abs(somaItens(manualItens) - Number(manualValorLancado.toFixed(2))) < 0.01;
+  }, [manualItens, manualValorLancado]);
+
   const addManualItem = useCallback(() => {
     setManualForm(emptyManualForm());
+    setManualItens([]);
+    setManualItemSel([]);
+    setManualNovoItem({ desc: "", qtd: "1", valor: "" });
     setManualDialogOpen(true);
   }, [referenceYM]);
+
 
   const confirmManualItem = useCallback(() => {
     const desc = manualForm.description.trim();
@@ -656,6 +676,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
     const amountNum = manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
     if (!amountNum || amountNum <= 0) { toast.error("Valor da parcela inválido."); return; }
+    if (manualItens.length > 0) {
+      if (gruposInvalidosManual(manualItens).length > 0) {
+        toast.error("As quantidades desmembradas não conferem com o item original.");
+        return;
+      }
+      if (Math.abs(somaItens(manualItens) - Number(amountNum.toFixed(2))) >= 0.01) {
+        toast.error("A soma dos itens precisa ser igual ao valor do lançamento.");
+        return;
+      }
+    }
+    const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
       posted_date: manualForm.posted_date,
@@ -670,11 +701,21 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: parcelaAtual,
       parcela_total: parcelaTotal,
       parcelas_expandidas: false,
+      itens_nota: manualItens.length > 0
+        ? manualItens.map((i) => ({
+            descricao: i.descricao,
+            quantidade: i.quantidade,
+            valor_unitario: i.valor_unitario,
+            valor_total: i.valor_total,
+            veiculo_id: i.veiculo_id || null,
+          }))
+        : null,
+      rateio_veiculos: rateio.length > 0 ? rateio : null,
     };
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
-  }, [manualForm, manualParcelaCalc]);
+  }, [manualForm, manualParcelaCalc, manualItens]);
 
   // ----- Nota Fiscal (NF-e / NFS-e) vinculada ao lançamento do cartão -----
   const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
@@ -1962,7 +2003,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       {ConfirmDialog}
 
       <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Lançamento Manual</DialogTitle>
           </DialogHeader>
@@ -2064,10 +2105,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               />
               <p className="text-[10px] text-muted-foreground mt-1">Opcional — pode ser classificado depois na grade.</p>
             </div>
+
+            <ManualItemsEditor
+              itens={manualItens}
+              onChange={setManualItens}
+              vehicles={vehicles}
+              valorAlvo={manualValorLancado}
+              selectedUids={manualItemSel}
+              onSelectedChange={setManualItemSel}
+              novoDesc={manualNovoItem.desc}
+              novoQtd={manualNovoItem.qtd}
+              novoValor={manualNovoItem.valor}
+              onNovoChange={(p) => setManualNovoItem((f) => ({ ...f, ...p }))}
+            />
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={confirmManualItem}>Adicionar</Button>
+            <Button size="sm" onClick={confirmManualItem} disabled={!manualItensOk}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
