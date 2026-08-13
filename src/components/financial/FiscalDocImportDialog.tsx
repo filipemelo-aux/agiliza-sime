@@ -33,7 +33,16 @@ export interface FiscalDocResult {
   valor_parcela: number;
   parcela_atual: number | null;
   parcela_total: number | null;
-  itens: Array<{ descricao: string; quantidade: number; valor_unitario: number; valor_total: number; veiculo_id?: string | null }>;
+  itens: Array<{
+    descricao: string; quantidade: number; valor_unitario: number; valor_total: number;
+    veiculo_id?: string | null;
+    /** Identificador do item original da nota (linhas desmembradas compartilham o grupo) */
+    grupo?: string;
+    /** Quantidade original do item no XML (para validar o desmembramento) */
+    qtd_original?: number;
+    /** Valor total original do item no XML (base para rateio proporcional) */
+    total_original?: number;
+  }>;
   parcelas: NfeDuplicata[];
   xml_original: string | null;
   plano_contas_id: string | null;
