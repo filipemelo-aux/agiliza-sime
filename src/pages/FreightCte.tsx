@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
@@ -27,8 +27,8 @@ import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
-import { SortableTh } from "@/components/ui/sortable-th";
-import { DragScroll } from "@/components/ui/drag-scroll";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 
 
 export interface Cte {
@@ -423,7 +423,61 @@ export default function FreightCte() {
     }
   };
 
+  const singleCte = (() => {
+    const arr = sorted.filter((c) => selectedIds.has(c.id));
+    return arr.length === 1 ? arr[0] : null;
+  })();
 
+  const cteColumns: DataGridColumn<Cte>[] = [
+    {
+      key: "numero", header: "N.º", width: "90px",
+      sortValue: (c) => (c.tipo_talao === "servico" ? c.numero_interno ?? 0 : c.numero ?? 0),
+      cell: (c) => (
+        <span className="font-medium tabular-nums">
+          {c.tipo_talao === "servico" ? c.numero_interno ?? "—" : c.numero ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "talao", header: "Talão", width: "100px",
+      sortValue: (c) => c.tipo_talao || "",
+      cell: (c) => <span className="text-muted-foreground">{c.tipo_talao === "servico" ? "Serviço" : "Produção"}</span>,
+    },
+    {
+      key: "data", header: "Data Emissão", width: "120px",
+      sortValue: (c) => getEmissaoDate(c),
+      cell: (c) => <span className="tabular-nums whitespace-nowrap">{formatDateBR(getEmissaoDate(c))}</span>,
+    },
+    {
+      key: "cliente", header: "Cliente",
+      sortValue: (c) => getClienteTomador(c) || "",
+      cell: (c) => <span className="truncate block max-w-[380px]">{getClienteTomador(c)}</span>,
+    },
+    {
+      key: "placa", header: "Placa", width: "90px",
+      sortValue: (c) => c.placa_veiculo || "",
+      cell: (c) => <span className="tabular-nums">{c.placa_veiculo || "—"}</span>,
+    },
+    {
+      key: "valor", header: "Valor", width: "120px", align: "right",
+      sortValue: (c) => Number(c.valor_frete),
+      cell: (c) => (
+        <span className="tabular-nums font-medium">
+          {Number(c.valor_frete).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+        </span>
+      ),
+    },
+    {
+      key: "status", header: "Status", width: "100px", align: "center",
+      sortValue: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
+      cell: (c) =>
+        c.tipo_talao === "servico" ? (
+          <Badge variant="outline" className="border-amber-500/40 text-amber-700">Interno</Badge>
+        ) : (
+          <Badge className={statusColors[c.status] || ""}>{statusLabels[c.status] || c.status}</Badge>
+        ),
+    },
+  ];
 
   return (
     <AdminLayout>
@@ -431,21 +485,8 @@ export default function FreightCte() {
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => setInconsistencyOpen(true)} className="gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              Verificar inconsistências
-            </Button>
-            <Button variant="outline" onClick={() => setBatchOpen(true)} className="gap-2">
-              <FileText className="w-4 h-4" />
-              Importar lote
-            </Button>
-            <Button onClick={handleNew} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo CT-e
-            </Button>
-          </div>
         </div>
+
 
         <div className="flex flex-col gap-2 mb-6">
           <div className="relative w-full">
@@ -513,151 +554,52 @@ export default function FreightCte() {
         </div>
 
 
-        {selectedIds.size > 0 && (
-          <div className="flex items-center justify-between gap-3 flex-wrap mb-3 px-3 py-2 rounded-md border border-border bg-muted/40">
-            <span className="text-xs font-medium">
-              {selectedIds.size} CT-e(s) selecionado(s)
-            </span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())} disabled={bulkDeleting}>
-                Limpar seleção
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-2"
-                onClick={handleBulkDelete}
-                disabled={bulkDeleting}
-              >
-                {bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                Excluir selecionados
-              </Button>
-            </div>
-          </div>
-        )}
+        <GlobalToolbar
+          actions={[
+            { key: "new", label: "Novo CT-e", icon: Plus, mode: "always", variant: "default", onClick: handleNew },
+            {
+              key: "inconsist", label: "Inconsistências", icon: AlertTriangle, mode: "always", variant: "outline",
+              onClick: () => setInconsistencyOpen(true),
+            },
+            {
+              key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
+              onClick: () => setBatchOpen(true),
+            },
+            {
+              key: "detail", label: "Detalhes", icon: Eye, mode: "single",
+              disabled: !singleCte,
+              onClick: () => singleCte && setDetailCte(singleCte),
+            },
+            {
+              key: "edit", label: "Editar", icon: Pencil, mode: "single",
+              disabled: !singleCte || !(singleCte.tipo_talao === "servico" || singleCte.status === "rascunho" || singleCte.status === "rejeitado"),
+              onClick: () => singleCte && handleEdit(singleCte),
+            },
+            {
+              key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
+              disabled: bulkDeleting || selectedIds.size === 0,
+              onClick: () => {
+                if (singleCte && !isBulkDeletable(singleCte)) return handleDelete(singleCte);
+                handleBulkDelete();
+              },
+            },
+          ]}
+          selectedCount={selectedIds.size}
+        />
 
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : sorted.length === 0 ? (
-          <div className="text-center py-16">
-            <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nenhum CT-e encontrado</h3>
-            <p className="text-muted-foreground">Clique em "Novo CT-e" para criar o primeiro.</p>
-          </div>
-        ) : (
-          <div className="border border-border rounded-md overflow-hidden bg-card">
-            <DragScroll className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[760px]">
-              <thead className="bg-muted/40 text-muted-foreground">
-                  <tr className="text-left">
-                    <th className="px-2 py-2 w-[36px]">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Selecionar todos"
-                      />
-                    </th>
+        <div className="mt-3">
+          <DataGrid
+            rows={sorted}
+            columns={cteColumns}
+            rowId={(c) => c.id}
+            selected={selectedIds}
+            onSelectedChange={setSelectedIds}
+            loading={loading}
+            minWidth={860}
+            emptyMessage='Nenhum CT-e encontrado. Clique em "Novo CT-e" para criar o primeiro.'
+          />
+        </div>
 
-                    
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>N.º</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "talao"} direction={sort.direction} onSort={() => toggle("talao")}>Talão</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data Emissão</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")}>Cliente</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium w-[90px]" active={sort.key === "placa"} direction={sort.direction} onSort={() => toggle("placa")}>Placa</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium text-center w-[90px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
-                    <th className="px-2 py-2 font-medium text-right w-[70px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((cte) => {
-                    const isServico = cte.tipo_talao === "servico";
-                    const numeroDisplay = isServico
-                      ? cte.numero_interno ?? "—"
-                      : cte.numero ?? "—";
-                    const cliente = getClienteTomador(cte);
-                    return (
-                      <tr
-                        key={cte.id}
-                        className={`border-t border-border hover:bg-muted/30 cursor-pointer ${selectedIds.has(cte.id) ? "bg-primary/5" : ""}`}
-                        onClick={() => setDetailCte(cte)}
-                      >
-                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.has(cte.id)}
-                            disabled={!isBulkDeletable(cte)}
-                            onCheckedChange={() => toggleSelect(cte.id)}
-                            aria-label="Selecionar CT-e"
-                          />
-                        </td>
-                        <td className="px-3 py-2 font-medium tabular-nums">{numeroDisplay}</td>
-
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          {isServico ? "Serviço" : "Produção"}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                          {formatDateBR(getEmissaoDate(cte))}
-                        </td>
-                        <td className="px-3 py-2 truncate max-w-[420px]">{cliente}</td>
-                        <td className="px-2 py-2 whitespace-nowrap tabular-nums">
-                          {cte.placa_veiculo || "—"}
-                        </td>
-                        <td className="px-2 py-2 text-right whitespace-nowrap tabular-nums font-medium">
-                          {Number(cte.valor_frete).toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          {isServico ? (
-                            <Badge variant="outline" className="border-amber-500/40 text-amber-700">Interno</Badge>
-                          ) : (
-                            <Badge className={statusColors[cte.status] || ""}>
-                              {statusLabels[cte.status] || cte.status}
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="px-2 py-2 text-right">
-                          <div className="flex items-center justify-end gap-0.5">
-                            {(isServico || cte.status === "rascunho" || cte.status === "rejeitado") && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={(e) => { e.stopPropagation(); handleEdit(cte); }}
-                                title="Editar"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              disabled={deletingId === cte.id}
-                              onClick={(e) => { e.stopPropagation(); handleDelete(cte); }}
-                              title={!isServico && cte.status === "autorizado" ? "Cancelar na SEFAZ e excluir" : "Excluir CT-e"}
-                            >
-                              {deletingId === cte.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </DragScroll>
-          </div>
-        )}
       </div>
 
       {/* Chooser modal */}

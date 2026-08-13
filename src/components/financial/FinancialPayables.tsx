@@ -25,6 +25,9 @@ import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 
 /**
  * Flexible value matching: digits-only comparison + numeric equality.
@@ -962,6 +965,175 @@ export function FinancialPayables() {
     return ids;
   }, [filtered, installmentsMap, matchesPeriod, matchesQuickFilter]);
 
+  // Flat rows for the data grid (installment OR expense)
+  const flatRows = useMemo(() => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const rows: {
+      id: string;
+      item: Expense;
+      inst: Installment | null;
+      favorecido: string;
+      descricao: string;
+      parcela: string | null;
+      chartLabel: string;
+      vencimento: string;
+      valor: number;
+      status: string;
+      isPago: boolean;
+      isOverdue: boolean;
+      isDueToday: boolean;
+      isHarvest: boolean;
+      isMaintenance: boolean;
+    }[] = [];
+
+    filtered.forEach(item => {
+      const installs = installmentsMap[item.id];
+      const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
+      const chartLabel = chart ? `${chart.codigo} ${chart.nome}` : "—";
+      const isMaintenance = !!(item.veiculo_id && item.tipo_manutencao);
+      const descDisplay = item.documento_fiscal_numero
+        ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
+        : item.descricao || "Serviço";
+
+      if (installs && installs.length > 0) {
+        installs
+          .filter(inst => matchesPeriod(inst.data_vencimento) && matchesQuickFilter(inst.data_vencimento, inst.status))
+          .forEach(inst => {
+            const isPago = inst.status === "pago";
+            const isOverdue = !isPago && inst.data_vencimento < today;
+            rows.push({
+              id: `inst-${inst.id}`,
+              item,
+              inst,
+              favorecido: item.favorecido_nome || "Sem favorecido",
+              descricao: descDisplay,
+              parcela: `${inst.numero_parcela}/${inst.total_parcelas ?? installs.length}`,
+              chartLabel,
+              vencimento: inst.data_vencimento,
+              valor: Number(inst.valor),
+              status: isOverdue ? "atrasado" : inst.status,
+              isPago,
+              isOverdue,
+              isDueToday: !isPago && inst.data_vencimento === today,
+              isHarvest: false,
+              isMaintenance,
+            });
+          });
+        return;
+      }
+
+      const isPago = item.status === "pago";
+      const dueRef = item.data_vencimento || item.data_emissao || "";
+      const isOverdue = !isPago && !!dueRef && dueRef < today;
+      rows.push({
+        id: item.id,
+        item,
+        inst: null,
+        favorecido: item.favorecido_nome || "Sem favorecido",
+        descricao: descDisplay,
+        parcela: null,
+        chartLabel,
+        vencimento: isPago && item.data_pagamento ? item.data_pagamento : (item.data_vencimento || item.data_emissao || ""),
+        valor: isPago ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total),
+        status: isOverdue ? "atrasado" : item.status,
+        isPago,
+        isOverdue,
+        isDueToday: !isPago && item.data_vencimento === today,
+        isHarvest: item.id.startsWith("harvest-"),
+        isMaintenance,
+      });
+    });
+
+    return rows.sort((a, b) =>
+      quickFilter === "atrasadas"
+        ? b.vencimento.localeCompare(a.vencimento)
+        : a.vencimento.localeCompare(b.vencimento)
+    );
+  }, [filtered, installmentsMap, chartIdMap, matchesPeriod, matchesQuickFilter, quickFilter]);
+
+  type PayableRow = (typeof flatRows)[number];
+
+  const selectedRows = useMemo(
+    () => flatRows.filter(r => selectedIds.has(r.id)),
+    [flatRows, selectedIds]
+  );
+
+  const payableColumns: DataGridColumn<PayableRow>[] = useMemo(() => [
+    {
+      key: "favorecido",
+      header: "Favorecido",
+      width: "220px",
+      sortValue: (r) => r.favorecido,
+      cell: (r) => (
+        <span className="font-medium text-foreground truncate block max-w-[220px]">{r.favorecido}</span>
+      ),
+    },
+    {
+      key: "descricao",
+      header: "Descrição",
+      sortValue: (r) => r.descricao,
+      cell: (r) => (
+        <span className="flex items-center gap-1 min-w-0">
+          {r.item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
+          <span className="truncate block max-w-[260px]">{r.descricao}</span>
+          {r.isHarvest && <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>}
+        </span>
+      ),
+    },
+    {
+      key: "parcela",
+      header: "Parcela",
+      width: "80px",
+      align: "center",
+      sortValue: (r) => r.parcela || "",
+      cell: (r) => (r.parcela ? <Badge variant="secondary" className="text-[10px]">{r.parcela}</Badge> : "—"),
+    },
+    {
+      key: "chart",
+      header: "Conta Contábil",
+      width: "200px",
+      sortValue: (r) => r.chartLabel,
+      cell: (r) => <span className="truncate block max-w-[200px] text-[11px]">{r.chartLabel}</span>,
+    },
+    {
+      key: "vencimento",
+      header: "Vencimento",
+      width: "110px",
+      sortValue: (r) => r.vencimento,
+      cell: (r) => (
+        <span className={r.isOverdue ? "text-destructive font-medium" : ""}>
+          {r.vencimento ? formatDateBR(r.vencimento) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "120px",
+      align: "center",
+      sortValue: (r) => r.status,
+      cell: (r) => (
+        <span className="inline-flex items-center gap-1">
+          <Badge variant={STATUS_MAP[r.status]?.variant || "outline"} className="text-[10px]">
+            {STATUS_MAP[r.status]?.label || r.status}
+          </Badge>
+          {r.isDueToday && (
+            <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 pointer-events-none">Hoje</Badge>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "valor",
+      header: "Valor",
+      width: "120px",
+      align: "right",
+      sortValue: (r) => r.valor,
+      cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
+    },
+  ], []);
+
+
   const hasSelectedPaid = useMemo(() => {
     for (const id of selectedIds) {
       if (id.startsWith("inst-")) {
@@ -1253,9 +1425,6 @@ tfoot{display:table-row-group}
           <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
           <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a vencer. Use as abas de status (Em Aberto, Pago, Atrasado) para gestão de boletos e faturas pendentes." />
         </div>
-        <Button size="sm" onClick={handleNew} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Nova Despesa
-        </Button>
       </div>
       {/* Summary Cards - compact modern */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -1377,435 +1546,80 @@ tfoot{display:table-row-group}
           )}
         </div>
       </div>
-      {selectableCardIds.length > 0 && (
-        <div className="flex items-center gap-4 p-2 rounded-lg bg-muted/50 border flex-wrap">
-          <Checkbox
-            checked={selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0}
-            onCheckedChange={toggleSelectAll}
-          />
-          <span className="text-xs text-muted-foreground">
-            {selectedIds.size > 0
-              ? `${selectedIds.size} selecionada(s) — ${formatCurrency(selectedTotal)}`
-              : "Selecionar todas"}
-          </span>
-          {selectedIds.size > 0 && (
-            <div className="ml-auto flex gap-1.5">
-              {hasSelectedUnpaid && (
-                <Button
-                  size="sm"
-                  className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  onClick={() => handleBatchPay(false)}
-                  disabled={batchPaying}
-                  title="Cada conta gera uma movimentação individual no fluxo de caixa"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  {batchPaying ? "Processando..." : "Pagar"}
-                </Button>
-              )}
-              {selectedUnpaidCount > 1 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 h-8 text-primary border-primary/30 hover:bg-primary/10"
-                  onClick={() => handleBatchPay(true)}
-                  disabled={batchPaying}
-                  title="Quita várias contas gerando uma única movimentação consolidada no fluxo de caixa"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Pagar Agrupado
-                </Button>
-              )}
-              {hasSelectedPaid && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 h-8 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-                  onClick={handleBatchReverse}
-                  disabled={batchPaying}
-                >
-                  <Undo2 className="h-3.5 w-3.5" />
-                  {batchPaying ? "Processando..." : "Estornar"}
-                </Button>
-              )}
-              {hasSelectedUnpaid && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="gap-1.5 h-8"
-                  onClick={handleBatchDelete}
-                  disabled={batchPaying}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Excluir
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 h-8"
-                onClick={handlePrintSelected}
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Imprimir
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Global Toolbar */}
+      <GlobalToolbar
+        actions={[
+          { key: "new", label: "Nova Despesa", icon: Plus, mode: "always", variant: "default", onClick: handleNew },
+          {
+            key: "edit", label: "Editar", icon: Pencil, mode: "single",
+            disabled: !selectedRows[0] || selectedRows[0].isHarvest,
+            onClick: () => { const r = selectedRows[0]; if (r) handleEdit(r.item); },
+          },
+          {
+            key: "detail", label: "Detalhes", icon: FileText, mode: "single",
+            disabled: !selectedRows[0],
+            onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
+          },
+          {
+            key: "maintenance", label: "Manutenção", icon: Wrench, mode: "single",
+            disabled: !selectedRows[0]?.isMaintenance,
+            onClick: () => { const r = selectedRows[0]; if (r) openMaintenanceDetail(r.item.id); },
+          },
+          {
+            key: "boleto", label: "Boleto", icon: Download, mode: "single",
+            disabled: !selectedRows[0]?.inst?.boleto_url,
+            onClick: () => { const r = selectedRows[0]; if (r?.inst) handleDownloadBoleto(r.inst); },
+          },
+          {
+            key: "pay", label: batchPaying ? "Processando..." : "Pagar", icon: Check, mode: "single+batch",
+            disabled: batchPaying || !hasSelectedUnpaid,
+            onClick: () => handleBatchPay(false),
+          },
+          {
+            key: "pay-grouped", label: "Pagar Agrupado", icon: Check, mode: "batch",
+            disabled: batchPaying || selectedUnpaidCount < 2,
+            onClick: () => handleBatchPay(true),
+          },
+          {
+            key: "reverse", label: "Estornar", icon: Undo2, mode: "single+batch",
+            disabled: batchPaying || !hasSelectedPaid,
+            onClick: handleBatchReverse,
+          },
+          {
+            key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
+            disabled: batchPaying || !hasSelectedUnpaid,
+            onClick: handleBatchDelete,
+          },
+          { key: "print", label: "Imprimir", icon: FileText, mode: "single+batch", onClick: handlePrintSelected },
+        ]}
+        selectedCount={selectedIds.size}
+      >
+        {selectedIds.size > 0 && (
+          <span className="text-[11px] font-mono text-primary">{formatCurrency(selectedTotal)}</span>
+        )}
+      </GlobalToolbar>
 
-      {/* Cards List */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-          <p className="text-muted-foreground text-sm">Nenhuma despesa encontrada</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={handleNew}>Criar primeira despesa</Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered
-            .flatMap(item => {
-              const installs = installmentsMap[item.id];
-              const hasInstallments = installs && installs.length > 0;
-              const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
-              const isMaintenance = !!(item.veiculo_id && item.tipo_manutencao);
-              const descDisplay = item.documento_fiscal_numero
-                ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
-                : item.descricao || "Serviço";
+      {/* Data Grid */}
+      <DataGrid
+        rows={flatRows}
+        columns={payableColumns}
+        rowId={(r) => r.id}
+        selected={selectedIds}
+        onSelectedChange={setSelectedIds}
+        loading={loading}
+        minWidth={1120}
+        emptyMessage="Nenhuma despesa encontrada"
+        rowClassName={(r) => (r.isOverdue ? "text-destructive" : "")}
+        footer={
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{flatRows.length} registro(s)</span>
+            <span className="font-mono">
+              Total exibido: {formatCurrency(flatRows.reduce((s, r) => s + r.valor, 0))}
+            </span>
+          </div>
+        }
+      />
 
-              if (hasInstallments) {
-                const today2 = format(new Date(), "yyyy-MM-dd");
-                const visibleInstalls = installs
-                  .filter(inst => matchesPeriod(inst.data_vencimento) && matchesQuickFilter(inst.data_vencimento, inst.status))
-                  .sort((a, b) => {
-                    if (quickFilter === "atrasadas" || quickFilter === "all") {
-                      return b.data_vencimento.localeCompare(a.data_vencimento);
-                    }
-                    return a.data_vencimento.localeCompare(b.data_vencimento);
-                  });
-
-                return visibleInstalls.map(inst => {
-                  const today = format(new Date(), "yyyy-MM-dd");
-                  const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
-                  const isInstToday = inst.data_vencimento === today && inst.status !== "pago";
-                  const isInstPago = inst.status === "pago";
-                  const instStatus = isInstOverdue ? "atrasado" : inst.status;
-
-                  const instCardId = `inst-${inst.id}`;
-                  const isInstSelected = selectedIds.has(instCardId);
-
-                  return {
-                    vencimento: inst.data_vencimento,
-                    node: (
-                      <Card
-                        key={instCardId}
-                        className={`relative transition-all h-full cursor-pointer ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
-                        onClick={(e) => { if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(instCardId); }}
-                      >
-                        <CardContent className="p-3 flex flex-col h-full">
-                          {/* Row 1: Checkbox + Nome */}
-                          <div className="flex items-center gap-2 min-w-0 mb-1">
-                            <Checkbox
-                              checked={isInstSelected}
-                              onCheckedChange={() => toggleSelect(instCardId)}
-                            />
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {item.favorecido_nome || "Sem favorecido"}
-                            </p>
-                          </div>
-                          {/* Row 2: Badges */}
-                          <div className="flex items-center gap-1 flex-wrap mb-1.5">
-                            {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-                            {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
-                            <Badge variant="secondary" className="text-[10px]">
-                              P{inst.numero_parcela}/{inst.total_parcelas ?? installs.length}
-                            </Badge>
-                            <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
-                              {STATUS_MAP[instStatus]?.label || inst.status}
-                            </Badge>
-                            {isInstToday && (
-                              <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none">
-                                <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
-                              </Badge>
-                            )}
-                          </div>
-                          {/* Row 3: Dados fixos */}
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs flex-1">
-                            <div>
-                              <span className="text-muted-foreground text-[11px]">Valor Parcela</span>
-                              <p className="font-mono font-semibold text-foreground">
-                                {formatCurrency(Number(inst.valor))}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[11px]">Vencimento</span>
-                              <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
-                                {formatDateBR(inst.data_vencimento)}
-                              </p>
-                            </div>
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground text-[11px]">Conta Contábil</span>
-                              {chart ? (
-                                <p className="text-[11px] text-foreground truncate">
-                                  <span className="font-mono mr-1">{chart.codigo}</span>
-                                  {chart.nome}
-                                </p>
-                              ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
-                            </div>
-                          </div>
-                          {/* Creator info */}
-                          {item.created_by && profilesMap[item.created_by] && (
-                            <p className="text-[10px] text-muted-foreground/50 mt-1">
-                              Criado por {profilesMap[item.created_by]} em {formatDateBR(item.created_at)}
-                            </p>
-                          )}
-                          {/* Footer: Actions */}
-                          <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
-                            {isMaintenance && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
-                                <Wrench className="h-3 w-3 text-primary" />
-                              </Button>
-                            )}
-                            {!isInstPago && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 px-1.5 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10 shrink-0"
-                                onClick={() => handlePayInstallment(inst)}
-                              >
-                                <Check className="h-3 w-3" /> Pagar
-                              </Button>
-                            )}
-                            <div className="ml-auto flex gap-0">
-                              {inst.boleto_url && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
-                                  <Download className="h-3 w-3 text-primary" />
-                                </Button>
-                              )}
-                              <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
-                                <FileText className="h-3 w-3" /> Detalhes
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Editar despesa" onClick={() => handleEdit(item)}>
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              {!isInstPago && (
-                                <>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDeleteInstallment(inst)}>
-                                    <Trash2 className="h-3 w-3 text-destructive" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  };
-                });
-              }
-
-              const isHarvest = item.id.startsWith("harvest-");
-              const isFreightContract = typeof item.descricao === "string" && /contrato de frete/i.test(item.descricao);
-              const todayStr2 = format(new Date(), "yyyy-MM-dd");
-              const dueRef = item.data_vencimento || item.data_emissao || "";
-              const isPago = item.status === "pago";
-              const isOverdue = !isPago && dueRef ? dueRef < todayStr2 : false;
-              const isPartialOverdue = isOverdue && item.status === "parcial";
-              const isSelected = selectedIds.has(item.id);
-              const isDueToday = item.data_vencimento === todayStr2 && !isPago;
-
-              return [{
-                vencimento: item.data_vencimento || item.data_emissao || "",
-                node: (
-                  <Card
-                    key={item.id}
-                    className={`relative transition-all h-full cursor-pointer ${
-                      isSelected ? "ring-2 ring-primary bg-primary/5" : ""
-                    } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
-                    onClick={(e) => { if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(item.id); }}
-                  >
-                    <CardContent className="p-3 flex flex-col h-full">
-                      {/* Row 1: Checkbox + Nome */}
-                      <div className="flex items-center gap-2 min-w-0 mb-1">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSelect(item.id)}
-                        />
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {item.favorecido_nome || "Sem favorecido"}
-                        </p>
-                      </div>
-                      {/* Row 2: Badges */}
-                      <div className="flex items-center gap-1 flex-wrap mb-1.5">
-                        {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-                        {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
-                        {isHarvest && (
-                          <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
-                        )}
-                        {isFreightContract && (
-                          <Badge className="text-[10px] shrink-0 bg-primary/10 text-primary border-primary/30 hover:bg-primary/10">Contrato de Frete</Badge>
-                        )}
-                        <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
-                          {STATUS_MAP[item.status]?.label || item.status}
-                        </Badge>
-                        {isPartialOverdue && (
-                          <Badge variant="destructive" className="text-[10px] shrink-0" title="Título parcialmente pago que passou do vencimento">
-                            Vencido
-                          </Badge>
-                        )}
-                        {isDueToday && (
-                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none shrink-0">
-                            <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
-                          </Badge>
-                        )}
-                      </div>
-                      {/* Row 3: Dados fixos */}
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs flex-1">
-                        <div>
-                          <span className="text-muted-foreground text-[11px]">Valor</span>
-                          <p className="font-mono font-semibold text-foreground">
-                            {formatCurrency(Number(item.valor_total))}
-                          </p>
-                          {Math.abs(Number(item.valor_pago)) > 0.005 && !isPago && (
-                            <>
-                              <p className="text-[10px] text-muted-foreground font-mono">
-                                Pago: {formatCurrency(Number(item.valor_pago))}
-                              </p>
-                              {(() => {
-                                const total = Number(item.valor_total);
-                                const pago = Number(item.valor_pago);
-                                const isNegBill = total < 0;
-                                const falta = total - pago;
-                                // Excedente: pago além do valor (em valor absoluto)
-                                const isExcedente = isNegBill ? falta > 0 : falta < 0;
-                                // Para títulos negativos, exibir sempre com sinal negativo
-                                const display = isNegBill ? -Math.abs(falta) : falta;
-                                return (
-                                  <p className={`text-[10px] font-mono ${isExcedente ? "text-destructive" : "text-amber-600"}`}>
-                                    {isExcedente ? "Excedente: " : "Falta: "}{formatCurrency(display)}
-                                  </p>
-                                );
-                              })()}
-                            </>
-                          )}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground text-[11px]">{isPago ? "Pago em" : "Vencimento"}</span>
-                          <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
-                            {isPago && item.data_pagamento
-                              ? formatDateBR(item.data_pagamento)
-                              : item.data_vencimento
-                                ? formatDateBR(item.data_vencimento)
-                                : "—"}
-                          </p>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground text-[11px]">Conta Contábil</span>
-                          {chart ? (
-                            <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
-                              <span className="font-mono mr-1">{chart.codigo}</span>
-                              {chart.nome}
-                            </p>
-                          ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
-                        </div>
-                      </div>
-                      {/* Creator info */}
-                      {item.created_by && profilesMap[item.created_by] && (
-                        <p className="text-[10px] text-muted-foreground/50 mt-1">
-                          Criado por {profilesMap[item.created_by]} em {formatDateBR(item.created_at)}
-                        </p>
-                      )}
-                      {/* Footer: Actions */}
-                      <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
-                        {isMaintenance && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
-                            <Wrench className="h-3 w-3 text-primary" />
-                          </Button>
-                        )}
-                        {!isPago && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-1.5 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10 shrink-0"
-                            onClick={() => handlePayment(item)}
-                          >
-                            <Check className="h-3 w-3" /> Pagar
-                          </Button>
-                        )}
-                        {isPago && !isHarvest && (
-                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
-                            <FileText className="h-3 w-3" /> Detalhes
-                          </Button>
-                        )}
-                        {isPago && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
-                            onClick={async () => {
-                              if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar "${item.descricao}"? O valor voltará para pendente.`, confirmLabel: "Estornar" })) return;
-                              if (isHarvest) {
-                                const harvestPaymentId = item.id.replace("harvest-", "");
-                                await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "colheitas").eq("origem_id", harvestPaymentId);
-                                const { data: linkedExpenses } = await supabase.from("expenses").select("id").eq("contrato_id", harvestPaymentId);
-                                if (linkedExpenses && linkedExpenses.length > 0) {
-                                  for (const exp of linkedExpenses) {
-                                    await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", exp.id);
-                                    await supabase.from("expense_payments" as any).delete().eq("expense_id", exp.id);
-                                  }
-                                  await supabase.from("expenses").delete().in("id", linkedExpenses.map(e => e.id));
-                                }
-                                await supabase.from("harvest_payments").delete().eq("id", harvestPaymentId);
-                              } else {
-                                await createReversalTransactions(item.id, "");
-                                await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
-                                const installs = installmentsMap[item.id];
-                                if (installs && installs.length > 0) {
-                                  for (const inst of installs) {
-                                    if (inst.status === "pago") {
-                                      await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
-                                    }
-                                  }
-                                }
-                                await supabase.from("expenses").update({ valor_pago: 0, status: "pendente", data_pagamento: null } as any).eq("id", item.id);
-                              }
-                              toast.success("Pagamento estornado");
-                              fetchData();
-                            }}
-                          >
-                            <Undo2 className="h-3 w-3" /> Estornar
-                          </Button>
-                        )}
-                        {!isHarvest && (
-                          <div className="ml-auto flex gap-0">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleEdit(item)}>
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            {!isPago && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDelete(item)}>
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              }];
-            })
-            .sort((a, b) => {
-              if (quickFilter === "atrasadas") {
-                return b.vencimento.localeCompare(a.vencimento);
-              }
-              return a.vencimento.localeCompare(b.vencimento);
-            })
-            .map(entry => entry.node)}
-        </div>
-      )}
 
       <ExpenseFormDialog
         open={formOpen}

@@ -16,6 +16,9 @@ import { format } from "date-fns";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 import { GeneratePayablesDialog } from "@/components/fueling/GeneratePayablesDialog";
 import { formatCurrency } from "@/lib/masks";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 
 const FUEL_LABELS: Record<string, string> = {
   diesel: "Diesel",
@@ -108,17 +111,62 @@ export default function AdminFuelings() {
     vehicle_plate: vehicles.get(i.veiculo_id) || "",
   }));
 
+  const selectedRows = filtered.filter(i => selected.has(i.id));
+  const single = selectedRows.length === 1 ? selectedRows[0] : null;
+
+  const columns: DataGridColumn<any>[] = [
+    {
+      key: "placa", header: "Placa", width: "100px",
+      sortValue: (i) => vehicles.get(i.veiculo_id) || "",
+      cell: (i) => <span className="font-semibold">{vehicles.get(i.veiculo_id) || "—"}</span>,
+    },
+    {
+      key: "data", header: "Data", width: "110px",
+      sortValue: (i) => i.data_abastecimento,
+      cell: (i) => <span className="tabular-nums">{format(new Date(i.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}</span>,
+    },
+    {
+      key: "combustivel", header: "Combustível", width: "120px",
+      sortValue: (i) => FUEL_LABELS[i.tipo_combustivel] || i.tipo_combustivel,
+      cell: (i) => FUEL_LABELS[i.tipo_combustivel] || i.tipo_combustivel,
+    },
+    {
+      key: "posto", header: "Posto",
+      sortValue: (i) => i.posto_combustivel || "",
+      cell: (i) => <span className="truncate block max-w-[260px] text-muted-foreground">{i.posto_combustivel || "—"}</span>,
+    },
+    {
+      key: "litros", header: "Litros", width: "100px", align: "right",
+      sortValue: (i) => Number(i.quantidade_litros),
+      cell: (i) => <span className="font-mono">{Number(i.quantidade_litros).toLocaleString("pt-BR", { minimumFractionDigits: 1 })}</span>,
+    },
+    {
+      key: "rs_l", header: "R$/L", width: "90px", align: "right",
+      sortValue: (i) => Number(i.valor_por_litro),
+      cell: (i) => <span className="font-mono">{Number(i.valor_por_litro).toLocaleString("pt-BR", { minimumFractionDigits: 3 })}</span>,
+    },
+    {
+      key: "total", header: "Valor", width: "120px", align: "right",
+      sortValue: (i) => Number(i.valor_total),
+      cell: (i) => <span className="font-mono font-semibold">{formatCurrency(Number(i.valor_total))}</span>,
+    },
+    {
+      key: "status", header: "Status", width: "120px", align: "center",
+      sortValue: (i) => i.status_faturamento,
+      cell: (i) => (
+        <Badge variant={STATUS_FAT[i.status_faturamento]?.variant || "outline"} className="text-[10px]">
+          {STATUS_FAT[i.status_faturamento]?.label || i.status_faturamento}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Abastecimentos</h1>
-            <p className="text-sm text-muted-foreground">Registre abastecimentos e gere contas a pagar</p>
-          </div>
-          <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Novo
-          </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Abastecimentos</h1>
+          <p className="text-sm text-muted-foreground">Registre abastecimentos e gere contas a pagar</p>
         </div>
 
         {/* Summary */}
@@ -129,30 +177,8 @@ export default function AdminFuelings() {
           <SummaryCard icon={Fuel} label="Selecionados" value={selected.size} />
         </div>
 
-        {/* Batch actions */}
-        {selected.size > 0 && (
-          <div className="flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <DollarSign className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">
-              {selected.size} abastecimento(s) — {formatCurrency(selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0))}
-            </span>
-            <Button size="sm" onClick={() => setGenerateOpen(true)} className="ml-auto">
-              <DollarSign className="h-4 w-4 mr-1" /> Gerar Conta(s) a Pagar
-            </Button>
-          </div>
-        )}
-
-        {/* Filters + select all */}
+        {/* Filters */}
         <div className="flex flex-wrap gap-2 items-center">
-          {selectableItems.length > 0 && (
-            <div className="flex items-center gap-2 mr-2">
-              <Checkbox
-                checked={selected.size === selectableItems.length && selectableItems.length > 0}
-                onCheckedChange={toggleAll}
-              />
-              <span className="text-xs text-muted-foreground">Selecionar todos</span>
-            </div>
-          )}
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
@@ -167,83 +193,45 @@ export default function AdminFuelings() {
           </Select>
         </div>
 
-        {/* Cards */}
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-12 gap-4">
-            <Fuel className="h-10 w-10 text-muted-foreground" />
-            <p className="text-muted-foreground">Nenhum abastecimento encontrado</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map(item => {
-              const isFaturado = item.status_faturamento === "faturado";
-              const isSelected = selected.has(item.id);
-              return (
-                <Card
-                  key={item.id}
-                  className={`transition-all ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                >
-                  <CardContent className="p-4 space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {!isFaturado && (
-                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} className="mt-0.5" />
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{vehicles.get(item.veiculo_id) || "—"}</p>
-                          <p className="text-xs text-muted-foreground">{format(new Date(item.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}</p>
-                        </div>
-                      </div>
-                      <Badge variant={STATUS_FAT[item.status_faturamento]?.variant || "outline"} className="text-[10px] shrink-0">
-                        {STATUS_FAT[item.status_faturamento]?.label || item.status_faturamento}
-                      </Badge>
-                    </div>
+        <GlobalToolbar
+          actions={[
+            { key: "new", label: "Novo", icon: Plus, mode: "always", variant: "default", onClick: () => { setEditing(null); setFormOpen(true); } },
+            {
+              key: "edit", label: "Editar", icon: Pencil, mode: "single",
+              disabled: !single,
+              onClick: () => { if (single) { setEditing(single); setFormOpen(true); } },
+            },
+            {
+              key: "pay", label: "Gerar Conta(s) a Pagar", icon: DollarSign, mode: "single+batch",
+              disabled: selectedFuelings.length === 0 || selectedFuelings.some(f => f.status_faturamento === "faturado"),
+              onClick: () => setGenerateOpen(true),
+            },
+            {
+              key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive",
+              disabled: !single || single.status_faturamento === "faturado",
+              onClick: () => single && handleDelete(single),
+            },
+          ]}
+          selectedCount={selected.size}
+        >
+          {selected.size > 0 && (
+            <span className="text-[11px] font-mono text-primary">
+              {formatCurrency(selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0))}
+            </span>
+          )}
+        </GlobalToolbar>
 
-                    {/* Info grid */}
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Combustível</span>
-                        <p className="font-medium text-foreground">{FUEL_LABELS[item.tipo_combustivel] || item.tipo_combustivel}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Litros</span>
-                        <p className="font-mono font-medium text-foreground">{Number(item.quantidade_litros).toLocaleString("pt-BR", { minimumFractionDigits: 1 })}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">R$/L</span>
-                        <p className="font-mono font-medium text-foreground">{Number(item.valor_por_litro).toLocaleString("pt-BR", { minimumFractionDigits: 3 })}</p>
-                      </div>
-                    </div>
+        <DataGrid
+          rows={filtered}
+          columns={columns}
+          rowId={(i) => i.id}
+          selected={selected}
+          onSelectedChange={setSelected}
+          loading={loading}
+          minWidth={1020}
+          emptyMessage="Nenhum abastecimento encontrado"
+        />
 
-                    {item.posto_combustivel && (
-                      <p className="text-xs text-muted-foreground truncate">Posto: {item.posto_combustivel}</p>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-1 border-t border-border">
-                      <span className="font-mono text-sm font-semibold text-foreground">
-                        {formatCurrency(Number(item.valor_total))}
-                      </span>
-                      <div className="flex gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(item); setFormOpen(true); }}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        {!isFaturado && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
 
         <FuelingFormDialog open={formOpen} onOpenChange={setFormOpen} empresaId={empresaId} userId={user?.id || ""} fueling={editing} onSaved={fetchData} />
         {generateOpen && (

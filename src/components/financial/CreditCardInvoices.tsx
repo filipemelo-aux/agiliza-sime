@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, Pencil, Trash2, Printer } from "lucide-react";
+import { Plus, Pencil, Trash2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";
 import { printCreditCardInvoice } from "./printCreditCardInvoice";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 
 interface InvoiceRow {
   id: string;
@@ -28,6 +28,7 @@ export function CreditCardInvoices() {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = async () => {
@@ -42,27 +43,41 @@ export function CreditCardInvoices() {
     } else {
       setInvoices((data as any) || []);
     }
+    setSelected(new Set());
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const selectedRows = useMemo(
+    () => invoices.filter((i) => selected.has(i.id)),
+    [invoices, selected]
+  );
 
   const handleNew = () => {
     setEditingId(null);
     setOpenDialog(true);
   };
 
-  const handleEdit = (id: string) => {
-    setEditingId(id);
+  const handleEdit = () => {
+    const inv = selectedRows[0];
+    if (!inv) return;
+    setEditingId(inv.id);
     setOpenDialog(true);
   };
 
-  const handleDelete = async (inv: InvoiceRow) => {
+  const handlePrint = () => {
+    selectedRows.forEach((inv) => printCreditCardInvoice(inv.id));
+  };
+
+  const handleDelete = async () => {
+    if (selectedRows.length === 0) return;
+    const hasExpense = selectedRows.some((i) => i.expense_id);
     const ok = await confirm({
-      title: "Excluir fatura?",
-      description: inv.expense_id
-        ? "Esta fatura já gerou uma despesa em Contas a Pagar — ela NÃO será excluída automaticamente. Continuar?"
-        : "A fatura e seus lançamentos serão removidos.",
+      title: selectedRows.length > 1 ? `Excluir ${selectedRows.length} faturas?` : "Excluir fatura?",
+      description: hasExpense
+        ? "Alguma fatura selecionada já gerou uma despesa em Contas a Pagar — ela NÃO será excluída automaticamente. Continuar?"
+        : "As faturas e seus lançamentos serão removidos.",
       confirmLabel: "Excluir",
       variant: "destructive",
     });
@@ -70,9 +85,9 @@ export function CreditCardInvoices() {
     const { error } = await supabase
       .from("credit_card_invoices" as any)
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", inv.id);
+      .in("id", selectedRows.map((i) => i.id));
     if (error) return toast.error(error.message);
-    toast.success("Fatura excluída.");
+    toast.success("Fatura(s) excluída(s).");
     load();
   };
 
@@ -82,65 +97,103 @@ export function CreditCardInvoices() {
     return `${day}/${m}/${y}`;
   };
 
+  const actions: ToolbarAction[] = [
+    { key: "new", label: "Nova Fatura", icon: Plus, mode: "always", variant: "default", onClick: handleNew },
+    { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: handleEdit },
+    { key: "print", label: "Imprimir", icon: Printer, mode: "single+batch", onClick: handlePrint },
+    { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDelete },
+  ];
+
+  const columns: DataGridColumn<InvoiceRow>[] = [
+    {
+      key: "card_name",
+      header: "Cartão",
+      width: "220px",
+      sortValue: (r) => r.card_name,
+      cell: (r) => <span className="font-medium text-foreground">{r.card_name}</span>,
+    },
+    {
+      key: "reference_label",
+      header: "Referência",
+      width: "140px",
+      sortValue: (r) => r.reference_label || "",
+      cell: (r) => r.reference_label || "—",
+    },
+    {
+      key: "closing_date",
+      header: "Fechamento",
+      width: "110px",
+      sortValue: (r) => r.closing_date || "",
+      cell: (r) => formatDate(r.closing_date),
+    },
+    {
+      key: "due_date",
+      header: "Vencimento",
+      width: "110px",
+      sortValue: (r) => r.due_date,
+      cell: (r) => formatDate(r.due_date),
+    },
+    {
+      key: "ofx_file_name",
+      header: "OFX",
+      sortValue: (r) => r.ofx_file_name || "",
+      cell: (r) => <span className="truncate block max-w-[220px]">{r.ofx_file_name || "—"}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "110px",
+      align: "center",
+      sortValue: (r) => r.status,
+      cell: (r) => (
+        <Badge variant={r.status === "fechada" ? "default" : "secondary"} className="text-[10px] uppercase">
+          {r.status}
+        </Badge>
+      ),
+    },
+    {
+      key: "total_amount",
+      header: "Total",
+      width: "130px",
+      align: "right",
+      sortValue: (r) => Number(r.total_amount),
+      cell: (r) => <span className="font-mono font-semibold">{formatCurrency(Number(r.total_amount))}</span>,
+    },
+  ];
+
+  const totalSelecionado = selectedRows.reduce((s, i) => s + Number(i.total_amount), 0);
+  const totalGeral = invoices.reduce((s, i) => s + Number(i.total_amount), 0);
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Cartão de Crédito</h1>
-          <p className="text-xs text-muted-foreground">Importe arquivos OFX e classifique os lançamentos para gerar uma despesa única no Contas a Pagar.</p>
-        </div>
-        <Button onClick={handleNew} className="h-10">
-          <Plus className="w-4 h-4 mr-2" /> Nova Fatura
-        </Button>
+    <div className="space-y-3">
+      <div>
+        <h1 className="text-lg font-bold text-foreground">Cartão de Crédito</h1>
+        <p className="text-xs text-muted-foreground">Importe arquivos OFX e classifique os lançamentos para gerar uma despesa única no Contas a Pagar.</p>
       </div>
 
-      {loading ? (
-        <p className="text-xs text-muted-foreground">Carregando...</p>
-      ) : invoices.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-xs text-muted-foreground">
-            <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            Nenhuma fatura registrada. Clique em "Nova Fatura" para começar.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {invoices.map((inv) => (
-            <Card key={inv.id} className="hover:border-primary/40 transition-colors">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground truncate">{inv.card_name}</h3>
-                    {inv.reference_label && (
-                      <p className="text-xs text-muted-foreground truncate">{inv.reference_label}</p>
-                    )}
-                  </div>
-                  <Badge variant={inv.status === "fechada" ? "default" : "secondary"} className="text-[10px] uppercase">
-                    {inv.status}
-                  </Badge>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-0.5">
-                  <div>Vencimento: <span className="text-foreground">{formatDate(inv.due_date)}</span></div>
-                  {inv.closing_date && <div>Fechamento: <span className="text-foreground">{formatDate(inv.closing_date)}</span></div>}
-                  {inv.ofx_file_name && <div className="truncate">OFX: <span className="text-foreground">{inv.ofx_file_name}</span></div>}
-                </div>
-                <div className="text-base font-bold text-foreground pt-1">{formatCurrency(Number(inv.total_amount))}</div>
-                <div className="flex items-center gap-1 pt-2 border-t">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => handleEdit(inv.id)}>
-                    <Pencil className="w-3 h-3 mr-1" /> Editar
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => printCreditCardInvoice(inv.id)}>
-                    <Printer className="w-3 h-3 mr-1" /> Imprimir
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" onClick={() => handleDelete(inv)}>
-                    <Trash2 className="w-3 h-3 mr-1" /> Excluir
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <GlobalToolbar actions={actions} selectedCount={selected.size} />
+
+      <DataGrid
+        rows={invoices}
+        columns={columns}
+        rowId={(r) => r.id}
+        selected={selected}
+        onSelectedChange={setSelected}
+        loading={loading}
+        minWidth={980}
+        emptyMessage='Nenhuma fatura registrada. Clique em "Nova Fatura" para começar.'
+        footer={
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{invoices.length} fatura(s)</span>
+            <span className="font-mono">
+              {selected.size > 0 && (
+                <span className="mr-4 text-primary">Selecionado: {formatCurrency(totalSelecionado)}</span>
+              )}
+              Total: {formatCurrency(totalGeral)}
+            </span>
+          </div>
+        }
+      />
 
       <CreditCardImportDialog
         open={openDialog}

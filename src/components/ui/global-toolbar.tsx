@@ -1,0 +1,76 @@
+import { LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+export type ToolbarActionMode = "always" | "single" | "batch" | "single+batch";
+
+export interface ToolbarAction {
+  key: string;
+  label: string;
+  icon?: LucideIcon;
+  onClick: () => void;
+  /** always = sempre ativo (Novo) | single = só 1 selecionado | batch = 1+ selecionados | single+batch = 1+ */
+  mode: ToolbarActionMode;
+  variant?: "default" | "outline" | "ghost" | "destructive" | "secondary";
+  /** desabilita mesmo quando a seleção permitiria */
+  disabled?: boolean;
+  hidden?: boolean;
+}
+
+export function isActionEnabled(mode: ToolbarActionMode, count: number) {
+  switch (mode) {
+    case "always":
+      return true;
+    case "single":
+      return count === 1;
+    case "batch":
+    case "single+batch":
+      return count >= 1;
+    default:
+      return false;
+  }
+}
+
+interface GlobalToolbarProps {
+  actions: ToolbarAction[];
+  selectedCount: number;
+  /** conteúdo extra à direita (filtros, busca, totais) */
+  children?: React.ReactNode;
+  className?: string;
+}
+
+export function GlobalToolbar({ actions, selectedCount, children, className }: GlobalToolbarProps) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5",
+        className
+      )}
+    >
+      {actions
+        .filter((a) => !a.hidden)
+        .map((a) => {
+          const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
+          const Icon = a.icon;
+          return (
+            <Button
+              key={a.key}
+              type="button"
+              size="sm"
+              variant={a.variant ?? "outline"}
+              disabled={!enabled}
+              onClick={a.onClick}
+              className="h-8 text-xs gap-1.5 disabled:opacity-40"
+            >
+              {Icon && <Icon className="h-3.5 w-3.5" />}
+              {a.label}
+            </Button>
+          );
+        })}
+      {children && <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>}
+      <span className="ml-2 text-[11px] text-muted-foreground whitespace-nowrap">
+        {selectedCount > 0 ? `${selectedCount} selecionado(s)` : "Nenhum selecionado"}
+      </span>
+    </div>
+  );
+}

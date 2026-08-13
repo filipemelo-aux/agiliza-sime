@@ -14,6 +14,9 @@ import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+
 
 interface InstallmentInfo {
   id: string;
@@ -399,6 +402,80 @@ export function FinancialPaid() {
     return t;
   }, [selectedIds, items]);
 
+  const selectedItems = useMemo(
+    () => items.filter(i => selectedIds.has(i.id)),
+    [items, selectedIds]
+  );
+
+  const paidColumns: DataGridColumn<PaidItem>[] = useMemo(() => [
+    {
+      key: "creditor",
+      header: "Favorecido",
+      width: "220px",
+      sortValue: (r) => r.creditor_name || "",
+      cell: (r) => (
+        <span className="font-medium text-foreground truncate block max-w-[220px]">
+          {r.creditor_name || "Sem favorecido"}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      header: "Descrição",
+      sortValue: (r) => r.description,
+      cell: (r) => <span className="truncate block max-w-[280px]">{r.description}</span>,
+    },
+    {
+      key: "due_date",
+      header: "Vencimento",
+      width: "100px",
+      sortValue: (r) => r.due_date || "",
+      cell: (r) => (r.due_date ? formatDateBR(r.due_date) : "—"),
+    },
+    {
+      key: "paid_at",
+      header: "Data Pgto",
+      width: "100px",
+      sortValue: (r) => r.paid_at || "",
+      cell: (r) => formatDateBR(r.paid_at),
+    },
+    {
+      key: "forma",
+      header: "Forma",
+      width: "110px",
+      sortValue: (r) => r.forma_pagamento || "",
+      cell: (r) => (
+        <span className="capitalize">
+          {r.forma_pagamento ? (FORMA_PAGAMENTO_MAP[r.forma_pagamento] || r.forma_pagamento) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "origem",
+      header: "Origem",
+      width: "110px",
+      align: "center",
+      sortValue: (r) => r.source,
+      cell: (r) => (
+        <Badge
+          variant={r.source === "legacy" ? "secondary" : "default"}
+          className={`text-[10px] ${r.source === "group" ? "bg-primary/80" : ""}`}
+        >
+          {r.source === "legacy" ? "Legado" : r.source === "group" ? `Agrupado · ${r.group_count}` : "Pago"}
+        </Badge>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Valor Pago",
+      width: "120px",
+      align: "right",
+      sortValue: (r) => r.amount,
+      cell: (r) => <span className="font-mono font-semibold text-success">{formatCurrency(r.amount)}</span>,
+    },
+  ], []);
+
+
   const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos";
 
   const clearFilters = () => {
@@ -725,134 +802,59 @@ export function FinancialPaid() {
         )}
       </div>
 
-      {/* Selection bar - only when items are selected */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-4 rounded-lg border bg-muted/50 p-2 flex-wrap">
-          <Checkbox
-            checked={selectedIds.size === selectableIds.length && selectableIds.length > 0}
-            onCheckedChange={toggleSelectAll}
-          />
-          <span className="text-xs text-muted-foreground">
-            {`${selectedIds.size} selecionada(s) — ${formatCurrency(selectedTotal)}`}
-          </span>
-          <div className="ml-auto">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 gap-1.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-              onClick={handleBatchReverse}
-              disabled={reversing}
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              {reversing ? "Processando..." : "Estornar"}
-            </Button>
+      {/* Global Toolbar */}
+      <GlobalToolbar
+        actions={[
+          {
+            key: "detail",
+            label: "Detalhes",
+            icon: Eye,
+            mode: "single",
+            onClick: () => { const it = selectedItems[0]; if (it) openDetail(it); },
+          },
+          {
+            key: "edit",
+            label: "Editar",
+            icon: Pencil,
+            mode: "single",
+            disabled: !selectedItems[0]?.expense_id,
+            onClick: () => { const it = selectedItems[0]; if (it) openEdit(it); },
+          },
+          {
+            key: "reverse",
+            label: reversing ? "Processando..." : "Estornar",
+            icon: Undo2,
+            mode: "single+batch",
+            disabled: reversing,
+            onClick: handleBatchReverse,
+          },
+        ]}
+        selectedCount={selectedIds.size}
+      >
+        {selectedIds.size > 0 && (
+          <span className="text-[11px] font-mono text-primary">{formatCurrency(selectedTotal)}</span>
+        )}
+      </GlobalToolbar>
+
+      {/* Data Grid */}
+      <DataGrid
+        rows={filtered}
+        columns={paidColumns}
+        rowId={(r) => r.id}
+        selected={selectedIds}
+        onSelectedChange={setSelectedIds}
+        isSelectable={(r) => r.source === "expense_payment" || r.source === "group"}
+        loading={loading}
+        minWidth={1060}
+        emptyMessage="Nenhuma conta paga encontrada."
+        footer={
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{filtered.length} registro(s)</span>
+            <span className="font-mono">Total: {formatCurrency(total)}</span>
           </div>
-        </div>
-      )}
+        }
+      />
 
-      {/* Cards List */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-primary" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="py-12 text-center">
-          <DollarSign className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">Nenhuma conta paga encontrada.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((item) => {
-            const isSelectable = item.source === "expense_payment" || item.source === "group";
-            const isSelected = selectedIds.has(item.id);
-            const isGroup = item.source === "group";
-
-            return (
-              <Card
-                key={item.id}
-                className={`h-full transition-all ${isSelectable ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                onClick={(e) => { if (!isSelectable) return; if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(item.id); }}
-              >
-                <CardContent className="flex h-full flex-col p-3">
-                  {/* Row 1: Checkbox + Nome + Badge */}
-                  <div className="mb-1 flex items-center gap-2">
-                    {isSelectable && (
-                      <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
-                    )}
-                    <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge
-                      variant={item.source === "legacy" ? "secondary" : "default"}
-                      className={`shrink-0 text-[10px] ${isGroup ? "bg-primary/80" : ""}`}
-                    >
-                      {item.source === "legacy" ? "Legado" : isGroup ? `Agrupado · ${item.group_count}` : "Pago"}
-                    </Badge>
-                  </div>
-
-                  {/* Row 2: Descrição */}
-                  <p className="mb-1.5 truncate text-xs text-muted-foreground">{item.description}</p>
-
-                  {/* Row 3: Dados */}
-                  <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-                    <div>
-                      <span className="text-[11px] text-muted-foreground">Valor Pago</span>
-                      <p className="font-mono font-semibold text-success">{formatCurrency(item.amount)}</p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-muted-foreground">Vencimento</span>
-                      <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-muted-foreground">Data Pgto</span>
-                      <p className="font-medium text-foreground">{formatDateBR(item.paid_at)}</p>
-                    </div>
-                    {item.forma_pagamento && (
-                      <div>
-                        <span className="text-[11px] text-muted-foreground">Forma Pgto</span>
-                        <p className="text-[11px] capitalize text-foreground">{FORMA_PAGAMENTO_MAP[item.forma_pagamento] || item.forma_pagamento}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Creator info */}
-                  {item.created_by_name && (
-                    <p className="text-[10px] text-muted-foreground/50 mt-1">
-                      Registrado por {item.created_by_name} em {formatDateBR(item.created_at)}
-                    </p>
-                  )}
-
-                  {/* Footer: Action buttons */}
-                  <div className="flex items-center gap-1 pt-1.5 mt-1.5 border-t border-border">
-                    {isSelectable && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-[11px] gap-1 text-primary"
-                          onClick={() => openDetail(item)}
-                          title="Detalhes"
-                        >
-                          <Eye className="h-3 w-3" /> Detalhes
-                        </Button>
-                        <div className="ml-auto">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-[11px] gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-                            onClick={() => handleReverseSingle(item)}
-                            disabled={reversing}
-                          >
-                            <Undo2 className="h-3 w-3" /> Estornar
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
