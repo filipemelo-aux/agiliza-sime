@@ -2140,7 +2140,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           );
         })()}
       </TableCell>
-      <TableCell className="pl-0.5 pr-1 py-1 align-middle min-w-[130px] w-[14%]">
+      <TableCell className="pl-0 pr-1 py-1 align-middle min-w-[130px] w-[14%]">
         <div className="flex items-center gap-0.5">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
