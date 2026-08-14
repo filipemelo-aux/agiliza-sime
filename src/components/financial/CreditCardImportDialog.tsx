@@ -949,8 +949,77 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setSelectedIdxs(new Set());
   }, []);
 
+  /** Identifica todos os ids do banco que pertencem ao mesmo agrupamento de parcelas. */
+  const findInstallmentGroupIds = async (anchor: ItemRow): Promise<string[]> => {
+    const totalP = Number(anchor.parcela_total || 0);
+    if (totalP <= 1) return anchor.id ? [anchor.id] : [];
+    const { data, error } = await supabase
+      .from("credit_card_invoice_items" as any)
+      .select("id, description, amount, favorecido_id, favorecido_nome, parcela_total")
+      .eq("parcela_total", totalP);
+    if (error) throw error;
+    const targetNorm = normalizeInstallmentText(anchor.description);
+    const targetFav = (anchor.favorecido_id || anchor.favorecido_nome || "").toLowerCase().trim();
+    return ((data as any[]) || [])
+      .filter((r) => {
+        if (normalizeInstallmentText(r.description || "") !== targetNorm) return false;
+        const fav = (r.favorecido_id || r.favorecido_nome || "").toLowerCase().trim();
+        if (targetFav && fav && fav !== targetFav) return false;
+        return amountsClose(Number(r.amount || 0), Number(anchor.amount || 0));
+      })
+      .map((r) => r.id as string);
+  };
+
   const removeSelected = useCallback(async () => {
     if (selectedIdxs.size === 0) return;
+
+    const selectedItems = Array.from(selectedIdxs).map((i) => items[i]).filter(Boolean);
+    const parcelados = selectedItems.filter((it) => Number(it.parcela_total || 0) > 1);
+
+    if (parcelados.length > 0) {
+      const ok = await confirm({
+        title: "Excluir parcelas do agrupamento?",
+        description:
+          `${parcelados.length} lançamento(s) selecionado(s) faz(em) parte de parcelamentos.\n\n` +
+          `Deseja excluir TODAS as parcelas desses grupos em todas as faturas do cartão, ` +
+          `ou apenas os itens selecionados nesta fatura?`,
+        confirmLabel: "Todas as parcelas",
+        cancelLabel: "Apenas selecionados",
+        variant: "destructive",
+      });
+
+      if (ok) {
+        // Excluir todas as parcelas de cada agrupamento distinto.
+        const processedKeys = new Set<string>();
+        let totalDeleted = 0;
+        try {
+          for (const it of parcelados) {
+            const key = `${(it.favorecido_id || it.favorecido_nome || "").toLowerCase().trim()}|${normalizeInstallmentText(it.description)}|${it.parcela_total}|${Math.round(Number(it.amount || 0) * 100)}`;
+            if (processedKeys.has(key)) continue;
+            processedKeys.add(key);
+            const ids = await findInstallmentGroupIds(it);
+            if (ids.length > 0) {
+              const { error } = await supabase.from("credit_card_invoice_items" as any).delete().in("id", ids);
+              if (error) throw error;
+              totalDeleted += ids.length;
+            }
+          }
+          toast.success(`${totalDeleted} parcela(s) removida(s) do agrupamento.`);
+          setItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
+          setOriginalItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
+          setSelectedIdxs(new Set());
+          await reloadCurrentInvoiceItems();
+          onSaved();
+          return;
+        } catch (err: any) {
+          console.error(err);
+          toast.error(err.message || "Erro ao excluir parcelas do agrupamento.");
+          return;
+        }
+      }
+      // Se "Apenas selecionados", continua para a confirmação normal abaixo.
+    }
+
     const ok = await confirm({
       title: "Remover selecionados?",
       description: `${selectedIdxs.size} lançamento(s) serão removidos da fatura. Você poderá salvar depois para efetivar.`,
@@ -962,7 +1031,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setOriginalItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
     setSelectedIdxs(new Set());
     toast.success("Lançamentos removidos.");
-  }, [selectedIdxs, confirm]);
+  }, [selectedIdxs, confirm, items]);
 
   // Reconciliação com valor real da fatura: encontra um subconjunto cuja soma
   // equivale à diferença entre o total atual e o valor informado, e o seleciona
@@ -2325,9 +2394,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             updateItem(idx, { favorecido_id: (data as any).id, favorecido_nome: nome });
             toast.success("Favorecido cadastrado e vinculado.");
           }
-        }}
+      }}
       />
-      {ConfirmDialog}
 
       <Dialog open={manualDialogOpen} onOpenChange={(o) => { setManualDialogOpen(o); if (!o) setManualEditIdx(null); }}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
@@ -2627,6 +2695,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
+      {ConfirmDialog}
 
     </Dialog>
 
