@@ -94,6 +94,7 @@ export function FiscalDocImportDialog({
   const [chave, setChave] = useState<string | null>(null);
   const [fornecedorNome, setFornecedorNome] = useState("");
   const [fornecedorCnpj, setFornecedorCnpj] = useState("");
+  const [fornecedorId, setFornecedorId] = useState<string | null>(null);
   const [dataEmissao, setDataEmissao] = useState(defaultDate || getLocalDateISO());
   const [descricao, setDescricao] = useState("");
   const [valorTotalStr, setValorTotalStr] = useState("");
@@ -115,7 +116,7 @@ export function FiscalDocImportDialog({
   useEffect(() => {
     if (!open) return;
     setIsNfse(false);
-    setNumero(""); setChave(null); setFornecedorNome(""); setFornecedorCnpj("");
+    setNumero(""); setChave(null); setFornecedorNome(""); setFornecedorCnpj(""); setFornecedorId(null);
     setDataEmissao(defaultDate || getLocalDateISO());
     setDescricao(attachMode ? (attachDescription || "") : "");
     setValorTotalStr(attachMode && attachAmount ? maskCurrency(String(Math.round(attachAmount * 100))) : "");
@@ -262,6 +263,8 @@ export function FiscalDocImportDialog({
         setChave(parsed.chave_nfe || null);
         setFornecedorNome(parsed.fornecedor_nome || "");
         setFornecedorCnpj(parsed.fornecedor_cnpj || "");
+        setFornecedorId(null);
+        void buscarFornecedorCadastro(parsed.fornecedor_cnpj || "", parsed.fornecedor_nome || "", parsed.emitente?.razao_social || "");
         if (parsed.data_emissao) setDataEmissao(parsed.data_emissao);
         setValorTotalStr(maskCurrency(String(Math.round((parsed.valor_total || 0) * 100))));
         setItens((parsed.itens || []).map((i: NfeItem, ix: number) => ({
@@ -317,6 +320,7 @@ export function FiscalDocImportDialog({
       chave,
       fornecedor_nome: fornecedorNome.trim(),
       fornecedor_cnpj: fornecedorCnpj.trim(),
+      fornecedor_id: fornecedorId,
       data_emissao: dataEmissao,
       descricao: descricao.trim(),
       valor_total: valorTotal,
@@ -369,8 +373,20 @@ export function FiscalDocImportDialog({
               <Input className="h-9 text-xs" value={numero} onChange={(e) => setNumero(e.target.value)} />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-[11px]">Fornecedor</Label>
-              <Input className="h-9 text-xs" value={fornecedorNome} onChange={(e) => setFornecedorNome(e.target.value)} />
+              <Label className="text-[11px]">
+                Fornecedor {fornecedorId && <span className="text-emerald-600">• cadastrado</span>}
+              </Label>
+              <PersonSearchInput
+                categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
+                placeholder="Buscar fornecedor cadastrado..."
+                selectedName={fornecedorNome || undefined}
+                onSelect={(p) => {
+                  setFornecedorId(p.id);
+                  setFornecedorNome(p.razao_social || p.full_name || "");
+                  if (p.cnpj) setFornecedorCnpj(p.cnpj);
+                }}
+                onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
+              />
             </div>
             <div>
               <Label className="text-[11px]">CNPJ</Label>
