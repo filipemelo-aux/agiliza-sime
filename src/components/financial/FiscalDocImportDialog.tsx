@@ -608,7 +608,13 @@ export function FiscalDocImportDialog({
               <div>
                 <Label className="text-[11px]">Total de parcelas</Label>
                 <Input className="h-9 text-xs" inputMode="numeric" value={parcelaTotal} onChange={(e) => setParcelaTotal(e.target.value.replace(/\D/g, ""))} />
+                {nParcelas > 1 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Valor lançado nesta fatura: <strong>{formatCurrency(valorParcela)}</strong>
+                  </p>
+                )}
               </div>
+
               <div className="md:col-span-2">
                 <Label className="text-[11px]">Plano de Contas</Label>
                 <PlanoContasCombobox
