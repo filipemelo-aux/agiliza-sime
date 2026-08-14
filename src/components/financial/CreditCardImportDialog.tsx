@@ -2109,6 +2109,27 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </div>
           </GlobalToolbar>
 
+          {pendingInstallments.length > 0 && !isClosed && (
+            <div className="flex items-start gap-2 p-2 border border-warning/50 rounded-md bg-warning/10 text-[11px] leading-relaxed">
+              <Layers className="w-3.5 h-3.5 mt-0.5 text-warning shrink-0" />
+              <div>
+                <span className="font-semibold text-foreground">
+                  {pendingInstallments.length} lançamento(s) parcelado(s) sem as demais parcelas no sistema.
+                </span>{" "}
+                Ao salvar, serão geradas automaticamente{" "}
+                {pendingInstallments.reduce((s, t) => s + Math.max(0, Number(t.item.parcela_atual || 0) - 1), 0)} parcela(s)
+                em faturas anteriores e{" "}
+                {pendingInstallments.reduce(
+                  (s, t) => s + Math.max(0, Number(t.item.parcela_total || 0) - Number(t.item.parcela_atual || 0)),
+                  0,
+                )}{" "}
+                em faturas posteriores. A fatura não pode ser salva sem essa geração.
+              </div>
+            </div>
+          )}
+
+
+
 
           {items.length > 0 ? (
             <div className="space-y-2">
