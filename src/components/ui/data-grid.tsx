@@ -173,13 +173,17 @@ export function DataGrid<T>({
                     )}
                   >
                     <td
-                      className={cn(
-                        "px-2 py-2.5 md:py-1 sticky left-0 z-10 bg-card",
-                        rowClassName?.(row),
-                        isSel && "bg-primary/10"
-                      )}
+                      className="relative px-2 py-2.5 md:py-1 sticky left-0 z-10 bg-card"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "pointer-events-none absolute inset-0",
+                          rowClassName?.(row),
+                          isSel && "bg-primary/10"
+                        )}
+                      />
                       {selectable && (
                         <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} />
                       )}
@@ -190,13 +194,21 @@ export function DataGrid<T>({
                         className={cn(
                           "px-2 py-2.5 md:py-1 align-middle",
                           alignCls(col.align),
-                          ci === 0 && "sticky left-10 md:left-8 z-10 bg-card",
-                          ci === 0 && rowClassName?.(row),
-                          ci === 0 && isSel && "bg-primary/10",
+                          ci === 0 && "relative sticky left-10 md:left-8 z-10 bg-card",
                           col.className
                         )}
                       >
-                        {col.cell(row)}
+                        {ci === 0 && (
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "pointer-events-none absolute inset-0",
+                              rowClassName?.(row),
+                              isSel && "bg-primary/10"
+                            )}
+                          />
+                        )}
+                        <span className={cn(ci === 0 && "relative")}>{col.cell(row)}</span>
                       </td>
                     ))}
                   </tr>
