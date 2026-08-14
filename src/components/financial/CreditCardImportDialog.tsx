@@ -1839,6 +1839,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     ]);
   }, [items, chartAccounts, cardName, referenceYM]);
 
+  /** Todos os lançamentos selecionados já tiveram as parcelas geradas automaticamente. */
+  const selectionAllExpanded = useMemo(() => {
+    const idxs = Array.from(selectedIdxs);
+    if (idxs.length === 0) return false;
+    return idxs.every((i) => !!items[i]?.parcelas_expandidas);
+  }, [selectedIdxs, items]);
+
   const toolbarActions: ToolbarAction[] = [
     { key: "ofx", label: "Importar OFX", icon: Upload, mode: "always", disabled: isClosed, onClick: () => fileRef.current?.click() },
     { key: "novo", label: "Novo lançamento", icon: Plus, mode: "create", disabled: isClosed, onClick: addManualItem },
