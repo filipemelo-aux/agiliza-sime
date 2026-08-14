@@ -2323,7 +2323,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={confirmManualItem} disabled={!manualItensOk}>Adicionar</Button>
+            <Button size="sm" onClick={confirmManualItem} disabled={!manualItensOk}>{manualEditIdx !== null ? "Salvar alterações" : "Adicionar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
