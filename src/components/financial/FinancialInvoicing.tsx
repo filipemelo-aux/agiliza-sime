@@ -1602,7 +1602,7 @@ ${hasRecebimentos ? `
 
       <GlobalToolbar
         actions={[
-          { key: "new", label: "Nova Fatura", icon: Plus, mode: "always", variant: "default", onClick: openNewInvoice },
+          { key: "new", label: "Nova Fatura", icon: Plus, mode: "create", variant: "default", onClick: openNewInvoice },
           {
             key: "detail", label: "Detalhes", icon: Eye, mode: "single",
             disabled: !singleFatura,

@@ -99,7 +99,7 @@ export function CreditCardInvoices() {
   };
 
   const actions: ToolbarAction[] = [
-    { key: "new", label: "Nova Fatura", icon: Plus, mode: "always", variant: "default", onClick: handleNew },
+    { key: "new", label: "Nova Fatura", icon: Plus, mode: "create", variant: "default", onClick: handleNew },
     { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: handleEdit },
     { key: "print", label: "Imprimir", icon: Printer, mode: "single+batch", onClick: handlePrint },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDelete },

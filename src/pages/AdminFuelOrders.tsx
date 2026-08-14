@@ -184,7 +184,7 @@ export default function AdminFuelOrders() {
   ];
 
   const actions = [
-    { key: "new", label: "Nova Ordem", icon: Plus, mode: "always" as const, variant: "default" as const, onClick: () => setShowForm(true) },
+    { key: "new", label: "Nova Ordem", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setShowForm(true) },
     { key: "print", label: "Imprimir", icon: Printer, mode: "single" as const, disabled: !single, onClick: () => single && printFuelOrderPDF(withDriver(single), unifiedLabel, unifiedCnpjs) },
     { key: "email", label: "E-mail", icon: Mail, mode: "single" as const, disabled: !single, onClick: () => single && setEmailOrder(withDriver(single)) },
     ...(canDelete ? [{ key: "delete", label: "Excluir", icon: Trash2, mode: "single" as const, variant: "destructive" as const, disabled: !single, onClick: () => single && handleDelete(single) }] : []),
