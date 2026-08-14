@@ -1517,10 +1517,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
 
     const totalMissing = targets.reduce((s, t) => s + (Number(t.item.parcela_total || 0) - 1), 0);
+    const totalAnteriores = targets.reduce((s, t) => s + Math.max(0, Number(t.item.parcela_atual || 0) - 1), 0);
+    const totalPosteriores = targets.reduce(
+      (s, t) => s + Math.max(0, Number(t.item.parcela_total || 0) - Number(t.item.parcela_atual || 0)),
+      0,
+    );
     const ok = await confirm({
       title: `Gerar parcelas em lote — ${targets.length} lançamento(s)?`,
       description:
-        `Serão processados ${targets.length} lançamento(s), gerando ${totalMissing} parcela(s) em faturas anteriores/posteriores do cartão "${cardName}".\n\n` +
+        `Serão processados ${targets.length} lançamento(s), gerando ${totalMissing} parcela(s) no cartão "${cardName}":\n` +
+        `• ${totalAnteriores} em faturas ANTERIORES\n• ${totalPosteriores} em faturas POSTERIORES\n\n` +
         (skipped.length > 0 ? `${skipped.length} lançamento(s) selecionado(s) serão IGNORADOS (já expandidos ou sem dados obrigatórios).\n\n` : "") +
         `Faturas destino já fechadas e quitadas no Contas a Pagar serão ESTORNADAS automaticamente para receber os lançamentos.`,
       confirmLabel: "Gerar em lote",
