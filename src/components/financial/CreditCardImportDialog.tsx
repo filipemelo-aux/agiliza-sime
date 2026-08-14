@@ -172,6 +172,8 @@ interface ItemRow {
   parcela_atual: number | null;
   parcela_total: number | null;
   parcelas_expandidas: boolean;
+  /** Apenas da sessão: indica que a data informada já foi convertida antes do INSERT. */
+  data_matriz_aplicada?: boolean;
   // Vínculo fiscal (NF-e / NFS-e) — a obrigação de pagamento permanece na fatura do cartão
   documento_fiscal_tipo?: string | null;
   documento_fiscal_numero?: string | null;
@@ -372,6 +374,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: r.parcela_atual ?? null,
         parcela_total: r.parcela_total ?? null,
         parcelas_expandidas: !!r.parcelas_expandidas,
+        data_matriz_aplicada: true,
         documento_fiscal_tipo: r.documento_fiscal_tipo ?? null,
         documento_fiscal_numero: r.documento_fiscal_numero ?? null,
         chave_nfe: r.chave_nfe ?? null,
@@ -434,6 +437,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: parcelaInfo?.atual ?? null,
         parcela_total: parcelaInfo?.total ?? null,
         parcelas_expandidas: false,
+        data_matriz_aplicada: false,
       };
     });
 
@@ -692,8 +696,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
     const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
     // Data Matriz: emissão sempre igual à data da 1ª parcela da compra.
+    const dataInformada = safeParseDateISO(manualForm.posted_date);
+    if (!dataInformada) { toast.error("Informe uma data válida para o lançamento."); return; }
     const postedMatriz = parcelaAtual && parcelaAtual > 1
-      ? getLocalDateISO(addMonthsPreserveDay(safeParseDateISO(manualForm.posted_date)!, -(parcelaAtual - 1)))
+      ? getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)))
       : manualForm.posted_date;
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
@@ -709,6 +715,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: parcelaAtual,
       parcela_total: parcelaTotal,
       parcelas_expandidas: false,
+      data_matriz_aplicada: true,
       itens_nota: manualItens.length > 0
         ? manualItens.map((i) => ({
             descricao: i.descricao,
@@ -762,9 +769,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
 
     const fitid = `fiscal-${crypto.randomUUID()}`;
+    const dataFiscal = safeParseDateISO(data.data_emissao);
+    const postedMatrizFiscal = dataFiscal && data.parcela_atual > 1
+      ? getLocalDateISO(addMonthsPreserveDay(dataFiscal, -(data.parcela_atual - 1)))
+      : data.data_emissao;
     const newRow: ItemRow = {
       fitid,
-      posted_date: data.data_emissao,
+      posted_date: postedMatrizFiscal,
       description: data.descricao,
       amount: data.valor_parcela,
       plano_contas_id: data.plano_contas_id,
@@ -776,6 +787,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: data.parcela_atual,
       parcela_total: data.parcela_total,
       parcelas_expandidas: false,
+      data_matriz_aplicada: true,
       ...fiscalPatch,
     };
     setItems((prev) => [newRow, ...prev]);
@@ -1057,21 +1069,24 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       missing.push({ parcela: p, offset: p - cur });
     }
 
-    // Data Matriz: a emissão (fato gerador) é sempre a data da 1ª parcela.
-    // Data informada menos (parcela atual - 1) meses; idêntica em TODAS as parcelas.
-    const matrixPosted = shiftDate(item.posted_date, -(cur - 1));
+    // A fórmula é exclusiva de lançamentos novos. Registros persistidos nunca
+    // têm sua data histórica recalculada durante uma expansão posterior.
+    const matrixPosted = !item.id && !item.data_matriz_aplicada
+      ? shiftDate(item.posted_date, -(cur - 1))
+      : item.posted_date;
 
     const baseDesc = item.description;
     const newDescCurrent = buildDescription(baseDesc, cur, totalP);
     onStep(1, `Salvando parcela atual (${cur}/${totalP})...`);
-    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent, posted_date: matrixPosted } : it));
+    setItems((prev) => prev.map((it, i) => i === idx
+      ? { ...it, description: newDescCurrent, posted_date: matrixPosted, data_matriz_aplicada: true }
+      : it));
 
 
     if (item.id) {
       const { error: updErr } = await supabase
         .from("credit_card_invoice_items" as any)
         .update({
-          posted_date: matrixPosted,
           description: newDescCurrent,
           plano_contas_id: item.plano_contas_id,
           centro_custo: item.centro_custo || null,
@@ -1249,12 +1264,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       };
 
       if (existingMatch) {
-        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original
-        // e seu valor original (inclusive se houver diferença de centavos).
+        // Já existe: mantém data e valor históricos; corrige somente a numeração.
         const { error: updExErr } = await supabase
           .from("credit_card_invoice_items" as any)
           .update({
-            posted_date: matrixPosted,
             description: buildDescription(existingMatch.existing.description || baseDesc, parcela, totalP),
             parcela_atual: parcela,
             parcela_total: totalP,
@@ -1301,6 +1314,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: r.parcela_atual ?? null,
       parcela_total: r.parcela_total ?? null,
       parcelas_expandidas: !!r.parcelas_expandidas,
+      data_matriz_aplicada: true,
       documento_fiscal_tipo: r.documento_fiscal_tipo ?? null,
       documento_fiscal_numero: r.documento_fiscal_numero ?? null,
       chave_nfe: r.chave_nfe ?? null,
