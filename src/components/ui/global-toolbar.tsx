@@ -73,7 +73,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
     <div
       ref={ref}
       className={cn(
-        "sticky top-0 z-40 flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+        "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
         scrolled ? "shadow-md border-b-border" : "shadow-none",
         className
       )}
@@ -91,15 +91,20 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
               variant={a.variant ?? "outline"}
               disabled={!enabled}
               onClick={a.onClick}
-              className="h-8 text-xs gap-1.5 disabled:opacity-40"
+              title={a.label}
+              aria-label={a.label}
+              className={cn(
+                "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40 shrink-0",
+                Icon && "max-md:w-9 max-md:px-0 max-md:justify-center"
+              )}
             >
-              {Icon && <Icon className="h-3.5 w-3.5" />}
-              {a.label}
+              {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+              <span className={cn(Icon && "max-md:hidden")}>{a.label}</span>
             </Button>
           );
         })}
-      {children && <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>}
-      <span className="ml-2 text-[11px] text-muted-foreground whitespace-nowrap">
+      {children && <div className="ml-auto flex flex-wrap items-center gap-2 max-md:hidden">{children}</div>}
+      <span className="ml-2 text-[11px] text-muted-foreground whitespace-nowrap max-md:hidden">
         {selectedCount > 0 ? `${selectedCount} selecionado(s)` : "Nenhum selecionado"}
       </span>
     </div>
