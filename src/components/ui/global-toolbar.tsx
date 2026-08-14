@@ -2,14 +2,14 @@ import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type ToolbarActionMode = "always" | "single" | "batch" | "single+batch";
+export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
 
 export interface ToolbarAction {
   key: string;
   label: string;
   icon?: LucideIcon;
   onClick: () => void;
-  /** always = sempre ativo (Novo) | single = só 1 selecionado | batch = 1+ selecionados | single+batch = 1+ */
+  /** always = sempre ativo | create = só com 0 selecionados (Novo) | single = só 1 selecionado | batch = 1+ | single+batch = 1+ */
   mode: ToolbarActionMode;
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary";
   /** desabilita mesmo quando a seleção permitiria */
@@ -21,6 +21,8 @@ export function isActionEnabled(mode: ToolbarActionMode, count: number) {
   switch (mode) {
     case "always":
       return true;
+    case "create":
+      return count === 0;
     case "single":
       return count === 1;
     case "batch":
@@ -30,6 +32,7 @@ export function isActionEnabled(mode: ToolbarActionMode, count: number) {
       return false;
   }
 }
+
 
 interface GlobalToolbarProps {
   actions: ToolbarAction[];
