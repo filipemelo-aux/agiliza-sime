@@ -777,13 +777,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       return;
     }
 
-    // Data Matriz: emissão sempre igual à data da 1ª parcela da compra (somente em novos lançamentos).
-    const postedMatriz = parcelaAtual && parcelaAtual > 1
-      ? getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)))
-      : manualForm.posted_date;
+    // Sem correção automática: a data informada é preservada. Se for parcela > 1,
+    // o usuário confirma se a data informada é a correta e se vale para todas as parcelas.
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
-      posted_date: postedMatriz,
+      posted_date: manualForm.posted_date,
       description: desc,
       amount: amountNum,
       plano_contas_id: manualForm.plano_contas_id,
@@ -799,6 +797,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       itens_nota: itensNota,
       rateio_veiculos: rateio.length > 0 ? rateio : null,
     };
+
+    if (parcelaAtual && parcelaAtual > 1) {
+      const sugestao = getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)));
+      setEmissaoAsk({
+        row: newRow,
+        informada: manualForm.posted_date,
+        sugestao,
+        parcelaAtual,
+        parcelaTotal: parcelaTotal || 0,
+      });
+      setManualDialogOpen(false);
+      return;
+    }
+
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
