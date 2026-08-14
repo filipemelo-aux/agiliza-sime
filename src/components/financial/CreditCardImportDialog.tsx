@@ -1132,7 +1132,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const targetRefLabel = formatReferenceLabel(targetYM);
       const targetDue = shiftDate(dueDate, offset);
       const targetClosing = closingDate ? shiftDate(closingDate, offset) : null;
-      const targetPosted = shiftDate(item.posted_date, offset);
+      // Emissão estática: todas as parcelas herdam a Data Matriz.
+      const targetPosted = matrixPosted;
 
       let query = supabase
         .from("credit_card_invoices" as any)
