@@ -686,6 +686,34 @@ export function FiscalDocImportDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <PersonCreateDialog
+        open={createPersonOpen}
+        onOpenChange={setCreatePersonOpen}
+        defaultCategory="fornecedor"
+        prefill={{
+          full_name: fornecedorNome,
+          razao_social: fornecedorNome,
+          person_type: fornecedorCnpj ? "cnpj" : "cpf",
+          cnpj: fornecedorCnpj ? maskCNPJ(fornecedorCnpj) : "",
+        }}
+        onCreated={async (createdUserId) => {
+          setCreatePersonOpen(false);
+          if (!createdUserId) return;
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, full_name, razao_social, cnpj")
+            .eq("user_id", createdUserId)
+            .maybeSingle();
+          if (data) {
+            setFornecedorId(data.id);
+            setFornecedorNome(data.razao_social || data.full_name || fornecedorNome);
+            if (data.cnpj) setFornecedorCnpj(data.cnpj);
+            toast.success("Fornecedor cadastrado e vinculado à nota.");
+          }
+        }}
+      />
     </Dialog>
   );
 }
+
