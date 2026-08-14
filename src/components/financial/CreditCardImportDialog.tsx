@@ -666,12 +666,47 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   }, [manualItens, manualValorLancado]);
 
   const addManualItem = useCallback(() => {
+    setManualEditIdx(null);
     setManualForm(emptyManualForm());
     setManualItens([]);
     setManualItemSel([]);
     setManualNovoItem({ desc: "", qtd: "1", valor: "" });
     setManualDialogOpen(true);
   }, [referenceYM]);
+
+  /** Abre o mesmo modal em modo de edição, carregando os dados do lançamento selecionado. */
+  const editManualItem = useCallback((idx: number) => {
+    const item = items[idx];
+    if (!item) return;
+    setManualEditIdx(idx);
+    setManualForm({
+      posted_date: item.posted_date,
+      description: item.description || "",
+      amount: maskCurrency(Number(item.amount || 0).toFixed(2).replace(".", ",")),
+      amount_mode: "parcela",
+      parcela_atual: item.parcela_atual ? String(item.parcela_atual) : "",
+      parcela_total: item.parcela_total ? String(item.parcela_total) : "",
+      plano_contas_id: item.plano_contas_id,
+      favorecido_id: item.favorecido_id,
+      favorecido_nome: item.favorecido_nome || "",
+    });
+    const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
+    setManualItens(
+      itens.map((i: any, n: number) => ({
+        id: `edit-${n}-${crypto.randomUUID()}`,
+        descricao: i.descricao || "",
+        quantidade: Number(i.quantidade || 1),
+        valor_unitario: Number(i.valor_unitario || 0),
+        valor_total: Number(i.valor_total || 0),
+        veiculo_id: i.veiculo_id || null,
+      })) as ManualItem[]
+    );
+    setManualItemSel([]);
+    setManualNovoItem({ desc: "", qtd: "1", valor: "" });
+    setManualDialogOpen(true);
+  }, [items]);
+
+
 
 
   const confirmManualItem = useCallback(() => {
