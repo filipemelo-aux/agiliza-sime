@@ -691,9 +691,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       }
     }
     const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
+    // Data Matriz: emissão sempre igual à data da 1ª parcela da compra.
+    const postedMatriz = parcelaAtual && parcelaAtual > 1
+      ? formatDateISO(addMonthsPreserveDay(safeParseDateISO(manualForm.posted_date)!, -(parcelaAtual - 1)))
+      : manualForm.posted_date;
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
-      posted_date: manualForm.posted_date,
+      posted_date: postedMatriz,
       description: desc,
       amount: amountNum,
       plano_contas_id: manualForm.plano_contas_id,
