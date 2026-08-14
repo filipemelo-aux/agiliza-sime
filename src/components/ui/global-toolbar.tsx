@@ -103,9 +103,9 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
             </Button>
           );
         })}
-      {children && <div className="ml-auto flex flex-wrap items-center gap-2 max-md:hidden">{children}</div>}
-      <span className="ml-2 text-[11px] text-muted-foreground whitespace-nowrap max-md:hidden">
-        {selectedCount > 0 ? `${selectedCount} selecionado(s)` : "Nenhum selecionado"}
+      {children && <div className="ml-auto flex flex-wrap items-center gap-2 max-md:ml-0 max-md:flex-nowrap">{children}</div>}
+      <span className="ml-2 text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
+        {selectedCount > 0 ? `${selectedCount} sel.` : <span className="max-md:hidden">Nenhum selecionado</span>}
       </span>
     </div>
   );
