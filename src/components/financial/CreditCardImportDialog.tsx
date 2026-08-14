@@ -1122,6 +1122,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const ensureCurrentInvoiceId = async (): Promise<string> => {
     if (invoiceId) return invoiceId;
+    if (createdInvoiceIdRef.current) return createdInvoiceIdRef.current;
     const payload: any = {
       empresa_id: matrizId || null,
       card_name: cardName.trim(),
@@ -1140,6 +1141,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const { data: newInv, error } = await supabase
       .from("credit_card_invoices" as any).insert(payload).select("id").single();
     if (error) throw error;
+    createdInvoiceIdRef.current = (newInv as any).id;
     return (newInv as any).id;
   };
 
