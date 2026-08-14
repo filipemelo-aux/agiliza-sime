@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,11 +43,37 @@ interface GlobalToolbarProps {
   className?: string;
 }
 
+function getScrollParent(el: HTMLElement | null): HTMLElement | Window {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const style = getComputedStyle(node);
+    if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return window;
+}
+
 export function GlobalToolbar({ actions, selectedCount, children, className }: GlobalToolbarProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const target = getScrollParent(ref.current);
+    const read = () =>
+      setScrolled((target instanceof Window ? window.scrollY : target.scrollTop) > 0);
+    read();
+    target.addEventListener("scroll", read, { passive: true });
+    return () => target.removeEventListener("scroll", read as EventListener);
+  }, []);
+
   return (
     <div
+      ref={ref}
       className={cn(
-        "flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5",
+        "sticky top-0 z-40 flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+        scrolled ? "shadow-md border-b-border" : "shadow-none",
         className
       )}
     >
