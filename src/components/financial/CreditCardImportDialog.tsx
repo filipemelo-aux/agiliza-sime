@@ -2121,6 +2121,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                   0,
                 )}{" "}
                 em faturas posteriores. A fatura não pode ser salva sem essa geração.
+                <span className="block mt-1 text-muted-foreground italic">
+                  Despesa(s): {pendingInstallments.map(t => t.item.description).filter(Boolean).join("; ")}
+                </span>
               </div>
             </div>
           )}
