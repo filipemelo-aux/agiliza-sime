@@ -268,6 +268,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [expandProgress, setExpandProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
+  /** Guarda o id da fatura criada durante a geração automática de parcelas (evita duplicar a fatura no save). */
+  const createdInvoiceIdRef = useRef<string | null>(null);
 
   // Ordenação da tabela de lançamentos (mantém o índice original para seleção/atualização)
   type SortableColumn = "date" | "favorecido" | "description" | "parcelas" | "amount" | "plano_contas" | "centro_custo" | "veiculo";
@@ -1120,6 +1122,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const ensureCurrentInvoiceId = async (): Promise<string> => {
     if (invoiceId) return invoiceId;
+    if (createdInvoiceIdRef.current) return createdInvoiceIdRef.current;
     const payload: any = {
       empresa_id: matrizId || null,
       card_name: cardName.trim(),
@@ -1138,6 +1141,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const { data: newInv, error } = await supabase
       .from("credit_card_invoices" as any).insert(payload).select("id").single();
     if (error) throw error;
+    createdInvoiceIdRef.current = (newInv as any).id;
     return (newInv as any).id;
   };
 
@@ -1379,12 +1383,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return { createdCount, reusedCount, estornoCount };
   };
 
-  const reloadCurrentInvoiceItems = async () => {
-    if (!invoiceId) return;
+  const reloadCurrentInvoiceItems = async (idOverride?: string): Promise<ItemRow[] | null> => {
+    const targetId = idOverride || invoiceId || createdInvoiceIdRef.current;
+    if (!targetId) return null;
     const { data: rows } = await supabase
       .from("credit_card_invoice_items" as any)
       .select("*")
-      .eq("invoice_id", invoiceId)
+      .eq("invoice_id", targetId)
       .order("posted_date");
     const mapped = ((rows as any[]) || []).map((r: any) => ({
       id: r.id,
@@ -1412,6 +1417,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }));
     setItems(mapped);
     setOriginalItems(mapped);
+    return mapped as ItemRow[];
   };
 
   const expandParcelas = async (idx: number) => {
@@ -1511,10 +1517,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
 
     const totalMissing = targets.reduce((s, t) => s + (Number(t.item.parcela_total || 0) - 1), 0);
+    const totalAnteriores = targets.reduce((s, t) => s + Math.max(0, Number(t.item.parcela_atual || 0) - 1), 0);
+    const totalPosteriores = targets.reduce(
+      (s, t) => s + Math.max(0, Number(t.item.parcela_total || 0) - Number(t.item.parcela_atual || 0)),
+      0,
+    );
     const ok = await confirm({
       title: `Gerar parcelas em lote — ${targets.length} lançamento(s)?`,
       description:
-        `Serão processados ${targets.length} lançamento(s), gerando ${totalMissing} parcela(s) em faturas anteriores/posteriores do cartão "${cardName}".\n\n` +
+        `Serão processados ${targets.length} lançamento(s), gerando ${totalMissing} parcela(s) no cartão "${cardName}":\n` +
+        `• ${totalAnteriores} em faturas ANTERIORES\n• ${totalPosteriores} em faturas POSTERIORES\n\n` +
         (skipped.length > 0 ? `${skipped.length} lançamento(s) selecionado(s) serão IGNORADOS (já expandidos ou sem dados obrigatórios).\n\n` : "") +
         `Faturas destino já fechadas e quitadas no Contas a Pagar serão ESTORNADAS automaticamente para receber os lançamentos.`,
       confirmLabel: "Gerar em lote",
@@ -1566,6 +1578,72 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       setExpandProgress({ current: 0, total: 0, message: "" });
     }
   };
+
+  /**
+   * Lançamentos parcelados (parcela X/N com N > 1) que ainda não tiveram as
+   * parcelas anteriores/posteriores geradas nas demais faturas do cartão.
+   */
+  const pendingInstallments = useMemo(
+    () =>
+      items
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) =>
+          Number(item.parcela_total || 0) > 1 &&
+          Number(item.parcela_atual || 0) >= 1 &&
+          !item.parcelas_expandidas
+        ),
+    [items],
+  );
+
+  /**
+   * Gera automaticamente as parcelas pendentes. Retorna a lista atualizada de itens
+   * (recarregada do banco) ou null em caso de falha/validação.
+   */
+  const generatePendingInstallments = async (
+    targets: Array<{ idx: number; item: ItemRow }>,
+  ): Promise<ItemRow[] | null> => {
+    const invalid = targets
+      .map(({ item }) => ({ item, err: validateItemForExpansion(item) }))
+      .filter((x) => !!x.err);
+    if (invalid.length > 0) {
+      toast.error(
+        `Complete os dados antes de salvar: ${invalid
+          .map(({ item, err }) => `"${(item.description || "").slice(0, 30)}" — ${err}`)
+          .join(" | ")}`,
+        { duration: 9000 },
+      );
+      return null;
+    }
+
+    const totalSteps = targets.reduce((s, t) => s + Number(t.item.parcela_total || 0), 0) + 1;
+    let currentStep = 0;
+    setExpanding(true);
+    setExpandProgress({ current: 0, total: totalSteps, message: "Gerando parcelas..." });
+    try {
+      const currentInvoiceId = await ensureCurrentInvoiceId();
+      let done = 0;
+      for (const { idx, item } of targets) {
+        await runItemExpansion(item, idx, currentInvoiceId, (delta, message) => {
+          currentStep += delta;
+          setExpandProgress({ current: currentStep, total: totalSteps, message: `[${done + 1}/${targets.length}] ${message}` });
+        });
+        done++;
+      }
+      setExpandProgress({ current: totalSteps, total: totalSteps, message: "Atualizando fatura..." });
+      const fresh = await reloadCurrentInvoiceItems(currentInvoiceId);
+      onSaved();
+      return fresh;
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao gerar as parcelas.");
+      return null;
+    } finally {
+      setExpanding(false);
+      setExpandProgress({ current: 0, total: 0, message: "" });
+    }
+  };
+
+
 
 
   /** Itens persistidos, pertencentes a um parcelamento, cuja Data de Emissão foi alterada manualmente. */
@@ -1622,24 +1700,57 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return updated;
   };
 
-  const persistInvoice = async (closeNow: boolean, cascadeMode?: "single" | "all") => {
+  const persistInvoice = async (
+    closeNow: boolean,
+    cascadeMode?: "single" | "all",
+    itemsOverride?: ItemRow[],
+  ) => {
+    const workItems = itemsOverride ?? items;
+    const workTotal = workItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
-    if (closeNow && items.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
-    if (closeNow && items.some((i) => !i.plano_contas_id)) {
+    if (closeNow && workItems.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
+    if (closeNow && workItems.some((i) => !i.plano_contas_id)) {
       toast.error("Classifique todos os lançamentos com plano de contas antes de fechar.");
       return;
     }
 
+    // Bloqueio: nenhum lançamento parcelado pode ficar sem as parcelas anteriores/posteriores geradas.
+    if (!itemsOverride && pendingInstallments.length > 0) {
+      const anteriores = pendingInstallments.reduce((s, t) => s + Math.max(0, Number(t.item.parcela_atual || 0) - 1), 0);
+      const posteriores = pendingInstallments.reduce(
+        (s, t) => s + Math.max(0, Number(t.item.parcela_total || 0) - Number(t.item.parcela_atual || 0)),
+        0,
+      );
+      const ok = await confirm({
+        title: "Parcelamento pendente de geração",
+        description:
+          `${pendingInstallments.length} lançamento(s) parcelado(s) ainda não possuem as demais parcelas no sistema.\n` +
+          `A fatura só pode ser salva após a geração automática de:\n` +
+          `• ${anteriores} parcela(s) em faturas ANTERIORES\n• ${posteriores} parcela(s) em faturas POSTERIORES\n\n` +
+          `Faturas destino já fechadas e quitadas serão ESTORNADAS automaticamente para receber os lançamentos.`,
+        confirmLabel: "Gerar parcelas e salvar",
+      });
+      if (!ok) {
+        toast.error("A fatura não pode ser salva com parcelamentos pendentes de geração.");
+        return;
+      }
+      const fresh = await generatePendingInstallments(pendingInstallments);
+      if (!fresh) return;
+      await persistInvoice(closeNow, cascadeMode, fresh);
+      return;
+    }
+
     const dateChanges = getInstallmentDateChanges();
-    if (!cascadeMode && dateChanges.length > 0) {
+    if (!cascadeMode && !itemsOverride && dateChanges.length > 0) {
       setCascadeAsk({ closeNow, changes: dateChanges });
       return;
     }
 
     closeNow ? setClosing(true) : setSaving(true);
     try {
-      let id = invoiceId || null;
+      let id = invoiceId || createdInvoiceIdRef.current || null;
+
 
       // Preserve "fechada" when editing an already-closed invoice via "Salvar rascunho".
       // A closed invoice already has a linked expense in Contas a Pagar; downgrading it
@@ -1654,7 +1765,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         reference_label: formatReferenceLabel(referenceYM) || null,
         due_date: dueDate,
         closing_date: closingDate || null,
-        total_amount: total,
+        total_amount: workTotal,
         status: preservedStatus,
         ofx_file_name: ofxFileName || null,
         ofx_bank_name: ofxBank || null,
@@ -1662,7 +1773,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: observacoes.trim() || null,
       };
 
-      const rows = items.map((it) => ({
+      const rows = workItems.map((it) => ({
         invoice_id: id,
         posted_date: it.posted_date,
         description: it.description,
@@ -1726,7 +1837,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             .ilike("nome", "Cartão de Crédito")
             .limit(1)
             .maybeSingle();
-          cartaoCreditoPlanoId = (cc as any)?.id || items[0]?.plano_contas_id || null;
+          cartaoCreditoPlanoId = (cc as any)?.id || workItems[0]?.plano_contas_id || null;
         }
 
         // Resolve favorecido (banco selecionado)
@@ -1763,17 +1874,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             plano_contas_id: cartaoCreditoPlanoId,
             favorecido_id: favorecidoId,
             favorecido_nome: favorecidoNome,
-            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
+            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${workItems.length} lançamento(s).`,
           };
           // Only update the total when the expense was not (partially) paid — avoids breaking payment audit.
           if (!isPaid) {
-            updatePayload.valor_total = total;
+            updatePayload.valor_total = workTotal;
           }
 
           const { error } = await supabase.from("expenses").update(updatePayload).eq("id", existingExpenseId);
           if (error) throw error;
 
-          if (isPaid && Number((existingExp as any)?.valor_pago || 0) !== total) {
+          if (isPaid && Number((existingExp as any)?.valor_pago || 0) !== workTotal) {
             toast.warning("Despesa já paga: valor total não foi alterado em Contas a Pagar.");
           }
         } else {
@@ -1784,13 +1895,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             tipo_despesa: "outros",
             plano_contas_id: cartaoCreditoPlanoId,
             centro_custo: "administrativo",
-            valor_total: total,
+            valor_total: workTotal,
             data_emissao: getLocalDateISO(),
             data_vencimento: dueDate,
             forma_pagamento: "cartao_credito",
             favorecido_id: favorecidoId,
             favorecido_nome: favorecidoNome,
-            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
+            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${workItems.length} lançamento(s).`,
             origem: "importacao",
             documento_fiscal_importado: false,
             created_by: user?.id,
@@ -1871,15 +1982,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     { key: "vincular", label: "Vincular XML/NFS-e", icon: FileText, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx === null) return; setFiscalAttachIdx(singleIdx); setFiscalDialogOpen(true); } },
     { key: "favorecido", label: "Cadastrar favorecido", icon: Plus, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setCreatePersonOpenIdx(singleIdx); } },
     { key: "rateio", label: "Ratear veículos", icon: Split, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setRateioIdx(singleIdx); } },
-    {
-      key: "parcelas",
-      label: selectionAllExpanded ? "Parcelas já geradas" : "Gerar parcelas",
-      icon: Layers,
-      mode: "single+batch",
-      // Bloqueia quando todos os selecionados já tiveram as parcelas geradas automaticamente.
-      disabled: isClosed || expanding || selectionAllExpanded,
-      onClick: expandParcelasBatch,
-    },
+    // Geração de parcelas é automática no salvamento — sem botão manual.
     { key: "manter", label: "Não é duplicidade", icon: Check, mode: "single+batch", disabled: isClosed, hidden: !Array.from(selectedIdxs).some((i) => items[i]?.possible_duplicate), onClick: () => { selectedIdxs.forEach((i) => updateItem(i, { possible_duplicate: false, duplicate_note: undefined })); } },
     { key: "excluir", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: isClosed, onClick: removeSelected },
     { key: "limpar", label: "Limpar seleção", icon: X, mode: "batch", variant: "ghost", onClick: () => setSelectedIdxs(new Set()) },
@@ -2005,6 +2108,27 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
             </div>
           </GlobalToolbar>
+
+          {pendingInstallments.length > 0 && !isClosed && (
+            <div className="flex items-start gap-2 p-2 border border-warning/50 rounded-md bg-warning/10 text-[11px] leading-relaxed">
+              <Layers className="w-3.5 h-3.5 mt-0.5 text-warning shrink-0" />
+              <div>
+                <span className="font-semibold text-foreground">
+                  {pendingInstallments.length} lançamento(s) parcelado(s) sem as demais parcelas no sistema.
+                </span>{" "}
+                Ao salvar, serão geradas automaticamente{" "}
+                {pendingInstallments.reduce((s, t) => s + Math.max(0, Number(t.item.parcela_atual || 0) - 1), 0)} parcela(s)
+                em faturas anteriores e{" "}
+                {pendingInstallments.reduce(
+                  (s, t) => s + Math.max(0, Number(t.item.parcela_total || 0) - Number(t.item.parcela_atual || 0)),
+                  0,
+                )}{" "}
+                em faturas posteriores. A fatura não pode ser salva sem essa geração.
+              </div>
+            </div>
+          )}
+
+
 
 
           {items.length > 0 ? (
