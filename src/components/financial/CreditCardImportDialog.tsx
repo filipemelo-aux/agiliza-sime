@@ -1417,6 +1417,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }));
     setItems(mapped);
     setOriginalItems(mapped);
+    return mapped as ItemRow[];
   };
 
   const expandParcelas = async (idx: number) => {
