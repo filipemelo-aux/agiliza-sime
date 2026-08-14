@@ -268,6 +268,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [expandProgress, setExpandProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
+  /** Guarda o id da fatura criada durante a geração automática de parcelas (evita duplicar a fatura no save). */
+  const createdInvoiceIdRef = useRef<string | null>(null);
 
   // Ordenação da tabela de lançamentos (mantém o índice original para seleção/atualização)
   type SortableColumn = "date" | "favorecido" | "description" | "parcelas" | "amount" | "plano_contas" | "centro_custo" | "veiculo";
