@@ -106,7 +106,7 @@ export function DataGrid<T>({
         <table className="w-full border-collapse text-xs" style={{ minWidth }}>
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr className="border-b border-border">
-              <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 sticky left-0 z-20 bg-muted">
+              <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 bg-muted">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={toggleAll}
@@ -120,7 +120,7 @@ export function DataGrid<T>({
                   onClick={() => toggleSort(col)}
                   className={cn(
                     "px-2 py-2 md:py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
-                    ci === 0 && "sticky left-10 md:left-8 z-20 bg-muted",
+                    
                     alignCls(col.align),
                     col.sortValue && "cursor-pointer select-none hover:text-foreground",
                     col.headerClassName
@@ -173,7 +173,7 @@ export function DataGrid<T>({
                     )}
                   >
                     <td
-                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1 sticky left-0 z-10 bg-card"
+                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span
@@ -194,7 +194,7 @@ export function DataGrid<T>({
                         className={cn(
                           "px-2 py-2.5 md:py-1 align-middle",
                           alignCls(col.align),
-                          ci === 0 && "relative sticky left-10 md:left-8 z-10 bg-card",
+                          ci === 0 && "relative",
                           col.className
                         )}
                       >
