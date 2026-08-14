@@ -248,6 +248,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   /** Confirmação de replicação de Data de Emissão entre parcelas do mesmo agrupamento. */
   const [cascadeAsk, setCascadeAsk] = useState<{ closeNow: boolean; changes: DateChange[] } | null>(null);
   const [cascadeRunning, setCascadeRunning] = useState(false);
+  const [emissaoAsk, setEmissaoAsk] = useState<{
+    row: ItemRow;
+    informada: string;
+    sugestao: string;
+    parcelaAtual: number;
+    parcelaTotal: number;
+  } | null>(null);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
 
@@ -777,13 +784,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       return;
     }
 
-    // Data Matriz: emissão sempre igual à data da 1ª parcela da compra (somente em novos lançamentos).
-    const postedMatriz = parcelaAtual && parcelaAtual > 1
-      ? getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)))
-      : manualForm.posted_date;
+    // Sem correção automática: a data informada é preservada. Se for parcela > 1,
+    // o usuário confirma se a data informada é a correta e se vale para todas as parcelas.
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
-      posted_date: postedMatriz,
+      posted_date: manualForm.posted_date,
       description: desc,
       amount: amountNum,
       plano_contas_id: manualForm.plano_contas_id,
@@ -799,6 +804,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       itens_nota: itensNota,
       rateio_veiculos: rateio.length > 0 ? rateio : null,
     };
+
+    if (parcelaAtual && parcelaAtual > 1) {
+      const sugestao = getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)));
+      setEmissaoAsk({
+        row: newRow,
+        informada: manualForm.posted_date,
+        sugestao,
+        parcelaAtual,
+        parcelaTotal: parcelaTotal || 0,
+      });
+      setManualDialogOpen(false);
+      return;
+    }
+
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
@@ -841,13 +860,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
 
     const fitid = `fiscal-${crypto.randomUUID()}`;
-    const dataFiscal = safeParseDateISO(data.data_emissao);
-    const postedMatrizFiscal = dataFiscal && data.parcela_atual > 1
-      ? getLocalDateISO(addMonthsPreserveDay(dataFiscal, -(data.parcela_atual - 1)))
-      : data.data_emissao;
     const newRow: ItemRow = {
       fitid,
-      posted_date: postedMatrizFiscal,
+      posted_date: data.data_emissao,
       description: data.descricao,
       amount: data.valor_parcela,
       plano_contas_id: data.plano_contas_id,
@@ -2442,6 +2457,60 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação da Data de Emissão em lançamento parcelado (sem correção automática) */}
+      <Dialog open={!!emissaoAsk} onOpenChange={(o) => { if (!o) setEmissaoAsk(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Confirmar Data de Emissão
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>
+              Lançamento parcelado ({emissaoAsk?.parcelaAtual}/{emissaoAsk?.parcelaTotal}). A data de emissão informada é{" "}
+              <span className="font-semibold text-foreground">{formatDateBR(emissaoAsk?.informada)}</span>.
+            </p>
+            <p>
+              Ela está correta e deve ser aplicada a todas as parcelas deste agrupamento? O sistema não fará nenhuma
+              correção automática.
+            </p>
+            <p className="rounded border bg-muted/40 px-2 py-1">
+              Se preferir, use a data da 1ª parcela calculada:{" "}
+              <span className="font-semibold text-foreground">{formatDateBR(emissaoAsk?.sugestao)}</span>.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="h-10"
+              onClick={() => {
+                const ask = emissaoAsk;
+                if (!ask) return;
+                setEmissaoAsk(null);
+                setItems((prev) => [{ ...ask.row, posted_date: ask.sugestao }, ...prev]);
+                toast.success("Lançamento adicionado com a data da 1ª parcela.");
+              }}
+            >
+              Usar {formatDateBR(emissaoAsk?.sugestao)}
+            </Button>
+            <Button
+              className="h-10"
+              onClick={() => {
+                const ask = emissaoAsk;
+                if (!ask) return;
+                setEmissaoAsk(null);
+                setItems((prev) => [ask.row, ...prev]);
+                toast.success("Lançamento adicionado com a data informada.");
+              }}
+            >
+              Manter {formatDateBR(emissaoAsk?.informada)} em todas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
     </Dialog>
 
