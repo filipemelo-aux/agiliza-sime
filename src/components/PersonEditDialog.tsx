@@ -516,9 +516,11 @@ interface PersonCreateDialogProps {
   onOpenChange: (open: boolean) => void;
   onCreated: (createdUserId?: string) => void;
   defaultCategory?: string;
+  /** Valores pré-preenchidos (ex.: dados vindos do XML da nota) */
+  prefill?: Partial<FormState>;
 }
 
-export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCategory }: PersonCreateDialogProps) {
+export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCategory, prefill }: PersonCreateDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>({ ...emptyForm, category: defaultCategory || "motorista" });
@@ -527,11 +529,12 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
   useEffect(() => {
     if (open) {
-      setForm({ ...emptyForm, category: defaultCategory || "motorista" });
+      setForm({ ...emptyForm, category: defaultCategory || "motorista", ...(prefill || {}) });
       setCreatedUserId(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
 
   const doCreate = async (): Promise<string | null> => {
     if (!form.full_name.trim()) {

@@ -11,13 +11,14 @@ import { Upload, FileText, Plus, Trash2, AlertTriangle, Split, Undo2 } from "luc
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { toast } from "sonner";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency, maskCNPJ } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { type RateioVehicleOption } from "./VehicleRateioEditor";
 import { type RateioRow } from "@/lib/rateio";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { supabase } from "@/integrations/supabase/client";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 
 export interface FiscalChartAccount {
   id: string; codigo: string; nome: string; tipo: string;
@@ -112,6 +113,7 @@ export function FiscalDocImportDialog({
   const [novoItemDesc, setNovoItemDesc] = useState("");
   const [novoItemValor, setNovoItemValor] = useState("");
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
+  const [createPersonOpen, setCreatePersonOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -376,6 +378,7 @@ export function FiscalDocImportDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
@@ -411,20 +414,39 @@ export function FiscalDocImportDialog({
             </div>
             <div className="md:col-span-2">
               <Label className="text-[11px]">
-                Fornecedor {fornecedorId && <span className="text-emerald-600">• cadastrado</span>}
+                Fornecedor {fornecedorId
+                  ? <span className="text-emerald-600">• cadastrado</span>
+                  : fornecedorNome ? <span className="text-muted-foreground">• sem cadastro</span> : null}
               </Label>
-              <PersonSearchInput
-                categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
-                placeholder="Buscar fornecedor cadastrado..."
-                selectedName={fornecedorNome || undefined}
-                onSelect={(p) => {
-                  setFornecedorId(p.id);
-                  setFornecedorNome(p.razao_social || p.full_name || "");
-                  if (p.cnpj) setFornecedorCnpj(p.cnpj);
-                }}
-                onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
-              />
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <PersonSearchInput
+                    categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
+                    placeholder="Buscar fornecedor cadastrado..."
+                    selectedName={fornecedorNome || undefined}
+                    onSelect={(p) => {
+                      setFornecedorId(p.id);
+                      setFornecedorNome(p.razao_social || p.full_name || "");
+                      if (p.cnpj) setFornecedorCnpj(p.cnpj);
+                    }}
+                    onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
+                  />
+                </div>
+                {!fornecedorId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 text-muted-foreground"
+                    title="Cadastrar fornecedor da nota"
+                    onClick={() => setCreatePersonOpen(true)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
+
             <div>
               <Label className="text-[11px]">CNPJ</Label>
               <Input className="h-9 text-xs" value={fornecedorCnpj} onChange={(e) => setFornecedorCnpj(e.target.value)} />
@@ -668,5 +690,34 @@ export function FiscalDocImportDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+      <PersonCreateDialog
+        open={createPersonOpen}
+        onOpenChange={setCreatePersonOpen}
+        defaultCategory="fornecedor"
+        prefill={{
+          full_name: fornecedorNome,
+          razao_social: fornecedorNome,
+          person_type: fornecedorCnpj ? "cnpj" : "cpf",
+          cnpj: fornecedorCnpj ? maskCNPJ(fornecedorCnpj) : "",
+        }}
+        onCreated={async (createdUserId) => {
+          setCreatePersonOpen(false);
+          if (!createdUserId) return;
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, full_name, razao_social, cnpj")
+            .eq("user_id", createdUserId)
+            .maybeSingle();
+          if (data) {
+            setFornecedorId(data.id);
+            setFornecedorNome(data.razao_social || data.full_name || fornecedorNome);
+            if (data.cnpj) setFornecedorCnpj(data.cnpj);
+            toast.success("Fornecedor cadastrado e vinculado à nota.");
+          }
+        }}
+      />
+    </>
   );
 }
+
