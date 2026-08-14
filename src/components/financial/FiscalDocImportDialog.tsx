@@ -411,20 +411,39 @@ export function FiscalDocImportDialog({
             </div>
             <div className="md:col-span-2">
               <Label className="text-[11px]">
-                Fornecedor {fornecedorId && <span className="text-emerald-600">• cadastrado</span>}
+                Fornecedor {fornecedorId
+                  ? <span className="text-emerald-600">• cadastrado</span>
+                  : fornecedorNome ? <span className="text-muted-foreground">• sem cadastro</span> : null}
               </Label>
-              <PersonSearchInput
-                categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
-                placeholder="Buscar fornecedor cadastrado..."
-                selectedName={fornecedorNome || undefined}
-                onSelect={(p) => {
-                  setFornecedorId(p.id);
-                  setFornecedorNome(p.razao_social || p.full_name || "");
-                  if (p.cnpj) setFornecedorCnpj(p.cnpj);
-                }}
-                onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
-              />
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <PersonSearchInput
+                    categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
+                    placeholder="Buscar fornecedor cadastrado..."
+                    selectedName={fornecedorNome || undefined}
+                    onSelect={(p) => {
+                      setFornecedorId(p.id);
+                      setFornecedorNome(p.razao_social || p.full_name || "");
+                      if (p.cnpj) setFornecedorCnpj(p.cnpj);
+                    }}
+                    onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
+                  />
+                </div>
+                {!fornecedorId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 text-muted-foreground"
+                    title="Cadastrar fornecedor da nota"
+                    onClick={() => setCreatePersonOpen(true)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
+
             <div>
               <Label className="text-[11px]">CNPJ</Label>
               <Input className="h-9 text-xs" value={fornecedorCnpj} onChange={(e) => setFornecedorCnpj(e.target.value)} />
