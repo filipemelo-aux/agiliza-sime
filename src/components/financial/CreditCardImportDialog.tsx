@@ -1764,7 +1764,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         reference_label: formatReferenceLabel(referenceYM) || null,
         due_date: dueDate,
         closing_date: closingDate || null,
-        total_amount: total,
+        total_amount: workItems.reduce((s, i) => s + Number(i.amount || 0), 0),
         status: preservedStatus,
         ofx_file_name: ofxFileName || null,
         ofx_bank_name: ofxBank || null,
@@ -1772,7 +1772,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: observacoes.trim() || null,
       };
 
-      const rows = items.map((it) => ({
+      const rows = workItems.map((it) => ({
         invoice_id: id,
         posted_date: it.posted_date,
         description: it.description,
