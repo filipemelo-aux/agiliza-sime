@@ -853,13 +853,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
 
     const fitid = `fiscal-${crypto.randomUUID()}`;
-    const dataFiscal = safeParseDateISO(data.data_emissao);
-    const postedMatrizFiscal = dataFiscal && data.parcela_atual > 1
-      ? getLocalDateISO(addMonthsPreserveDay(dataFiscal, -(data.parcela_atual - 1)))
-      : data.data_emissao;
     const newRow: ItemRow = {
       fitid,
-      posted_date: postedMatrizFiscal,
+      posted_date: data.data_emissao,
       description: data.descricao,
       amount: data.valor_parcela,
       plano_contas_id: data.plano_contas_id,
