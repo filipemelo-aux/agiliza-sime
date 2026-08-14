@@ -1982,15 +1982,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     { key: "vincular", label: "Vincular XML/NFS-e", icon: FileText, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx === null) return; setFiscalAttachIdx(singleIdx); setFiscalDialogOpen(true); } },
     { key: "favorecido", label: "Cadastrar favorecido", icon: Plus, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setCreatePersonOpenIdx(singleIdx); } },
     { key: "rateio", label: "Ratear veículos", icon: Split, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setRateioIdx(singleIdx); } },
-    {
-      key: "parcelas",
-      label: selectionAllExpanded ? "Parcelas já geradas" : "Gerar parcelas",
-      icon: Layers,
-      mode: "single+batch",
-      // Bloqueia quando todos os selecionados já tiveram as parcelas geradas automaticamente.
-      disabled: isClosed || expanding || selectionAllExpanded,
-      onClick: expandParcelasBatch,
-    },
+    // Geração de parcelas é automática no salvamento — sem botão manual.
     { key: "manter", label: "Não é duplicidade", icon: Check, mode: "single+batch", disabled: isClosed, hidden: !Array.from(selectedIdxs).some((i) => items[i]?.possible_duplicate), onClick: () => { selectedIdxs.forEach((i) => updateItem(i, { possible_duplicate: false, duplicate_note: undefined })); } },
     { key: "excluir", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: isClosed, onClick: removeSelected },
     { key: "limpar", label: "Limpar seleção", icon: X, mode: "batch", variant: "ghost", onClick: () => setSelectedIdxs(new Set()) },
