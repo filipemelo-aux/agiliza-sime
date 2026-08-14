@@ -188,6 +188,13 @@ interface ItemRow {
 
 interface VehicleOption { id: string; plate: string; }
 
+/** Alteração manual de Data de Emissão em um item que pertence a um parcelamento. */
+interface DateChange {
+  item: ItemRow;
+  oldDate: string;
+  newDate: string;
+}
+
 
 interface Props {
   open: boolean;
@@ -238,6 +245,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [ofxAccountId, setOfxAccountId] = useState("");
   const [items, setItems] = useState<ItemRow[]>([]);
   const [originalItems, setOriginalItems] = useState<ItemRow[]>([]);
+  /** Confirmação de replicação de Data de Emissão entre parcelas do mesmo agrupamento. */
+  const [cascadeAsk, setCascadeAsk] = useState<{ closeNow: boolean; changes: DateChange[] } | null>(null);
+  const [cascadeRunning, setCascadeRunning] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
 
@@ -1481,12 +1491,72 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
 
 
-  const persistInvoice = async (closeNow: boolean) => {
+  /** Itens persistidos, pertencentes a um parcelamento, cuja Data de Emissão foi alterada manualmente. */
+  const getInstallmentDateChanges = useCallback((): DateChange[] => {
+    const byId = new Map(originalItems.filter((o) => o.id).map((o) => [o.id as string, o]));
+    return items.reduce<DateChange[]>((acc, it) => {
+      if (!it.id) return acc;
+      const orig = byId.get(it.id);
+      if (!orig || orig.posted_date === it.posted_date) return acc;
+      if (Number(it.parcela_total || 0) <= 1) return acc;
+      acc.push({ item: it, oldDate: orig.posted_date, newDate: it.posted_date });
+      return acc;
+    }, []);
+  }, [items, originalItems]);
+
+  /**
+   * Replica a nova Data de Emissão para todas as parcelas do mesmo agrupamento
+   * (mesmo favorecido + mesma descrição normalizada + mesmo total de parcelas + valor equivalente),
+   * em qualquer fatura. Somente sob confirmação explícita do gestor.
+   */
+  const applyCascadeDates = async (changes: DateChange[]) => {
+    let updated = 0;
+    for (const change of changes) {
+      const totalP = Number(change.item.parcela_total || 0);
+      if (totalP <= 1) continue;
+      const { data, error } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .select("id, description, amount, favorecido_id, favorecido_nome, parcela_total, posted_date")
+        .eq("parcela_total", totalP);
+      if (error) throw error;
+
+      const targetNorm = normalizeInstallmentText(change.item.description);
+      const targetFav = (change.item.favorecido_id || change.item.favorecido_nome || "").toLowerCase().trim();
+
+      const ids = ((data as any[]) || [])
+        .filter((r) => {
+          if (r.id === change.item.id) return false;
+          if (r.posted_date === change.newDate) return false;
+          const fav = (r.favorecido_id || r.favorecido_nome || "").toLowerCase().trim();
+          if (targetFav && fav && fav !== targetFav) return false;
+          if (normalizeInstallmentText(r.description || "") !== targetNorm) return false;
+          return amountsClose(Number(r.amount || 0), Number(change.item.amount || 0));
+        })
+        .map((r) => r.id as string);
+
+      if (ids.length === 0) continue;
+      const { error: upErr } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .update({ posted_date: change.newDate })
+        .in("id", ids);
+      if (upErr) throw upErr;
+      updated += ids.length;
+    }
+    return updated;
+  };
+
+  const persistInvoice = async (closeNow: boolean, cascadeMode?: "single" | "all") => {
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
     if (closeNow && items.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
     if (closeNow && items.some((i) => !i.plano_contas_id)) {
       toast.error("Classifique todos os lançamentos com plano de contas antes de fechar.");
+      return;
+    }
+
+    const dateChanges = getInstallmentDateChanges();
+    if (!cascadeMode && dateChanges.length > 0) {
+      setCascadeAsk({ closeNow, changes: dateChanges });
       return;
     }
 
@@ -1652,6 +1722,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           if (expErr) throw expErr;
           await supabase.from("credit_card_invoices" as any).update({ expense_id: (exp as any).id }).eq("id", id);
         }
+      }
+
+      if (cascadeMode === "all" && dateChanges.length > 0) {
+        const updated = await applyCascadeDates(dateChanges);
+        toast.success(
+          updated > 0
+            ? `Data de emissão replicada em ${updated} parcela(s) do agrupamento.`
+            : "Nenhuma outra parcela do agrupamento precisou de ajuste."
+        );
       }
 
       toast.success(closeNow ? "Fatura fechada e enviada ao Contas a Pagar." : "Fatura salva.");
@@ -2227,9 +2306,67 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
-
+      {/* Replicação de Data de Emissão entre parcelas do mesmo agrupamento */}
+      <Dialog open={!!cascadeAsk} onOpenChange={(o) => { if (!o && !cascadeRunning) setCascadeAsk(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Despesa parcelada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>
+              Esta despesa faz parte de um parcelamento. Deseja aplicar esta nova Data de Emissão a todas as outras
+              parcelas deste grupo?
+            </p>
+            <ul className="space-y-1">
+              {(cascadeAsk?.changes || []).map((c) => (
+                <li key={c.item.id} className="rounded border bg-muted/40 px-2 py-1 text-foreground">
+                  <span className="font-medium">{(c.item.description || "").slice(0, 40)}</span>
+                  {" — "}
+                  {formatDateBR(c.oldDate)} → <span className="font-semibold">{formatDateBR(c.newDate)}</span>
+                  {c.item.parcela_total ? ` (${c.item.parcela_atual || "?"}/${c.item.parcela_total})` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="h-10"
+              disabled={cascadeRunning}
+              onClick={async () => {
+                const ask = cascadeAsk;
+                setCascadeAsk(null);
+                if (ask) await persistInvoice(ask.closeNow, "single");
+              }}
+            >
+              Apenas nesta parcela
+            </Button>
+            <Button
+              className="h-10"
+              disabled={cascadeRunning}
+              onClick={async () => {
+                const ask = cascadeAsk;
+                if (!ask) return;
+                setCascadeRunning(true);
+                try {
+                  setCascadeAsk(null);
+                  await persistInvoice(ask.closeNow, "all");
+                } finally {
+                  setCascadeRunning(false);
+                }
+              }}
+            >
+              Aplicar em todas as parcelas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </Dialog>
+
 
   );
 }
