@@ -626,6 +626,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  /** null = criando novo lançamento; número = editando o item nesse índice. */
+  const [manualEditIdx, setManualEditIdx] = useState<number | null>(null);
   const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
   const [manualItens, setManualItens] = useState<ManualItem[]>([]);
   const [manualItemSel, setManualItemSel] = useState<string[]>([]);
