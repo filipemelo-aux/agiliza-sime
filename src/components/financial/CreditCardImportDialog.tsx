@@ -692,14 +692,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     });
     const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
     setManualItens(
-      itens.map((i: any, n: number) => ({
-        id: `edit-${n}-${crypto.randomUUID()}`,
+      itens.map((i: any): ManualItem => ({
+        uid: newManualUid("edit"),
         descricao: i.descricao || "",
         quantidade: Number(i.quantidade || 1),
         valor_unitario: Number(i.valor_unitario || 0),
         valor_total: Number(i.valor_total || 0),
         veiculo_id: i.veiculo_id || null,
-      })) as ManualItem[]
+      }))
     );
     setManualItemSel([]);
     setManualNovoItem({ desc: "", qtd: "1", valor: "" });
