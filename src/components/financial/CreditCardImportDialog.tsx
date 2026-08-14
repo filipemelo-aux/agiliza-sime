@@ -1706,6 +1706,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     itemsOverride?: ItemRow[],
   ) => {
     const workItems = itemsOverride ?? items;
+    const workTotal = workItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
     if (closeNow && workItems.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
@@ -1764,7 +1765,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         reference_label: formatReferenceLabel(referenceYM) || null,
         due_date: dueDate,
         closing_date: closingDate || null,
-        total_amount: workItems.reduce((s, i) => s + Number(i.amount || 0), 0),
+        total_amount: workTotal,
         status: preservedStatus,
         ofx_file_name: ofxFileName || null,
         ofx_bank_name: ofxBank || null,
@@ -1877,13 +1878,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           };
           // Only update the total when the expense was not (partially) paid — avoids breaking payment audit.
           if (!isPaid) {
-            updatePayload.valor_total = total;
+            updatePayload.valor_total = workTotal;
           }
 
           const { error } = await supabase.from("expenses").update(updatePayload).eq("id", existingExpenseId);
           if (error) throw error;
 
-          if (isPaid && Number((existingExp as any)?.valor_pago || 0) !== total) {
+          if (isPaid && Number((existingExp as any)?.valor_pago || 0) !== workTotal) {
             toast.warning("Despesa já paga: valor total não foi alterado em Contas a Pagar.");
           }
         } else {
@@ -1894,7 +1895,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             tipo_despesa: "outros",
             plano_contas_id: cartaoCreditoPlanoId,
             centro_custo: "administrativo",
-            valor_total: total,
+            valor_total: workTotal,
             data_emissao: getLocalDateISO(),
             data_vencimento: dueDate,
             forma_pagamento: "cartao_credito",
