@@ -61,8 +61,8 @@ export default function VehicleRateioEditor({ rows, onChange, vehicles, valorTot
         </div>
       </div>
 
-      <div className="rounded-md border border-border overflow-hidden">
-        <table className="w-full text-[11px]">
+      <div className="rounded-md border border-border overflow-x-auto">
+        <table className="w-full min-w-[420px] text-[11px]">
           <thead className="bg-muted/50">
             <tr className="text-left">
               <th className="px-2 py-1 font-medium">Veículo</th>
