@@ -1700,24 +1700,56 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return updated;
   };
 
-  const persistInvoice = async (closeNow: boolean, cascadeMode?: "single" | "all") => {
+  const persistInvoice = async (
+    closeNow: boolean,
+    cascadeMode?: "single" | "all",
+    itemsOverride?: ItemRow[],
+  ) => {
+    const workItems = itemsOverride ?? items;
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
-    if (closeNow && items.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
-    if (closeNow && items.some((i) => !i.plano_contas_id)) {
+    if (closeNow && workItems.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
+    if (closeNow && workItems.some((i) => !i.plano_contas_id)) {
       toast.error("Classifique todos os lançamentos com plano de contas antes de fechar.");
       return;
     }
 
+    // Bloqueio: nenhum lançamento parcelado pode ficar sem as parcelas anteriores/posteriores geradas.
+    if (!itemsOverride && pendingInstallments.length > 0) {
+      const anteriores = pendingInstallments.reduce((s, t) => s + Math.max(0, Number(t.item.parcela_atual || 0) - 1), 0);
+      const posteriores = pendingInstallments.reduce(
+        (s, t) => s + Math.max(0, Number(t.item.parcela_total || 0) - Number(t.item.parcela_atual || 0)),
+        0,
+      );
+      const ok = await confirm({
+        title: "Parcelamento pendente de geração",
+        description:
+          `${pendingInstallments.length} lançamento(s) parcelado(s) ainda não possuem as demais parcelas no sistema.\n` +
+          `A fatura só pode ser salva após a geração automática de:\n` +
+          `• ${anteriores} parcela(s) em faturas ANTERIORES\n• ${posteriores} parcela(s) em faturas POSTERIORES\n\n` +
+          `Faturas destino já fechadas e quitadas serão ESTORNADAS automaticamente para receber os lançamentos.`,
+        confirmLabel: "Gerar parcelas e salvar",
+      });
+      if (!ok) {
+        toast.error("A fatura não pode ser salva com parcelamentos pendentes de geração.");
+        return;
+      }
+      const fresh = await generatePendingInstallments(pendingInstallments);
+      if (!fresh) return;
+      await persistInvoice(closeNow, cascadeMode, fresh);
+      return;
+    }
+
     const dateChanges = getInstallmentDateChanges();
-    if (!cascadeMode && dateChanges.length > 0) {
+    if (!cascadeMode && !itemsOverride && dateChanges.length > 0) {
       setCascadeAsk({ closeNow, changes: dateChanges });
       return;
     }
 
     closeNow ? setClosing(true) : setSaving(true);
     try {
-      let id = invoiceId || null;
+      let id = invoiceId || createdInvoiceIdRef.current || null;
+
 
       // Preserve "fechada" when editing an already-closed invoice via "Salvar rascunho".
       // A closed invoice already has a linked expense in Contas a Pagar; downgrading it
