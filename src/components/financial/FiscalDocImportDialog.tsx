@@ -16,6 +16,8 @@ import { getLocalDateISO } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { type RateioVehicleOption } from "./VehicleRateioEditor";
 import { type RateioRow } from "@/lib/rateio";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface FiscalChartAccount {
   id: string; codigo: string; nome: string; tipo: string;
@@ -28,6 +30,8 @@ export interface FiscalDocResult {
   chave: string | null;
   fornecedor_nome: string;
   fornecedor_cnpj: string;
+  /** Perfil (cadastro) vinculado ao fornecedor, quando encontrado/selecionado */
+  fornecedor_id: string | null;
   data_emissao: string;
   descricao: string;
   valor_total: number;
