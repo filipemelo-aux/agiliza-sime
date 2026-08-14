@@ -238,6 +238,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [ofxAccountId, setOfxAccountId] = useState("");
   const [items, setItems] = useState<ItemRow[]>([]);
   const [originalItems, setOriginalItems] = useState<ItemRow[]>([]);
+  /** Confirmação de replicação de Data de Emissão entre parcelas do mesmo agrupamento. */
+  const [cascadeAsk, setCascadeAsk] = useState<{ closeNow: boolean; changes: DateChange[] } | null>(null);
+  const [cascadeRunning, setCascadeRunning] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
 
