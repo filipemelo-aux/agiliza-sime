@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split, X } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split, X, Pencil } from "lucide-react";
 import { exportToCsv } from "@/lib/csvExport";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -155,7 +155,7 @@ const buildParcelaPatch = (source: ItemRow, target: ItemRow): Partial<ItemRow> =
 
 import VehicleRateioEditor from "./VehicleRateioEditor";
 import { type RateioRow, validateRateio, sumRateio, distribuirIgualmente } from "@/lib/rateio";
-import ManualItemsEditor, { type ManualItem, gruposInvalidosManual, somaItens, rateioFromItens } from "./ManualItemsEditor";
+import ManualItemsEditor, { type ManualItem, newManualUid, gruposInvalidosManual, somaItens, rateioFromItens } from "./ManualItemsEditor";
 
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
@@ -626,6 +626,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  /** null = criando novo lançamento; número = editando o item nesse índice. */
+  const [manualEditIdx, setManualEditIdx] = useState<number | null>(null);
   const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
   const [manualItens, setManualItens] = useState<ManualItem[]>([]);
   const [manualItemSel, setManualItemSel] = useState<string[]>([]);
@@ -664,12 +666,47 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   }, [manualItens, manualValorLancado]);
 
   const addManualItem = useCallback(() => {
+    setManualEditIdx(null);
     setManualForm(emptyManualForm());
     setManualItens([]);
     setManualItemSel([]);
     setManualNovoItem({ desc: "", qtd: "1", valor: "" });
     setManualDialogOpen(true);
   }, [referenceYM]);
+
+  /** Abre o mesmo modal em modo de edição, carregando os dados do lançamento selecionado. */
+  const editManualItem = useCallback((idx: number) => {
+    const item = items[idx];
+    if (!item) return;
+    setManualEditIdx(idx);
+    setManualForm({
+      posted_date: item.posted_date,
+      description: item.description || "",
+      amount: maskCurrency(Number(item.amount || 0).toFixed(2).replace(".", ",")),
+      amount_mode: "parcela",
+      parcela_atual: item.parcela_atual ? String(item.parcela_atual) : "",
+      parcela_total: item.parcela_total ? String(item.parcela_total) : "",
+      plano_contas_id: item.plano_contas_id,
+      favorecido_id: item.favorecido_id,
+      favorecido_nome: item.favorecido_nome || "",
+    });
+    const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
+    setManualItens(
+      itens.map((i: any): ManualItem => ({
+        uid: newManualUid("edit"),
+        descricao: i.descricao || "",
+        quantidade: Number(i.quantidade || 1),
+        valor_unitario: Number(i.valor_unitario || 0),
+        valor_total: Number(i.valor_total || 0),
+        veiculo_id: i.veiculo_id || null,
+      }))
+    );
+    setManualItemSel([]);
+    setManualNovoItem({ desc: "", qtd: "1", valor: "" });
+    setManualDialogOpen(true);
+  }, [items]);
+
+
 
 
   const confirmManualItem = useCallback(() => {
@@ -705,9 +742,42 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       }
     }
     const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
-    // Data Matriz: emissão sempre igual à data da 1ª parcela da compra.
     const dataInformada = safeParseDateISO(manualForm.posted_date);
     if (!dataInformada) { toast.error("Informe uma data válida para o lançamento."); return; }
+
+    const itensNota = manualItens.length > 0
+      ? manualItens.map((i) => ({
+          descricao: i.descricao,
+          quantidade: i.quantidade,
+          valor_unitario: i.valor_unitario,
+          valor_total: i.valor_total,
+          veiculo_id: i.veiculo_id || null,
+        }))
+      : null;
+
+    if (manualEditIdx !== null) {
+      // Edição: mantém a data exatamente como informada (sem recalcular Data Matriz em registro existente).
+      const idx = manualEditIdx;
+      setItems((prev) => prev.map((it, i) => i === idx ? {
+        ...it,
+        posted_date: manualForm.posted_date,
+        description: desc,
+        amount: amountNum,
+        plano_contas_id: manualForm.plano_contas_id,
+        favorecido_id: manualForm.favorecido_id,
+        favorecido_nome: manualForm.favorecido_nome,
+        parcela_atual: parcelaAtual,
+        parcela_total: parcelaTotal,
+        itens_nota: itensNota ?? it.itens_nota ?? null,
+        rateio_veiculos: rateio.length > 0 ? rateio : it.rateio_veiculos ?? null,
+      } : it));
+      setManualDialogOpen(false);
+      setManualEditIdx(null);
+      toast.success("Lançamento atualizado. Salve a fatura para gravar.");
+      return;
+    }
+
+    // Data Matriz: emissão sempre igual à data da 1ª parcela da compra (somente em novos lançamentos).
     const postedMatriz = parcelaAtual && parcelaAtual > 1
       ? getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)))
       : manualForm.posted_date;
@@ -726,21 +796,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_total: parcelaTotal,
       parcelas_expandidas: false,
       data_matriz_aplicada: true,
-      itens_nota: manualItens.length > 0
-        ? manualItens.map((i) => ({
-            descricao: i.descricao,
-            quantidade: i.quantidade,
-            valor_unitario: i.valor_unitario,
-            valor_total: i.valor_total,
-            veiculo_id: i.veiculo_id || null,
-          }))
-        : null,
+      itens_nota: itensNota,
       rateio_veiculos: rateio.length > 0 ? rateio : null,
     };
     setItems((prev) => [newRow, ...prev]);
     setManualDialogOpen(false);
     toast.success("Lançamento adicionado à fatura.");
-  }, [manualForm, manualParcelaCalc, manualItens]);
+  }, [manualForm, manualParcelaCalc, manualItens, manualEditIdx]);
 
   // ----- Nota Fiscal (NF-e / NFS-e) vinculada ao lançamento do cartão -----
   const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
@@ -1777,16 +1839,32 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     ]);
   }, [items, chartAccounts, cardName, referenceYM]);
 
+  /** Todos os lançamentos selecionados já tiveram as parcelas geradas automaticamente. */
+  const selectionAllExpanded = useMemo(() => {
+    const idxs = Array.from(selectedIdxs);
+    if (idxs.length === 0) return false;
+    return idxs.every((i) => !!items[i]?.parcelas_expandidas);
+  }, [selectedIdxs, items]);
+
   const toolbarActions: ToolbarAction[] = [
     { key: "ofx", label: "Importar OFX", icon: Upload, mode: "always", disabled: isClosed, onClick: () => fileRef.current?.click() },
     { key: "novo", label: "Novo lançamento", icon: Plus, mode: "create", disabled: isClosed, onClick: addManualItem },
     { key: "xml", label: "XML / Nota de Serviço", icon: FileText, mode: "always", disabled: isClosed, onClick: () => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); } },
     { key: "sugerir", label: "Sugerir remoções", icon: Search, mode: "always", disabled: isClosed || items.length === 0, onClick: suggestRemovalsForTarget },
     { key: "csv", label: "Exportar CSV", icon: Download, mode: "always", disabled: items.length === 0, onClick: exportItemsCsv },
+    { key: "editar", label: "Editar lançamento", icon: Pencil, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) editManualItem(singleIdx); } },
     { key: "vincular", label: "Vincular XML/NFS-e", icon: FileText, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx === null) return; setFiscalAttachIdx(singleIdx); setFiscalDialogOpen(true); } },
     { key: "favorecido", label: "Cadastrar favorecido", icon: Plus, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setCreatePersonOpenIdx(singleIdx); } },
     { key: "rateio", label: "Ratear veículos", icon: Split, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setRateioIdx(singleIdx); } },
-    { key: "parcelas", label: "Gerar parcelas", icon: Layers, mode: "single+batch", disabled: isClosed || expanding, onClick: expandParcelasBatch },
+    {
+      key: "parcelas",
+      label: selectionAllExpanded ? "Parcelas já geradas" : "Gerar parcelas",
+      icon: Layers,
+      mode: "single+batch",
+      // Bloqueia quando todos os selecionados já tiveram as parcelas geradas automaticamente.
+      disabled: isClosed || expanding || selectionAllExpanded,
+      onClick: expandParcelasBatch,
+    },
     { key: "manter", label: "Não é duplicidade", icon: Check, mode: "single+batch", disabled: isClosed, hidden: !Array.from(selectedIdxs).some((i) => items[i]?.possible_duplicate), onClick: () => { selectedIdxs.forEach((i) => updateItem(i, { possible_duplicate: false, duplicate_note: undefined })); } },
     { key: "excluir", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: isClosed, onClick: removeSelected },
     { key: "limpar", label: "Limpar seleção", icon: X, mode: "batch", variant: "ghost", onClick: () => setSelectedIdxs(new Set()) },
@@ -2112,10 +2190,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       />
       {ConfirmDialog}
 
-      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+      <Dialog open={manualDialogOpen} onOpenChange={(o) => { setManualDialogOpen(o); if (!o) setManualEditIdx(null); }}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Lançamento Manual</DialogTitle>
+            <DialogTitle>{manualEditIdx !== null ? "Editar Lançamento" : "Novo Lançamento Manual"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -2245,7 +2323,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={confirmManualItem} disabled={!manualItensOk}>Adicionar</Button>
+            <Button size="sm" onClick={confirmManualItem} disabled={!manualItensOk}>{manualEditIdx !== null ? "Salvar alterações" : "Adicionar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
