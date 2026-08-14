@@ -1093,7 +1093,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .from("credit_card_invoice_items" as any)
         .insert({
           invoice_id: currentInvoiceId,
-          posted_date: item.posted_date,
+          posted_date: matrixPosted,
           description: newDescCurrent,
           amount: item.amount,
           fitid: item.fitid || null,
