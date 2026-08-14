@@ -444,7 +444,7 @@ export function RevenueForecasts() {
       : undefined;
 
   const toolbarActions: ToolbarAction[] = [
-    { key: "new", label: "Nova Previsão Manual", icon: Plus, mode: "always", variant: "default", onClick: () => setManualDialogOpen(true) },
+    { key: "new", label: "Nova Previsão Manual", icon: Plus, mode: "create", variant: "default", onClick: () => setManualDialogOpen(true) },
     { key: "invoice", label: "Gerar Faturas", icon: Receipt, mode: "single+batch", onClick: openIndividualDialog },
     {
       key: "invoice-single",

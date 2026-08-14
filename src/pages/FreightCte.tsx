@@ -557,7 +557,7 @@ export default function FreightCte() {
 
         <GlobalToolbar
           actions={[
-            { key: "new", label: "Novo CT-e", icon: Plus, mode: "always", variant: "default", onClick: handleNew },
+            { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", onClick: handleNew },
             {
               key: "inconsist", label: "Inconsistências", icon: AlertTriangle, mode: "always", variant: "outline",
               onClick: () => setInconsistencyOpen(true),

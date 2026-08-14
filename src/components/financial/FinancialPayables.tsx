@@ -1547,7 +1547,7 @@ tfoot{display:table-row-group}
       {/* Global Toolbar */}
       <GlobalToolbar
         actions={[
-          { key: "new", label: "Nova Despesa", icon: Plus, mode: "always", variant: "default", onClick: handleNew },
+          { key: "new", label: "Nova Despesa", icon: Plus, mode: "create", variant: "default", onClick: handleNew },
           {
             key: "edit", label: "Editar", icon: Pencil, mode: "single",
             disabled: !selectedRows[0] || selectedRows[0].isHarvest,

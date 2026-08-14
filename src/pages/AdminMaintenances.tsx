@@ -365,7 +365,7 @@ export default function AdminMaintenances() {
 
         <GlobalToolbar
           actions={[
-            { key: "new", label: "Nova Manutenção", icon: Plus, mode: "always", variant: "default", onClick: () => { setEditId(null); setFormOpen(true); } },
+            { key: "new", label: "Nova Manutenção", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditId(null); setFormOpen(true); } },
             { key: "payables", label: "Via Contas a Pagar", icon: FileText, mode: "always", variant: "outline", onClick: () => navigate("/admin/financial/payables") },
             {
               key: "detail", label: "Detalhes", icon: Eye, mode: "single",

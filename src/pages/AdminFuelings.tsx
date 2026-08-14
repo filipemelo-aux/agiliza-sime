@@ -196,7 +196,7 @@ export default function AdminFuelings() {
 
         <GlobalToolbar
           actions={[
-            { key: "new", label: "Novo", icon: Plus, mode: "always", variant: "default", onClick: () => { setEditing(null); setFormOpen(true); } },
+            { key: "new", label: "Novo", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setFormOpen(true); } },
             {
               key: "edit", label: "Editar", icon: Pencil, mode: "single",
               disabled: !single,

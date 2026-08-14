@@ -1674,7 +1674,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const toolbarActions: ToolbarAction[] = [
     { key: "ofx", label: "Importar OFX", icon: Upload, mode: "always", disabled: isClosed, onClick: () => fileRef.current?.click() },
-    { key: "novo", label: "Novo lançamento", icon: Plus, mode: "always", disabled: isClosed, onClick: addManualItem },
+    { key: "novo", label: "Novo lançamento", icon: Plus, mode: "create", disabled: isClosed, onClick: addManualItem },
     { key: "xml", label: "XML / Nota de Serviço", icon: FileText, mode: "always", disabled: isClosed, onClick: () => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); } },
     { key: "sugerir", label: "Sugerir remoções", icon: Search, mode: "always", disabled: isClosed || items.length === 0, onClick: suggestRemovalsForTarget },
     { key: "csv", label: "Exportar CSV", icon: Download, mode: "always", disabled: items.length === 0, onClick: exportItemsCsv },

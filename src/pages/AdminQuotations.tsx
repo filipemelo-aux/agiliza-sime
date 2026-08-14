@@ -247,8 +247,8 @@ export default function AdminQuotations() {
   ];
 
   const toolbarActions = [
-    { key: "new-frete", label: "Nova Cotação de Frete", icon: FileText, mode: "always" as const, variant: "default" as const, onClick: () => openNewForm("frete") },
-    { key: "new-colheita", label: "Nova Cotação de Colheita", icon: Sprout, mode: "always" as const, variant: "outline" as const, onClick: () => openNewForm("colheita") },
+    { key: "new-frete", label: "Nova Cotação de Frete", icon: FileText, mode: "create" as const, variant: "default" as const, onClick: () => openNewForm("frete") },
+    { key: "new-colheita", label: "Nova Cotação de Colheita", icon: Sprout, mode: "create" as const, variant: "outline" as const, onClick: () => openNewForm("colheita") },
     { key: "detail", label: "Detalhes", icon: Eye, mode: "single" as const, disabled: !single, onClick: () => single && setDetailQuotation(single) },
     { key: "edit", label: "Editar", icon: Pencil, mode: "single" as const, disabled: !single, onClick: () => single && setEditQuotation(single) },
     { key: "pdf", label: "PDF", icon: Download, mode: "single" as const, disabled: !single, onClick: () => single && exportQuotationPDF(single, establishments) },
