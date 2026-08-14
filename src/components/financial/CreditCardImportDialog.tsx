@@ -21,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO, formatDateBR } from "@/lib/date";
+import { getLocalDateISO, formatDateBR, safeParseDateISO, addMonthsPreserveDay } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MonthPicker } from "@/components/MonthPicker";
@@ -691,9 +691,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       }
     }
     const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
+    // Data Matriz: emissão sempre igual à data da 1ª parcela da compra.
+    const postedMatriz = parcelaAtual && parcelaAtual > 1
+      ? getLocalDateISO(addMonthsPreserveDay(safeParseDateISO(manualForm.posted_date)!, -(parcelaAtual - 1)))
+      : manualForm.posted_date;
     const newRow: ItemRow = {
       fitid: `manual-${crypto.randomUUID()}`,
-      posted_date: manualForm.posted_date,
+      posted_date: postedMatriz,
       description: desc,
       amount: amountNum,
       plano_contas_id: manualForm.plano_contas_id,
@@ -1053,15 +1057,21 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       missing.push({ parcela: p, offset: p - cur });
     }
 
+    // Data Matriz: a emissão (fato gerador) é sempre a data da 1ª parcela.
+    // Data informada menos (parcela atual - 1) meses; idêntica em TODAS as parcelas.
+    const matrixPosted = shiftDate(item.posted_date, -(cur - 1));
+
     const baseDesc = item.description;
     const newDescCurrent = buildDescription(baseDesc, cur, totalP);
     onStep(1, `Salvando parcela atual (${cur}/${totalP})...`);
-    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent } : it));
+    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent, posted_date: matrixPosted } : it));
+
 
     if (item.id) {
       const { error: updErr } = await supabase
         .from("credit_card_invoice_items" as any)
         .update({
+          posted_date: matrixPosted,
           description: newDescCurrent,
           plano_contas_id: item.plano_contas_id,
           centro_custo: item.centro_custo || null,
@@ -1087,7 +1097,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .from("credit_card_invoice_items" as any)
         .insert({
           invoice_id: currentInvoiceId,
-          posted_date: item.posted_date,
+          posted_date: matrixPosted,
           description: newDescCurrent,
           amount: item.amount,
           fitid: item.fitid || null,
@@ -1126,7 +1136,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const targetRefLabel = formatReferenceLabel(targetYM);
       const targetDue = shiftDate(dueDate, offset);
       const targetClosing = closingDate ? shiftDate(closingDate, offset) : null;
-      const targetPosted = shiftDate(item.posted_date, offset);
+      // Emissão estática: todas as parcelas herdam a Data Matriz.
+      const targetPosted = matrixPosted;
 
       let query = supabase
         .from("credit_card_invoices" as any)
@@ -1243,6 +1254,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         const { error: updExErr } = await supabase
           .from("credit_card_invoice_items" as any)
           .update({
+            posted_date: matrixPosted,
             description: buildDescription(existingMatch.existing.description || baseDesc, parcela, totalP),
             parcela_atual: parcela,
             parcela_total: totalP,
