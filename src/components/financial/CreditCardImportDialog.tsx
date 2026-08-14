@@ -1724,6 +1724,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         }
       }
 
+      if (cascadeMode === "all" && dateChanges.length > 0) {
+        const updated = await applyCascadeDates(dateChanges);
+        toast.success(
+          updated > 0
+            ? `Data de emissão replicada em ${updated} parcela(s) do agrupamento.`
+            : "Nenhuma outra parcela do agrupamento precisou de ajuste."
+        );
+      }
+
       toast.success(closeNow ? "Fatura fechada e enviada ao Contas a Pagar." : "Fatura salva.");
       onSaved();
       onOpenChange(false);
