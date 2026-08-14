@@ -1491,12 +1491,72 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
 
 
-  const persistInvoice = async (closeNow: boolean) => {
+  /** Itens persistidos, pertencentes a um parcelamento, cuja Data de Emissão foi alterada manualmente. */
+  const getInstallmentDateChanges = useCallback((): DateChange[] => {
+    const byId = new Map(originalItems.filter((o) => o.id).map((o) => [o.id as string, o]));
+    return items.reduce<DateChange[]>((acc, it) => {
+      if (!it.id) return acc;
+      const orig = byId.get(it.id);
+      if (!orig || orig.posted_date === it.posted_date) return acc;
+      if (Number(it.parcela_total || 0) <= 1) return acc;
+      acc.push({ item: it, oldDate: orig.posted_date, newDate: it.posted_date });
+      return acc;
+    }, []);
+  }, [items, originalItems]);
+
+  /**
+   * Replica a nova Data de Emissão para todas as parcelas do mesmo agrupamento
+   * (mesmo favorecido + mesma descrição normalizada + mesmo total de parcelas + valor equivalente),
+   * em qualquer fatura. Somente sob confirmação explícita do gestor.
+   */
+  const applyCascadeDates = async (changes: DateChange[]) => {
+    let updated = 0;
+    for (const change of changes) {
+      const totalP = Number(change.item.parcela_total || 0);
+      if (totalP <= 1) continue;
+      const { data, error } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .select("id, description, amount, favorecido_id, favorecido_nome, parcela_total, posted_date")
+        .eq("parcela_total", totalP);
+      if (error) throw error;
+
+      const targetNorm = normalizeInstallmentText(change.item.description);
+      const targetFav = (change.item.favorecido_id || change.item.favorecido_nome || "").toLowerCase().trim();
+
+      const ids = ((data as any[]) || [])
+        .filter((r) => {
+          if (r.id === change.item.id) return false;
+          if (r.posted_date === change.newDate) return false;
+          const fav = (r.favorecido_id || r.favorecido_nome || "").toLowerCase().trim();
+          if (targetFav && fav && fav !== targetFav) return false;
+          if (normalizeInstallmentText(r.description || "") !== targetNorm) return false;
+          return amountsClose(Number(r.amount || 0), Number(change.item.amount || 0));
+        })
+        .map((r) => r.id as string);
+
+      if (ids.length === 0) continue;
+      const { error: upErr } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .update({ posted_date: change.newDate })
+        .in("id", ids);
+      if (upErr) throw upErr;
+      updated += ids.length;
+    }
+    return updated;
+  };
+
+  const persistInvoice = async (closeNow: boolean, cascadeMode?: "single" | "all") => {
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
     if (closeNow && items.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
     if (closeNow && items.some((i) => !i.plano_contas_id)) {
       toast.error("Classifique todos os lançamentos com plano de contas antes de fechar.");
+      return;
+    }
+
+    const dateChanges = getInstallmentDateChanges();
+    if (!cascadeMode && dateChanges.length > 0) {
+      setCascadeAsk({ closeNow, changes: dateChanges });
       return;
     }
 
