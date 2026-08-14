@@ -1250,6 +1250,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         const { error: updExErr } = await supabase
           .from("credit_card_invoice_items" as any)
           .update({
+            posted_date: matrixPosted,
             description: buildDescription(existingMatch.existing.description || baseDesc, parcela, totalP),
             parcela_atual: parcela,
             parcela_total: totalP,
