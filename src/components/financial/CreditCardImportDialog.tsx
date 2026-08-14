@@ -188,6 +188,13 @@ interface ItemRow {
 
 interface VehicleOption { id: string; plate: string; }
 
+/** Alteração manual de Data de Emissão em um item que pertence a um parcelamento. */
+interface DateChange {
+  item: ItemRow;
+  oldDate: string;
+  newDate: string;
+}
+
 
 interface Props {
   open: boolean;
