@@ -43,16 +43,14 @@ interface GlobalToolbarProps {
   className?: string;
 }
 
-function getScrollParent(el: HTMLElement | null): HTMLElement | Window {
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
   let node = el?.parentElement ?? null;
   while (node) {
     const style = getComputedStyle(node);
-    if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) {
-      return node;
-    }
+    if (/(auto|scroll|overlay)/.test(style.overflowY)) return node;
     node = node.parentElement;
   }
-  return window;
+  return null;
 }
 
 export function GlobalToolbar({ actions, selectedCount, children, className }: GlobalToolbarProps) {
@@ -60,12 +58,15 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const target = getScrollParent(ref.current);
-    const read = () =>
-      setScrolled((target instanceof Window ? window.scrollY : target.scrollTop) > 0);
+    const parent = getScrollParent(ref.current);
+    const read = () => setScrolled((parent?.scrollTop ?? 0) > 0 || window.scrollY > 0);
     read();
-    target.addEventListener("scroll", read, { passive: true });
-    return () => target.removeEventListener("scroll", read as EventListener);
+    parent?.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("scroll", read, { passive: true });
+    return () => {
+      parent?.removeEventListener("scroll", read);
+      window.removeEventListener("scroll", read);
+    };
   }, []);
 
   return (
