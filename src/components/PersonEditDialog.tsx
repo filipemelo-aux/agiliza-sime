@@ -731,6 +731,18 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
     }
   }, [form.cnpj, setForm]);
 
+  // Busca automática quando o CNPJ chega pré-preenchido (ex.: XML da nota)
+  const autoLookedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isEdit || !showCNPJ) return;
+    const raw = unmaskCNPJ(form.cnpj);
+    if (raw.length !== 14) return;
+    if (autoLookedRef.current === raw) return;
+    autoLookedRef.current = raw;
+    handleCnpjLookup(raw);
+  }, [form.cnpj, showCNPJ, isEdit, handleCnpjLookup]);
+
+
   return (
     <div className="space-y-4 pt-2">
       {/* Category */}
