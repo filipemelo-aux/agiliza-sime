@@ -131,12 +131,17 @@ export function FiscalDocImportDialog({
 
   const nParcelas = Math.max(1, Number(parcelaTotal) || 1);
   const valorParcela = useMemo(() => {
-    if (parcelas.length > 0) {
+    // Só usa as duplicatas do XML quando a quantidade de parcelas informada
+    // bate exatamente com a quantidade de duplicatas da nota. Caso contrário
+    // (ex.: nota com 1 duplicata do valor cheio, mas compra parcelada no cartão)
+    // divide o valor total pelo número de parcelas informado.
+    if (parcelas.length > 1 && parcelas.length === nParcelas) {
       const idx = Math.min(Math.max(Number(parcelaAtual) || 1, 1), parcelas.length) - 1;
       return parcelas[idx]?.valor || valorTotal / nParcelas;
     }
     return valorTotal / nParcelas;
   }, [parcelas, parcelaAtual, valorTotal, nParcelas]);
+
 
   /**
    * Rateio automático por veículo: proporcional ao peso de cada item (já com impostos)
@@ -603,7 +608,13 @@ export function FiscalDocImportDialog({
               <div>
                 <Label className="text-[11px]">Total de parcelas</Label>
                 <Input className="h-9 text-xs" inputMode="numeric" value={parcelaTotal} onChange={(e) => setParcelaTotal(e.target.value.replace(/\D/g, ""))} />
+                {nParcelas > 1 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Valor lançado nesta fatura: <strong>{formatCurrency(valorParcela)}</strong>
+                  </p>
+                )}
               </div>
+
               <div className="md:col-span-2">
                 <Label className="text-[11px]">Plano de Contas</Label>
                 <PlanoContasCombobox
