@@ -106,7 +106,7 @@ export function DataGrid<T>({
         <table className="w-full border-collapse text-xs" style={{ minWidth }}>
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr className="border-b border-border">
-              <th className="w-10 md:w-8 px-2 py-2 md:py-1.5 sticky left-0 z-20 bg-muted">
+              <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 sticky left-0 z-20 bg-muted">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={toggleAll}
@@ -173,7 +173,7 @@ export function DataGrid<T>({
                     )}
                   >
                     <td
-                      className="relative px-2 py-2.5 md:py-1 sticky left-0 z-10 bg-card"
+                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1 sticky left-0 z-10 bg-card"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span
