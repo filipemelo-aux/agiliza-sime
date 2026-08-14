@@ -1836,7 +1836,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             .ilike("nome", "Cartão de Crédito")
             .limit(1)
             .maybeSingle();
-          cartaoCreditoPlanoId = (cc as any)?.id || items[0]?.plano_contas_id || null;
+          cartaoCreditoPlanoId = (cc as any)?.id || workItems[0]?.plano_contas_id || null;
         }
 
         // Resolve favorecido (banco selecionado)
@@ -1873,7 +1873,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             plano_contas_id: cartaoCreditoPlanoId,
             favorecido_id: favorecidoId,
             favorecido_nome: favorecidoNome,
-            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
+            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${workItems.length} lançamento(s).`,
           };
           // Only update the total when the expense was not (partially) paid — avoids breaking payment audit.
           if (!isPaid) {
@@ -1900,7 +1900,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             forma_pagamento: "cartao_credito",
             favorecido_id: favorecidoId,
             favorecido_nome: favorecidoNome,
-            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
+            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${workItems.length} lançamento(s).`,
             origem: "importacao",
             documento_fiscal_importado: false,
             created_by: user?.id,
