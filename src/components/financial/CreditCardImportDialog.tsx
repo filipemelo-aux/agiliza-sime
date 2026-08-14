@@ -1383,12 +1383,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return { createdCount, reusedCount, estornoCount };
   };
 
-  const reloadCurrentInvoiceItems = async () => {
-    if (!invoiceId) return;
+  const reloadCurrentInvoiceItems = async (idOverride?: string): Promise<ItemRow[] | null> => {
+    const targetId = idOverride || invoiceId || createdInvoiceIdRef.current;
+    if (!targetId) return null;
     const { data: rows } = await supabase
       .from("credit_card_invoice_items" as any)
       .select("*")
-      .eq("invoice_id", invoiceId)
+      .eq("invoice_id", targetId)
       .order("posted_date");
     const mapped = ((rows as any[]) || []).map((r: any) => ({
       id: r.id,
