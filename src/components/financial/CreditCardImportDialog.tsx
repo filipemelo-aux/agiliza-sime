@@ -21,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO, formatDateBR } from "@/lib/date";
+import { getLocalDateISO, formatDateBR, safeParseDateISO, addMonthsPreserveDay } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MonthPicker } from "@/components/MonthPicker";
