@@ -2190,10 +2190,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       />
       {ConfirmDialog}
 
-      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+      <Dialog open={manualDialogOpen} onOpenChange={(o) => { setManualDialogOpen(o); if (!o) setManualEditIdx(null); }}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Lançamento Manual</DialogTitle>
+            <DialogTitle>{manualEditIdx !== null ? "Editar Lançamento" : "Novo Lançamento Manual"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
