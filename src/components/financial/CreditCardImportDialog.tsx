@@ -1053,10 +1053,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       missing.push({ parcela: p, offset: p - cur });
     }
 
+    // Data Matriz: a emissão (fato gerador) é sempre a data da 1ª parcela.
+    // Data informada menos (parcela atual - 1) meses; idêntica em TODAS as parcelas.
+    const matrixPosted = shiftDate(item.posted_date, -(cur - 1));
+
     const baseDesc = item.description;
     const newDescCurrent = buildDescription(baseDesc, cur, totalP);
     onStep(1, `Salvando parcela atual (${cur}/${totalP})...`);
-    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent } : it));
+    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent, posted_date: matrixPosted } : it));
+
 
     if (item.id) {
       const { error: updErr } = await supabase
