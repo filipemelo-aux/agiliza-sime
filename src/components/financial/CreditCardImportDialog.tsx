@@ -2306,9 +2306,67 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
-
+      {/* Replicação de Data de Emissão entre parcelas do mesmo agrupamento */}
+      <Dialog open={!!cascadeAsk} onOpenChange={(o) => { if (!o && !cascadeRunning) setCascadeAsk(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Despesa parcelada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>
+              Esta despesa faz parte de um parcelamento. Deseja aplicar esta nova Data de Emissão a todas as outras
+              parcelas deste grupo?
+            </p>
+            <ul className="space-y-1">
+              {(cascadeAsk?.changes || []).map((c) => (
+                <li key={c.item.id} className="rounded border bg-muted/40 px-2 py-1 text-foreground">
+                  <span className="font-medium">{(c.item.description || "").slice(0, 40)}</span>
+                  {" — "}
+                  {formatDateBR(c.oldDate)} → <span className="font-semibold">{formatDateBR(c.newDate)}</span>
+                  {c.item.parcela_total ? ` (${c.item.parcela_atual || "?"}/${c.item.parcela_total})` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="h-10"
+              disabled={cascadeRunning}
+              onClick={async () => {
+                const ask = cascadeAsk;
+                setCascadeAsk(null);
+                if (ask) await persistInvoice(ask.closeNow, "single");
+              }}
+            >
+              Apenas nesta parcela
+            </Button>
+            <Button
+              className="h-10"
+              disabled={cascadeRunning}
+              onClick={async () => {
+                const ask = cascadeAsk;
+                if (!ask) return;
+                setCascadeRunning(true);
+                try {
+                  setCascadeAsk(null);
+                  await persistInvoice(ask.closeNow, "all");
+                } finally {
+                  setCascadeRunning(false);
+                }
+              }}
+            >
+              Aplicar em todas as parcelas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </Dialog>
+
 
   );
 }
