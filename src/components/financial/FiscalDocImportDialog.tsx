@@ -11,13 +11,14 @@ import { Upload, FileText, Plus, Trash2, AlertTriangle, Split, Undo2 } from "luc
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { toast } from "sonner";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency, maskCNPJ } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { type RateioVehicleOption } from "./VehicleRateioEditor";
 import { type RateioRow } from "@/lib/rateio";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { supabase } from "@/integrations/supabase/client";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 
 export interface FiscalChartAccount {
   id: string; codigo: string; nome: string; tipo: string;
@@ -112,6 +113,7 @@ export function FiscalDocImportDialog({
   const [novoItemDesc, setNovoItemDesc] = useState("");
   const [novoItemValor, setNovoItemValor] = useState("");
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
+  const [createPersonOpen, setCreatePersonOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -376,6 +378,7 @@ export function FiscalDocImportDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
@@ -686,6 +689,7 @@ export function FiscalDocImportDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+    </Dialog>
 
       <PersonCreateDialog
         open={createPersonOpen}
@@ -713,7 +717,7 @@ export function FiscalDocImportDialog({
           }
         }}
       />
-    </Dialog>
+    </>
   );
 }
 
