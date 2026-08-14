@@ -95,11 +95,11 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
               aria-label={a.label}
               className={cn(
                 "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40 shrink-0",
-                Icon && "max-md:w-9 max-md:px-0 max-md:justify-center"
+                Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
               )}
             >
               {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
-              <span className={cn(Icon && "max-md:hidden")}>{a.label}</span>
+              <span className={cn(Icon && "max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80")}>{a.label}</span>
             </Button>
           );
         })}
