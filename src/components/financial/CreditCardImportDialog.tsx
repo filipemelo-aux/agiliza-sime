@@ -21,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO, formatDateBR, safeParseDateISO, addMonthsPreserveDay } from "@/lib/date";
+import { getLocalDateISO, formatDateBR, safeParseDateISO } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MonthPicker } from "@/components/MonthPicker";
@@ -251,7 +251,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [emissaoAsk, setEmissaoAsk] = useState<{
     row: ItemRow;
     informada: string;
-    sugestao: string;
     parcelaAtual: number;
     parcelaTotal: number;
   } | null>(null);
@@ -808,11 +807,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
 
     if (parcelaAtual && parcelaAtual > 1) {
-      const sugestao = getLocalDateISO(addMonthsPreserveDay(dataInformada, -(parcelaAtual - 1)));
       setEmissaoAsk({
         row: newRow,
         informada: manualForm.posted_date,
-        sugestao,
         parcelaAtual,
         parcelaTotal: parcelaTotal || 0,
       });
@@ -2600,24 +2597,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               Ela está correta e deve ser aplicada a todas as parcelas deste agrupamento? O sistema não fará nenhuma
               correção automática.
             </p>
-            <p className="rounded border bg-muted/40 px-2 py-1">
-              Se preferir, use a data da 1ª parcela calculada:{" "}
-              <span className="font-semibold text-foreground">{formatDateBR(emissaoAsk?.sugestao)}</span>.
-            </p>
           </div>
           <DialogFooter className="gap-2">
             <Button
               variant="outline"
               className="h-10"
               onClick={() => {
-                const ask = emissaoAsk;
-                if (!ask) return;
                 setEmissaoAsk(null);
-                setItems((prev) => [{ ...ask.row, posted_date: ask.sugestao }, ...prev]);
-                toast.success("Lançamento adicionado com a data da 1ª parcela.");
               }}
             >
-              Usar {formatDateBR(emissaoAsk?.sugestao)}
+              Cancelar
             </Button>
             <Button
               className="h-10"
