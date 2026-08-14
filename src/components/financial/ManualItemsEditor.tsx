@@ -204,9 +204,9 @@ export default function ManualItemsEditor({
             </span>
           </GlobalToolbar>
 
-          <div className="border rounded-md">
+          <div className="border rounded-md overflow-x-auto">
             <ScrollArea className="max-h-56">
-              <Table>
+              <Table className="min-w-[560px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8" />

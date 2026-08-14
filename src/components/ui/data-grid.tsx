@@ -106,20 +106,21 @@ export function DataGrid<T>({
         <table className="w-full border-collapse text-xs" style={{ minWidth }}>
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr className="border-b border-border">
-              <th className="w-8 px-2 py-1.5">
+              <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 sticky left-0 z-20 bg-muted">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={toggleAll}
                   aria-label="Selecionar todos"
                 />
               </th>
-              {columns.map((col) => (
+              {columns.map((col, ci) => (
                 <th
                   key={col.key}
                   style={col.width ? { width: col.width } : undefined}
                   onClick={() => toggleSort(col)}
                   className={cn(
-                    "px-2 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
+                    "px-2 py-2 md:py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
+                    ci === 0 && "sticky left-10 md:left-8 z-20 bg-muted",
                     alignCls(col.align),
                     col.sortValue && "cursor-pointer select-none hover:text-foreground",
                     col.headerClassName
@@ -167,21 +168,47 @@ export function DataGrid<T>({
                     className={cn(
                       "border-b border-border/60 transition-colors",
                       selectable ? "cursor-pointer hover:bg-muted/40" : "opacity-70",
-                      isSel && "bg-primary/10 hover:bg-primary/15",
+                      isSel && "bg-primary/10 hover:bg-primary/15 ring-1 ring-inset ring-primary/30",
                       rowClassName?.(row)
                     )}
                   >
-                    <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1 sticky left-0 z-10 bg-card"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "pointer-events-none absolute inset-0",
+                          rowClassName?.(row),
+                          isSel && "bg-primary/10"
+                        )}
+                      />
                       {selectable && (
                         <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} />
                       )}
                     </td>
-                    {columns.map((col) => (
+                    {columns.map((col, ci) => (
                       <td
                         key={col.key}
-                        className={cn("px-2 py-1 align-middle", alignCls(col.align), col.className)}
+                        className={cn(
+                          "px-2 py-2.5 md:py-1 align-middle",
+                          alignCls(col.align),
+                          ci === 0 && "relative sticky left-10 md:left-8 z-10 bg-card",
+                          col.className
+                        )}
                       >
-                        {col.cell(row)}
+                        {ci === 0 && (
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "pointer-events-none absolute inset-0",
+                              rowClassName?.(row),
+                              isSel && "bg-primary/10"
+                            )}
+                          />
+                        )}
+                        <span className={cn(ci === 0 && "relative")}>{col.cell(row)}</span>
                       </td>
                     ))}
                   </tr>
