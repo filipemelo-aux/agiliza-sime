@@ -252,6 +252,38 @@ export function FiscalDocImportDialog({
   };
 
 
+  /** Busca automática do fornecedor no cadastro (por CNPJ e, se não achar, por nome) */
+  const buscarFornecedorCadastro = async (cnpj: string, nome: string, razaoSocial: string) => {
+    try {
+      const digits = (cnpj || "").replace(/\D/g, "");
+      if (digits) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name, razao_social, cnpj")
+          .eq("cnpj", digits)
+          .limit(1);
+        if (data && data.length > 0) {
+          setFornecedorId(data[0].id);
+          setFornecedorNome(data[0].razao_social || data[0].full_name || nome);
+          return;
+        }
+      }
+      const termo = (razaoSocial || nome || "").trim();
+      if (termo.length < 3) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, razao_social, cnpj")
+        .or(`razao_social.ilike.%${termo}%,full_name.ilike.%${termo}%,nome_fantasia.ilike.%${termo}%`)
+        .limit(1);
+      if (data && data.length > 0) {
+        setFornecedorId(data[0].id);
+        setFornecedorNome(data[0].razao_social || data[0].full_name || nome);
+      }
+    } catch {
+      /* busca opcional */
+    }
+  };
+
   const handleXmlFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -597,17 +629,13 @@ export function FiscalDocImportDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="md:col-span-2 flex items-end">
-                <label className="flex items-start gap-2 text-[11px] cursor-pointer">
-                  <Checkbox
-                    checked={expandir}
-                    disabled={nParcelas < 2}
-                    onCheckedChange={(v) => setExpandir(!!v)}
-                    className="mt-0.5"
-                  />
-                  <span>Lançar as parcelas mês a mês</span>
-                </label>
-              </div>
+              {nParcelas > 1 && (
+                <div className="md:col-span-2 flex items-end">
+                  <p className="text-[11px] text-muted-foreground">
+                    As {nParcelas} parcelas serão lançadas automaticamente mês a mês nas faturas do cartão.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
