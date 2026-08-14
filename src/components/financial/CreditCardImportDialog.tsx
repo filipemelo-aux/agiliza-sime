@@ -248,6 +248,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   /** Confirmação de replicação de Data de Emissão entre parcelas do mesmo agrupamento. */
   const [cascadeAsk, setCascadeAsk] = useState<{ closeNow: boolean; changes: DateChange[] } | null>(null);
   const [cascadeRunning, setCascadeRunning] = useState(false);
+  const [emissaoAsk, setEmissaoAsk] = useState<{
+    row: ItemRow;
+    informada: string;
+    sugestao: string;
+    parcelaAtual: number;
+    parcelaTotal: number;
+  } | null>(null);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
 
