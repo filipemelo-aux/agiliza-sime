@@ -1579,6 +1579,72 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
   };
 
+  /**
+   * Lançamentos parcelados (parcela X/N com N > 1) que ainda não tiveram as
+   * parcelas anteriores/posteriores geradas nas demais faturas do cartão.
+   */
+  const pendingInstallments = useMemo(
+    () =>
+      items
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) =>
+          Number(item.parcela_total || 0) > 1 &&
+          Number(item.parcela_atual || 0) >= 1 &&
+          !item.parcelas_expandidas
+        ),
+    [items],
+  );
+
+  /**
+   * Gera automaticamente as parcelas pendentes. Retorna a lista atualizada de itens
+   * (recarregada do banco) ou null em caso de falha/validação.
+   */
+  const generatePendingInstallments = async (
+    targets: Array<{ idx: number; item: ItemRow }>,
+  ): Promise<ItemRow[] | null> => {
+    const invalid = targets
+      .map(({ item }) => ({ item, err: validateItemForExpansion(item) }))
+      .filter((x) => !!x.err);
+    if (invalid.length > 0) {
+      toast.error(
+        `Complete os dados antes de salvar: ${invalid
+          .map(({ item, err }) => `"${(item.description || "").slice(0, 30)}" — ${err}`)
+          .join(" | ")}`,
+        { duration: 9000 },
+      );
+      return null;
+    }
+
+    const totalSteps = targets.reduce((s, t) => s + Number(t.item.parcela_total || 0), 0) + 1;
+    let currentStep = 0;
+    setExpanding(true);
+    setExpandProgress({ current: 0, total: totalSteps, message: "Gerando parcelas..." });
+    try {
+      const currentInvoiceId = await ensureCurrentInvoiceId();
+      let done = 0;
+      for (const { idx, item } of targets) {
+        await runItemExpansion(item, idx, currentInvoiceId, (delta, message) => {
+          currentStep += delta;
+          setExpandProgress({ current: currentStep, total: totalSteps, message: `[${done + 1}/${targets.length}] ${message}` });
+        });
+        done++;
+      }
+      setExpandProgress({ current: totalSteps, total: totalSteps, message: "Atualizando fatura..." });
+      const fresh = await reloadCurrentInvoiceItems(currentInvoiceId);
+      onSaved();
+      return fresh;
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao gerar as parcelas.");
+      return null;
+    } finally {
+      setExpanding(false);
+      setExpandProgress({ current: 0, total: 0, message: "" });
+    }
+  };
+
+
+
 
   /** Itens persistidos, pertencentes a um parcelamento, cuja Data de Emissão foi alterada manualmente. */
   const getInstallmentDateChanges = useCallback((): DateChange[] => {
