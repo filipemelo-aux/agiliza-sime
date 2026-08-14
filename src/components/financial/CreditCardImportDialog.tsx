@@ -589,6 +589,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     parcela_atual: string;
     parcela_total: string;
     plano_contas_id: string | null;
+    favorecido_id: string | null;
+    favorecido_nome: string;
   }
   const emptyManualForm = (): ManualForm => {
     const [y, m] = referenceYM.split("-").map(Number);
@@ -605,6 +607,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: "",
       parcela_total: "",
       plano_contas_id: null,
+      favorecido_id: null,
+      favorecido_nome: "",
     };
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -694,8 +698,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       amount: amountNum,
       plano_contas_id: manualForm.plano_contas_id,
       centro_custo: "",
-      favorecido_id: null,
-      favorecido_nome: "",
+      favorecido_id: manualForm.favorecido_id,
+      favorecido_nome: manualForm.favorecido_nome,
       veiculo_id: null,
       observacoes: "",
       parcela_atual: parcelaAtual,
@@ -741,6 +745,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               ...it,
               ...fiscalPatch,
               veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
+              favorecido_id: it.favorecido_id || data.fornecedor_id,
               favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
               observacoes: it.observacoes?.trim()
                 || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
@@ -760,7 +765,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       amount: data.valor_parcela,
       plano_contas_id: data.plano_contas_id,
       centro_custo: data.centro_custo || "",
-      favorecido_id: null,
+      favorecido_id: data.fornecedor_id,
       favorecido_nome: data.fornecedor_nome || "",
       veiculo_id: null,
       observacoes: `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
@@ -2054,6 +2059,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 placeholder="Ex: Compra loja XYZ"
                 value={manualForm.description}
                 onChange={(e) => setManualForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Fornecedor / Favorecido</Label>
+              <PersonSearchInput
+                categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
+                placeholder="Buscar fornecedor cadastrado..."
+                selectedName={manualForm.favorecido_nome || undefined}
+                onSelect={(p) => setManualForm((f) => ({
+                  ...f,
+                  favorecido_id: p.id,
+                  favorecido_nome: p.razao_social || p.full_name || "",
+                }))}
+                onClear={() => setManualForm((f) => ({ ...f, favorecido_id: null, favorecido_nome: "" }))}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">

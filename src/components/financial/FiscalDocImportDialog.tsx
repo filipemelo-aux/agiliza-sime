@@ -16,6 +16,8 @@ import { getLocalDateISO } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { type RateioVehicleOption } from "./VehicleRateioEditor";
 import { type RateioRow } from "@/lib/rateio";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface FiscalChartAccount {
   id: string; codigo: string; nome: string; tipo: string;
@@ -28,6 +30,8 @@ export interface FiscalDocResult {
   chave: string | null;
   fornecedor_nome: string;
   fornecedor_cnpj: string;
+  /** Perfil (cadastro) vinculado ao fornecedor, quando encontrado/selecionado */
+  fornecedor_id: string | null;
   data_emissao: string;
   descricao: string;
   valor_total: number;
@@ -90,6 +94,7 @@ export function FiscalDocImportDialog({
   const [chave, setChave] = useState<string | null>(null);
   const [fornecedorNome, setFornecedorNome] = useState("");
   const [fornecedorCnpj, setFornecedorCnpj] = useState("");
+  const [fornecedorId, setFornecedorId] = useState<string | null>(null);
   const [dataEmissao, setDataEmissao] = useState(defaultDate || getLocalDateISO());
   const [descricao, setDescricao] = useState("");
   const [valorTotalStr, setValorTotalStr] = useState("");
@@ -111,7 +116,7 @@ export function FiscalDocImportDialog({
   useEffect(() => {
     if (!open) return;
     setIsNfse(false);
-    setNumero(""); setChave(null); setFornecedorNome(""); setFornecedorCnpj("");
+    setNumero(""); setChave(null); setFornecedorNome(""); setFornecedorCnpj(""); setFornecedorId(null);
     setDataEmissao(defaultDate || getLocalDateISO());
     setDescricao(attachMode ? (attachDescription || "") : "");
     setValorTotalStr(attachMode && attachAmount ? maskCurrency(String(Math.round(attachAmount * 100))) : "");
@@ -247,6 +252,38 @@ export function FiscalDocImportDialog({
   };
 
 
+  /** Busca automática do fornecedor no cadastro (por CNPJ e, se não achar, por nome) */
+  const buscarFornecedorCadastro = async (cnpj: string, nome: string, razaoSocial: string) => {
+    try {
+      const digits = (cnpj || "").replace(/\D/g, "");
+      if (digits) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name, razao_social, cnpj")
+          .eq("cnpj", digits)
+          .limit(1);
+        if (data && data.length > 0) {
+          setFornecedorId(data[0].id);
+          setFornecedorNome(data[0].razao_social || data[0].full_name || nome);
+          return;
+        }
+      }
+      const termo = (razaoSocial || nome || "").trim();
+      if (termo.length < 3) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, razao_social, cnpj")
+        .or(`razao_social.ilike.%${termo}%,full_name.ilike.%${termo}%,nome_fantasia.ilike.%${termo}%`)
+        .limit(1);
+      if (data && data.length > 0) {
+        setFornecedorId(data[0].id);
+        setFornecedorNome(data[0].razao_social || data[0].full_name || nome);
+      }
+    } catch {
+      /* busca opcional */
+    }
+  };
+
   const handleXmlFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -258,6 +295,8 @@ export function FiscalDocImportDialog({
         setChave(parsed.chave_nfe || null);
         setFornecedorNome(parsed.fornecedor_nome || "");
         setFornecedorCnpj(parsed.fornecedor_cnpj || "");
+        setFornecedorId(null);
+        void buscarFornecedorCadastro(parsed.fornecedor_cnpj || "", parsed.fornecedor_nome || "", parsed.emitente?.razao_social || "");
         if (parsed.data_emissao) setDataEmissao(parsed.data_emissao);
         setValorTotalStr(maskCurrency(String(Math.round((parsed.valor_total || 0) * 100))));
         setItens((parsed.itens || []).map((i: NfeItem, ix: number) => ({
@@ -313,6 +352,7 @@ export function FiscalDocImportDialog({
       chave,
       fornecedor_nome: fornecedorNome.trim(),
       fornecedor_cnpj: fornecedorCnpj.trim(),
+      fornecedor_id: fornecedorId,
       data_emissao: dataEmissao,
       descricao: descricao.trim(),
       valor_total: valorTotal,
@@ -365,8 +405,20 @@ export function FiscalDocImportDialog({
               <Input className="h-9 text-xs" value={numero} onChange={(e) => setNumero(e.target.value)} />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-[11px]">Fornecedor</Label>
-              <Input className="h-9 text-xs" value={fornecedorNome} onChange={(e) => setFornecedorNome(e.target.value)} />
+              <Label className="text-[11px]">
+                Fornecedor {fornecedorId && <span className="text-emerald-600">• cadastrado</span>}
+              </Label>
+              <PersonSearchInput
+                categories={["fornecedor", "cliente", "proprietario", "colaborador"]}
+                placeholder="Buscar fornecedor cadastrado..."
+                selectedName={fornecedorNome || undefined}
+                onSelect={(p) => {
+                  setFornecedorId(p.id);
+                  setFornecedorNome(p.razao_social || p.full_name || "");
+                  if (p.cnpj) setFornecedorCnpj(p.cnpj);
+                }}
+                onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
+              />
             </div>
             <div>
               <Label className="text-[11px]">CNPJ</Label>
@@ -577,17 +629,13 @@ export function FiscalDocImportDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="md:col-span-2 flex items-end">
-                <label className="flex items-start gap-2 text-[11px] cursor-pointer">
-                  <Checkbox
-                    checked={expandir}
-                    disabled={nParcelas < 2}
-                    onCheckedChange={(v) => setExpandir(!!v)}
-                    className="mt-0.5"
-                  />
-                  <span>Lançar as parcelas mês a mês</span>
-                </label>
-              </div>
+              {nParcelas > 1 && (
+                <div className="md:col-span-2 flex items-end">
+                  <p className="text-[11px] text-muted-foreground">
+                    As {nParcelas} parcelas serão lançadas automaticamente mês a mês nas faturas do cartão.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
