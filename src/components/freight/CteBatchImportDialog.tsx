@@ -439,37 +439,35 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (r.natureza) naturezaSet.add(r.natureza.trim());
       }
 
-      const allDocs = Array.from(actorMap.values()).map((a) => a.doc).filter(Boolean);
-      const allNames = Array.from(actorMap.values()).filter((a) => !a.doc).map((a) => a.nome);
-
+      // Carrega o cadastro completo (leve) e compara localmente, tolerante a
+      // máscara de documento, acentos e pontuação no nome.
       const foundDocs = new Set<string>();
       const foundNames = new Set<string>();
-      if (allDocs.length > 0) {
-        const { data } = await supabase.from("profiles").select("cnpj").in("cnpj", allDocs);
-        (data || []).forEach((p: any) => p.cnpj && foundDocs.add(String(p.cnpj)));
+      {
+        const PAGE = 1000;
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("cnpj, full_name, razao_social, nome_fantasia")
+            .range(from, from + PAGE - 1);
+          if (error) break;
+          const list = data || [];
+          for (const p of list as any[]) {
+            const doc = onlyDigits(p.cnpj);
+            if (doc) foundDocs.add(doc);
+            for (const n of [p.full_name, p.razao_social, p.nome_fantasia]) {
+              const k = normName(String(n || ""));
+              if (k) foundNames.add(k);
+            }
+          }
+          if (list.length < PAGE) break;
+        }
       }
-      if (allNames.length > 0) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("full_name, razao_social")
-          .or(
-            allNames
-              .map((n) => `full_name.ilike.${n.trim().replace(/[%_,]/g, " ")}`)
-              .concat(
-                allNames.map((n) => `razao_social.ilike.${n.trim().replace(/[%_,]/g, " ")}`)
-              )
-              .join(",")
-          );
-        (data || []).forEach((p: any) => {
-          if (p.full_name) foundNames.add(normName(String(p.full_name)));
-          if (p.razao_social) foundNames.add(normName(String(p.razao_social)));
-        });
-      }
-
 
       const missingActors: ValidationState["missingActors"] = [];
       for (const [key, a] of actorMap.entries()) {
-        const exists = a.doc ? foundDocs.has(a.doc) : foundNames.has(normName(a.nome));
+        const doc = onlyDigits(a.doc);
+        const exists = (doc && foundDocs.has(doc)) || foundNames.has(normName(a.nome));
         if (!exists) missingActors.push({ key, nome: a.nome, doc: a.doc });
       }
 
