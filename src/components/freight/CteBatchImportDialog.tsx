@@ -394,12 +394,12 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
             if (!ePlaca || ePlaca !== r.placa) continue;
 
-            // Peso (inclusive 0,00) com tolerância mínima de arredondamento
+            // Peso (inclusive 0,00) — comparação estrita
             const ePeso = Number(e.peso_bruto || 0);
-            if (Math.abs(ePeso - kg) > 0.5) continue;
+            if (ePeso !== kg) continue;
 
-            // Valor do frete
-            if (Math.abs(Number(e.valor_frete || 0) - Number(r.valorFrete || 0)) > 0.01) continue;
+            // Valor do frete — comparação estrita
+            if (Number(e.valor_frete || 0) !== Number(r.valorFrete || 0)) continue;
 
             hits.push({ ...e, reason: "peso_data_placa" });
           }
