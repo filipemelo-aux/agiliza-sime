@@ -93,6 +93,7 @@ interface Previsao {
 
 interface ContaReceber {
   id: string;
+  fatura_id: string;
   valor: number;
   data_vencimento: string;
   status: string;
