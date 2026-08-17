@@ -177,15 +177,23 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         observacoes: cte.observacoes || "",
       });
       setDesconto(deserializeDesconto((cte as any).desconto));
+      setModoValor("tonelada");
+      setValorTotalManual("");
     } else {
       setForm(empty);
       setDesconto(emptyDesconto);
+      setModoValor("tonelada");
+      setValorTotalManual("");
     }
   }, [open, cte]);
 
   const pesoTon = (Number(form.peso_bruto_kg) || 0) / 1000;
-  const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorBruto = +(pesoTon * valorTon).toFixed(2);
+  const valorTonInput = Number(unmaskCurrency(form.valor_tonelada)) || 0;
+  const valorBruto =
+    modoValor === "total"
+      ? +(Number(unmaskCurrency(valorTotalManual)) || 0).toFixed(2)
+      : +(pesoTon * valorTonInput).toFixed(2);
+  const valorTon = modoValor === "total" ? (pesoTon > 0 ? +(valorBruto / pesoTon).toFixed(4) : 0) : valorTonInput;
   const valorDesconto = calcDescontoTotal(desconto);
   // Permite valor negativo quando descontos superam o frete bruto
   const valorFrete = +(valorBruto - valorDesconto).toFixed(2);
