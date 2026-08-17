@@ -359,58 +359,45 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         }
       }
 
-      // 2) DB duplicates
+      // 2) DB duplicates — match exige DATA + PLACA + PESO + VALOR
       const dates = Array.from(new Set(valid.map((r) => r.data).filter(Boolean)));
       const plates = Array.from(new Set(valid.map((r) => r.placa).filter(Boolean)));
       const dbDups: ValidationState["dbDups"] = {};
 
-      if (dates.length > 0 || plates.length > 0) {
-        const queries: Promise<any>[] = [];
-        if (dates.length > 0) {
-          queries.push(
-            Promise.resolve(
-              supabase
-                .from("ctes")
-                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
-                .in("data_carregamento", dates)
-                .limit(2000)
-            )
-          );
-        }
-        if (plates.length > 0) {
-          queries.push(
-            Promise.resolve(
-              supabase
-                .from("ctes")
-                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
-                .in("placa_veiculo", plates)
-                .limit(2000)
-            )
-          );
-        }
-        const results = await Promise.all(queries);
-        const existing = new Map<string, any>();
-        for (const res of results) {
-          if (res.data) for (const row of res.data) existing.set(row.id, row);
-        }
-        const existingArr = Array.from(existing.values());
+      if (dates.length > 0 && plates.length > 0) {
+        // Busca apenas CT-es que combinem data E placa da planilha (universo reduzido e preciso)
+        const { data: existingRows } = await supabase
+          .from("ctes")
+          .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
+          .in("data_carregamento", dates)
+          .in("placa_veiculo", plates)
+          .limit(5000);
+
+        const existingArr = existingRows || [];
         for (const r of valid) {
+          if (!r.data || !r.placa) continue;
           const kg = pesoKgOf(r);
-          if (kg === 0) continue;
           const hits: DbDupInfo[] = [];
           for (const e of existingArr) {
+            const eData = e.data_carregamento ? String(e.data_carregamento).slice(0, 10) : "";
+            if (eData !== r.data) continue;
+
+            const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+            if (!ePlaca || ePlaca !== r.placa) continue;
+
+            // Peso (inclusive 0,00) com tolerância mínima de arredondamento
             const ePeso = Number(e.peso_bruto || 0);
             if (Math.abs(ePeso - kg) > 0.5) continue;
-            const eData = e.data_carregamento ? String(e.data_carregamento).slice(0, 10) : "";
-            const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-            const sameData = !!eData && eData === r.data;
-            const samePlaca = !!ePlaca && !!r.placa && ePlaca === r.placa;
-            const sameValor = Math.abs(Number(e.valor_frete || 0) - Number(r.valorFrete || 0)) <= 0.01;
-            if (sameData && samePlaca && sameValor) hits.push({ ...e, reason: "peso_data_placa" });
+
+            // Valor do frete
+            if (Math.abs(Number(e.valor_frete || 0) - Number(r.valorFrete || 0)) > 0.01) continue;
+
+            hits.push({ ...e, reason: "peso_data_placa" });
           }
           if (hits.length > 0) dbDups[r._key] = hits.slice(0, 5);
         }
       }
+
 
       // 3) Missing plates
       const missingPlates: string[] = [];
