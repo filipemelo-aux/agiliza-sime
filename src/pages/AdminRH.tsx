@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { MonthPicker } from "@/components/MonthPicker";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
@@ -219,6 +222,90 @@ function RHWorkspace(props: any) {
   const { user } = useAuth();
 
 
+  const [selectedColabs, setSelectedColabs] = useState<Set<string>>(new Set());
+  const selectedColabRows: ColaboradorRH[] = filteredColabs.filter((c: ColaboradorRH) => selectedColabs.has(c.id));
+
+  const colabColumns: DataGridColumn<ColaboradorRH>[] = [
+    {
+      key: "nome",
+      header: "Colaborador",
+      sortValue: (c) => c.full_name || "",
+      cell: (c) => (
+        <div>
+          <div className="font-medium text-foreground">{c.full_name}</div>
+          <div className="text-[11px] text-muted-foreground truncate max-w-[240px]">
+            {c.tipo === "motorista" ? "Motorista (Frota Própria)" : (c.cargo || "—")}
+            {c.departamento ? ` · ${c.departamento}` : ""}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "tipo",
+      header: "Tipo",
+      width: "120px",
+      sortValue: (c) => c.tipo || "",
+      cell: (c) => <Badge variant="outline" className="text-[10px]">{c.tipo === "colaborador" ? "Colaborador" : "Motorista"}</Badge>,
+    },
+    {
+      key: "admissao",
+      header: "Admissão",
+      width: "100px",
+      sortValue: (c) => c.data_admissao || "",
+      cell: (c) => <span className="whitespace-nowrap text-muted-foreground">{c.data_admissao ? new Date(c.data_admissao).toLocaleDateString("pt-BR") : "—"}</span>,
+    },
+    {
+      key: "salario",
+      header: "Salário",
+      width: "110px",
+      align: "right",
+      sortValue: (c) => Number(c.salario || 0),
+      cell: (c) => <span className="font-mono whitespace-nowrap">{c.salario != null ? formatBRL(Number(c.salario)) : "—"}</span>,
+    },
+    {
+      key: "recebido",
+      header: "Recebido",
+      width: "110px",
+      align: "right",
+      sortValue: (c) => metricsByColab.get(c.id)?.recebido ?? 0,
+      cell: (c) => <span className="font-mono text-success whitespace-nowrap">{formatBRL(metricsByColab.get(c.id)?.recebido || 0)}</span>,
+    },
+    {
+      key: "adiant",
+      header: "Adiant.",
+      width: "110px",
+      align: "right",
+      sortValue: (c) => metricsByColab.get(c.id)?.adiantamentos ?? 0,
+      cell: (c) => <span className="font-mono text-warning whitespace-nowrap">{formatBRL(metricsByColab.get(c.id)?.adiantamentos || 0)}</span>,
+    },
+    {
+      key: "saldo",
+      header: "Saldo",
+      width: "110px",
+      align: "right",
+      sortValue: (c) => metricsByColab.get(c.id)?.saldoDevedor ?? 0,
+      cell: (c) => {
+        const v = metricsByColab.get(c.id)?.saldoDevedor || 0;
+        return <span className={cn("font-mono whitespace-nowrap", v > 0 ? "text-destructive" : "")}>{formatBRL(v)}</span>;
+      },
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "90px",
+      align: "center",
+      sortValue: (c) => (c.ativo ? "1" : "0"),
+      cell: (c) => (
+        <Badge variant={c.ativo ? "default" : "secondary"} className="text-[10px] uppercase">{c.ativo ? "Ativo" : "Inativo"}</Badge>
+      ),
+    },
+  ];
+
+  const colabActions: ToolbarAction[] = [
+    { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedColabRows[0] && setHistoryFor(selectedColabRows[0]) },
+    { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedColabRows[0] && handleDesligar(selectedColabRows[0]) },
+  ];
+
   const allItems: NavItem[] = [
     { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
     { id: "movimentacoes", label: "Movimentações", icon: HandCoins, description: "Adiantamentos, comissões e descontos" },
@@ -290,131 +377,59 @@ function RHWorkspace(props: any) {
         )}
 
         {section === "colaboradores" && (
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome, cargo ou departamento..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 h-8 text-xs"
-                  />
-                </div>
-                <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60">
-                  {([
-                    { v: "all", label: "Todos" },
-                    { v: "colaborador", label: "Colaboradores" },
-                    { v: "motorista", label: "Motoristas" },
-                  ] as const).map((opt) => (
-                    <Button
-                      key={opt.v}
-                      size="sm"
-                      variant={tipoFilter === opt.v ? "default" : "ghost"}
-                      className="h-7 px-2.5 text-xs rounded-sm"
-                      onClick={() => setTipoFilter(opt.v as typeof tipoFilter)}
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-                <span className="text-[11px] text-muted-foreground ml-auto">
-                  {filteredColabs.length} de {colaboradores.length}
-                </span>
+          <div className="space-y-3">
+            <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size}>
+              <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 shrink-0">
+                {([
+                  { v: "all", label: "Todos" },
+                  { v: "colaborador", label: "Colaboradores" },
+                  { v: "motorista", label: "Motoristas" },
+                ] as const).map((opt) => (
+                  <Button
+                    key={opt.v}
+                    size="sm"
+                    variant={tipoFilter === opt.v ? "default" : "ghost"}
+                    className="h-7 px-2 text-[11px] rounded-sm"
+                    onClick={() => { setTipoFilter(opt.v); setSelectedColabs(new Set()); }}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
               </div>
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Carregando...</p>
-              ) : filteredColabs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {colaboradores.length === 0
-                    ? "Nenhuma pessoa marcada como colaborador (RH). Marque a opção \u201CÉ colaborador (RH)\u201D no cadastro da pessoa para que apareça aqui — funciona para qualquer tipo (motorista, fornecedor, etc.)."
-                    : "Nenhum colaborador corresponde ao filtro atual."}
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {filteredColabs.map((c: ColaboradorRH) => (
-                    <Card key={`${c.tipo}-${c.id}`} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-3.5 space-y-1.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm truncate">{c.full_name}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {c.tipo === "motorista" ? "Motorista" : (c.cargo || "—")}
-                            </p>
-                          </div>
-                          {c.salario != null && (
-                            <Badge variant="secondary" className="shrink-0">
-                              {formatBRL(Number(c.salario))}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1">
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            {c.tipo === "colaborador" ? "Colaborador" : "Motorista (Frota Própria)"}
-                          </Badge>
-                          <Badge
-                            className={`text-[10px] px-1.5 py-0 ${
-                              c.ativo
-                                ? "bg-green-100 text-green-700 hover:bg-green-100"
-                                : "bg-muted text-muted-foreground hover:bg-muted"
-                            }`}
-                          >
-                            {c.ativo ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground space-y-0.5">
-                          {c.departamento && (
-                            <div className="flex items-center gap-1">
-                              <Briefcase className="h-3 w-3" />
-                              <span>{c.departamento}</span>
-                            </div>
-                          )}
-                          {c.data_admissao && (
-                            <div>Admissão: {new Date(c.data_admissao).toLocaleDateString("pt-BR")}</div>
-                          )}
-                          {c.email && <div className="truncate">{c.email}</div>}
-                        </div>
-                        {(() => {
-                          const mtr = metricsByColab.get(c.id) || { recebido: 0, adiantamentos: 0, saldoDevedor: 0, folhaTotal: 0, folhaPago: 0 };
-                          return (
-                            <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-border/60">
-                              <div className="text-center">
-                                <p className="text-[9px] uppercase text-muted-foreground leading-tight">Recebido</p>
-                                <p className="text-[11px] font-semibold text-green-600 tabular-nums truncate">{formatBRL(mtr.recebido)}</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-[9px] uppercase text-muted-foreground leading-tight">Adiant.</p>
-                                <p className="text-[11px] font-semibold text-amber-600 tabular-nums truncate">{formatBRL(mtr.adiantamentos)}</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-[9px] uppercase text-muted-foreground leading-tight">Saldo</p>
-                                <p className={`text-[11px] font-semibold tabular-nums truncate ${mtr.saldoDevedor > 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(mtr.saldoDevedor)}</p>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        <div className="pt-1 flex items-center gap-1.5">
-                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 flex-1" onClick={() => setHistoryFor(c)}>
-                            <History className="h-3 w-3" /> Histórico
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-                            onClick={() => handleDesligar(c)}
-                            title="Desliga o colaborador do RH (mantém o cadastro)"
-                          >
-                            <UserMinus className="h-3 w-3" /> Desligar
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+              <div className="relative w-full max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, cargo ou departamento..."
+                  value={search}
+                  onChange={(e: any) => setSearch(e.target.value)}
+                  className="pl-8 h-8 text-xs"
+                />
+              </div>
+            </GlobalToolbar>
+
+            <DataGrid
+              rows={filteredColabs}
+              columns={colabColumns}
+              rowId={(c: ColaboradorRH) => c.id}
+              selected={selectedColabs}
+              onSelectedChange={setSelectedColabs}
+              loading={loading}
+              minWidth={900}
+              rowClassName={(c: ColaboradorRH) => rowToneClass(c.ativo ? "resolved" : "neutral")}
+              emptyMessage={
+                colaboradores.length === 0
+                  ? "Nenhuma pessoa marcada como colaborador (RH). Marque a opção \u201CÉ colaborador (RH)\u201D no cadastro da pessoa."
+                  : "Nenhum colaborador corresponde ao filtro atual."
+              }
+              footer={
+                <div className="text-[11px] text-muted-foreground">
+                  {filteredColabs.length} de {colaboradores.length} colaborador(es)
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              }
+            />
+
+            <StatusLegend className="px-1" items={[{ tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+          </div>
         )}
 
         {section === "movimentacoes" && (
