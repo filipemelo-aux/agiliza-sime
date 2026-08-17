@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
@@ -594,15 +595,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                   }));
                   // Auto-preenche placa do veículo ativo vinculado ao motorista
                   try {
-                    const { data: vehicles } = await supabase
-                      .from("vehicles")
-                      .select("plate")
-                      .eq("driver_id", p.user_id)
-                      .eq("is_active", true)
-                      .limit(1);
-                    if (vehicles && vehicles.length > 0 && vehicles[0].plate) {
-                      setForm((f) => ({ ...f, placa_veiculo: maskPlate(vehicles[0].plate) }));
-                    }
+                    const v = await lookupVehicleByDriver(p.user_id);
+                    if (v) setForm((f) => ({ ...f, placa_veiculo: maskPlate(v.plate) }));
                   } catch {}
                 }}
                 onClear={() =>
@@ -613,9 +607,24 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                 <Label className="text-xs">Placa</Label>
                 <Input
                   value={form.placa_veiculo}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, placa_veiculo: maskPlate(e.target.value) }))
-                  }
+                  onChange={(e) => {
+                    const masked = maskPlate(e.target.value);
+                    setForm((f) => ({ ...f, placa_veiculo: masked }));
+                    // Busca reversa: placa -> motorista vinculado no cadastro
+                    if (unmaskPlate(masked).length === 7) {
+                      lookupDriverByPlate(masked)
+                        .then((r) => {
+                          if (r?.motorista_id) {
+                            setForm((f) =>
+                              f.motorista_id
+                                ? f
+                                : { ...f, motorista_id: r.motorista_id, motorista_nome: r.motorista_nome || "" },
+                            );
+                          }
+                        })
+                        .catch(() => {});
+                    }
+                  }}
                   placeholder="ABC1D23"
                   maxLength={8}
                 />

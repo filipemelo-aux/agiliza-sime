@@ -27,6 +27,7 @@ import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
@@ -1319,17 +1320,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   setMotoristaNome(person.full_name);
                   // Auto-fill vehicle if driver is linked to one
                   try {
-                     const { data: vehicles } = await supabase
-                       .from("vehicles")
-                       .select("plate, antt_number")
-                       .eq("driver_id", person.user_id)
-                       .eq("is_active", true)
-                       .limit(1);
-                     if (vehicles && vehicles.length > 0) {
-                       set("placa_veiculo", maskPlate(vehicles[0].plate));
-                       if (vehicles[0].antt_number) set("rntrc", vehicles[0].antt_number);
-                     }
-                   } catch {}
+                    const v = await lookupVehicleByDriver(person.user_id);
+                    if (v) {
+                      set("placa_veiculo", maskPlate(v.plate));
+                      if (v.rntrc) set("rntrc", v.rntrc);
+                    }
+                  } catch {}
                 }}
                 onClear={() => {
                   set("motorista_id", null);
@@ -1340,7 +1336,28 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Placa</Label>
-                <Input value={form.placa_veiculo} onChange={(e) => set("placa_veiculo", maskPlate(e.target.value))} maxLength={8} placeholder="ABC-1D23" className="uppercase" />
+                <Input
+                  value={form.placa_veiculo}
+                  onChange={(e) => {
+                    const masked = maskPlate(e.target.value);
+                    set("placa_veiculo", masked);
+                    if (unmaskPlate(masked).length === 7) {
+                      lookupDriverByPlate(masked)
+                        .then((r) => {
+                          if (!r) return;
+                          if (r.rntrc) set("rntrc", r.rntrc);
+                          if (r.motorista_id && !form.motorista_id) {
+                            set("motorista_id", r.motorista_id);
+                            setMotoristaNome(r.motorista_nome || undefined);
+                          }
+                        })
+                        .catch(() => {});
+                    }
+                  }}
+                  maxLength={8}
+                  placeholder="ABC-1D23"
+                  className="uppercase"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">RNTRC</Label>
