@@ -365,12 +365,21 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const dbDups: ValidationState["dbDups"] = {};
 
       if (dates.length > 0 && plates.length > 0) {
-        // Busca apenas CT-es que combinem data E placa da planilha (universo reduzido e preciso)
+        // Busca CT-es em uma janela de datas em torno do lote para garantir
+        // que nenhuma duplicata seja perdida por restrições de data/placa.
+        const sortedDates = [...dates].sort();
+        const minDate = new Date(sortedDates[0]);
+        const maxDate = new Date(sortedDates[sortedDates.length - 1]);
+        minDate.setDate(minDate.getDate() - 30);
+        maxDate.setDate(maxDate.getDate() + 30);
+        const dateGte = minDate.toISOString().slice(0, 10);
+        const dateLte = maxDate.toISOString().slice(0, 10);
+
         const { data: existingRows } = await supabase
           .from("ctes")
           .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
-          .in("data_carregamento", dates)
-          .in("placa_veiculo", plates)
+          .gte("data_carregamento", dateGte)
+          .lte("data_carregamento", dateLte)
           .limit(5000);
 
         const existingArr = existingRows || [];
