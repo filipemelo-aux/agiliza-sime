@@ -379,7 +379,7 @@ function RHWorkspace(props: any) {
         {section === "colaboradores" && (
           <div className="space-y-3">
             <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size}>
-              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap first:ml-auto">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
                 {([
                   { v: "all", label: "Todos" },
                   { v: "colaborador", label: "Colaboradores" },
@@ -396,7 +396,7 @@ function RHWorkspace(props: any) {
                   </Button>
                 ))}
               </div>
-              <div className="relative w-full md:w-64 basis-full md:basis-auto shrink-0 order-last">
+              <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome, cargo ou departamento..."

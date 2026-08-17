@@ -335,7 +335,7 @@ export default function AdminPeople() {
         </div>
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap first:ml-auto">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
             {Object.entries(TAB_LABELS).map(([key, label]) => (
               <Button
                 key={key}
@@ -366,7 +366,7 @@ export default function AdminPeople() {
               </Button>
             ))}
           </div>
-          <div className="relative w-full md:w-64 basis-full md:basis-auto shrink-0 order-last">
+          <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
