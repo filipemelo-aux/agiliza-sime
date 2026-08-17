@@ -115,7 +115,13 @@ function parseNum(v: any): number {
 }
 
 const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
-const normName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+const normName = (s: string) =>
+  String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 const phoneForProfile = (value: any): string | null => {
   const digits = onlyDigits(value);
   return digits.length === 10 || digits.length === 11 ? digits : null;
