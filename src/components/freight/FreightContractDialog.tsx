@@ -119,6 +119,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
     if (!open || !cte) return;
     setSavedContract(null);
     setDesconto(emptyDesconto);
+    setModoValor("tonelada");
+    setValorTotalManual("");
 
     const initEdit = async () => {
       const { data: c } = await supabase
