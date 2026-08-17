@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso } from "@/lib/valorExtenso";
-import { buildCheckPdf, downloadPdfBytes, printPdfBytes } from "@/lib/checkPdf";
+import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
 import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
@@ -251,7 +251,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
               <Button size="sm" onClick={handleGerar} disabled={generating} className="gap-1.5">
                 <Printer className="h-4 w-4" />
-                {generating ? "Gerando..." : "Gerar e Imprimir Cheque"}
+                {generating ? "Gerando..." : "Gerar Cheque"}
               </Button>
             </DialogFooter>
           </>
