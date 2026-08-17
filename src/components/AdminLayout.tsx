@@ -160,7 +160,7 @@ function SidebarNav() {
 
   // Preserva a posição de rolagem do menu lateral entre navegações
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
-  const handleSidebarScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  const handleSidebarScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
     sessionStorage.setItem("sidebar-scroll", String(e.currentTarget.scrollTop));
   }, []);
   useEffect(() => {
