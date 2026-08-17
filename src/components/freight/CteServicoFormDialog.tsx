@@ -212,7 +212,11 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       return;
     }
     if (valorBruto <= 0) {
-      toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
+      toast({
+        title: "Valor inválido",
+        description: modoValor === "total" ? "Informe o valor total do frete." : "Informe peso e valor por tonelada.",
+        variant: "destructive",
+      });
       return;
     }
 
