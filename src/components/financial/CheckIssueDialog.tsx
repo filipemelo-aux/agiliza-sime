@@ -156,24 +156,20 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
           <div className="space-y-4">
             <CheckPdfPreview bytes={pdfBytes} />
             <p className="text-[11px] text-muted-foreground">
-              Ao imprimir, mantenha "Tamanho real / Escala 100%" e desative "Ajustar à página" no diálogo da impressora.
+              Baixe o PDF e imprima pelo leitor de PDF, mantendo "Tamanho real / Escala 100%" e desativando "Ajustar à página".
             </p>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
+              <Button variant="secondary" size="sm" onClick={handleDownload} className="gap-1.5">
                 <Download className="h-4 w-4" />
                 Baixar PDF
               </Button>
-              <Button variant="secondary" size="sm" onClick={handlePrint} className="gap-1.5">
-                <Printer className="h-4 w-4" />
-                Imprimir (100%)
-              </Button>
-
               <Button size="sm" onClick={handleClose} className="gap-1.5">
                 <X className="h-4 w-4" />
                 Fechar
               </Button>
             </div>
           </div>
+
         ) : (
           <>
             <div className="space-y-4">
