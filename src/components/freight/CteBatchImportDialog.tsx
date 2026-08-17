@@ -449,11 +449,21 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       if (allNames.length > 0) {
         const { data } = await supabase
           .from("profiles")
-          .select("full_name")
-          .in("category", ["cliente", "fornecedor"] as any)
-          .in("full_name", allNames);
-        (data || []).forEach((p: any) => p.full_name && foundNames.add(normName(String(p.full_name))));
+          .select("full_name, razao_social")
+          .or(
+            allNames
+              .map((n) => `full_name.ilike.${n.trim().replace(/[%_,]/g, " ")}`)
+              .concat(
+                allNames.map((n) => `razao_social.ilike.${n.trim().replace(/[%_,]/g, " ")}`)
+              )
+              .join(",")
+          );
+        (data || []).forEach((p: any) => {
+          if (p.full_name) foundNames.add(normName(String(p.full_name)));
+          if (p.razao_social) foundNames.add(normName(String(p.razao_social)));
+        });
       }
+
 
       const missingActors: ValidationState["missingActors"] = [];
       for (const [key, a] of actorMap.entries()) {
