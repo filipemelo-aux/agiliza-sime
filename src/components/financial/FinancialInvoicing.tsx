@@ -2463,6 +2463,133 @@ ${hasRecebimentos ? `
         </DialogContent>
       </Dialog>
 
+      {/* Batch Receive Dialog */}
+      <Dialog open={batchReceiveOpen} onOpenChange={setBatchReceiveOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HandCoins className="w-5 h-5" /> Recebimento em Lote — {batchReceiveFaturas.length} fatura(s)
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
+              Selecione os títulos a receber. O mesmo valor, data e forma serão aplicados a todos.
+            </div>
+
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10 h-8">
+                      <Checkbox
+                        checked={batchReceiveContas.length > 0 && batchReceiveSelected.size === batchReceiveContas.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) setBatchReceiveSelected(new Set(batchReceiveContas.map((c) => c.id)));
+                          else setBatchReceiveSelected(new Set());
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs h-8">Fatura / Cliente</TableHead>
+                    <TableHead className="text-xs h-8">Vencimento</TableHead>
+                    <TableHead className="text-xs h-8 text-right">Saldo</TableHead>
+                    <TableHead className="text-xs h-8 text-right">Valor recebido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {batchReceiveContas.map((c) => {
+                    const checked = batchReceiveSelected.has(c.id);
+                    const valorRecebido = getBatchReceiveValor(c.id, c.saldo);
+                    return (
+                      <TableRow key={c.id} className={checked ? "" : "opacity-60"}>
+                        <TableCell className="py-1.5">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => {
+                              setBatchReceiveSelected((prev) => {
+                                const n = new Set(prev);
+                                n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                                return n;
+                              });
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs py-1.5">
+                          <div className="font-medium">#{String(c.fatura_numero).padStart(4, "0")}</div>
+                          <div className="text-muted-foreground truncate max-w-[180px]">{c.cliente_nome}</div>
+                        </TableCell>
+                        <TableCell className="text-xs py-1.5 tabular-nums">{formatDateBR(c.data_vencimento)}</TableCell>
+                        <TableCell className="text-xs py-1.5 text-right font-mono">{formatCurrency(c.saldo)}</TableCell>
+                        <TableCell className="text-xs py-1.5 text-right">
+                          <Input
+                            className="h-7 w-28 text-xs font-mono ml-auto"
+                            disabled={!checked}
+                            value={(() => {
+                              const raw = batchReceiveValores[c.id];
+                              if (raw === undefined || raw === "") return "";
+                              const num = parseFloat(raw);
+                              if (isNaN(num)) return "";
+                              return maskCurrency(String(Math.round(Math.abs(num) * 100)));
+                            })()}
+                            onChange={(e) => {
+                              const unmasked = unmaskCurrency(e.target.value);
+                              setBatchReceiveValores((prev) => ({ ...prev, [c.id]: unmasked === "" ? "" : unmasked }));
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {(() => {
+              const selected = batchReceiveContas.filter((c) => batchReceiveSelected.has(c.id));
+              const total = selected.reduce((s, c) => s + getBatchReceiveValor(c.id, c.saldo), 0);
+              return (
+                <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {selected.length} de {batchReceiveContas.length} título(s) selecionado(s)
+                  </span>
+                  <span className="text-lg font-bold text-primary font-mono">{formatCurrency(total)}</span>
+                </div>
+              );
+            })()}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Data do recebimento</Label>
+                <Input type="date" className="h-9 text-xs" value={batchReceiveDate} onChange={(e) => setBatchReceiveDate(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Forma de recebimento</Label>
+                <Select value={batchReceiveForma} onValueChange={setBatchReceiveForma}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="sm:flex-1" onClick={() => setBatchReceiveOpen(false)}>Cancelar</Button>
+              <Button
+                className="sm:flex-1 bg-green-600 hover:bg-green-700 text-white"
+                disabled={batchReceiveSaving || batchReceiveSelected.size === 0}
+                onClick={handleBatchReceiveConfirm}
+              >
+                {batchReceiveSaving ? "Processando..." : "Confirmar Recebimento"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {ConfirmDialog}
     </div>
