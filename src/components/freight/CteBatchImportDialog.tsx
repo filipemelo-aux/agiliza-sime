@@ -508,36 +508,40 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
     const SELECT = "id, user_id, full_name, razao_social, cnpj, person_type, address_state";
 
-    // 1) Try DB lookup by document
+    // 1) Try DB lookup by document (tolerante a máscara no cadastro)
     let profile: any = null;
-    if (actor.doc) {
+    const docDigits = onlyDigits(actor.doc);
+    if (docDigits) {
       const { data } = await supabase
         .from("profiles")
         .select(SELECT)
-        .eq("cnpj", actor.doc)
-        .maybeSingle();
-      profile = data;
+        .or(`cnpj.eq.${docDigits},cnpj.ilike.%${docDigits}%`)
+        .limit(20);
+      profile =
+        (data || []).find((p: any) => onlyDigits(p.cnpj) === docDigits) || null;
     }
 
     // 2) Fallback: lookup by name (full_name / razao_social / nome_fantasia)
     if (!profile) {
       const raw = actor.nome.trim().replace(/\s+/g, " ");
-      const esc = raw.replace(/[%_,]/g, " ");
+      const target = normName(raw);
+      const token = (target.split(" ").sort((a, b) => b.length - a.length)[0] || "").slice(0, 20);
+      const pattern = `%${token}%`;
       const { data } = await supabase
         .from("profiles")
-        .select(SELECT)
+        .select(SELECT + ", nome_fantasia")
         .or(
-          `full_name.ilike.${esc},razao_social.ilike.${esc},nome_fantasia.ilike.${esc}`
+          `full_name.ilike.${pattern},razao_social.ilike.${pattern},nome_fantasia.ilike.${pattern}`
         )
-        .limit(20);
+        .limit(50);
 
-      const target = normName(raw);
       profile =
         (data || []).find(
           (p: any) =>
             normName(String(p.full_name || "")) === target ||
-            normName(String(p.razao_social || "")) === target
-        ) || (data || [])[0] || null;
+            normName(String(p.razao_social || "")) === target ||
+            normName(String(p.nome_fantasia || "")) === target
+        ) || null;
     }
 
     if (profile) {
