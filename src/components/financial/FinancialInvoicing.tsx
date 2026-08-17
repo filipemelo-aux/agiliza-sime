@@ -93,6 +93,7 @@ interface Previsao {
 
 interface ContaReceber {
   id: string;
+  fatura_id: string;
   valor: number;
   data_vencimento: string;
   status: string;
@@ -182,9 +183,26 @@ export function FinancialInvoicing() {
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
-  
+
   const [baixaValor, setBaixaValor] = useState("");
   const { user } = useAuth();
+
+  // Batch receive dialog
+  const [batchReceiveOpen, setBatchReceiveOpen] = useState(false);
+  const [batchReceiveFaturas, setBatchReceiveFaturas] = useState<Fatura[]>([]);
+  interface BatchReceiveConta extends ContaReceber {
+    fatura_numero: number;
+    cliente_nome: string;
+    parcela_index: number;
+    total_parcelas: number;
+    saldo: number;
+  }
+  const [batchReceiveContas, setBatchReceiveContas] = useState<BatchReceiveConta[]>([]);
+  const [batchReceiveSelected, setBatchReceiveSelected] = useState<Set<string>>(new Set());
+  const [batchReceiveDate, setBatchReceiveDate] = useState<string>(getLocalDateISO());
+  const [batchReceiveForma, setBatchReceiveForma] = useState("pix");
+  const [batchReceiveValores, setBatchReceiveValores] = useState<Record<string, string>>({});
+  const [batchReceiveSaving, setBatchReceiveSaving] = useState(false);
 
   useEffect(() => {
     fetchFaturas();
@@ -820,6 +838,102 @@ export function FinancialInvoicing() {
       toast.error(err.message || "Erro ao registrar recebimento");
     } finally {
       setReceiveSaving(false);
+    }
+  };
+
+  // --- Batch Receive ---
+  const openBatchReceive = async (faturas: Fatura[]) => {
+    const ids = faturas.map((f) => f.id);
+    const { data } = await supabase
+      .from("contas_receber")
+      .select("*")
+      .in("fatura_id", ids)
+      .order("data_vencimento", { ascending: true });
+
+    const contas = ((data as ContaReceber[]) || []).filter(
+      (c) => +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2) > 0.005
+    );
+
+    if (contas.length === 0) {
+      toast.error("Nenhum título em aberto nas faturas selecionadas");
+      return;
+    }
+
+    const faturaMap = new Map(faturas.map((f) => [f.id, f]));
+    const countsByFatura: Record<string, number> = {};
+    contas.forEach((c) => { countsByFatura[c.fatura_id] = (countsByFatura[c.fatura_id] || 0) + 1; });
+
+    const items: BatchReceiveConta[] = contas.map((c) => {
+      const f = faturaMap.get(c.fatura_id);
+      const saldo = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
+      return {
+        ...c,
+        fatura_numero: f?.numero || 0,
+        cliente_nome: f?.cliente_nome || "—",
+        parcela_index: 0,
+        total_parcelas: countsByFatura[c.fatura_id] || 1,
+        saldo,
+      };
+    });
+
+    // Compute parcela index per fatura
+    const idxByFatura: Record<string, number> = {};
+    items.forEach((it) => {
+      idxByFatura[it.fatura_id] = (idxByFatura[it.fatura_id] || 0) + 1;
+      it.parcela_index = idxByFatura[it.fatura_id];
+    });
+
+    setBatchReceiveFaturas(faturas);
+    setBatchReceiveContas(items);
+    setBatchReceiveSelected(new Set(items.map((i) => i.id)));
+    setBatchReceiveValores(Object.fromEntries(items.map((i) => [i.id, String(i.saldo)])));
+    setBatchReceiveDate(getLocalDateISO());
+    setBatchReceiveForma("pix");
+    setBatchReceiveOpen(true);
+  };
+
+  const getBatchReceiveValor = (id: string, fallback: number) => {
+    const v = batchReceiveValores[id];
+    if (v === undefined || v === "") return fallback;
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const handleBatchReceiveConfirm = async () => {
+    const selected = batchReceiveContas.filter((c) => batchReceiveSelected.has(c.id));
+    if (selected.length === 0) return toast.error("Selecione ao menos um título");
+    if (!batchReceiveDate) return toast.error("Informe a data do recebimento");
+    if (!batchReceiveForma) return toast.error("Informe a forma de recebimento");
+    if (!user?.id) return toast.error("Sessão inválida");
+
+    for (const it of selected) {
+      const v = getBatchReceiveValor(it.id, it.saldo);
+      if (v <= 0.005) return toast.error(`Valor inválido para título #${it.fatura_numero}`);
+      if (v > it.saldo + 0.005) return toast.error(`Valor maior que o saldo de ${formatCurrency(it.saldo)}`);
+    }
+
+    setBatchReceiveSaving(true);
+    try {
+      for (const it of selected) {
+        const valor = getBatchReceiveValor(it.id, it.saldo);
+        const { error } = await supabase.from("receivable_payments" as any).insert({
+          conta_receber_id: it.id,
+          valor,
+          forma_recebimento: batchReceiveForma,
+          data_recebimento: batchReceiveDate,
+          observacoes: "Recebimento em lote",
+          created_by: user.id,
+        });
+        if (error) throw error;
+      }
+      toast.success(`${selected.length} título(s) recebido(s) com sucesso!`);
+      setBatchReceiveOpen(false);
+      setSelectedFaturaIds(new Set());
+      fetchFaturas();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar recebimento em lote");
+    } finally {
+      setBatchReceiveSaving(false);
     }
   };
 
@@ -1616,9 +1730,13 @@ ${hasRecebimentos ? `
             onClick: () => singleFatura && openEditInvoice(singleFatura),
           },
           {
-            key: "receive", label: "Receber", icon: HandCoins, mode: "single",
-            disabled: !singleFatura || !hasPendingContas(singleFatura),
-            onClick: () => singleFatura && openReceive(singleFatura),
+            key: "receive", label: "Receber", icon: HandCoins, mode: "single+batch",
+            disabled: selectedFaturas.length === 0 || !selectedFaturas.some((f) => hasPendingContas(f)),
+            onClick: () => {
+              const pending = selectedFaturas.filter((f) => hasPendingContas(f));
+              if (pending.length === 1) openReceive(pending[0]);
+              else if (pending.length > 1) openBatchReceive(pending);
+            },
           },
           {
             key: "print", label: "Imprimir", icon: Printer, mode: "single",
@@ -2345,6 +2463,133 @@ ${hasRecebimentos ? `
         </DialogContent>
       </Dialog>
 
+      {/* Batch Receive Dialog */}
+      <Dialog open={batchReceiveOpen} onOpenChange={setBatchReceiveOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HandCoins className="w-5 h-5" /> Recebimento em Lote — {batchReceiveFaturas.length} fatura(s)
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
+              Selecione os títulos a receber. O mesmo valor, data e forma serão aplicados a todos.
+            </div>
+
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10 h-8">
+                      <Checkbox
+                        checked={batchReceiveContas.length > 0 && batchReceiveSelected.size === batchReceiveContas.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) setBatchReceiveSelected(new Set(batchReceiveContas.map((c) => c.id)));
+                          else setBatchReceiveSelected(new Set());
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs h-8">Fatura / Cliente</TableHead>
+                    <TableHead className="text-xs h-8">Vencimento</TableHead>
+                    <TableHead className="text-xs h-8 text-right">Saldo</TableHead>
+                    <TableHead className="text-xs h-8 text-right">Valor recebido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {batchReceiveContas.map((c) => {
+                    const checked = batchReceiveSelected.has(c.id);
+                    const valorRecebido = getBatchReceiveValor(c.id, c.saldo);
+                    return (
+                      <TableRow key={c.id} className={checked ? "" : "opacity-60"}>
+                        <TableCell className="py-1.5">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => {
+                              setBatchReceiveSelected((prev) => {
+                                const n = new Set(prev);
+                                n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                                return n;
+                              });
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs py-1.5">
+                          <div className="font-medium">#{String(c.fatura_numero).padStart(4, "0")}</div>
+                          <div className="text-muted-foreground truncate max-w-[180px]">{c.cliente_nome}</div>
+                        </TableCell>
+                        <TableCell className="text-xs py-1.5 tabular-nums">{formatDateBR(c.data_vencimento)}</TableCell>
+                        <TableCell className="text-xs py-1.5 text-right font-mono">{formatCurrency(c.saldo)}</TableCell>
+                        <TableCell className="text-xs py-1.5 text-right">
+                          <Input
+                            className="h-7 w-28 text-xs font-mono ml-auto"
+                            disabled={!checked}
+                            value={(() => {
+                              const raw = batchReceiveValores[c.id];
+                              if (raw === undefined || raw === "") return "";
+                              const num = parseFloat(raw);
+                              if (isNaN(num)) return "";
+                              return maskCurrency(String(Math.round(Math.abs(num) * 100)));
+                            })()}
+                            onChange={(e) => {
+                              const unmasked = unmaskCurrency(e.target.value);
+                              setBatchReceiveValores((prev) => ({ ...prev, [c.id]: unmasked === "" ? "" : unmasked }));
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {(() => {
+              const selected = batchReceiveContas.filter((c) => batchReceiveSelected.has(c.id));
+              const total = selected.reduce((s, c) => s + getBatchReceiveValor(c.id, c.saldo), 0);
+              return (
+                <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {selected.length} de {batchReceiveContas.length} título(s) selecionado(s)
+                  </span>
+                  <span className="text-lg font-bold text-primary font-mono">{formatCurrency(total)}</span>
+                </div>
+              );
+            })()}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Data do recebimento</Label>
+                <Input type="date" className="h-9 text-xs" value={batchReceiveDate} onChange={(e) => setBatchReceiveDate(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Forma de recebimento</Label>
+                <Select value={batchReceiveForma} onValueChange={setBatchReceiveForma}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="sm:flex-1" onClick={() => setBatchReceiveOpen(false)}>Cancelar</Button>
+              <Button
+                className="sm:flex-1 bg-green-600 hover:bg-green-700 text-white"
+                disabled={batchReceiveSaving || batchReceiveSelected.size === 0}
+                onClick={handleBatchReceiveConfirm}
+              >
+                {batchReceiveSaving ? "Processando..." : "Confirmar Recebimento"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {ConfirmDialog}
     </div>
