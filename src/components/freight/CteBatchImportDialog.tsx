@@ -115,7 +115,13 @@ function parseNum(v: any): number {
 }
 
 const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
-const normName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+const normName = (s: string) =>
+  String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 const phoneForProfile = (value: any): string | null => {
   const digits = onlyDigits(value);
   return digits.length === 10 || digits.length === 11 ? digits : null;
@@ -433,37 +439,35 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (r.natureza) naturezaSet.add(r.natureza.trim());
       }
 
-      const allDocs = Array.from(actorMap.values()).map((a) => a.doc).filter(Boolean);
-      const allNames = Array.from(actorMap.values()).filter((a) => !a.doc).map((a) => a.nome);
-
+      // Carrega o cadastro completo (leve) e compara localmente, tolerante a
+      // máscara de documento, acentos e pontuação no nome.
       const foundDocs = new Set<string>();
       const foundNames = new Set<string>();
-      if (allDocs.length > 0) {
-        const { data } = await supabase.from("profiles").select("cnpj").in("cnpj", allDocs);
-        (data || []).forEach((p: any) => p.cnpj && foundDocs.add(String(p.cnpj)));
+      {
+        const PAGE = 1000;
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("cnpj, full_name, razao_social, nome_fantasia")
+            .range(from, from + PAGE - 1);
+          if (error) break;
+          const list = data || [];
+          for (const p of list as any[]) {
+            const doc = onlyDigits(p.cnpj);
+            if (doc) foundDocs.add(doc);
+            for (const n of [p.full_name, p.razao_social, p.nome_fantasia]) {
+              const k = normName(String(n || ""));
+              if (k) foundNames.add(k);
+            }
+          }
+          if (list.length < PAGE) break;
+        }
       }
-      if (allNames.length > 0) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("full_name, razao_social")
-          .or(
-            allNames
-              .map((n) => `full_name.ilike.${n.trim().replace(/[%_,]/g, " ")}`)
-              .concat(
-                allNames.map((n) => `razao_social.ilike.${n.trim().replace(/[%_,]/g, " ")}`)
-              )
-              .join(",")
-          );
-        (data || []).forEach((p: any) => {
-          if (p.full_name) foundNames.add(normName(String(p.full_name)));
-          if (p.razao_social) foundNames.add(normName(String(p.razao_social)));
-        });
-      }
-
 
       const missingActors: ValidationState["missingActors"] = [];
       for (const [key, a] of actorMap.entries()) {
-        const exists = a.doc ? foundDocs.has(a.doc) : foundNames.has(normName(a.nome));
+        const doc = onlyDigits(a.doc);
+        const exists = (doc && foundDocs.has(doc)) || foundNames.has(normName(a.nome));
         if (!exists) missingActors.push({ key, nome: a.nome, doc: a.doc });
       }
 
@@ -504,36 +508,40 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
     const SELECT = "id, user_id, full_name, razao_social, cnpj, person_type, address_state";
 
-    // 1) Try DB lookup by document
+    // 1) Try DB lookup by document (tolerante a máscara no cadastro)
     let profile: any = null;
-    if (actor.doc) {
+    const docDigits = onlyDigits(actor.doc);
+    if (docDigits) {
       const { data } = await supabase
         .from("profiles")
         .select(SELECT)
-        .eq("cnpj", actor.doc)
-        .maybeSingle();
-      profile = data;
+        .or(`cnpj.eq.${docDigits},cnpj.ilike.%${docDigits}%`)
+        .limit(20);
+      profile =
+        (data || []).find((p: any) => onlyDigits(p.cnpj) === docDigits) || null;
     }
 
     // 2) Fallback: lookup by name (full_name / razao_social / nome_fantasia)
     if (!profile) {
       const raw = actor.nome.trim().replace(/\s+/g, " ");
-      const esc = raw.replace(/[%_,]/g, " ");
+      const target = normName(raw);
+      const token = (target.split(" ").sort((a, b) => b.length - a.length)[0] || "").slice(0, 20);
+      const pattern = `%${token}%`;
       const { data } = await supabase
         .from("profiles")
-        .select(SELECT)
+        .select(SELECT + ", nome_fantasia")
         .or(
-          `full_name.ilike.${esc},razao_social.ilike.${esc},nome_fantasia.ilike.${esc}`
+          `full_name.ilike.${pattern},razao_social.ilike.${pattern},nome_fantasia.ilike.${pattern}`
         )
-        .limit(20);
+        .limit(50);
 
-      const target = normName(raw);
       profile =
         (data || []).find(
           (p: any) =>
             normName(String(p.full_name || "")) === target ||
-            normName(String(p.razao_social || "")) === target
-        ) || (data || [])[0] || null;
+            normName(String(p.razao_social || "")) === target ||
+            normName(String(p.nome_fantasia || "")) === target
+        ) || null;
     }
 
     if (profile) {
