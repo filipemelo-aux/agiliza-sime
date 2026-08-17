@@ -313,7 +313,7 @@ export default function AdminVehicles() {
         })()}
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap first:ml-auto">
             {[
               { v: "__all__", label: "Todos" },
               { v: "caminhao", label: "Caminhões" },

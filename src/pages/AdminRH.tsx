@@ -379,7 +379,7 @@ function RHWorkspace(props: any) {
         {section === "colaboradores" && (
           <div className="space-y-3">
             <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size}>
-              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap first:ml-auto">
                 {([
                   { v: "all", label: "Todos" },
                   { v: "colaborador", label: "Colaboradores" },

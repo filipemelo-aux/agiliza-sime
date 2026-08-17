@@ -335,7 +335,7 @@ export default function AdminPeople() {
         </div>
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap first:ml-auto">
             {Object.entries(TAB_LABELS).map(([key, label]) => (
               <Button
                 key={key}
