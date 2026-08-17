@@ -18,8 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
-import { useSortableTable } from "@/hooks/useSortableTable";
-import { SortableTh } from "@/components/ui/sortable-th";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
@@ -103,6 +103,7 @@ export default function AdminVehicles() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("__all__");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [editVehicleId, setEditVehicleId] = useState<string | null>(null);
@@ -145,6 +146,7 @@ export default function AdminVehicles() {
       }
       setFuelingsByVehicle(fuelMap);
       setVehicles(vehicleRows);
+      setSelected(new Set());
     } catch (error: any) {
       console.error("Error fetching vehicles:", error);
     } finally {
