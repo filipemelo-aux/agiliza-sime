@@ -491,34 +491,52 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     cache: Map<string, any>
   ): Promise<any | null> => {
     if (!actor.nome) return null;
-    const cacheKey = actor.doc ? `d:${actor.doc}` : `n:${normName(actor.nome)}`;
+    const nameKey = `n:${normName(actor.nome)}`;
+    const cacheKey = actor.doc ? `d:${actor.doc}` : nameKey;
     if (cache.has(cacheKey)) return cache.get(cacheKey);
+    if (cache.has(nameKey)) return cache.get(nameKey);
 
-    // 1) Try DB lookup
+    const SELECT = "id, user_id, full_name, razao_social, cnpj, person_type, address_state";
+
+    // 1) Try DB lookup by document
     let profile: any = null;
     if (actor.doc) {
       const { data } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, razao_social, cnpj, person_type, address_state")
+        .select(SELECT)
         .eq("cnpj", actor.doc)
         .maybeSingle();
       profile = data;
     }
+
+    // 2) Fallback: lookup by name (full_name / razao_social / nome_fantasia)
     if (!profile) {
+      const raw = actor.nome.trim().replace(/\s+/g, " ");
+      const esc = raw.replace(/[%_,]/g, " ");
       const { data } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, razao_social, cnpj, person_type, address_state")
-        .in("category", ["cliente", "fornecedor"] as any)
-        .ilike("full_name", actor.nome)
-        .limit(1)
-        .maybeSingle();
-      profile = data;
+        .select(SELECT)
+        .or(
+          `full_name.ilike.${esc},razao_social.ilike.${esc},nome_fantasia.ilike.${esc}`
+        )
+        .limit(20);
+
+      const target = normName(raw);
+      profile =
+        (data || []).find(
+          (p: any) =>
+            normName(String(p.full_name || "")) === target ||
+            normName(String(p.razao_social || "")) === target
+        ) || (data || [])[0] || null;
     }
 
     if (profile) {
       cache.set(cacheKey, profile);
+      cache.set(nameKey, profile);
+      if (profile.cnpj) cache.set(`d:${String(profile.cnpj)}`, profile);
       return profile;
     }
+
 
     // 2) Create profile
     const isPJ = actor.doc.length === 14;
