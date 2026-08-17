@@ -182,9 +182,26 @@ export function FinancialInvoicing() {
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
-  
+
   const [baixaValor, setBaixaValor] = useState("");
   const { user } = useAuth();
+
+  // Batch receive dialog
+  const [batchReceiveOpen, setBatchReceiveOpen] = useState(false);
+  const [batchReceiveFaturas, setBatchReceiveFaturas] = useState<Fatura[]>([]);
+  interface BatchReceiveConta extends ContaReceber {
+    fatura_numero: number;
+    cliente_nome: string;
+    parcela_index: number;
+    total_parcelas: number;
+    saldo: number;
+  }
+  const [batchReceiveContas, setBatchReceiveContas] = useState<BatchReceiveConta[]>([]);
+  const [batchReceiveSelected, setBatchReceiveSelected] = useState<Set<string>>(new Set());
+  const [batchReceiveDate, setBatchReceiveDate] = useState<string>(getLocalDateISO());
+  const [batchReceiveForma, setBatchReceiveForma] = useState("pix");
+  const [batchReceiveValores, setBatchReceiveValores] = useState<Record<string, string>>({});
+  const [batchReceiveSaving, setBatchReceiveSaving] = useState(false);
 
   useEffect(() => {
     fetchFaturas();
