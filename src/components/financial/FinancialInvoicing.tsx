@@ -782,6 +782,7 @@ export function FinancialInvoicing() {
       if (error) throw error;
 
       toast.success("Parcela quitada!");
+      setSelectedFaturaIds(new Set());
       await reloadReceiveContas();
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar recebimento");
@@ -813,6 +814,7 @@ export function FinancialInvoicing() {
 
       toast.success("Todos os títulos foram recebidos!");
       setReceiveDialogOpen(false);
+      setSelectedFaturaIds(new Set());
       fetchFaturas();
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar recebimento");
