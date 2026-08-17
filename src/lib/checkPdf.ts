@@ -50,7 +50,7 @@ export async function buildCheckPdf({
     floatPrecision: 16,
   } as any);
   // Zoom 100% (tamanho real) ao abrir e impressão sem redimensionamento
-  (doc as any).setDisplayMode?.(100, "UseNone");
+  try { (doc as any).setDisplayMode?.(100, "continuous"); } catch { /* ignora */ }
   (doc as any).viewerPreferences?.({
     PrintScaling: "None",
     PickTrayByPDFSize: true,
