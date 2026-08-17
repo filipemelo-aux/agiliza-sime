@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { maskPhone, maskCNPJ } from "@/lib/masks";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText, KeyRound } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
