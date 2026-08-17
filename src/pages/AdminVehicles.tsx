@@ -190,26 +190,85 @@ export default function AdminVehicles() {
     return matchType && matchSearch;
   });
 
-  type VehicleSortKey = "plate" | "vehicle" | "type" | "driver" | "owner" | "avg" | "spent";
-  const { sort, toggle, sorted } = useSortableTable<VehicleRow, VehicleSortKey>(
-    filteredVehicles,
-    { key: "plate", direction: "asc" },
+  const selectedRows = filteredVehicles.filter((v) => selected.has(v.id));
+
+  const vehicleColumns: DataGridColumn<VehicleRow>[] = [
     {
-      plate: (v) => v.plate || "",
-      vehicle: (v) => `${v.brand || ""} ${v.model || ""}`,
-      type: (v) => VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type || "",
-      driver: (v) => v.driver_name || "",
-      owner: (v) => v.owner_name || "",
-      avg: (v) => metricsByVehicle[v.id]?.avgKmL ?? 0,
-      spent: (v) => metricsByVehicle[v.id]?.spentMonth ?? 0,
+      key: "plate",
+      header: "Placa",
+      width: "110px",
+      sortValue: (v) => v.plate || "",
+      cell: (v) => {
+        const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
+        return (
+          <div className="whitespace-nowrap">
+            <span className="font-medium text-foreground">
+              <span className="mr-1">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"}</span>{v.plate}
+            </span>
+            {trailerPlates.length > 0 && (
+              <div className="text-[10px] text-muted-foreground">{trailerPlates.join(" · ")}</div>
+            )}
+          </div>
+        );
+      },
     },
-  );
+    {
+      key: "vehicle",
+      header: "Veículo",
+      sortValue: (v) => `${v.brand || ""} ${v.model || ""}`,
+      cell: (v) => (
+        <div>
+          <div>{v.brand} {v.model}</div>
+          <div className="text-[11px] text-muted-foreground">{v.year}{v.cargo_type ? ` · ${v.cargo_type}` : ""}</div>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Tipo",
+      width: "100px",
+      sortValue: (v) => VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type || "",
+      cell: (v) => <Badge variant="outline" className="text-[10px]">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>,
+    },
+    { key: "driver", header: "Motorista", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block max-w-[160px]">{v.driver_name || "—"}</span> },
+    { key: "owner", header: "Proprietário", sortValue: (v) => v.owner_name || "", cell: (v) => <span className="text-muted-foreground truncate block max-w-[160px]">{v.owner_name || "—"}</span> },
+    {
+      key: "avg",
+      header: "Média",
+      width: "90px",
+      align: "right",
+      sortValue: (v) => metricsByVehicle[v.id]?.avgKmL ?? 0,
+      cell: (v) => {
+        const m = metricsByVehicle[v.id];
+        return <span className="tabular-nums whitespace-nowrap">{m?.avgKmL ? `${fmtNum(m.avgKmL, 2)} km/L` : "—"}</span>;
+      },
+    },
+    {
+      key: "spent",
+      header: "Gasto (mês)",
+      width: "110px",
+      align: "right",
+      sortValue: (v) => metricsByVehicle[v.id]?.spentMonth ?? 0,
+      cell: (v) => {
+        const m = metricsByVehicle[v.id];
+        return <span className="tabular-nums whitespace-nowrap font-mono">{m ? fmtBRL(m.spentMonth) : "—"}</span>;
+      },
+    },
+  ];
+
+  const toolbarActions: ToolbarAction[] = [
+    { key: "new", label: "Novo Veículo", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditVehicleId(null); setVehicleModalOpen(true); } },
+    { key: "view", label: "Visualizar", icon: Eye, mode: "single", onClick: () => selectedRows[0] && setViewVehicle(selectedRows[0]) },
+    { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: () => { if (selectedRows[0]) { setEditVehicleId(selectedRows[0].id); setVehicleModalOpen(true); } } },
+    { key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => selectedRows[0] && setDeleteVehicle(selectedRows[0]) },
+  ];
 
   const countByFilter = (f: string) => {
     if (f === "__all__") return vehicles.length;
     if (f === "caminhao") return vehicles.filter(v => TRUCK_TYPES.has(v.vehicle_type)).length;
     return vehicles.filter(v => !TRUCK_TYPES.has(v.vehicle_type)).length;
   };
+
 
   if (roleLoading) {
     return (
