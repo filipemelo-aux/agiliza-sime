@@ -581,6 +581,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       .single();
     if (error) throw new Error(`Falha ao cadastrar ${actor.nome}: ${error.message}`);
     cache.set(cacheKey, inserted);
+    cache.set(nameKey, inserted);
+    if (inserted?.cnpj) cache.set(`d:${String(inserted.cnpj)}`, inserted);
     return inserted;
   };
 
