@@ -649,6 +649,11 @@ export default function FreightCte() {
               onClick: () => singleCte && handleEdit(singleCte),
             },
             {
+              key: "print", label: printing ? "Gerando..." : "Imprimir", icon: Printer, mode: "single+batch", variant: "outline",
+              disabled: printing || selectedIds.size === 0,
+              onClick: handlePrintSelected,
+            },
+            {
               key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
               disabled: bulkDeleting || selectedIds.size === 0,
               onClick: () => {
