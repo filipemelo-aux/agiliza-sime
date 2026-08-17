@@ -151,7 +151,7 @@ export default function AdminCargas() {
         </div>
 
         <GlobalToolbar actions={actions} selectedCount={selected.size}>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full md:w-64 basis-full md:basis-auto shrink-0 order-last">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar por descrição, tipo, NCM..."

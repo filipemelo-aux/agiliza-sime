@@ -313,7 +313,7 @@ export default function AdminVehicles() {
         })()}
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
-          <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 shrink-0">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
             {[
               { v: "__all__", label: "Todos" },
               { v: "caminhao", label: "Caminhões" },
@@ -323,7 +323,7 @@ export default function AdminVehicles() {
                 key={opt.v}
                 size="sm"
                 variant={filterType === opt.v ? "default" : "ghost"}
-                className="h-7 px-2 text-[11px] rounded-sm gap-1"
+                className="h-7 px-2 text-[11px] rounded-sm gap-1 whitespace-nowrap"
                 onClick={() => { setFilterType(opt.v); setSelected(new Set()); }}
               >
                 {opt.label}
@@ -331,7 +331,7 @@ export default function AdminVehicles() {
               </Button>
             ))}
           </div>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full md:w-64 basis-full md:basis-auto shrink-0 order-last">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar placa, marca, modelo ou proprietário..."

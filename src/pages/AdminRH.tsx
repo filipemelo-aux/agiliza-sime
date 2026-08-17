@@ -379,7 +379,7 @@ function RHWorkspace(props: any) {
         {section === "colaboradores" && (
           <div className="space-y-3">
             <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size}>
-              <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 shrink-0">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
                 {([
                   { v: "all", label: "Todos" },
                   { v: "colaborador", label: "Colaboradores" },
@@ -389,14 +389,14 @@ function RHWorkspace(props: any) {
                     key={opt.v}
                     size="sm"
                     variant={tipoFilter === opt.v ? "default" : "ghost"}
-                    className="h-7 px-2 text-[11px] rounded-sm"
+                    className="h-7 px-2 text-[11px] rounded-sm whitespace-nowrap"
                     onClick={() => { setTipoFilter(opt.v); setSelectedColabs(new Set()); }}
                   >
                     {opt.label}
                   </Button>
                 ))}
               </div>
-              <div className="relative w-full max-w-xs">
+              <div className="relative w-full md:w-64 basis-full md:basis-auto shrink-0 order-last">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome, cargo ou departamento..."
