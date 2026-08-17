@@ -335,37 +335,29 @@ export default function AdminPeople() {
         </div>
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
-            {Object.entries(TAB_LABELS).map(([key, label]) => (
-              <Button
-                key={key}
-                size="sm"
-                variant={activeTab === key ? "default" : "ghost"}
-                className="h-7 px-2 text-[11px] rounded-sm gap-1 whitespace-nowrap"
-                onClick={() => { setActiveTab(key); setSearch(""); setSelected(new Set()); }}
-              >
-                {label}
-                <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByTab(key)}</Badge>
-              </Button>
-            ))}
-          </div>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
-            {([
-              { v: "all", label: "Todos os papéis" },
-              { v: "rh", label: "Apenas RH" },
-              { v: "non_rh", label: "Sem RH" },
-            ] as const).map((opt) => (
-              <Button
-                key={opt.v}
-                size="sm"
-                variant={roleFilter === opt.v ? "default" : "ghost"}
-                className="h-7 px-2 text-[11px] rounded-sm whitespace-nowrap"
-                onClick={() => setRoleFilter(opt.v)}
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </div>
+          <Select value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setSelected(new Set()); }}>
+            <SelectTrigger className="h-8 w-[190px] text-xs shrink-0 ml-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(TAB_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key} className="text-xs">
+                  {label} ({countByTab(key)})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs shrink-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">Todos os papéis</SelectItem>
+              <SelectItem value="rh" className="text-xs">Apenas RH</SelectItem>
+              <SelectItem value="non_rh" className="text-xs">Sem RH</SelectItem>
+            </SelectContent>
+          </Select>
+
           <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
