@@ -1730,9 +1730,13 @@ ${hasRecebimentos ? `
             onClick: () => singleFatura && openEditInvoice(singleFatura),
           },
           {
-            key: "receive", label: "Receber", icon: HandCoins, mode: "single",
-            disabled: !singleFatura || !hasPendingContas(singleFatura),
-            onClick: () => singleFatura && openReceive(singleFatura),
+            key: "receive", label: "Receber", icon: HandCoins, mode: "single+batch",
+            disabled: selectedFaturas.length === 0 || !selectedFaturas.some((f) => hasPendingContas(f)),
+            onClick: () => {
+              const pending = selectedFaturas.filter((f) => hasPendingContas(f));
+              if (pending.length === 1) openReceive(pending[0]);
+              else if (pending.length > 1) openBatchReceive(pending);
+            },
           },
           {
             key: "print", label: "Imprimir", icon: Printer, mode: "single",
