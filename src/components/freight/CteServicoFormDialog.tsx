@@ -98,6 +98,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
   const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
+  const [modoValor, setModoValor] = useState<"tonelada" | "total">("tonelada");
+  const [valorTotalManual, setValorTotalManual] = useState("");
 
   useEffect(() => {
     if (!open || !cte?.id) { setLinkedContract(null); return; }
