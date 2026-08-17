@@ -619,40 +619,81 @@ function ExpenseList({
   emptyHint: string;
   enrichName?: (e: Expense) => string;
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyHint}</p>;
   }
+
   const total = items.reduce((s, e) => s + Number(e.valor_total || 0), 0);
+  const selTotal = items.filter((e) => selected.has(e.id)).reduce((s, e) => s + Number(e.valor_total || 0), 0);
+
+  const columns: DataGridColumn<Expense>[] = [
+    {
+      key: "descricao",
+      header: "Descrição",
+      sortValue: (e) => e.descricao || "",
+      cell: (e) => <span className="font-medium text-foreground block truncate max-w-[320px]">{e.descricao}</span>,
+    },
+    {
+      key: "favorecido",
+      header: "Favorecido",
+      sortValue: (e) => (enrichName ? enrichName(e) : e.favorecido_nome) || "",
+      cell: (e) => <span className="text-muted-foreground block truncate max-w-[220px]">{(enrichName ? enrichName(e) : e.favorecido_nome) || "—"}</span>,
+    },
+    {
+      key: "emissao",
+      header: "Emissão",
+      width: "100px",
+      sortValue: (e) => e.data_emissao || "",
+      cell: (e) => <span className="whitespace-nowrap">{new Date(e.data_emissao).toLocaleDateString("pt-BR")}</span>,
+    },
+    {
+      key: "vencimento",
+      header: "Vencimento",
+      width: "110px",
+      sortValue: (e) => e.data_vencimento || "",
+      cell: (e) => <span className="whitespace-nowrap">{e.data_vencimento ? new Date(e.data_vencimento).toLocaleDateString("pt-BR") : "—"}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "100px",
+      align: "center",
+      sortValue: (e) => e.status || "",
+      cell: (e) => statusBadge(e.status),
+    },
+    {
+      key: "valor",
+      header: "Valor",
+      width: "120px",
+      align: "right",
+      sortValue: (e) => Number(e.valor_total || 0),
+      cell: (e) => <span className="font-mono font-semibold whitespace-nowrap">{formatBRL(Number(e.valor_total))}</span>,
+    },
+  ];
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{items.length} lançamento(s)</span>
-        <span className="font-semibold text-foreground">Total: {formatBRL(total)}</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-        {items.map((e) => (
-          <Card key={e.id} className="hover:shadow-sm transition-shadow">
-            <CardContent className="p-3 space-y-1.5">
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-medium text-sm truncate flex-1 min-w-0">{e.descricao}</p>
-                {statusBadge(e.status)}
-              </div>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {(enrichName ? enrichName(e) : e.favorecido_nome) || "—"}
-              </p>
-              <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
-                <div className="text-[10px] text-muted-foreground space-y-0.5">
-                  <div>Emissão: {new Date(e.data_emissao).toLocaleDateString("pt-BR")}</div>
-                  {e.data_vencimento && (
-                    <div>Venc.: {new Date(e.data_vencimento).toLocaleDateString("pt-BR")}</div>
-                  )}
-                </div>
-                <span className="font-semibold tabular-nums text-sm">{formatBRL(Number(e.valor_total))}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+    <div className="space-y-2">
+      <DataGrid
+        rows={items}
+        columns={columns}
+        rowId={(e) => e.id}
+        selected={selected}
+        onSelectedChange={setSelected}
+        minWidth={860}
+        rowClassName={(e) => rowToneClass(e.status === "pago" ? "resolved" : e.status === "atrasado" ? "overdue" : "pending")}
+        footer={
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{items.length} lançamento(s)</span>
+            <span className="font-mono">
+              {selected.size > 0 && <span className="mr-4 text-primary">Selecionado: {formatBRL(selTotal)}</span>}
+              Total: {formatBRL(total)}
+            </span>
+          </div>
+        }
+      />
+      <StatusLegend className="px-1" />
     </div>
   );
 }
