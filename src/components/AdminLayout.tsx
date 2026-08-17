@@ -23,7 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, type UIEvent } from "react";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
@@ -158,6 +158,18 @@ function SidebarNav() {
 
   // These variables are used for styling purposes only
 
+  // Preserva a posição de rolagem do menu lateral entre navegações
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
+  const handleSidebarScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
+    sessionStorage.setItem("sidebar-scroll", String(e.currentTarget.scrollTop));
+  }, []);
+  useEffect(() => {
+    const el = sidebarScrollRef.current;
+    if (!el) return;
+    const saved = Number(sessionStorage.getItem("sidebar-scroll") || 0);
+    if (saved > 0) el.scrollTop = saved;
+  }, [location.pathname]);
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}
@@ -167,7 +179,11 @@ function SidebarNav() {
         </span>
       </div>
 
-      <SidebarContentUI className="overflow-y-auto">
+      <SidebarContentUI
+        ref={sidebarScrollRef}
+        className="overflow-y-auto"
+        onScroll={handleSidebarScroll}
+      >
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
