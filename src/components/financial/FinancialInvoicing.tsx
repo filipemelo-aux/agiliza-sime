@@ -840,6 +840,102 @@ export function FinancialInvoicing() {
     }
   };
 
+  // --- Batch Receive ---
+  const openBatchReceive = async (faturas: Fatura[]) => {
+    const ids = faturas.map((f) => f.id);
+    const { data } = await supabase
+      .from("contas_receber")
+      .select("*")
+      .in("fatura_id", ids)
+      .order("data_vencimento", { ascending: true });
+
+    const contas = ((data as ContaReceber[]) || []).filter(
+      (c) => +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2) > 0.005
+    );
+
+    if (contas.length === 0) {
+      toast.error("Nenhum título em aberto nas faturas selecionadas");
+      return;
+    }
+
+    const faturaMap = new Map(faturas.map((f) => [f.id, f]));
+    const countsByFatura: Record<string, number> = {};
+    contas.forEach((c) => { countsByFatura[c.fatura_id] = (countsByFatura[c.fatura_id] || 0) + 1; });
+
+    const items: BatchReceiveConta[] = contas.map((c) => {
+      const f = faturaMap.get(c.fatura_id);
+      const saldo = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
+      return {
+        ...c,
+        fatura_numero: f?.numero || 0,
+        cliente_nome: f?.cliente_nome || "—",
+        parcela_index: 0,
+        total_parcelas: countsByFatura[c.fatura_id] || 1,
+        saldo,
+      };
+    });
+
+    // Compute parcela index per fatura
+    const idxByFatura: Record<string, number> = {};
+    items.forEach((it) => {
+      idxByFatura[it.fatura_id] = (idxByFatura[it.fatura_id] || 0) + 1;
+      it.parcela_index = idxByFatura[it.fatura_id];
+    });
+
+    setBatchReceiveFaturas(faturas);
+    setBatchReceiveContas(items);
+    setBatchReceiveSelected(new Set(items.map((i) => i.id)));
+    setBatchReceiveValores(Object.fromEntries(items.map((i) => [i.id, String(i.saldo)])));
+    setBatchReceiveDate(getLocalDateISO());
+    setBatchReceiveForma("pix");
+    setBatchReceiveOpen(true);
+  };
+
+  const getBatchReceiveValor = (id: string, fallback: number) => {
+    const v = batchReceiveValores[id];
+    if (v === undefined || v === "") return fallback;
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const handleBatchReceiveConfirm = async () => {
+    const selected = batchReceiveContas.filter((c) => batchReceiveSelected.has(c.id));
+    if (selected.length === 0) return toast.error("Selecione ao menos um título");
+    if (!batchReceiveDate) return toast.error("Informe a data do recebimento");
+    if (!batchReceiveForma) return toast.error("Informe a forma de recebimento");
+    if (!user?.id) return toast.error("Sessão inválida");
+
+    for (const it of selected) {
+      const v = getBatchReceiveValor(it.id, it.saldo);
+      if (v <= 0.005) return toast.error(`Valor inválido para título #${it.fatura_numero}`);
+      if (v > it.saldo + 0.005) return toast.error(`Valor maior que o saldo de ${formatCurrency(it.saldo)}`);
+    }
+
+    setBatchReceiveSaving(true);
+    try {
+      for (const it of selected) {
+        const valor = getBatchReceiveValor(it.id, it.saldo);
+        const { error } = await supabase.from("receivable_payments" as any).insert({
+          conta_receber_id: it.id,
+          valor,
+          forma_recebimento: batchReceiveForma,
+          data_recebimento: batchReceiveDate,
+          observacoes: "Recebimento em lote",
+          created_by: user.id,
+        });
+        if (error) throw error;
+      }
+      toast.success(`${selected.length} título(s) recebido(s) com sucesso!`);
+      setBatchReceiveOpen(false);
+      setSelectedFaturaIds(new Set());
+      fetchFaturas();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar recebimento em lote");
+    } finally {
+      setBatchReceiveSaving(false);
+    }
+  };
+
   // --- Print ---
   const handlePrintFatura = async (fatura: Fatura) => {
     // Load logo as data URL so it appears in blob-printed invoices
