@@ -110,6 +110,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
   const [checkDialogOpen, setCheckDialogOpen] = useState(false);
   const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
+  const [modoValor, setModoValor] = useState<"tonelada" | "total">("tonelada");
+  const [valorTotalManual, setValorTotalManual] = useState("");
   const isEdit = !!contractId;
 
   // Pré-preenche a partir do CT-e (e busca veículo/proprietário) ou carrega contrato existente em modo edição
