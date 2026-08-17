@@ -167,7 +167,11 @@ function SidebarNav() {
         </span>
       </div>
 
-      <SidebarContentUI className="overflow-y-auto">
+      <SidebarContentUI
+        ref={sidebarScrollRef}
+        className="overflow-y-auto"
+        onScroll={handleSidebarScroll}
+      >
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
