@@ -158,6 +158,18 @@ function SidebarNav() {
 
   // These variables are used for styling purposes only
 
+  // Preserva a posição de rolagem do menu lateral entre navegações
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
+  const handleSidebarScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    sessionStorage.setItem("sidebar-scroll", String(e.currentTarget.scrollTop));
+  }, []);
+  useEffect(() => {
+    const el = sidebarScrollRef.current;
+    if (!el) return;
+    const saved = Number(sessionStorage.getItem("sidebar-scroll") || 0);
+    if (saved > 0) el.scrollTop = saved;
+  }, [location.pathname]);
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}
