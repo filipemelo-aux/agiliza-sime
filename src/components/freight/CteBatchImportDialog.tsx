@@ -201,23 +201,91 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       }
 
       // Expected column order (per template):
-      // 0 DATA | 1 REMETENTE | 2 CNPJ | 3 EXPEDIDOR | 4 CNPJ | 5 DESTINATARIO | 6 CNPJ | 7 RECEBEDOR | 8 CNPJ | 9 NATUREZA | 10 PLACA | 11 PESO | 12 VALOR DO FRETE
+      // DATA | REMETENTE | CNPJ | EXPEDIDOR | CNPJ | DESTINATARIO | CNPJ | RECEBEDOR | CNPJ | NATUREZA | PLACA | PESO | VALOR DO FRETE
+      // Expedidor e Recebedor são OPCIONAIS: podem estar em branco ou ausentes da planilha.
+      const headerCells = (aoa[headerIdx] || []).map((c) =>
+        String(c ?? "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
+          .toLowerCase()
+      );
+
+      // Mapeia colunas por cabeçalho (tolerante à ausência de EXPEDIDOR/RECEBEDOR)
+      const findCol = (...patterns: RegExp[]) => {
+        for (const p of patterns) {
+          const i = headerCells.findIndex((h) => p.test(h));
+          if (i >= 0) return i;
+        }
+        return -1;
+      };
+      const docAfter = (nameIdx: number) => {
+        if (nameIdx < 0) return -1;
+        const next = headerCells[nameIdx + 1] ?? "";
+        return /cnpj|cpf|doc/.test(next) ? nameIdx + 1 : -1;
+      };
+
+      const cRemet = findCol(/^remetente/);
+      const cExped = findCol(/^expedidor/);
+      const cDest = findCol(/^destinat/);
+      const cReceb = findCol(/^recebedor/);
+      const cNat = findCol(/natureza|produto|carga/);
+      const cPlaca = findCol(/placa/);
+      const cPeso = findCol(/peso/);
+      const cValor = findCol(/valor/);
+
+      const useHeaderMap = cRemet >= 0 && cDest >= 0 && cPlaca >= 0 && cValor >= 0;
+
+      const COL = useHeaderMap
+        ? {
+            data: 0,
+            remet: cRemet,
+            remetDoc: docAfter(cRemet),
+            exped: cExped,
+            expedDoc: docAfter(cExped),
+            dest: cDest,
+            destDoc: docAfter(cDest),
+            receb: cReceb,
+            recebDoc: docAfter(cReceb),
+            nat: cNat,
+            placa: cPlaca,
+            peso: cPeso,
+            valor: cValor,
+          }
+        : {
+            data: 0,
+            remet: 1,
+            remetDoc: 2,
+            exped: 3,
+            expedDoc: 4,
+            dest: 5,
+            destDoc: 6,
+            receb: 7,
+            recebDoc: 8,
+            nat: 9,
+            placa: 10,
+            peso: 11,
+            valor: 12,
+          };
+
+      const cell = (row: any[], i: number) => (i >= 0 ? row[i] : "");
+
       const parsed: ParsedRow[] = [];
       let idx = 0;
       for (let i = headerIdx + 1; i < aoa.length; i++) {
         const row = aoa[i];
         if (!row || row.length === 0) continue;
-        const data = excelDateToISO(row[0]);
+        const data = excelDateToISO(row[COL.data]);
         if (!data) continue;
 
-        const remetente: ParsedActor = { nome: String(row[1] || "").trim(), doc: onlyDigits(row[2]) };
-        const expedidor: ParsedActor = { nome: String(row[3] || "").trim(), doc: onlyDigits(row[4]) };
-        const destinatario: ParsedActor = { nome: String(row[5] || "").trim(), doc: onlyDigits(row[6]) };
-        const recebedor: ParsedActor = { nome: String(row[7] || "").trim(), doc: onlyDigits(row[8]) };
-        const natureza = String(row[9] || "").trim();
-        const placa = String(row[10] || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const pesoTon = parseNum(row[11]);
-        const valorFrete = parseNum(row[12]);
+        const remetente: ParsedActor = { nome: String(cell(row, COL.remet) || "").trim(), doc: onlyDigits(cell(row, COL.remetDoc)) };
+        const expedidor: ParsedActor = { nome: String(cell(row, COL.exped) || "").trim(), doc: onlyDigits(cell(row, COL.expedDoc)) };
+        const destinatario: ParsedActor = { nome: String(cell(row, COL.dest) || "").trim(), doc: onlyDigits(cell(row, COL.destDoc)) };
+        const recebedor: ParsedActor = { nome: String(cell(row, COL.receb) || "").trim(), doc: onlyDigits(cell(row, COL.recebDoc)) };
+        const natureza = String(cell(row, COL.nat) || "").trim();
+        const placa = String(cell(row, COL.placa) || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const pesoTon = parseNum(cell(row, COL.peso));
+        const valorFrete = parseNum(cell(row, COL.valor));
 
         const r: ParsedRow = {
           _key: `r${++idx}-${Math.random().toString(36).slice(2, 8)}`,
