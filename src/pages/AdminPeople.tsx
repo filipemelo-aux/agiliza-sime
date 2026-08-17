@@ -19,8 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
-import { useSortableTable } from "@/hooks/useSortableTable";
-import { SortableTh } from "@/components/ui/sortable-th";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -70,6 +70,7 @@ export default function AdminPeople() {
   const [activeTab, setActiveTab] = useState("__all__");
   // Filtro de PAPEL (independente do tipo): all | rh | non_rh
   const [roleFilter, setRoleFilter] = useState<"all" | "rh" | "non_rh">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [editPerson, setEditPerson] = useState<PersonProfile | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -129,6 +130,7 @@ export default function AdminPeople() {
         return { ...v, driver_name: driver?.full_name, owner_name: owner?.full_name };
       });
       setVehicles(vehicleRows);
+      setSelected(new Set());
     } catch (error: any) {
       console.error("Error fetching data:", error);
     } finally {
@@ -193,17 +195,124 @@ export default function AdminPeople() {
     return matchCategory && matchRole && matchSearch;
   });
 
-  type PersonSortKey = "nome" | "categoria" | "contato" | "cidade";
-  const { sort, toggle, sorted } = useSortableTable<PersonProfile, PersonSortKey>(
-    filteredDrivers,
-    { key: "nome", direction: "asc" },
+  const selectedRows = filteredDrivers.filter((d) => selected.has(d.id));
+
+  const openView = async (driver: PersonProfile) => {
+    setViewPerson(driver);
+    setViewPersonDocs(null);
+    setViewPersonHarvests([]);
+    if (driver.category === "motorista" || driver.category === "colaborador") {
+      const [docsRes, assignmentsRes] = await Promise.all([
+        supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
+        supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
+      ]);
+      setViewPersonDocs(docsRes.data || null);
+      const assignments = assignmentsRes.data || [];
+      if (assignments.length > 0) {
+        const jobIds = assignments.map((a: any) => a.harvest_job_id);
+        const { data: jobs } = await supabase.from("harvest_jobs").select("farm_name, client_id").in("id", jobIds);
+        const clientIds = (jobs || []).map((j: any) => j.client_id).filter(Boolean);
+        const clientMap: Record<string, string> = {};
+        if (clientIds.length > 0) {
+          const { data: clients } = await supabase.from("profiles").select("id, full_name").in("id", clientIds);
+          (clients || []).forEach((c: any) => { clientMap[c.id] = c.full_name; });
+        }
+        setViewPersonHarvests((jobs || []).map((j: any) => ({
+          farm_name: j.farm_name,
+          client_name: j.client_id ? clientMap[j.client_id] || null : null,
+        })));
+      }
+    }
+  };
+
+  const personColumns: DataGridColumn<PersonProfile>[] = [
     {
-      nome: (d) => d.full_name || "",
-      categoria: (d) => d.category || "",
-      contato: (d) => d.email || d.phone || "",
-      cidade: (d) => `${d.address_state || ""} ${d.address_city || ""}`,
+      key: "nome",
+      header: "Nome",
+      sortValue: (d) => d.full_name || "",
+      cell: (d) => {
+        const driverVehicles = d.category === "motorista" ? vehicles.filter((v) => v.driver_id === d.user_id) : [];
+        return (
+          <div>
+            <div className="font-medium text-foreground">{d.full_name}</div>
+            {d.person_type === "cnpj" && d.razao_social && (
+              <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{d.razao_social}</div>
+            )}
+            {driverVehicles.length > 0 && (
+              <div className="flex flex-wrap gap-x-2 mt-0.5 text-[11px] text-muted-foreground">
+                {driverVehicles.map((v) => (
+                  <span key={v.id}>
+                    <Car className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+                    {v.plate}{v.owner_name ? ` · ${v.owner_name}` : ""}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
-  );
+    {
+      key: "categoria",
+      header: "Categoria",
+      width: "180px",
+      sortValue: (d) => d.category || "",
+      cell: (d) => (
+        <div className="flex items-center gap-1 flex-wrap">
+          <Badge className={`text-[10px] ${CATEGORY_COLORS[d.category] || "bg-muted text-muted-foreground"}`}>
+            {d.category.charAt(0).toUpperCase() + d.category.slice(1)}
+          </Badge>
+          {Array.isArray((d as any).categories_extra) && (d as any).categories_extra.map((cat: string) => (
+            <Badge key={cat} variant="outline" className={`text-[10px] ${CATEGORY_COLORS[cat] || "border-border text-muted-foreground"}`}>
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </Badge>
+          ))}
+          {(d as any).is_colaborador_rh && d.category !== "colaborador" && (
+            <Badge variant="outline" className="text-[10px] border-teal-500/40 text-teal-400">RH</Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "contato",
+      header: "Contato",
+      sortValue: (d) => d.email || d.phone || "",
+      cell: (d) => (
+        <div className="text-muted-foreground">
+          {d.email && <div className="truncate max-w-[220px]">{d.email}</div>}
+          {d.phone && <div>{maskPhone(d.phone)}</div>}
+          {!d.email && !d.phone && <span>—</span>}
+        </div>
+      ),
+    },
+    {
+      key: "cidade",
+      header: "Cidade/UF",
+      width: "140px",
+      sortValue: (d) => `${d.address_state || ""} ${d.address_city || ""}`,
+      cell: (d) => (
+        <span className="whitespace-nowrap text-muted-foreground">
+          {d.address_city && d.address_state ? `${d.address_city}/${d.address_state}` : "—"}
+        </span>
+      ),
+    },
+  ];
+
+  const toolbarActions: ToolbarAction[] = [
+    { key: "new", label: "Novo Cadastro", icon: Plus, mode: "create", variant: "default", onClick: () => setCreateOpen(true) },
+    { key: "view", label: "Visualizar", icon: Eye, mode: "single", onClick: () => selectedRows[0] && openView(selectedRows[0]) },
+    { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: () => { if (selectedRows[0]) { setEditPerson(selectedRows[0]); setEditOpen(true); } } },
+    {
+      key: "reset",
+      label: "Resetar Senha",
+      icon: KeyRound,
+      mode: "single",
+      onClick: () => selectedRows[0] && setResetPerson(selectedRows[0]),
+      hidden: !isAdmin,
+      disabled: !selectedRows[0]?.user_id || selectedRows[0]?.category !== "colaborador",
+    },
+    { key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => selectedRows[0] && setDeletePerson(selectedRows[0]) },
+  ];
 
   const countByTab = (tab: string) => {
     return drivers.filter((d) => filterByTab(d, tab)).length;
@@ -220,175 +329,66 @@ export default function AdminPeople() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Pessoas</h1>
-            <p className="text-muted-foreground">Cadastro unificado de motoristas, clientes, fornecedores e proprietários</p>
-          </div>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Cadastro
-          </Button>
+      <main className="p-4 md:p-6 space-y-3">
+        <div>
+          <h1 className="text-lg font-bold text-foreground">Pessoas</h1>
+          <p className="text-xs text-muted-foreground">Cadastro unificado de motoristas, clientes, fornecedores e proprietários</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); }} className="mb-6">
-          <TabsList className="flex-wrap h-auto gap-1">
+        <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
+          <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 shrink-0">
             {Object.entries(TAB_LABELS).map(([key, label]) => (
-              <TabsTrigger key={key} value={key} className="gap-1.5">
+              <Button
+                key={key}
+                size="sm"
+                variant={activeTab === key ? "default" : "ghost"}
+                className="h-7 px-2 text-[11px] rounded-sm gap-1"
+                onClick={() => { setActiveTab(key); setSearch(""); setSelected(new Set()); }}
+              >
                 {label}
-                <Badge variant="secondary" className="text-xs h-5 px-1.5">
-                  {countByTab(key)}
-                </Badge>
-              </TabsTrigger>
+                <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByTab(key)}</Badge>
+              </Button>
             ))}
-          </TabsList>
-        </Tabs>
-
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 shrink-0">
+            {([
+              { v: "all", label: "Todos os papéis" },
+              { v: "rh", label: "Apenas RH" },
+              { v: "non_rh", label: "Sem RH" },
+            ] as const).map((opt) => (
+              <Button
+                key={opt.v}
+                size="sm"
+                variant={roleFilter === opt.v ? "default" : "ghost"}
+                className="h-7 px-2 text-[11px] rounded-sm"
+                onClick={() => setRoleFilter(opt.v)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
+              className="pl-8 h-8 text-xs"
             />
           </div>
-          {/* Filtro de PAPEL — independente do tipo (categoria) */}
-          <Tabs value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
-            <TabsList className="h-9">
-              <TabsTrigger value="all" className="text-xs">Todos os papéis</TabsTrigger>
-              <TabsTrigger value="rh" className="text-xs">Apenas RH</TabsTrigger>
-              <TabsTrigger value="non_rh" className="text-xs">Sem RH</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        </GlobalToolbar>
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : sorted.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum cadastro encontrado.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="border border-border rounded-md overflow-hidden bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr className="text-left">
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "nome"} direction={sort.direction} onSort={() => toggle("nome")}>Nome</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium w-[120px]" active={sort.key === "categoria"} direction={sort.direction} onSort={() => toggle("categoria")}>Categoria</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "contato"} direction={sort.direction} onSort={() => toggle("contato")}>Contato</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium w-[130px]" active={sort.key === "cidade"} direction={sort.direction} onSort={() => toggle("cidade")}>Cidade/UF</SortableTh>
-                    <th className="px-1.5 py-1.5 font-medium text-right w-[120px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((driver) => {
-                    const driverVehicles = driver.category === "motorista"
-                      ? vehicles.filter(v => v.driver_id === driver.user_id)
-                      : [];
-                    return (
-                      <tr key={driver.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="px-2 py-1.5">
-                          <div className="font-medium">{driver.full_name}</div>
-                          {driver.person_type === "cnpj" && driver.razao_social && (
-                            <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{driver.razao_social}</div>
-                          )}
-                          {driverVehicles.length > 0 && (
-                            <div className="flex flex-wrap gap-x-2 gap-y-0 mt-0.5 text-[11px] text-muted-foreground">
-                              {driverVehicles.map(v => (
-                                <span key={v.id}>
-                                  <Car className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                                  {v.plate}
-                                  {v.owner_name && <> · {v.owner_name}</>}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Badge className={`text-[10px] ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
-                              {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
-                            </Badge>
-                            {Array.isArray((driver as any).categories_extra) && (driver as any).categories_extra.map((cat: string) => (
-                              <Badge key={cat} variant="outline" className={`text-[10px] ${CATEGORY_COLORS[cat] || "border-border text-muted-foreground"}`}>
-                                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                              </Badge>
-                            ))}
-                            {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
-                              <Badge variant="outline" className="text-[10px] border-teal-500/40 text-teal-400">RH</Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-2 py-1.5 text-muted-foreground">
-                          {driver.email && <div className="truncate max-w-[200px]">{driver.email}</div>}
-                          {driver.phone && <div>{maskPhone(driver.phone)}</div>}
-                          {!driver.email && !driver.phone && <span>—</span>}
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground">
-                          {driver.address_city && driver.address_state
-                            ? `${driver.address_city}/${driver.address_state}`
-                            : "—"}
-                        </td>
-                        <td className="px-1.5 py-1.5 text-right">
-                          <div className="flex items-center justify-end gap-0.5">
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => {
-                              setViewPerson(driver);
-                              setViewPersonDocs(null);
-                              setViewPersonHarvests([]);
-                              if (driver.category === "motorista" || driver.category === "colaborador") {
-                                const [docsRes, assignmentsRes] = await Promise.all([
-                                  supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
-                                  supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
-                                ]);
-                                setViewPersonDocs(docsRes.data || null);
-                                const assignments = assignmentsRes.data || [];
-                                if (assignments.length > 0) {
-                                  const jobIds = assignments.map((a: any) => a.harvest_job_id);
-                                  const { data: jobs } = await supabase.from("harvest_jobs").select("farm_name, client_id").in("id", jobIds);
-                                  const clientIds = (jobs || []).map((j: any) => j.client_id).filter(Boolean);
-                                  let clientMap: Record<string, string> = {};
-                                  if (clientIds.length > 0) {
-                                    const { data: clients } = await supabase.from("profiles").select("id, full_name").in("id", clientIds);
-                                    (clients || []).forEach((c: any) => { clientMap[c.id] = c.full_name; });
-                                  }
-                                  setViewPersonHarvests((jobs || []).map((j: any) => ({
-                                    farm_name: j.farm_name,
-                                    client_name: j.client_id ? clientMap[j.client_id] || null : null,
-                                  })));
-                                }
-                              }
-                            }} title="Visualizar">
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            {isAdmin && driver.category === "colaborador" && driver.user_id && (
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-500 hover:text-amber-600" onClick={() => setResetPerson(driver)} title="Resetar Senha">
-                                <KeyRound className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeletePerson(driver)} title="Excluir">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <DataGrid
+          rows={filteredDrivers}
+          columns={personColumns}
+          rowId={(d) => d.id}
+          selected={selected}
+          onSelectedChange={setSelected}
+          loading={loading}
+          minWidth={900}
+          emptyMessage="Nenhum cadastro encontrado."
+          footer={<div className="text-[11px] text-muted-foreground">{filteredDrivers.length} cadastro(s)</div>}
+        />
       </main>
 
       <PersonEditDialog person={editPerson} open={editOpen} onOpenChange={setEditOpen} onSaved={fetchAll} />
