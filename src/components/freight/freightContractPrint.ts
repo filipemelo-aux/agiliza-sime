@@ -465,6 +465,30 @@ ${motoristaBlock}
 </body></html>`;
 }
 
+/**
+ * Combina vários contratos em um único documento, um por página A4.
+ */
+export function combineContractsHtml(htmls: string[]): string {
+  if (htmls.length === 0) return "";
+  if (htmls.length === 1) return htmls[0];
+  const styleMatch = htmls[0].match(/<style>[\s\S]*?<\/style>/i);
+  const style = styleMatch ? styleMatch[0] : "";
+  const bodies = htmls.map((h) => {
+    const m = h.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    return m ? m[1] : h;
+  });
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Contratos de Frete (${htmls.length})</title>
+${style}
+<style>
+  .doc-page { page-break-after: always; break-after: page; }
+  .doc-page:last-child { page-break-after: auto; break-after: auto; }
+</style>
+</head><body>
+${bodies.map((b) => `<div class="doc-page">${b}</div>`).join("\n")}
+</body></html>`;
+}
+
 export function openPrintWindow(html: string) {
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
