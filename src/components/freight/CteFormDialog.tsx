@@ -27,6 +27,7 @@ import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
