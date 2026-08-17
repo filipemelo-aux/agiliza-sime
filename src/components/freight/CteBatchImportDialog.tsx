@@ -346,11 +346,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         for (let j = i + 1; j < valid.length; j++) {
           const b = valid[j];
           const bKg = pesoKgOf(b);
-          if (aKg !== bKg || aKg === 0) continue;
-          // Duplicidade só quando peso + placa + data + valor são idênticos
+          // Duplicidade quando peso + placa + data + valor são 100% idênticos (peso 0,00 incluído)
+          if (aKg !== bKg) continue;
           if (!a.data || !b.data || a.data !== b.data) continue;
           if (!a.placa || !b.placa || a.placa !== b.placa) continue;
-          if (Math.abs((a.valorFrete || 0) - (b.valorFrete || 0)) > 0.01) continue;
+          if ((a.valorFrete || 0) !== (b.valorFrete || 0)) continue;
           const reason = "peso_data_placa" as const;
           const idxA = currentRows.indexOf(a) + 1;
           const idxB = currentRows.indexOf(b) + 1;
@@ -394,12 +394,12 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
             if (!ePlaca || ePlaca !== r.placa) continue;
 
-            // Peso (inclusive 0,00) com tolerância mínima de arredondamento
+            // Peso (inclusive 0,00) — comparação estrita
             const ePeso = Number(e.peso_bruto || 0);
-            if (Math.abs(ePeso - kg) > 0.5) continue;
+            if (ePeso !== kg) continue;
 
-            // Valor do frete
-            if (Math.abs(Number(e.valor_frete || 0) - Number(r.valorFrete || 0)) > 0.01) continue;
+            // Valor do frete — comparação estrita
+            if (Number(e.valor_frete || 0) !== Number(r.valorFrete || 0)) continue;
 
             hits.push({ ...e, reason: "peso_data_placa" });
           }
