@@ -344,7 +344,11 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
       return;
     }
     if (valorBruto <= 0) {
-      toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
+      toast({
+        title: "Valor inválido",
+        description: modoValor === "total" ? "Informe o valor total do contrato." : "Informe peso e valor por tonelada.",
+        variant: "destructive",
+      });
       return;
     }
 
