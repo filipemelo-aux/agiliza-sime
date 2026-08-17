@@ -222,30 +222,11 @@ export default function AdminVehicles() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Veículos</h1>
-            <p className="text-muted-foreground">Gerencie a frota de veículos do sistema</p>
-          </div>
-          <Button onClick={() => { setEditVehicleId(null); setVehicleModalOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Veículo
-          </Button>
+      <main className="p-4 md:p-6 space-y-3">
+        <div>
+          <h1 className="text-lg font-bold text-foreground">Veículos</h1>
+          <p className="text-xs text-muted-foreground">Gerencie a frota de veículos do sistema</p>
         </div>
-
-        <Tabs value={filterType} onValueChange={(v) => { setFilterType(v); setSearch(""); }} className="mb-6">
-          <TabsList className="h-auto gap-1">
-            <TabsTrigger value="__all__" className="gap-1.5">
-              Todos <Badge variant="secondary" className="text-xs h-5 px-1.5">{countByFilter("__all__")}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="caminhao" className="gap-1.5">
-              <Truck className="h-3.5 w-3.5" /> Caminhões <Badge variant="secondary" className="text-xs h-5 px-1.5">{countByFilter("caminhao")}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="leve" className="gap-1.5">
-              <Car className="h-3.5 w-3.5" /> Veículos Leves <Badge variant="secondary" className="text-xs h-5 px-1.5">{countByFilter("leve")}</Badge>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {(() => {
           const totals = Object.values(metricsByVehicle).reduce(
@@ -261,7 +242,7 @@ export default function AdminVehicles() {
             ? withAvg.reduce((s, m) => s + (m.avgKmL || 0), 0) / withAvg.length
             : null;
           return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card><CardContent className="p-3 flex items-center gap-2"><Droplet className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Litros (mês)</p><p className="text-sm font-semibold">{fmtNum(totals.liters, 1)} L</p></div></CardContent></Card>
               <Card><CardContent className="p-3 flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Gasto (mês)</p><p className="text-sm font-semibold">{fmtBRL(totals.spent)}</p></div></CardContent></Card>
               <Card><CardContent className="p-3 flex items-center gap-2"><Gauge className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Média Frota</p><p className="text-sm font-semibold">{fleetAvg ? `${fmtNum(fleetAvg, 2)} km/L` : "—"}</p></div></CardContent></Card>
@@ -270,89 +251,49 @@ export default function AdminVehicles() {
           );
         })()}
 
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por placa, marca, modelo ou proprietário..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
+          <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 shrink-0">
+            {[
+              { v: "__all__", label: "Todos" },
+              { v: "caminhao", label: "Caminhões" },
+              { v: "leve", label: "Leves" },
+            ].map((opt) => (
+              <Button
+                key={opt.v}
+                size="sm"
+                variant={filterType === opt.v ? "default" : "ghost"}
+                className="h-7 px-2 text-[11px] rounded-sm gap-1"
+                onClick={() => { setFilterType(opt.v); setSelected(new Set()); }}
+              >
+                {opt.label}
+                <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByFilter(opt.v)}</Badge>
+              </Button>
+            ))}
           </div>
-        ) : sorted.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum veículo encontrado.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="border border-border rounded-md overflow-hidden bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr className="text-left">
-                    <SortableTh className="px-2 py-1.5 font-medium w-[90px]" active={sort.key === "plate"} direction={sort.direction} onSort={() => toggle("plate")}>Placa</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "vehicle"} direction={sort.direction} onSort={() => toggle("vehicle")}>Veículo</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium w-[90px]" active={sort.key === "type"} direction={sort.direction} onSort={() => toggle("type")}>Tipo</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "driver"} direction={sort.direction} onSort={() => toggle("driver")}>Motorista</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "owner"} direction={sort.direction} onSort={() => toggle("owner")}>Proprietário</SortableTh>
-                    <SortableTh className="px-1.5 py-1.5 font-medium text-right w-[80px]" align="right" active={sort.key === "avg"} direction={sort.direction} onSort={() => toggle("avg")}>Média</SortableTh>
-                    <SortableTh className="px-1.5 py-1.5 font-medium text-right w-[95px]" align="right" active={sort.key === "spent"} direction={sort.direction} onSort={() => toggle("spent")}>Gasto (mês)</SortableTh>
-                    <th className="px-1.5 py-1.5 font-medium text-right w-[88px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((v) => {
-                    const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
-                    const m = metricsByVehicle[v.id];
-                    return (
-                      <tr key={v.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="px-2 py-1.5 font-medium whitespace-nowrap">
-                          <span className="mr-1">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"}</span>{v.plate}
-                          {trailerPlates.length > 0 && (
-                            <div className="text-[10px] text-muted-foreground font-normal">{trailerPlates.join(" · ")}</div>
-                          )}
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <div>{v.brand} {v.model}</div>
-                          <div className="text-[11px] text-muted-foreground">{v.year}{v.cargo_type ? ` · ${v.cargo_type}` : ""}</div>
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap">
-                          <Badge variant="outline" className="text-[10px]">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
-                        </td>
-                        <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[140px]">{v.driver_name || "—"}</td>
-                        <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[140px]">{v.owner_name || "—"}</td>
-                        <td className="px-1.5 py-1.5 text-right tabular-nums whitespace-nowrap">{m?.avgKmL ? `${fmtNum(m.avgKmL, 2)} km/L` : "—"}</td>
-                        <td className="px-1.5 py-1.5 text-right tabular-nums whitespace-nowrap">{m ? fmtBRL(m.spentMonth) : "—"}</td>
-                        <td className="px-1.5 py-1.5 text-right">
-                          <div className="flex items-center justify-end gap-0.5">
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setViewVehicle(v)} title="Visualizar">
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditVehicleId(v.id); setVehicleModalOpen(true); }} title="Editar">
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteVehicle(v)} title="Excluir">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar placa, marca, modelo ou proprietário..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-8 text-xs"
+            />
           </div>
-        )}
+        </GlobalToolbar>
+
+        <DataGrid
+          rows={filteredVehicles}
+          columns={vehicleColumns}
+          rowId={(v) => v.id}
+          selected={selected}
+          onSelectedChange={setSelected}
+          loading={loading}
+          minWidth={900}
+          emptyMessage="Nenhum veículo encontrado."
+          footer={<div className="text-[11px] text-muted-foreground">{filteredVehicles.length} veículo(s)</div>}
+        />
       </main>
+
 
       <VehicleFormModal open={vehicleModalOpen} onOpenChange={setVehicleModalOpen} vehicleId={editVehicleId} onSaved={fetchVehicles} />
 
