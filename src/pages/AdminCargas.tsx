@@ -1,17 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CargaFormDialog } from "@/components/freight/CargaFormDialog";
-import { useSortableTable } from "@/hooks/useSortableTable";
-import { SortableTh } from "@/components/ui/sortable-th";
+import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 
 export interface Carga {
   id: string;
@@ -49,6 +48,7 @@ export default function AdminCargas() {
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingCarga, setEditingCarga] = useState<Carga | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,6 +63,7 @@ export default function AdminCargas() {
         .order("produto_predominante", { ascending: true });
       if (error) throw error;
       setCargas((data as any[]) || []);
+      setSelected(new Set());
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -70,18 +71,7 @@ export default function AdminCargas() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!await confirm({ title: "Excluir natureza de carga", description: "Excluir esta natureza de carga?", variant: "destructive", confirmLabel: "Excluir" })) return;
-    const { error } = await supabase.from("cargas").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Natureza excluída" });
-      fetchCargas();
-    }
-  };
-
-  const filtered = cargas.filter((c) => {
+  const filtered = useMemo(() => cargas.filter((c) => {
     const q = search.toLowerCase();
     return (
       !q ||
@@ -90,107 +80,102 @@ export default function AdminCargas() {
       c.sinonimos?.toLowerCase().includes(q) ||
       c.ncm?.includes(q)
     );
-  });
+  }), [cargas, search]);
 
-  type CargaSortKey = "produto" | "tipo" | "ncm" | "status";
-  const { sort, toggle, sorted } = useSortableTable<Carga, CargaSortKey>(
-    filtered,
-    { key: "produto", direction: "asc" },
+  const selectedRows = useMemo(() => filtered.filter((c) => selected.has(c.id)), [filtered, selected]);
+
+  const handleEdit = () => {
+    const c = selectedRows[0];
+    if (!c) return;
+    setEditingCarga(c);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (selectedRows.length === 0) return;
+    const ok = await confirm({
+      title: selectedRows.length > 1 ? `Excluir ${selectedRows.length} naturezas?` : "Excluir natureza de carga",
+      description: "Esta ação não pode ser desfeita.",
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("cargas").delete().in("id", selectedRows.map((c) => c.id));
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Natureza excluída" });
+      fetchCargas();
+    }
+  };
+
+  const actions: ToolbarAction[] = [
+    { key: "new", label: "Nova Natureza", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditingCarga(null); setFormOpen(true); } },
+    { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: handleEdit },
+    { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDelete },
+  ];
+
+  const columns: DataGridColumn<Carga>[] = [
     {
-      produto: (c) => c.produto_predominante || "",
-      tipo: (c) => c.tipo || "",
-      ncm: (c) => c.ncm || "",
-      status: (c) => (c.ativo ? "1" : "0"),
+      key: "produto",
+      header: "Produto",
+      sortValue: (c) => c.produto_predominante || "",
+      cell: (c) => (
+        <div>
+          <div className="font-medium text-foreground">{c.produto_predominante}</div>
+          {c.sinonimos && <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{c.sinonimos}</div>}
+        </div>
+      ),
     },
-  );
+    { key: "tipo", header: "Tipo", width: "140px", sortValue: (c) => c.tipo || "", cell: (c) => <span className="text-muted-foreground">{c.tipo || "—"}</span> },
+    { key: "ncm", header: "NCM", width: "110px", sortValue: (c) => c.ncm || "", cell: (c) => <span className="tabular-nums text-muted-foreground">{c.ncm || "—"}</span> },
+    {
+      key: "status",
+      header: "Status",
+      width: "90px",
+      align: "center",
+      sortValue: (c) => (c.ativo ? "1" : "0"),
+      cell: (c) => c.ativo
+        ? <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">Ativo</Badge>
+        : <Badge variant="secondary" className="text-[10px]">Inativo</Badge>,
+    },
+  ];
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-4 md:p-6 space-y-3">
         <BackButton to="/admin" label="Dashboard" />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-3xl font-bold font-display">Natureza de Cargas</h1>
-          <Button onClick={() => { setEditingCarga(null); setFormOpen(true); }} className=" gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Natureza
-          </Button>
+        <div>
+          <h1 className="text-lg font-bold text-foreground">Natureza de Cargas</h1>
+          <p className="text-xs text-muted-foreground">Cadastro de produtos e naturezas utilizadas na emissão de documentos.</p>
         </div>
 
-        <div className="relative mb-6 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por descrição, tipo, NCM..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <GlobalToolbar actions={actions} selectedCount={selected.size}>
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por descrição, tipo, NCM..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-8 text-xs"
+            />
+          </div>
+        </GlobalToolbar>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : sorted.length === 0 ? (
-          <div className="text-center py-16">
-            <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nenhuma natureza cadastrada</h3>
-            <p className="text-muted-foreground">Clique em "Nova Natureza" para cadastrar.</p>
-          </div>
-        ) : (
-          <div className="border border-border rounded-md overflow-hidden bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr className="text-left">
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "produto"} direction={sort.direction} onSort={() => toggle("produto")}>Produto</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "tipo"} direction={sort.direction} onSort={() => toggle("tipo")}>Tipo</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium w-[110px]" active={sort.key === "ncm"} direction={sort.direction} onSort={() => toggle("ncm")}>NCM</SortableTh>
-                    <SortableTh className="px-2 py-1.5 font-medium text-center w-[80px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
-                    <th className="px-1.5 py-1.5 font-medium text-right w-[50px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((carga) => (
-                    <tr
-                      key={carga.id}
-                      className="border-t border-border hover:bg-muted/30 cursor-pointer"
-                      onClick={() => { setEditingCarga(carga); setFormOpen(true); }}
-                    >
-                      <td className="px-2 py-1.5">
-                        <div className="font-medium">{carga.produto_predominante}</div>
-                        {carga.sinonimos && (
-                          <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{carga.sinonimos}</div>
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5 text-muted-foreground">{carga.tipo || "—"}</td>
-                      <td className="px-2 py-1.5 tabular-nums text-muted-foreground">{carga.ncm || "—"}</td>
-                      <td className="px-2 py-1.5 text-center">
-                        {carga.ativo ? (
-                          <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">Ativo</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px]">Inativo</Badge>
-                        )}
-                      </td>
-                      <td className="px-1.5 py-1.5 text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(carga.id); }}
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <DataGrid
+          rows={filtered}
+          columns={columns}
+          rowId={(c) => c.id}
+          selected={selected}
+          onSelectedChange={setSelected}
+          loading={loading}
+          minWidth={720}
+          rowClassName={(c) => rowToneClass(c.ativo ? "resolved" : "pending")}
+          emptyMessage='Nenhuma natureza cadastrada. Clique em "Nova Natureza" para começar.'
+          footer={<div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>}
+        />
+
+        <StatusLegend className="px-1" items={[{ tone: "resolved", label: "Ativo" }, { tone: "pending", label: "Inativo" }]} />
       </div>
 
       <CargaFormDialog
