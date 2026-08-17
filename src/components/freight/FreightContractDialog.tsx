@@ -110,6 +110,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
   const [checkDialogOpen, setCheckDialogOpen] = useState(false);
   const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
+  const [modoValor, setModoValor] = useState<"tonelada" | "total">("tonelada");
+  const [valorTotalManual, setValorTotalManual] = useState("");
   const isEdit = !!contractId;
 
   // Pré-preenche a partir do CT-e (e busca veículo/proprietário) ou carrega contrato existente em modo edição
@@ -117,6 +119,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
     if (!open || !cte) return;
     setSavedContract(null);
     setDesconto(emptyDesconto);
+    setModoValor("tonelada");
+    setValorTotalManual("");
 
     const initEdit = async () => {
       const { data: c } = await supabase
@@ -314,8 +318,18 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
   }, [open, cte, contractId, isEdit]);
 
   const pesoTon = (Number(form.peso_kg) || 0) / 1000;
-  const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorBruto = useMemo(() => +(pesoTon * valorTon).toFixed(2), [pesoTon, valorTon]);
+  const valorTonInput = Number(unmaskCurrency(form.valor_tonelada)) || 0;
+  const valorBruto = useMemo(
+    () =>
+      modoValor === "total"
+        ? +(Number(unmaskCurrency(valorTotalManual)) || 0).toFixed(2)
+        : +(pesoTon * valorTonInput).toFixed(2),
+    [modoValor, valorTotalManual, pesoTon, valorTonInput]
+  );
+  const valorTon = useMemo(
+    () => (modoValor === "total" ? (pesoTon > 0 ? +(valorBruto / pesoTon).toFixed(4) : 0) : valorTonInput),
+    [modoValor, pesoTon, valorBruto, valorTonInput]
+  );
   const descontoTotal = useMemo(() => calcDescontoTotal(desconto), [desconto]);
   const valorTotal = useMemo(() => +(valorBruto - descontoTotal).toFixed(2), [valorBruto, descontoTotal]);
 
@@ -330,7 +344,11 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
       return;
     }
     if (valorBruto <= 0) {
-      toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
+      toast({
+        title: "Valor inválido",
+        description: modoValor === "total" ? "Informe o valor total do contrato." : "Informe peso e valor por tonelada.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -650,6 +668,32 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Coins className="w-4 h-4" /> Valores do Contrato
               </div>
+              <div className="inline-flex rounded-md border p-0.5 gap-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={modoValor === "tonelada" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => setModoValor("tonelada")}
+                >
+                  Por tonelada
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={modoValor === "total" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => {
+                    setModoValor("total");
+                    if (!unmaskCurrency(valorTotalManual) || Number(unmaskCurrency(valorTotalManual)) === 0) {
+                      const bruto = +(pesoTon * valorTonInput).toFixed(2);
+                      if (bruto > 0) setValorTotalManual(maskCurrency(String(Math.round(bruto * 100))));
+                    }
+                  }}
+                >
+                  Valor total
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Peso (kg) *</Label>
@@ -662,14 +706,28 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
                     {pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t
                   </p>
                 </div>
-                <div>
-                  <Label className="text-xs">Valor por tonelada *</Label>
-                  <Input
-                    value={form.valor_tonelada}
-                    onChange={(e) => setForm((f) => ({ ...f, valor_tonelada: maskCurrency(e.target.value) }))}
-                    placeholder="R$ 0,00"
-                  />
-                </div>
+                {modoValor === "tonelada" ? (
+                  <div>
+                    <Label className="text-xs">Valor por tonelada *</Label>
+                    <Input
+                      value={form.valor_tonelada}
+                      onChange={(e) => setForm((f) => ({ ...f, valor_tonelada: maskCurrency(e.target.value) }))}
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label className="text-xs">Valor bruto total *</Label>
+                    <Input
+                      value={valorTotalManual}
+                      onChange={(e) => setValorTotalManual(maskCurrency(e.target.value))}
+                      placeholder="R$ 0,00"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {pesoTon > 0 ? `≈ ${formatCurrency(valorTon)}/t` : "Informe o peso para calcular o valor/t"}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="bg-muted/30 rounded-md px-3 py-2 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Valor bruto do frete</span>

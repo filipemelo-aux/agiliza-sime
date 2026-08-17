@@ -98,6 +98,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
   const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
+  const [modoValor, setModoValor] = useState<"tonelada" | "total">("tonelada");
+  const [valorTotalManual, setValorTotalManual] = useState("");
 
   useEffect(() => {
     if (!open || !cte?.id) { setLinkedContract(null); return; }
@@ -175,15 +177,23 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         observacoes: cte.observacoes || "",
       });
       setDesconto(deserializeDesconto((cte as any).desconto));
+      setModoValor("tonelada");
+      setValorTotalManual("");
     } else {
       setForm(empty);
       setDesconto(emptyDesconto);
+      setModoValor("tonelada");
+      setValorTotalManual("");
     }
   }, [open, cte]);
 
   const pesoTon = (Number(form.peso_bruto_kg) || 0) / 1000;
-  const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorBruto = +(pesoTon * valorTon).toFixed(2);
+  const valorTonInput = Number(unmaskCurrency(form.valor_tonelada)) || 0;
+  const valorBruto =
+    modoValor === "total"
+      ? +(Number(unmaskCurrency(valorTotalManual)) || 0).toFixed(2)
+      : +(pesoTon * valorTonInput).toFixed(2);
+  const valorTon = modoValor === "total" ? (pesoTon > 0 ? +(valorBruto / pesoTon).toFixed(4) : 0) : valorTonInput;
   const valorDesconto = calcDescontoTotal(desconto);
   // Permite valor negativo quando descontos superam o frete bruto
   const valorFrete = +(valorBruto - valorDesconto).toFixed(2);
@@ -202,7 +212,11 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       return;
     }
     if (valorBruto <= 0) {
-      toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
+      toast({
+        title: "Valor inválido",
+        description: modoValor === "total" ? "Informe o valor total do frete." : "Informe peso e valor por tonelada.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -640,6 +654,32 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="inline-flex rounded-md border p-0.5 gap-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={modoValor === "tonelada" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => setModoValor("tonelada")}
+                >
+                  Por tonelada
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={modoValor === "total" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => {
+                    setModoValor("total");
+                    if (!unmaskCurrency(valorTotalManual) || Number(unmaskCurrency(valorTotalManual)) === 0) {
+                      const bruto = +(pesoTon * valorTonInput).toFixed(2);
+                      if (bruto > 0) setValorTotalManual(maskCurrency(String(Math.round(bruto * 100))));
+                    }
+                  }}
+                >
+                  Valor total
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Peso (kg) *</Label>
@@ -654,16 +694,32 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                     {pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t
                   </p>
                 </div>
-                <div>
-                  <Label className="text-xs">Valor por tonelada *</Label>
-                  <Input
-                    value={form.valor_tonelada}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, valor_tonelada: maskCurrency(e.target.value) }))
-                    }
-                    placeholder="R$ 0,00"
-                  />
-                </div>
+                {modoValor === "tonelada" ? (
+                  <div>
+                    <Label className="text-xs">Valor por tonelada *</Label>
+                    <Input
+                      value={form.valor_tonelada}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, valor_tonelada: maskCurrency(e.target.value) }))
+                      }
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label className="text-xs">Valor total do frete *</Label>
+                    <Input
+                      value={valorTotalManual}
+                      onChange={(e) => setValorTotalManual(maskCurrency(e.target.value))}
+                      placeholder="R$ 0,00"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {pesoTon > 0
+                        ? `≈ ${valorTon.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/t`
+                        : "Informe o peso para calcular o valor/t"}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="bg-muted/30 rounded-md px-3 py-2 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Valor bruto</span>
