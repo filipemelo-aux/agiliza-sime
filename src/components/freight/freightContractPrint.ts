@@ -343,31 +343,33 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${input.numero}</title>
 <style>
-  @page { size: A4; margin: 14mm 12mm; }
-  body { font-family: Arial, sans-serif; font-size: 10pt; color: #111; line-height: 1.4; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2B4C7E; padding-bottom: 6px; margin-bottom: 8px; }
-  .header .empresa { font-size: 9pt; line-height: 1.3; }
-  .header .empresa b { font-size: 11pt; }
-  .header .num { text-align: right; font-size: 11pt; }
-  .header .num b { font-size: 16pt; color: #2B4C7E; display: block; }
-  h1.tit { text-align: center; font-size: 12pt; margin: 6px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  table.party { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: 9pt; }
-  table.party th, table.party td { border: 1px solid #999; padding: 3px 6px; text-align: left; vertical-align: top; }
-  table.party th { background: #e8eef5; font-weight: bold; text-transform: uppercase; font-size: 9pt; }
-  h2 { font-size: 9.5pt; margin: 10px 0 4px; text-transform: uppercase; background: #f1f1f1; padding: 3px 6px; border-left: 3px solid #2B4C7E; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 16px; font-size: 9pt; padding: 2px 6px; }
-  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px 16px; font-size: 9pt; padding: 2px 6px; }
-  table.carga { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 4px 0; }
-  table.carga th, table.carga td { border: 1px solid #999; padding: 3px 5px; text-align: left; }
-  table.carga th { background: #f1f1f1; font-size: 8pt; }
-  .composicao { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px 6px; font-size: 9pt; }
-  .composicao .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 1px 0; }
-  .composicao .row.total { border-top: 1px solid #333; border-bottom: 1px solid #333; font-weight: bold; padding: 3px 0; margin-top: 4px; }
-  .aviso { font-size: 8.5pt; padding: 6px 8px; background: #fffbe6; border: 1px solid #f0e68c; margin: 6px 0; text-align: justify; line-height: 1.35; }
-  .obs { padding: 4px 6px; font-size: 9pt; min-height: 28px; border: 1px solid #ccc; margin-top: 4px; }
-  .sign { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
-  .sign .line { border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 9pt; }
-  .footer { margin-top: 14px; border-top: 1px solid #ccc; padding-top: 4px; font-size: 8pt; color: #666; display: flex; justify-content: space-between; }
+  @page { size: A4 portrait; margin: 8mm 9mm; }
+  html, body { height: auto; }
+  body { font-family: Arial, sans-serif; font-size: 8pt; color: #111; line-height: 1.15; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #2B4C7E; padding-bottom: 3px; margin-bottom: 4px; }
+  .header .empresa { font-size: 7.5pt; line-height: 1.15; }
+  .header .empresa b { font-size: 9pt; }
+  .header .num { text-align: right; font-size: 8pt; }
+  .header .num b { font-size: 12pt; color: #2B4C7E; display: block; }
+  h1.tit { text-align: center; font-size: 10pt; margin: 3px 0 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+  table.party { width: 100%; border-collapse: collapse; margin: 2px 0 4px; font-size: 7.5pt; }
+  table.party th, table.party td { border: 1px solid #999; padding: 1px 4px; text-align: left; vertical-align: top; }
+  table.party th { background: #e8eef5; font-weight: bold; text-transform: uppercase; font-size: 7.5pt; }
+  h2 { font-size: 8pt; margin: 5px 0 2px; text-transform: uppercase; background: #f1f1f1; padding: 2px 5px; border-left: 3px solid #2B4C7E; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 12px; font-size: 7.5pt; padding: 1px 5px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px 12px; font-size: 7.5pt; padding: 1px 5px; }
+  table.carga { width: 100%; border-collapse: collapse; font-size: 7pt; margin: 2px 0; }
+  table.carga th, table.carga td { border: 1px solid #999; padding: 1px 4px; text-align: left; }
+  table.carga th { background: #f1f1f1; font-size: 7pt; }
+  .composicao { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 2px 5px; font-size: 7.5pt; }
+  .composicao .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 0; }
+  .composicao .row.total { border-top: 1px solid #333; border-bottom: 1px solid #333; font-weight: bold; padding: 1px 0; margin-top: 2px; }
+  .aviso { font-size: 7pt; padding: 3px 5px; background: #fffbe6; border: 1px solid #f0e68c; margin: 3px 0; text-align: justify; line-height: 1.2; }
+  .obs { padding: 2px 5px; font-size: 7.5pt; min-height: 18px; border: 1px solid #ccc; margin-top: 2px; }
+  .sign { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .sign .line { border-top: 1px solid #000; padding-top: 2px; text-align: center; font-size: 7.5pt; }
+  .footer { margin-top: 6px; border-top: 1px solid #ccc; padding-top: 2px; font-size: 7pt; color: #666; display: flex; justify-content: space-between; }
+
 </style></head><body>
 
 <div class="header">
