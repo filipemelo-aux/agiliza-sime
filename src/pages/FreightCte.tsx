@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle, Eye } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle, Eye, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
@@ -30,6 +30,7 @@ import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDia
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { buildFullContractHtml, combineContractsHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 
 
 export interface Cte {
@@ -98,6 +99,77 @@ export default function FreightCte() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [printing, setPrinting] = useState(false);
+
+  const handlePrintSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setPrinting(true);
+    try {
+      const { data, error } = await supabase
+        .from("freight_contracts")
+        .select("*")
+        .in("cte_id", ids);
+      if (error) throw error;
+      const contratos = data || [];
+      if (contratos.length === 0) {
+        toast({
+          title: "Nenhum contrato encontrado",
+          description: "Os CT-es selecionados não possuem contrato de frete gerado.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const byCte = new Map(ctes.map((c) => [c.id, c]));
+      const ordered = ids
+        .map((id) => contratos.find((c: any) => c.cte_id === id))
+        .filter(Boolean) as any[];
+      const htmls: string[] = [];
+      for (const d of ordered) {
+        const cte = byCte.get(d.cte_id) as any;
+        htmls.push(
+          await buildFullContractHtml({
+            numero: d.numero,
+            data_contrato: d.data_contrato,
+            contratado_id: d.contratado_id,
+            contratado_nome: d.contratado_nome,
+            contratado_documento: d.contratado_documento,
+            contratado_tipo: d.contratado_tipo,
+            motorista_id: d.motorista_id,
+            motorista_nome: d.motorista_nome,
+            motorista_cpf: d.motorista_cpf,
+            vehicle_id: d.vehicle_id,
+            placa_veiculo: d.placa_veiculo,
+            veiculo_modelo: d.veiculo_modelo,
+            municipio_origem: d.municipio_origem,
+            uf_origem: d.uf_origem,
+            municipio_destino: d.municipio_destino,
+            uf_destino: d.uf_destino,
+            natureza_carga: d.natureza_carga,
+            peso_kg: Number(d.peso_kg || 0),
+            valor_tonelada: Number(d.valor_tonelada || 0),
+            valor_total: Number(d.valor_total || 0),
+            observacoes: d.observacoes,
+            cte_id: d.cte_id,
+            establishment_id: cte?.establishment_id ?? null,
+            cte: cte ? { numero: cte.numero, serie: cte.serie, tipo_talao: cte.tipo_talao } : null,
+          })
+        );
+      }
+      const faltando = ids.length - ordered.length;
+      if (faltando > 0) {
+        toast({
+          title: "Alguns CT-es sem contrato",
+          description: `${faltando} CT-e(s) selecionado(s) não possuem contrato e foram ignorados.`,
+        });
+      }
+      openPrintWindow(combineContractsHtml(htmls));
+    } catch (err: any) {
+      toast({ title: "Erro ao imprimir", description: err.message, variant: "destructive" });
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   useEffect(() => {
     fetchCtes();
@@ -575,6 +647,11 @@ export default function FreightCte() {
               key: "edit", label: "Editar", icon: Pencil, mode: "single",
               disabled: !singleCte || !(singleCte.tipo_talao === "servico" || singleCte.status === "rascunho" || singleCte.status === "rejeitado"),
               onClick: () => singleCte && handleEdit(singleCte),
+            },
+            {
+              key: "print", label: printing ? "Gerando..." : "Imprimir", icon: Printer, mode: "single+batch", variant: "outline",
+              disabled: printing || selectedIds.size === 0,
+              onClick: handlePrintSelected,
             },
             {
               key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
