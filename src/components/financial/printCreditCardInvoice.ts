@@ -76,11 +76,13 @@ export async function printCreditCardInvoice(invoiceId: string) {
   td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
   tr.ok td { background: #DCFCE7; }
   tr.pending td { background: #FEF9C3; }
+  tr.frota-propria td { background: #DBEAFE; }
   tfoot td { padding: 8px 6px; font-weight: 700; background: #2B4C7E; color: #fff; }
   .legend { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 10px; }
   .legend .sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #999; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
   .legend .ok { background: #DCFCE7; }
   .legend .pending { background: #FEF9C3; }
+  .legend .frota-propria { background: #DBEAFE; }
   .obs { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; margin-top: 10px; white-space: pre-wrap; font-size: 11px; }
   .footer { margin-top: 14px; border-top: 2px solid #2B4C7E; padding-top: 6px; text-align: center; font-size: 9px; color: #666; }
 </style></head><body>
