@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
+import { buildFullContractHtml, combineContractsHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
