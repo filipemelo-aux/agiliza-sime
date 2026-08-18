@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split, X, Pencil } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, AlertTriangle, Split, X, Pencil, Link2, Unlink } from "lucide-react";
 import { exportToCsv } from "@/lib/csvExport";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -28,6 +28,9 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
 import { FiscalDocImportDialog, type FiscalDocResult } from "./FiscalDocImportDialog";
+import { LinkPayableDialog } from "./LinkPayableDialog";
+import { registerCardDischarge, revertCardDischarge, type OpenPayableOption } from "@/services/creditCardPayableLink";
+
 
 
 const MONTHS_PT_LONG = [
@@ -184,7 +187,16 @@ interface ItemRow {
   rateio_veiculos?: RateioRow[] | null;
   possible_duplicate?: boolean;
   duplicate_note?: string;
+  /** Vínculo com Contas a Pagar: a conta é quitada sem caixa e a dívida vive na fatura. */
+  origem_expense_id?: string | null;
+  origem_payment_id?: string | null;
+  origem_installment_id?: string | null;
+  origem_tipo?: string | null;
+  /** Apenas da sessão: rótulo da conta vinculada e estado pendente de gravação. */
+  origem_descricao?: string | null;
+  origem_pendente?: boolean;
 }
+
 
 interface VehicleOption { id: string; plate: string; }
 
@@ -400,9 +412,31 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         itens_nota: r.itens_nota ?? null,
         xml_original: r.xml_original ?? null,
         rateio_veiculos: (r.rateio_veiculos as any) ?? null,
+        origem_expense_id: r.origem_expense_id ?? null,
+        origem_payment_id: r.origem_payment_id ?? null,
+        origem_installment_id: r.origem_installment_id ?? null,
+        origem_tipo: r.origem_tipo ?? null,
+        origem_descricao: null as string | null,
       }));
+
+      // Rótulo das contas a pagar vinculadas (para exibição na coluna de conferência)
+      const origemIds = Array.from(
+        new Set(mapped.map((m) => m.origem_expense_id).filter(Boolean) as string[]),
+      );
+      if (origemIds.length > 0) {
+        const { data: exps } = await supabase
+          .from("expenses")
+          .select("id, descricao")
+          .in("id", origemIds);
+        const byId = new Map(((exps as any[]) || []).map((e) => [e.id, e.descricao]));
+        mapped.forEach((m) => {
+          if (m.origem_expense_id) m.origem_descricao = byId.get(m.origem_expense_id) || null;
+        });
+      }
+
       setItems(mapped);
       setOriginalItems(mapped);
+
 
     })();
   }, [open, invoiceId]);
@@ -601,6 +635,40 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       return next;
     }));
   }, [chartAccounts]);
+
+  /** Vincula o lançamento do cartão a uma conta a pagar em aberto (baixa efetivada ao salvar). */
+  const linkPayable = useCallback((idx: number, opt: OpenPayableOption) => {
+    setItems((prev) => prev.map((it, i) => i !== idx ? it : {
+      ...it,
+      origem_expense_id: opt.expense_id,
+      origem_installment_id: opt.installment_id,
+      origem_payment_id: it.origem_payment_id ?? null,
+      origem_tipo: "vinculo",
+      origem_descricao: opt.descricao,
+      origem_pendente: !it.origem_payment_id,
+      plano_contas_id: it.plano_contas_id || opt.plano_contas_id,
+      centro_custo: it.centro_custo || (opt.centro_custo || ""),
+      favorecido_id: it.favorecido_id || opt.favorecido_id,
+      favorecido_nome: it.favorecido_nome || (opt.favorecido_nome || ""),
+    }));
+    toast.success("Conta vinculada. A baixa (sem caixa) será efetivada ao salvar a fatura.");
+  }, []);
+
+  /** Remove o vínculo — a conta volta ao Contas a Pagar quando a fatura for salva. */
+  const unlinkPayable = useCallback((idx: number) => {
+    setItems((prev) => prev.map((it, i) => i !== idx ? it : {
+      ...it,
+      origem_expense_id: null,
+      origem_installment_id: null,
+      origem_payment_id: null,
+      origem_tipo: null,
+      origem_descricao: null,
+      origem_pendente: false,
+    }));
+    toast.message("Vínculo removido. A conta será reaberta ao salvar a fatura.");
+  }, []);
+
+
 
   // Modal de novo lançamento manual
   interface ManualForm {
@@ -826,6 +894,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
   const [fiscalAttachIdx, setFiscalAttachIdx] = useState<number | null>(null);
   const [rateioIdx, setRateioIdx] = useState<number | null>(null);
+  const [linkIdx, setLinkIdx] = useState<number | null>(null);
+
   const [pendingExpandFitid, setPendingExpandFitid] = useState<string | null>(null);
 
   const handleFiscalConfirm = useCallback((data: FiscalDocResult) => {
@@ -1839,6 +1909,35 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: observacoes.trim() || null,
       };
 
+      // ---- Vínculos com Contas a Pagar ----
+      // 1) Itens removidos da fatura que quitavam uma conta → estorna a baixa.
+      const keptPaymentIds = new Set(
+        workItems.map((i) => i.origem_payment_id).filter(Boolean) as string[],
+      );
+      for (const orig of originalItems) {
+        if (orig.origem_payment_id && !keptPaymentIds.has(orig.origem_payment_id)) {
+          await revertCardDischarge({
+            paymentId: orig.origem_payment_id,
+            expenseId: orig.origem_expense_id as string,
+            installmentId: orig.origem_installment_id || null,
+          });
+        }
+      }
+      // 2) Vínculos criados nesta sessão → registra a baixa (sem caixa) na conta a pagar.
+      for (const it of workItems) {
+        if (it.origem_pendente && it.origem_expense_id && !it.origem_payment_id) {
+          it.origem_payment_id = await registerCardDischarge({
+            expenseId: it.origem_expense_id,
+            installmentId: it.origem_installment_id || null,
+            valor: Number(it.amount || 0),
+            dataPagamento: it.posted_date,
+            userId: user?.id,
+            observacoes: `Quitada pelo lançamento do cartão ${cardName.trim()} — ${it.description}`,
+          });
+          it.origem_pendente = false;
+        }
+      }
+
       const rows = workItems.map((it) => ({
         invoice_id: id,
         posted_date: it.posted_date,
@@ -1861,7 +1960,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         itens_nota: it.itens_nota ?? null,
         xml_original: it.xml_original || null,
         rateio_veiculos: (it.rateio_veiculos && it.rateio_veiculos.length > 0) ? it.rateio_veiculos : null,
+        origem_expense_id: it.origem_expense_id || null,
+        origem_payment_id: it.origem_payment_id || null,
+        origem_installment_id: it.origem_installment_id || null,
+        origem_tipo: it.origem_tipo || null,
       }));
+
 
       if (id) {
         const { error } = await (supabase.rpc as any)("save_credit_card_invoice_edit", {
@@ -2306,8 +2410,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         onExpandParcelas={() => expandParcelas(originalIdx)}
                         onAttachFiscal={() => { setFiscalAttachIdx(originalIdx); setFiscalDialogOpen(true); }}
                         onOpenRateio={() => setRateioIdx(originalIdx)}
+                        onLinkPayable={() => setLinkIdx(originalIdx)}
+                        onUnlinkPayable={() => unlinkPayable(originalIdx)}
                         expanding={expanding}
                         referenceYM={referenceYM}
+
                       />
 
                     ))}
@@ -2591,6 +2698,18 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
+      {/* Vínculo do lançamento do cartão com uma conta a pagar em aberto */}
+      <LinkPayableDialog
+        open={linkIdx !== null}
+        onOpenChange={(o) => { if (!o) setLinkIdx(null); }}
+        amount={linkIdx !== null ? Number(items[linkIdx]?.amount || 0) : 0}
+        postedDate={linkIdx !== null ? items[linkIdx]?.posted_date : undefined}
+        description={linkIdx !== null ? items[linkIdx]?.description : undefined}
+        onSelect={(opt) => { if (linkIdx !== null) linkPayable(linkIdx, opt); setLinkIdx(null); }}
+      />
+
+
+
       {/* Replicação de Data de Emissão entre parcelas do mesmo agrupamento */}
       <Dialog open={!!cascadeAsk} onOpenChange={(o) => { if (!o && !cascadeRunning) setCascadeAsk(null); }}>
         <DialogContent className="max-w-md">
@@ -2718,6 +2837,9 @@ interface InvoiceItemRowProps {
   onExpandParcelas: () => void;
   onAttachFiscal: () => void;
   onOpenRateio: () => void;
+  onLinkPayable: () => void;
+  onUnlinkPayable: () => void;
+
   expanding: boolean;
   referenceYM: string;
 }
@@ -2725,7 +2847,7 @@ interface InvoiceItemRowProps {
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
   onUpdate, onRemove, onOpenCreate, wasEdited,
-  selected, onToggleSelected, onExpandParcelas, onAttachFiscal, onOpenRateio, expanding, referenceYM,
+  selected, onToggleSelected, onExpandParcelas, onAttachFiscal, onOpenRateio, onLinkPayable, onUnlinkPayable, expanding, referenceYM,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
@@ -2946,21 +3068,55 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         {formatCurrency(item.amount)}
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle min-w-[110px] w-[12%]">
-        {item.possible_duplicate ? (
-          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
-            <div className="flex items-start gap-1.5">
-              <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-600 shrink-0" />
-              <div className="min-w-0 space-y-1">
-                <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight truncate" title={item.duplicate_note}>
-                  {item.duplicate_note}
+        <div className="space-y-1">
+          {item.possible_duplicate && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
+              <div className="flex items-start gap-1.5">
+                <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-600 shrink-0" />
+                <div className="min-w-0 space-y-1">
+                  <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight truncate" title={item.duplicate_note}>
+                    {item.duplicate_note}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <span className="text-[10px] text-muted-foreground">—</span>
-        )}
+          )}
+
+          {item.origem_expense_id ? (
+            <div className="flex items-center gap-1 min-w-0">
+              <span
+                className="flex-1 min-w-0 inline-flex items-center gap-1 h-6 px-1.5 rounded border border-success/40 bg-success/10 text-[10px] text-success-foreground truncate"
+                title={`Quita a conta a pagar: ${item.origem_descricao || item.origem_expense_id}${item.origem_pendente ? " (baixa pendente de salvamento)" : ""}`}
+              >
+                <Link2 className="h-3 w-3 shrink-0" />
+                <span className="truncate">{item.origem_descricao || "Conta vinculada"}</span>
+              </span>
+              {!isClosed && (
+                <button
+                  type="button"
+                  onClick={onUnlinkPayable}
+                  title="Remover vínculo (reabre a conta a pagar)"
+                  className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-destructive/10 text-destructive shrink-0"
+                >
+                  <Unlink className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ) : (
+            !isClosed && (
+              <button
+                type="button"
+                onClick={onLinkPayable}
+                title="Vincular a uma conta a pagar em aberto (quita sem gerar caixa)"
+                className="inline-flex items-center gap-1 h-6 px-1.5 rounded border border-border bg-muted/40 text-[10px] text-muted-foreground hover:bg-accent"
+              >
+                <Link2 className="h-3 w-3" /> Vincular conta
+              </button>
+            )
+          )}
+        </div>
       </TableCell>
+
       <TableCell className="px-1 py-1.5 align-middle min-w-[150px] w-[14%]">
 
         <PlanoContasCombobox

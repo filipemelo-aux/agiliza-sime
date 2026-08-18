@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
+import { listCardInvoices, payPayableWithCard, type CardInvoiceOption } from "@/services/creditCardPayableLink";
+
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
@@ -78,6 +80,10 @@ export function PaymentDischargeDialog({
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
   const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
+  const [cardInvoices, setCardInvoices] = useState<CardInvoiceOption[]>([]);
+  const [cardInvoiceId, setCardInvoiceId] = useState<string>("");
+
+  const isCard = formaPagamento === "cartao_credito";
 
   useEffect(() => {
     if (open && expenseId) {
@@ -86,9 +92,29 @@ export function PaymentDischargeDialog({
       setObservacoes("");
       setFormaPagamento("");
       setDataPagamento(getLocalDateISO());
+      setCardInvoiceId("");
       loadHistory();
     }
   }, [open, expenseId, installment?.installmentId]);
+
+  // Carrega faturas de cartão apenas quando a forma "Cartão de Crédito" é escolhida.
+  useEffect(() => {
+    if (!open || !isCard) return;
+    (async () => {
+      try {
+        const list = await listCardInvoices();
+        setCardInvoices(list);
+        // Sugere a fatura cujo mês de referência corresponde à data do pagamento.
+        const ym = (dataPagamento || "").slice(0, 7);
+        const suggested =
+          list.find((i) => i.status !== "paga" && (i.due_date || "").slice(0, 7) === ym) ||
+          list.find((i) => i.status === "aberta");
+        setCardInvoiceId((prev) => prev || suggested?.id || "");
+      } catch (e: any) {
+        toast.error(e.message || "Erro ao carregar faturas de cartão");
+      }
+    })();
+  }, [open, isCard]);
 
   const loadHistory = async () => {
     const { data } = await supabase
@@ -99,11 +125,53 @@ export function PaymentDischargeDialog({
     setHistory((data as any) || []);
   };
 
+
   const handleConfirm = async () => {
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
     if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
     if (!dataPagamento) return toast.error("Informe a data do pagamento");
+
+    // ---- CARTÃO DE CRÉDITO: troca de credor, sem saída de caixa ----
+    if (isCard) {
+      if (!cardInvoiceId) return toast.error("Selecione a fatura do cartão que receberá o lançamento");
+      setSaving(true);
+      try {
+        const { data: exp } = await supabase
+          .from("expenses")
+          .select("descricao, favorecido_id, favorecido_nome, plano_contas_id, centro_custo")
+          .eq("id", expenseId)
+          .maybeSingle();
+        const e: any = exp || {};
+        const parcelaSufixo = isInstallmentMode
+          ? ` (parcela ${installment!.numeroParcela}/${installment!.totalParcelas})`
+          : "";
+        await payPayableWithCard({
+          invoiceId: cardInvoiceId,
+          expenseId,
+          installmentId: isInstallmentMode ? installment!.installmentId : null,
+          valor: valorNum,
+          dataPagamento,
+          descricao: `${e.descricao || descricao || "Conta a pagar"}${parcelaSufixo}`,
+          favorecidoId: e.favorecido_id || null,
+          favorecidoNome: e.favorecido_nome || favorecidoNome || null,
+          planoContasId: e.plano_contas_id || null,
+          centroCusto: e.centro_custo || null,
+          userId: user?.id,
+          observacoes: observacoes.trim() || null,
+        });
+        toast.success("Conta quitada no cartão de crédito — lançamento criado na fatura (sem impacto no caixa).");
+        setSaving(false);
+        onOpenChange(false);
+        onSaved();
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao lançar no cartão");
+        setSaving(false);
+      }
+      return;
+    }
+
+
 
     // Calculate interest: any amount above the remaining balance is interest
     const juros = Math.max(0, Math.round((valorNum - saldoRestante) * 100) / 100);
@@ -232,6 +300,27 @@ export function PaymentDischargeDialog({
               </Select>
             </div>
           </div>
+
+          {isCard && (
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+              <Label className="text-xs">Fatura do cartão que receberá o lançamento</Label>
+              <Select value={cardInvoiceId} onValueChange={setCardInvoiceId}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione a fatura" /></SelectTrigger>
+                <SelectContent>
+                  {cardInvoices.map(i => (
+                    <SelectItem key={i.id} value={i.id} className="text-xs">
+                      {i.card_name} — {i.reference_label || formatDateBR(i.due_date)} · venc. {formatDateBR(i.due_date)}
+                      {i.status !== "aberta" ? ` (${i.status})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                A conta será quitada sem saída de caixa e a obrigação passará para a fatura do cartão.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label>Observações</Label>
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
