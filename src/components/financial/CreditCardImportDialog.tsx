@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSortableTable, type SortState } from "@/hooks/useSortableTable";
 import { supabase } from "@/integrations/supabase/client";
+import { personDisplayName } from "@/lib/personName";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -2145,7 +2146,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             .maybeSingle();
           if (bank) {
             favorecidoId = (bank as any).id;
-            favorecidoNome = (bank as any).razao_social || (bank as any).full_name || (bank as any).nome_fantasia || cardName.trim();
+            favorecidoNome = personDisplayName(bank as any, cardName.trim());
           }
         }
         if (!favorecidoNome) favorecidoNome = cardName.trim();
@@ -2335,7 +2336,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 placeholder="Buscar banco cadastrado..."
                 selectedName={cardName || undefined}
                 onSelect={(p) => {
-                  const nome = p.razao_social || p.full_name || p.nome_fantasia || "";
+                  const nome = personDisplayName(p);
                   setCardName(nome);
                   setBankPersonId(p.id);
                 }}
@@ -2453,7 +2454,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
                     placeholder="Favorecido em lote..."
                     onSelect={(p) => {
-                      const nome = (p as any).razao_social || p.full_name || (p as any).nome_fantasia || "";
+                      const nome = personDisplayName(p as any);
                       applyFavorecidoToSelected(p.id, nome);
                     }}
                   />
@@ -2633,7 +2634,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             .eq("user_id", createdUserId)
             .maybeSingle();
           if (data) {
-            const nome = (data as any).razao_social || (data as any).full_name || (data as any).nome_fantasia || "";
+            const nome = personDisplayName(data as any);
             updateItem(idx, { favorecido_id: (data as any).id, favorecido_nome: nome });
             toast.success("Favorecido cadastrado e vinculado.");
           }
@@ -2703,7 +2704,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 onSelect={(p) => setManualForm((f) => ({
                   ...f,
                   favorecido_id: p.id,
-                  favorecido_nome: p.razao_social || p.full_name || "",
+                  favorecido_nome: personDisplayName(p as any),
                 }))}
                 onClear={() => setManualForm((f) => ({ ...f, favorecido_id: null, favorecido_nome: "" }))}
               />
@@ -2992,7 +2993,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   const [descriptionLocal, setDescriptionLocal] = useState(item.description);
 
   // Auto-search state for favorecido
-  const [autoResults, setAutoResults] = useState<Array<{ id: string; full_name: string; category: string }>>([]);
+  const [autoResults, setAutoResults] = useState<Array<{ id: string; full_name: string; category: string; razao_social?: string | null; nome_fantasia?: string | null }>>([]);
   const [autoOpen, setAutoOpen] = useState(false);
   const [autoLoading, setAutoLoading] = useState(false);
   const autoDebounce = useRef<ReturnType<typeof setTimeout>>();
@@ -3138,13 +3139,14 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
                     type="button"
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      setFavorecidoLocal(p.full_name);
+                      const nomePadrao = personDisplayName(p);
+                      setFavorecidoLocal(nomePadrao);
                       setAutoOpen(false);
-                      onUpdate(idx, { favorecido_nome: p.full_name, favorecido_id: p.id });
+                      onUpdate(idx, { favorecido_nome: nomePadrao, favorecido_id: p.id });
                     }}
                     className="w-full text-left px-3 py-1.5 hover:bg-accent text-xs border-b border-border last:border-0"
                   >
-                    <div className="font-medium truncate">{p.full_name}</div>
+                    <div className="font-medium truncate">{personDisplayName(p)}</div>
                     <div className="text-[10px] text-muted-foreground capitalize">{p.category}</div>
                   </button>
                 ))}
