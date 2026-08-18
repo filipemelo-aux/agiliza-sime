@@ -2105,6 +2105,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         }
       }
 
+      // Replica a classificação editada para as demais parcelas do agrupamento.
+      await propagateClassificationToInstallments(workItems);
+
+
+
       // Sync the linked expense in Contas a Pagar:
       // - If closing now → create the expense (or update existing).
       // - If editing an already-closed invoice (expense exists) → always update the expense.
