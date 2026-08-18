@@ -40,7 +40,23 @@ import {
   type Expense,
 } from "@/services/rh";
 
+/** Caminho das contas pai: "Despesas › Administrativas" */
+function accountParentPath(a: any, all: any[]): string {
+  const byId = new Map(all.map((x: any) => [x.id, x]));
+  const chain: string[] = [];
+  let pid = a?.conta_pai_id ?? null;
+  let guard = 0;
+  while (pid && guard++ < 10) {
+    const p: any = byId.get(pid);
+    if (!p) break;
+    chain.unshift(p.nome);
+    pid = p.conta_pai_id ?? null;
+  }
+  return chain.join(" › ");
+}
+
 const formatBRL = (n: number) =>
+
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
 type RHSectionProp = "colaboradores" | "movimentacoes" | "folha_pagamento" | "config";
