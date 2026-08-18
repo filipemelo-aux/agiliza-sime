@@ -401,9 +401,9 @@ export default function FreightContracts() {
               },
             },
             {
-              key: "print", label: "Imprimir", icon: Printer, mode: "single",
-              disabled: !single,
-              onClick: () => single && handlePrint(single),
+              key: "print", label: "Imprimir", icon: Printer, mode: "single+batch",
+              disabled: selectedRows.length === 0,
+              onClick: handlePrintSelected,
             },
             {
               key: "cte", label: "CT-e vinculado", icon: ExternalLink, mode: "single",
