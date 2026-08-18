@@ -769,14 +769,13 @@ export function FinancialPaid() {
             <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
           </div>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <Input type="date" value={periodoInicio} onChange={(e) => setPeriodoInicio(e.target.value)} className="h-8 text-xs flex-1 min-w-0" />
-            <span className="text-xs text-muted-foreground shrink-0">até</span>
-            <Input type="date" value={periodoFim} onChange={(e) => setPeriodoFim(e.target.value)} className="h-8 text-xs flex-1 min-w-0" />
-            {(periodoInicio || periodoFim) && (
-              <button type="button" onClick={() => { setPeriodoInicio(""); setPeriodoFim(""); }} className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Limpar período">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
+            <PeriodFilter
+              size="sm"
+              allowClear
+              inicio={periodoInicio}
+              fim={periodoFim}
+              onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
+            />
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
