@@ -1569,10 +1569,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       xml_original: r.xml_original ?? null,
       rateio_veiculos: (r.rateio_veiculos as any) ?? null,
     }));
-    setItems(mapped);
+    // Preserva lançamentos ainda NÃO gravados (ex.: OFX recém-importado em conferência).
+    // Sem isso, qualquer recarga (geração de parcelas, etc.) descartaria o trabalho em andamento.
+    const persistedFitids = new Set(
+      mapped.map((m) => (m.fitid || "").trim()).filter(Boolean),
+    );
+    const pendentes = items.filter(
+      (it) => !it.id && (!it.fitid?.trim() || !persistedFitids.has(it.fitid.trim())),
+    );
+    const merged = [...pendentes, ...mapped] as ItemRow[];
+    setItems(merged);
     setOriginalItems(mapped);
-    return mapped as ItemRow[];
+    return merged;
   };
+
 
   const expandParcelas = async (idx: number) => {
     const item = items[idx];
