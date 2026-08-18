@@ -409,9 +409,31 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         itens_nota: r.itens_nota ?? null,
         xml_original: r.xml_original ?? null,
         rateio_veiculos: (r.rateio_veiculos as any) ?? null,
+        origem_expense_id: r.origem_expense_id ?? null,
+        origem_payment_id: r.origem_payment_id ?? null,
+        origem_installment_id: r.origem_installment_id ?? null,
+        origem_tipo: r.origem_tipo ?? null,
+        origem_descricao: null as string | null,
       }));
+
+      // Rótulo das contas a pagar vinculadas (para exibição na coluna de conferência)
+      const origemIds = Array.from(
+        new Set(mapped.map((m) => m.origem_expense_id).filter(Boolean) as string[]),
+      );
+      if (origemIds.length > 0) {
+        const { data: exps } = await supabase
+          .from("expenses")
+          .select("id, descricao")
+          .in("id", origemIds);
+        const byId = new Map(((exps as any[]) || []).map((e) => [e.id, e.descricao]));
+        mapped.forEach((m) => {
+          if (m.origem_expense_id) m.origem_descricao = byId.get(m.origem_expense_id) || null;
+        });
+      }
+
       setItems(mapped);
       setOriginalItems(mapped);
+
 
     })();
   }, [open, invoiceId]);
