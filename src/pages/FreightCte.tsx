@@ -30,7 +30,8 @@ import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDia
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { buildFullContractHtml, combineContractsHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
+import { openPrintWindow } from "@/components/freight/freightContractPrint";
+import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
 
 
 export interface Cte {
