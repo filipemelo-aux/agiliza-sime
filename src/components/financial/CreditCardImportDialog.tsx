@@ -2976,7 +2976,13 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   return (
     <TableRow
       className={cn(
-        item.possible_duplicate ? "bg-amber-100/60 dark:bg-amber-900/20 ring-2 ring-amber-500/60" : (wasEdited ? "bg-success/10" : "bg-warning/10"),
+        item.possible_duplicate
+          ? "bg-amber-100/60 dark:bg-amber-900/20 ring-2 ring-amber-500/60"
+          : wasEdited
+            ? "bg-success/10"
+            : item.centro_custo === "frota_propria"
+              ? "bg-primary/15 hover:bg-primary/25"
+              : "bg-warning/10",
         selected && "ring-1 ring-primary/40",
         !isClosed && "cursor-pointer"
       )}

@@ -36,7 +36,8 @@ export async function printCreditCardInvoice(invoiceId: string) {
   const tbody = items
     .map((r) => {
       const classified = !!(r.favorecido_id || r.plano_contas_id || (r.centro_custo && String(r.centro_custo).trim()));
-      const rowClass = classified ? "ok" : "pending";
+      const isFrotaPropria = r.centro_custo === "frota_propria";
+      const rowClass = isFrotaPropria ? "frota-propria" : classified ? "ok" : "pending";
       const planoLabel = r.plano ? `${r.plano.codigo} - ${r.plano.nome}` : "—";
       const ccLabel = r.centro_custo ? CENTRO_CUSTO_LABELS[r.centro_custo] || r.centro_custo : "—";
       const veicLabel = r.veiculo?.plate || "—";
@@ -75,11 +76,13 @@ export async function printCreditCardInvoice(invoiceId: string) {
   td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
   tr.ok td { background: #DCFCE7; }
   tr.pending td { background: #FEF9C3; }
+  tr.frota-propria td { background: #DBEAFE; }
   tfoot td { padding: 8px 6px; font-weight: 700; background: #2B4C7E; color: #fff; }
   .legend { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 10px; }
   .legend .sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #999; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
   .legend .ok { background: #DCFCE7; }
   .legend .pending { background: #FEF9C3; }
+  .legend .frota-propria { background: #DBEAFE; }
   .obs { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; margin-top: 10px; white-space: pre-wrap; font-size: 11px; }
   .footer { margin-top: 14px; border-top: 2px solid #2B4C7E; padding-top: 6px; text-align: center; font-size: 9px; color: #666; }
 </style></head><body>
@@ -105,6 +108,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
 <div class="legend">
   <span><span class="sw ok"></span>Classificado</span>
   <span><span class="sw pending"></span>Pendente de classificação</span>
+  <span><span class="sw frota-propria"></span>Frota Própria</span>
 </div>
 
 <table>
