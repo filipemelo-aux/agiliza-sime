@@ -36,7 +36,8 @@ export async function printCreditCardInvoice(invoiceId: string) {
   const tbody = items
     .map((r) => {
       const classified = !!(r.favorecido_id || r.plano_contas_id || (r.centro_custo && String(r.centro_custo).trim()));
-      const rowClass = classified ? "ok" : "pending";
+      const isFrotaPropria = r.centro_custo === "frota_propria";
+      const rowClass = isFrotaPropria ? "frota-propria" : classified ? "ok" : "pending";
       const planoLabel = r.plano ? `${r.plano.codigo} - ${r.plano.nome}` : "—";
       const ccLabel = r.centro_custo ? CENTRO_CUSTO_LABELS[r.centro_custo] || r.centro_custo : "—";
       const veicLabel = r.veiculo?.plate || "—";
