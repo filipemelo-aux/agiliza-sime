@@ -417,7 +417,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
   const handleSave = async () => {
     if (!person) return;
     if (!form.full_name.trim()) {
-      toast({ title: showCNPJ ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
+      toast({ title: form.person_type === "cnpj" ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -538,7 +538,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
   const doCreate = async (): Promise<string | null> => {
     if (!form.full_name.trim()) {
-      toast({ title: showCNPJ ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
+      toast({ title: form.person_type === "cnpj" ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
       return null;
     }
     setLoading(true);
