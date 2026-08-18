@@ -908,13 +908,14 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           <Card>
             <CardContent className="p-3 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Data Inicial</Label>
-                  <Input type="date" className="h-8 text-xs" value={filters.dataInicio} onChange={(e) => updateFilter("dataInicio", e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Data Final</Label>
-                  <Input type="date" className="h-8 text-xs" value={filters.dataFim} onChange={(e) => updateFilter("dataFim", e.target.value)} />
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Período</Label>
+                  <PeriodFilter
+                    size="sm"
+                    inicio={filters.dataInicio}
+                    fim={filters.dataFim}
+                    onChange={(i, f) => setFilters((prev) => ({ ...prev, dataInicio: i, dataFim: f }))}
+                  />
                 </div>
                 {showStatus && (
                   <div className="space-y-1">
