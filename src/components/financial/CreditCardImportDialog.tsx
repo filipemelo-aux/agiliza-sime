@@ -2145,11 +2145,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const toolbarActions: ToolbarAction[] = [
     { key: "ofx", label: "Importar OFX", icon: Upload, mode: "always", disabled: isClosed, onClick: () => fileRef.current?.click() },
     { key: "novo", label: "Novo lançamento", icon: Plus, mode: "create", disabled: isClosed, onClick: addManualItem },
-    { key: "xml", label: "XML / Nota de Serviço", icon: FileText, mode: "always", disabled: isClosed, onClick: () => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); } },
+    { key: "xml", label: "XML / Nota de Serviço", icon: FileText, mode: "create", disabled: isClosed, onClick: () => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); } },
     { key: "sugerir", label: "Sugerir remoções", icon: Search, mode: "always", disabled: isClosed || items.length === 0, onClick: suggestRemovalsForTarget },
     { key: "csv", label: "Exportar CSV", icon: Download, mode: "always", disabled: items.length === 0, onClick: exportItemsCsv },
     { key: "editar", label: "Editar lançamento", icon: Pencil, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) editManualItem(singleIdx); } },
     { key: "vincular", label: "Vincular XML/NFS-e", icon: FileText, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx === null) return; setFiscalAttachIdx(singleIdx); setFiscalDialogOpen(true); } },
+    {
+      key: "vincular-conta",
+      label: singleIdx !== null && items[singleIdx]?.origem_expense_id ? "Desvincular conta" : "Vincular conta",
+      icon: Link2,
+      mode: "single",
+      disabled: isClosed,
+      onClick: () => {
+        if (singleIdx === null) return;
+        if (items[singleIdx]?.origem_expense_id) unlinkPayable(singleIdx);
+        else setLinkIdx(singleIdx);
+      },
+    },
     { key: "favorecido", label: "Cadastrar favorecido", icon: Plus, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setCreatePersonOpenIdx(singleIdx); } },
     { key: "rateio", label: "Ratear veículos", icon: Split, mode: "single", disabled: isClosed, onClick: () => { if (singleIdx !== null) setRateioIdx(singleIdx); } },
     // Geração de parcelas é automática no salvamento — sem botão manual.
