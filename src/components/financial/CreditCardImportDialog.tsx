@@ -1044,7 +1044,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (selectedIdxs.size === 0) return;
 
     const selectedItems = Array.from(selectedIdxs).map((i) => items[i]).filter(Boolean);
-    const parcelados = selectedItems.filter((it) => Number(it.parcela_total || 0) > 1);
+    // Só faz sentido excluir "todo o agrupamento" para itens já persistidos.
+    const parcelados = selectedItems.filter((it) => Number(it.parcela_total || 0) > 1 && !!it.id);
 
     if (parcelados.length > 0) {
       const ok = await confirm({
@@ -1061,7 +1062,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (ok) {
         // Excluir todas as parcelas de cada agrupamento distinto.
         const processedKeys = new Set<string>();
-        let totalDeleted = 0;
+        const deletedIds = new Set<string>();
         try {
           for (const it of parcelados) {
             const key = `${(it.favorecido_id || it.favorecido_nome || "").toLowerCase().trim()}|${normalizeInstallmentText(it.description)}|${it.parcela_total}|${Math.round(Number(it.amount || 0) * 100)}`;
@@ -1071,14 +1072,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             if (ids.length > 0) {
               const { error } = await supabase.from("credit_card_invoice_items" as any).delete().in("id", ids);
               if (error) throw error;
-              totalDeleted += ids.length;
+              ids.forEach((id) => deletedIds.add(id));
             }
           }
-          toast.success(`${totalDeleted} parcela(s) removida(s) do agrupamento.`);
-          setItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
-          setOriginalItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
+          toast.success(`${deletedIds.size} parcela(s) removida(s) do agrupamento.`);
+          // Remove apenas os itens selecionados e os que foram apagados no banco,
+          // preservando lançamentos importados ainda não salvos.
+          const keep = (it: ItemRow, i: number) => !selectedIdxs.has(i) && !(it.id && deletedIds.has(it.id));
+          setItems((prev) => prev.filter(keep));
+          setOriginalItems((prev) => prev.filter(keep));
           setSelectedIdxs(new Set());
-          await reloadCurrentInvoiceItems();
           onSaved();
           return;
         } catch (err: any) {
