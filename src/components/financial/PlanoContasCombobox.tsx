@@ -73,6 +73,23 @@ export function PlanoContasCombobox({
   const [search, setSearch] = useState("");
   const [extras, setExtras] = useState<PlanoContaOption[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [hierarchy, setHierarchy] = useState<Record<string, { nome: string; codigo: string; conta_pai_id: string | null }>>({});
+
+  // Carrega hierarquia completa (para exibir contas pai mesmo quando as options são só folhas)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("chart_of_accounts")
+        .select("id, codigo, nome, conta_pai_id")
+        .eq("ativo", true);
+      if (cancelled || !data) return;
+      const map: Record<string, { nome: string; codigo: string; conta_pai_id: string | null }> = {};
+      for (const a of data as any[]) map[a.id] = { nome: a.nome, codigo: a.codigo, conta_pai_id: a.conta_pai_id };
+      setHierarchy(map);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const reloadFromDb = useCallback(async () => {
     const tipos = [...new Set(options.map((o) => o.tipo).filter(Boolean))];
@@ -99,6 +116,27 @@ export function PlanoContasCombobox({
     return [...options, ...extras.filter((e) => !seen.has(e.id))];
   }, [options, extras]);
 
+  // Caminho das contas pai: "2 Despesas › 2.1 Operacionais"
+  const parentPathOf = useCallback(
+    (o: PlanoContaOption) => {
+      const source: Record<string, { nome: string; codigo: string; conta_pai_id: string | null }> = { ...hierarchy };
+      for (const m of merged) {
+        if (!source[m.id]) source[m.id] = { nome: m.nome, codigo: m.codigo, conta_pai_id: m.conta_pai_id ?? null };
+      }
+      const chain: string[] = [];
+      let pid = o.conta_pai_id ?? source[o.id]?.conta_pai_id ?? null;
+      let guard = 0;
+      while (pid && guard++ < 10) {
+        const p = source[pid];
+        if (!p) break;
+        chain.unshift(p.nome);
+        pid = p.conta_pai_id;
+      }
+      return chain.join(" › ");
+    },
+    [hierarchy, merged]
+  );
+
   const sorted = useMemo(
     () => [...merged].sort((a, b) => a.codigo.localeCompare(b.codigo)),
     [merged]
@@ -108,9 +146,9 @@ export function PlanoContasCombobox({
     const q = normalize(search.trim());
     const list = !q
       ? sorted
-      : sorted.filter((o) => normalize(`${o.codigo} ${o.nome}`).includes(q));
+      : sorted.filter((o) => normalize(`${o.codigo} ${o.nome} ${parentPathOf(o)}`).includes(q));
     return list.slice(0, maxResults);
-  }, [sorted, search, maxResults]);
+  }, [sorted, search, maxResults, parentPathOf]);
 
   const selected =
     value && value !== allValue && value !== SEM_CLASSIFICACAO_VALUE
@@ -120,6 +158,7 @@ export function PlanoContasCombobox({
 
   const heightCls = size === "sm" ? "h-8 text-xs px-2" : "h-9 text-sm";
   const itemTextCls = size === "sm" ? "text-xs" : "text-sm";
+
 
   return (
     <div className={cn("w-full", className)}>
@@ -136,8 +175,12 @@ export function PlanoContasCombobox({
             {selected ? (
               <span className="truncate text-left">
                 <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
+                {parentPathOf(selected) && (
+                  <span className="text-muted-foreground">{parentPathOf(selected)} › </span>
+                )}
                 {selected.nome}
               </span>
+
             ) : isSemClassificacao ? (
               <span className="truncate text-left text-amber-600">{semClassificacaoLabel}</span>
             ) : includeAll && (value === allValue || !value) ? (
@@ -209,13 +252,23 @@ export function PlanoContasCombobox({
                       key={o.id}
                       value={o.id}
                       onSelect={() => { onChange(o.id); setOpen(false); setSearch(""); }}
-                      className={itemTextCls}
+                      className={cn(itemTextCls, "items-start")}
                     >
-                      <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
-                      <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
-                      <span className="truncate">{o.nome}</span>
+                      <Check className={cn("mr-2 h-3 w-3 mt-[3px] shrink-0", value === o.id ? "opacity-100" : "opacity-0")} />
+                      <span className="min-w-0 flex-1">
+                        {parentPathOf(o) && (
+                          <span className="block truncate text-[10px] leading-tight text-muted-foreground">
+                            {parentPathOf(o)}
+                          </span>
+                        )}
+                        <span className="block truncate">
+                          <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
+                          {o.nome}
+                        </span>
+                      </span>
                     </CommandItem>
                   ))}
+
                 </CommandGroup>
               )}
             </CommandList>
