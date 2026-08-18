@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
+import { listCardInvoices, payPayableWithCard, type CardInvoiceOption } from "@/services/creditCardPayableLink";
+
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
