@@ -40,13 +40,14 @@ const monthBounds = (ym: string) => {
 export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabProps) {
   const [colaboradorId, setColaboradorId] = useState<string>("all");
   const [status, setStatus] = useState<"all" | ComissaoStatus>("all");
-  const [periodMode, setPeriodMode] = useState<"mes" | "custom">("mes");
-  const [month, setMonth] = useState(() => {
+  const [periodMode] = useState<"mes" | "custom">("custom");
+  const [month] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [dataInicio, setDataInicio] = useState<string>("");
-  const [dataFim, setDataFim] = useState<string>("");
+  const [dataInicio, setDataInicio] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).inicio);
+  const [dataFim, setDataFim] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).fim);
+
   const [loading, setLoading] = useState(false);
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [removendo, setRemovendo] = useState<string | null>(null);
