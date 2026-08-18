@@ -417,7 +417,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
   const handleSave = async () => {
     if (!person) return;
     if (!form.full_name.trim()) {
-      toast({ title: "Nome é obrigatório", variant: "destructive" });
+      toast({ title: showCNPJ ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -538,7 +538,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
   const doCreate = async (): Promise<string | null> => {
     if (!form.full_name.trim()) {
-      toast({ title: "Nome é obrigatório", variant: "destructive" });
+      toast({ title: showCNPJ ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
       return null;
     }
     setLoading(true);
@@ -713,7 +713,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         ...p,
         razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,
         nome_fantasia: data.nome_fantasia ? maskName(data.nome_fantasia) : p.nome_fantasia,
-        full_name: data.nome_fantasia ? maskName(data.nome_fantasia) : data.razao_social ? maskName(data.razao_social) : p.full_name,
+        full_name: data.razao_social ? maskName(data.razao_social) : data.nome_fantasia ? maskName(data.nome_fantasia) : p.full_name,
         phone: data.ddd_telefone_1 ? maskPhone(data.ddd_telefone_1.replace(/\D/g, "")) : p.phone,
         email: data.email && data.email !== "null" ? data.email.toLowerCase() : p.email,
         address_street: data.logradouro ? maskName(data.logradouro) : p.address_street,
@@ -844,11 +844,11 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Razão Social</Label>
-              <Input value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: maskName(e.target.value) }))} />
+              <Input value={form.razao_social} onChange={(e) => { const v = maskName(e.target.value); setForm((p) => ({ ...p, razao_social: v, full_name: v })); }} placeholder="Razão social da empresa" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Nome Fantasia</Label>
-              <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: maskName(e.target.value) }))} />
+              <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: maskName(e.target.value) }))} placeholder="Opcional" />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -858,11 +858,13 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </>
       )}
 
-      {/* Name */}
-      <div className="space-y-1.5">
-        <Label className="text-xs">{showCNPJ ? "Nome / Razão Social *" : "Nome Completo *"}</Label>
-        <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: maskName(e.target.value) }))} />
-      </div>
+      {/* Nome — somente Pessoa Física. Para PJ o nome é a própria Razão Social. */}
+      {!showCNPJ && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">Nome Completo *</Label>
+          <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: maskName(e.target.value) }))} />
+        </div>
+      )}
 
       {/* Phone + Email */}
       <div className="grid grid-cols-2 gap-4">
