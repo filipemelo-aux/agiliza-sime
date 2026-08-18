@@ -2696,7 +2696,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               itens={manualItens}
               onChange={setManualItens}
               vehicles={vehicles}
-              valorAlvo={manualValorLancado}
+              valorAlvo={manualItensAlvo}
               selectedUids={manualItemSel}
               onSelectedChange={setManualItemSel}
               novoDesc={manualNovoItem.desc}
