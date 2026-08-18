@@ -3272,6 +3272,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           onChange={(v) => onUpdate(idx, { plano_contas_id: v })}
           options={despesaLeaves}
           disabled={isClosed}
+          showParentPathOnSelected={false}
         />
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-[120px]">
