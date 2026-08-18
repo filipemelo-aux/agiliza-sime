@@ -577,7 +577,9 @@ function RHWorkspace(props: any) {
                     <SelectTrigger><SelectValue placeholder="Selecione uma conta" /></SelectTrigger>
                     <SelectContent>
                       {accounts.filter((a: any) => a.tipo === "despesa").map((a: any) => (
-                        <SelectItem key={a.id} value={a.id}>{a.codigo} — {a.nome}</SelectItem>
+                        <SelectItem key={a.id} value={a.id}>
+                          {accountParentPath(a, accounts) ? `${accountParentPath(a, accounts)} › ` : ""}{a.codigo} — {a.nome}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
