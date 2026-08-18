@@ -910,23 +910,38 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
 
     if (fiscalAttachIdx !== null) {
-      setItems((prev) => prev.map((it, i) => (
-        i === fiscalAttachIdx
-          ? {
-              ...it,
-              ...fiscalPatch,
-              veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
-              favorecido_id: it.favorecido_id || data.fornecedor_id,
-              favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
-              observacoes: it.observacoes?.trim()
-                || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
-            }
-          : it
-      )));
+      setItems((prev) => prev.map((it, i) => {
+        if (i !== fiscalAttachIdx) return it;
+        // Descrição vinda do OFX costuma ser copiada para o favorecido; nesse caso o
+        // fornecedor identificado/cadastrado no XML tem prioridade.
+        const favIsPlaceholder =
+          !it.favorecido_id &&
+          (!it.favorecido_nome?.trim() ||
+            it.favorecido_nome.trim().toLowerCase() === (it.description || "").trim().toLowerCase());
+        const useXmlFav = !!(data.fornecedor_id || data.fornecedor_nome) && (favIsPlaceholder || !it.favorecido_id);
+        return {
+          ...it,
+          ...fiscalPatch,
+          veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
+          favorecido_id: useXmlFav ? (data.fornecedor_id ?? it.favorecido_id) : it.favorecido_id,
+          favorecido_nome: useXmlFav ? (data.fornecedor_nome || it.favorecido_nome) : it.favorecido_nome,
+          plano_contas_id: data.plano_contas_id || it.plano_contas_id,
+          centro_custo: it.centro_custo?.trim() || data.centro_custo || "",
+          // Parcelamento identificado na nota prevalece sobre o palpite da descrição do OFX,
+          // garantindo que a edição posterior saiba que o valor da linha é uma PARCELA.
+          parcela_atual: data.parcela_atual ?? it.parcela_atual,
+          parcela_total: data.parcela_total ?? it.parcela_total,
+          observacoes: it.observacoes?.trim()
+            || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
+        };
+      }));
+      const attachedFitid = items[fiscalAttachIdx]?.fitid || null;
       setFiscalAttachIdx(null);
       toast.success("Nota fiscal vinculada ao lançamento.");
+      if (data.expandir && attachedFitid) setPendingExpandFitid(attachedFitid);
       return;
     }
+
 
     const fitid = `fiscal-${crypto.randomUUID()}`;
     const newRow: ItemRow = {
@@ -949,7 +964,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => [newRow, ...prev]);
     toast.success("Lançamento fiscal adicionado à fatura.");
     if (data.expandir) setPendingExpandFitid(fitid);
-  }, [fiscalAttachIdx]);
+  }, [fiscalAttachIdx, items]);
 
 
 
@@ -1554,10 +1569,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       xml_original: r.xml_original ?? null,
       rateio_veiculos: (r.rateio_veiculos as any) ?? null,
     }));
-    setItems(mapped);
+    // Preserva lançamentos ainda NÃO gravados (ex.: OFX recém-importado em conferência).
+    // Sem isso, qualquer recarga (geração de parcelas, etc.) descartaria o trabalho em andamento.
+    const persistedFitids = new Set(
+      mapped.map((m) => (m.fitid || "").trim()).filter(Boolean),
+    );
+    const pendentes = items.filter(
+      (it) => !it.id && (!it.fitid?.trim() || !persistedFitids.has(it.fitid.trim())),
+    );
+    const merged = [...pendentes, ...mapped] as ItemRow[];
+    setItems(merged);
     setOriginalItems(mapped);
-    return mapped as ItemRow[];
+    return merged;
   };
+
 
   const expandParcelas = async (idx: number) => {
     const item = items[idx];
