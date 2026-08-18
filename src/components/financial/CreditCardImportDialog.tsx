@@ -636,6 +636,40 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }));
   }, [chartAccounts]);
 
+  /** Vincula o lançamento do cartão a uma conta a pagar em aberto (baixa efetivada ao salvar). */
+  const linkPayable = useCallback((idx: number, opt: OpenPayableOption) => {
+    setItems((prev) => prev.map((it, i) => i !== idx ? it : {
+      ...it,
+      origem_expense_id: opt.expense_id,
+      origem_installment_id: opt.installment_id,
+      origem_payment_id: it.origem_payment_id ?? null,
+      origem_tipo: "vinculo",
+      origem_descricao: opt.descricao,
+      origem_pendente: !it.origem_payment_id,
+      plano_contas_id: it.plano_contas_id || opt.plano_contas_id,
+      centro_custo: it.centro_custo || (opt.centro_custo || ""),
+      favorecido_id: it.favorecido_id || opt.favorecido_id,
+      favorecido_nome: it.favorecido_nome || (opt.favorecido_nome || ""),
+    }));
+    toast.success("Conta vinculada. A baixa (sem caixa) será efetivada ao salvar a fatura.");
+  }, []);
+
+  /** Remove o vínculo — a conta volta ao Contas a Pagar quando a fatura for salva. */
+  const unlinkPayable = useCallback((idx: number) => {
+    setItems((prev) => prev.map((it, i) => i !== idx ? it : {
+      ...it,
+      origem_expense_id: null,
+      origem_installment_id: null,
+      origem_payment_id: null,
+      origem_tipo: null,
+      origem_descricao: null,
+      origem_pendente: false,
+    }));
+    toast.message("Vínculo removido. A conta será reaberta ao salvar a fatura.");
+  }, []);
+
+
+
   // Modal de novo lançamento manual
   interface ManualForm {
     posted_date: string;
