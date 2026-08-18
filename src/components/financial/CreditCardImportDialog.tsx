@@ -910,23 +910,38 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     };
 
     if (fiscalAttachIdx !== null) {
-      setItems((prev) => prev.map((it, i) => (
-        i === fiscalAttachIdx
-          ? {
-              ...it,
-              ...fiscalPatch,
-              veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
-              favorecido_id: it.favorecido_id || data.fornecedor_id,
-              favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
-              observacoes: it.observacoes?.trim()
-                || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
-            }
-          : it
-      )));
+      setItems((prev) => prev.map((it, i) => {
+        if (i !== fiscalAttachIdx) return it;
+        // Descrição vinda do OFX costuma ser copiada para o favorecido; nesse caso o
+        // fornecedor identificado/cadastrado no XML tem prioridade.
+        const favIsPlaceholder =
+          !it.favorecido_id &&
+          (!it.favorecido_nome?.trim() ||
+            it.favorecido_nome.trim().toLowerCase() === (it.description || "").trim().toLowerCase());
+        const useXmlFav = !!(data.fornecedor_id || data.fornecedor_nome) && (favIsPlaceholder || !it.favorecido_id);
+        return {
+          ...it,
+          ...fiscalPatch,
+          veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
+          favorecido_id: useXmlFav ? (data.fornecedor_id ?? it.favorecido_id) : it.favorecido_id,
+          favorecido_nome: useXmlFav ? (data.fornecedor_nome || it.favorecido_nome) : it.favorecido_nome,
+          plano_contas_id: data.plano_contas_id || it.plano_contas_id,
+          centro_custo: it.centro_custo?.trim() || data.centro_custo || "",
+          // Parcelamento identificado na nota prevalece sobre o palpite da descrição do OFX,
+          // garantindo que a edição posterior saiba que o valor da linha é uma PARCELA.
+          parcela_atual: data.parcela_atual ?? it.parcela_atual,
+          parcela_total: data.parcela_total ?? it.parcela_total,
+          observacoes: it.observacoes?.trim()
+            || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
+        };
+      }));
+      const attachedFitid = items[fiscalAttachIdx]?.fitid || null;
       setFiscalAttachIdx(null);
       toast.success("Nota fiscal vinculada ao lançamento.");
+      if (data.expandir && attachedFitid) setPendingExpandFitid(attachedFitid);
       return;
     }
+
 
     const fitid = `fiscal-${crypto.randomUUID()}`;
     const newRow: ItemRow = {
