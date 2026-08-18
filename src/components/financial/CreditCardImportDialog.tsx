@@ -964,7 +964,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => [newRow, ...prev]);
     toast.success("Lançamento fiscal adicionado à fatura.");
     if (data.expandir) setPendingExpandFitid(fitid);
-  }, [fiscalAttachIdx]);
+  }, [fiscalAttachIdx, items]);
 
 
 
