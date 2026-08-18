@@ -55,12 +55,13 @@ const parseReferenceToYM = (label: string): string => {
 
 // Plano de contas combobox (compartilhado)
 function PlanoContasCombobox({
-  value, onChange, options, disabled,
+  value, onChange, options, disabled, showParentPathOnSelected,
 }: {
   value: string | null;
   onChange: (v: string) => void;
   options: ChartAccount[];
   disabled?: boolean;
+  showParentPathOnSelected?: boolean;
 }) {
   return (
     <SharedPlanoContasCombobox
@@ -70,6 +71,7 @@ function PlanoContasCombobox({
       disabled={disabled}
       size="sm"
       placeholder="Selecionar..."
+      showParentPathOnSelected={showParentPathOnSelected}
     />
   );
 }
