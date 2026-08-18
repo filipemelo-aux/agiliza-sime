@@ -70,6 +70,7 @@ export function PlanoContasCombobox({
   allowCreate = true,
   defaultTipo = "despesa",
   onCreated,
+  showParentPathOnSelected = true,
 }: PlanoContasComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
