@@ -1085,6 +1085,67 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .map((r) => r.id as string);
   };
 
+  /**
+   * Replica automaticamente a classificação (plano de contas, centro de custo,
+   * veículo e rateio) para todas as parcelas do mesmo agrupamento — anteriores
+   * e posteriores, em qualquer fatura do cartão.
+   */
+  const propagateClassificationToInstallments = async (workItems: ItemRow[]) => {
+    const originalByKey = new Map<string, ItemRow>();
+    originalItems.forEach((o) => {
+      const k = o.id || o.fitid;
+      if (k) originalByKey.set(k, o);
+    });
+
+    let updated = 0;
+    const processed = new Set<string>();
+
+    for (const it of workItems) {
+      if (Number(it.parcela_total || 0) <= 1) continue;
+      const key = it.id || it.fitid;
+      const orig = key ? originalByKey.get(key) : undefined;
+      const changed =
+        !orig ||
+        (orig.plano_contas_id || null) !== (it.plano_contas_id || null) ||
+        (orig.centro_custo || "") !== (it.centro_custo || "") ||
+        (orig.veiculo_id || null) !== (it.veiculo_id || null) ||
+        JSON.stringify(orig.rateio_veiculos || null) !== JSON.stringify(it.rateio_veiculos || null);
+      if (!changed) continue;
+
+      const groupKey = `${(it.favorecido_id || it.favorecido_nome || "").toLowerCase().trim()}|${normalizeInstallmentText(it.description)}|${it.parcela_total}|${cents(it.amount)}`;
+      if (processed.has(groupKey)) continue;
+      processed.add(groupKey);
+
+      let ids: string[] = [];
+      try {
+        ids = await findInstallmentGroupIds(it);
+      } catch (err) {
+        console.error(err);
+        continue;
+      }
+      const targets = ids.filter((gid) => gid !== it.id);
+      if (targets.length === 0) continue;
+
+      const { error } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .update({
+          plano_contas_id: it.plano_contas_id,
+          centro_custo: it.centro_custo,
+          veiculo_id: it.veiculo_id,
+          rateio_veiculos: it.rateio_veiculos && it.rateio_veiculos.length > 0 ? it.rateio_veiculos : null,
+        } as any)
+        .in("id", targets);
+      if (error) console.error(error);
+      else updated += targets.length;
+    }
+
+    if (updated > 0) {
+      toast.success(`Classificação replicada em ${updated} parcela(s) do mesmo agrupamento.`);
+    }
+  };
+
+
+
   const removeSelected = useCallback(async () => {
     if (selectedIdxs.size === 0) return;
 
@@ -2043,6 +2104,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           if (itemsErr) throw itemsErr;
         }
       }
+
+      // Replica a classificação editada para as demais parcelas do agrupamento.
+      await propagateClassificationToInstallments(workItems);
+
+
 
       // Sync the linked expense in Contas a Pagar:
       // - If closing now → create the expense (or update existing).
