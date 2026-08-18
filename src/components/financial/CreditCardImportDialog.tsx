@@ -28,6 +28,9 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
 import { FiscalDocImportDialog, type FiscalDocResult } from "./FiscalDocImportDialog";
+import { LinkPayableDialog } from "./LinkPayableDialog";
+import { registerCardDischarge, revertCardDischarge, type OpenPayableOption } from "@/services/creditCardPayableLink";
+
 
 
 const MONTHS_PT_LONG = [
