@@ -300,6 +300,27 @@ export function PaymentDischargeDialog({
               </Select>
             </div>
           </div>
+
+          {isCard && (
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+              <Label className="text-xs">Fatura do cartão que receberá o lançamento</Label>
+              <Select value={cardInvoiceId} onValueChange={setCardInvoiceId}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione a fatura" /></SelectTrigger>
+                <SelectContent>
+                  {cardInvoices.map(i => (
+                    <SelectItem key={i.id} value={i.id} className="text-xs">
+                      {i.card_name} — {i.reference_label || formatDateBR(i.due_date)} · venc. {formatDateBR(i.due_date)}
+                      {i.status !== "aberta" ? ` (${i.status})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                A conta será quitada sem saída de caixa e a obrigação passará para a fatura do cartão.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label>Observações</Label>
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
