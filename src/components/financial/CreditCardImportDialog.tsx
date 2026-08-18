@@ -766,18 +766,30 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const item = items[idx];
     if (!item) return;
     setManualEditIdx(idx);
+    const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
+    const somaNota = Number(
+      itens.reduce((s, i: any) => s + (Number(i.valor_total) || 0), 0).toFixed(2),
+    );
+    const parcelaValor = Number(item.amount || 0);
+    const totalParcelas = Number(item.parcela_total || 0);
+    // Lançamento parcelado com nota (XML) vinculada: os itens representam a NOTA INTEIRA.
+    // Nesse caso o modal abre no modo "valor total" para não tratar a parcela como valor cheio.
+    const isNotaTotal =
+      totalParcelas > 1 &&
+      somaNota > 0 &&
+      Math.abs(somaNota - parcelaValor * totalParcelas) < Math.max(0.02, totalParcelas * 0.01);
+    const valorForm = isNotaTotal ? somaNota : parcelaValor;
     setManualForm({
       posted_date: item.posted_date,
       description: item.description || "",
-      amount: maskCurrency(Number(item.amount || 0).toFixed(2).replace(".", ",")),
-      amount_mode: "parcela",
+      amount: maskCurrency(valorForm.toFixed(2).replace(".", ",")),
+      amount_mode: isNotaTotal ? "total" : "parcela",
       parcela_atual: item.parcela_atual ? String(item.parcela_atual) : "",
       parcela_total: item.parcela_total ? String(item.parcela_total) : "",
       plano_contas_id: item.plano_contas_id,
       favorecido_id: item.favorecido_id,
       favorecido_nome: item.favorecido_nome || "",
     });
-    const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
     setManualItens(
       itens.map((i: any): ManualItem => ({
         uid: newManualUid("edit"),
@@ -788,6 +800,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         veiculo_id: i.veiculo_id || null,
       }))
     );
+
     setManualItemSel([]);
     setManualNovoItem({ desc: "", qtd: "1", valor: "" });
     setManualDialogOpen(true);
