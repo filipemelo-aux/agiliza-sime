@@ -1870,6 +1870,35 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: observacoes.trim() || null,
       };
 
+      // ---- Vínculos com Contas a Pagar ----
+      // 1) Itens removidos da fatura que quitavam uma conta → estorna a baixa.
+      const keptPaymentIds = new Set(
+        workItems.map((i) => i.origem_payment_id).filter(Boolean) as string[],
+      );
+      for (const orig of originalItems) {
+        if (orig.origem_payment_id && !keptPaymentIds.has(orig.origem_payment_id)) {
+          await revertCardDischarge({
+            paymentId: orig.origem_payment_id,
+            expenseId: orig.origem_expense_id as string,
+            installmentId: orig.origem_installment_id || null,
+          });
+        }
+      }
+      // 2) Vínculos criados nesta sessão → registra a baixa (sem caixa) na conta a pagar.
+      for (const it of workItems) {
+        if (it.origem_pendente && it.origem_expense_id && !it.origem_payment_id) {
+          it.origem_payment_id = await registerCardDischarge({
+            expenseId: it.origem_expense_id,
+            installmentId: it.origem_installment_id || null,
+            valor: Number(it.amount || 0),
+            dataPagamento: it.posted_date,
+            userId: user?.id,
+            observacoes: `Quitada pelo lançamento do cartão ${cardName.trim()} — ${it.description}`,
+          });
+          it.origem_pendente = false;
+        }
+      }
+
       const rows = workItems.map((it) => ({
         invoice_id: id,
         posted_date: it.posted_date,
@@ -1892,7 +1921,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         itens_nota: it.itens_nota ?? null,
         xml_original: it.xml_original || null,
         rateio_veiculos: (it.rateio_veiculos && it.rateio_veiculos.length > 0) ? it.rateio_veiculos : null,
+        origem_expense_id: it.origem_expense_id || null,
+        origem_payment_id: it.origem_payment_id || null,
+        origem_installment_id: it.origem_installment_id || null,
+        origem_tipo: it.origem_tipo || null,
       }));
+
 
       if (id) {
         const { error } = await (supabase.rpc as any)("save_credit_card_invoice_edit", {
