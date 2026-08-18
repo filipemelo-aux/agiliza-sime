@@ -115,12 +115,12 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
   }));
 }
 
-export type ChartAccount = { id: string; codigo: string; nome: string; tipo: string };
+export type ChartAccount = { id: string; codigo: string; nome: string; tipo: string; conta_pai_id?: string | null };
 
 export async function fetchChartAccounts(): Promise<ChartAccount[]> {
   const { data } = await supabase
     .from("chart_of_accounts")
-    .select("id, codigo, nome, tipo")
+    .select("id, codigo, nome, tipo, conta_pai_id")
     .eq("ativo", true)
     .order("codigo");
   return (data as any) || [];
