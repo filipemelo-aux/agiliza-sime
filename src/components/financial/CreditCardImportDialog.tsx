@@ -2756,6 +2756,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 value={manualForm.plano_contas_id}
                 onChange={(v) => setManualForm((f) => ({ ...f, plano_contas_id: v }))}
                 options={despesaLeaves}
+                showParentPathOnSelected={false}
               />
               <p className="text-[10px] text-muted-foreground mt-1">Opcional — pode ser classificado depois na grade.</p>
             </div>
