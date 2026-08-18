@@ -735,11 +735,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
   }, [manualForm.amount, manualForm.amount_mode, manualParcelaCalc]);
 
+  /**
+   * Valor que os itens da nota precisam fechar.
+   * No modo "total" os itens vêm da NOTA INTEIRA (XML), então fecham com o valor total;
+   * no modo "parcela" fecham com o valor lançado na fatura.
+   */
+  const manualItensAlvo = useMemo(() => {
+    const informado = Number(unmaskCurrency(manualForm.amount)) || 0;
+    return manualForm.amount_mode === "total" ? informado : manualValorLancado;
+  }, [manualForm.amount, manualForm.amount_mode, manualValorLancado]);
+
   const manualItensOk = useMemo(() => {
     if (manualItens.length === 0) return true;
     if (gruposInvalidosManual(manualItens).length > 0) return false;
-    return Math.abs(somaItens(manualItens) - Number(manualValorLancado.toFixed(2))) < 0.01;
-  }, [manualItens, manualValorLancado]);
+    return Math.abs(somaItens(manualItens) - Number(manualItensAlvo.toFixed(2))) < 0.01;
+  }, [manualItens, manualItensAlvo]);
+
 
   const addManualItem = useCallback(() => {
     setManualEditIdx(null);
