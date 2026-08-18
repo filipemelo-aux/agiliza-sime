@@ -108,6 +108,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
 <div class="legend">
   <span><span class="sw ok"></span>Classificado</span>
   <span><span class="sw pending"></span>Pendente de classificação</span>
+  <span><span class="sw frota-propria"></span>Frota Própria</span>
 </div>
 
 <table>
