@@ -132,6 +132,47 @@ export function PaymentDischargeDialog({
     if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
     if (!dataPagamento) return toast.error("Informe a data do pagamento");
 
+    // ---- CARTÃO DE CRÉDITO: troca de credor, sem saída de caixa ----
+    if (isCard) {
+      if (!cardInvoiceId) return toast.error("Selecione a fatura do cartão que receberá o lançamento");
+      setSaving(true);
+      try {
+        const { data: exp } = await supabase
+          .from("expenses")
+          .select("descricao, favorecido_id, favorecido_nome, plano_contas_id, centro_custo")
+          .eq("id", expenseId)
+          .maybeSingle();
+        const e: any = exp || {};
+        const parcelaSufixo = isInstallmentMode
+          ? ` (parcela ${installment!.numeroParcela}/${installment!.totalParcelas})`
+          : "";
+        await payPayableWithCard({
+          invoiceId: cardInvoiceId,
+          expenseId,
+          installmentId: isInstallmentMode ? installment!.installmentId : null,
+          valor: valorNum,
+          dataPagamento,
+          descricao: `${e.descricao || descricao || "Conta a pagar"}${parcelaSufixo}`,
+          favorecidoId: e.favorecido_id || null,
+          favorecidoNome: e.favorecido_nome || favorecidoNome || null,
+          planoContasId: e.plano_contas_id || null,
+          centroCusto: e.centro_custo || null,
+          userId: user?.id,
+          observacoes: observacoes.trim() || null,
+        });
+        toast.success("Conta quitada no cartão de crédito — lançamento criado na fatura (sem impacto no caixa).");
+        setSaving(false);
+        onOpenChange(false);
+        onSaved();
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao lançar no cartão");
+        setSaving(false);
+      }
+      return;
+    }
+
+
+
     // Calculate interest: any amount above the remaining balance is interest
     const juros = Math.max(0, Math.round((valorNum - saldoRestante) * 100) / 100);
     const valorPrincipal = Math.round((valorNum - juros) * 100) / 100;
