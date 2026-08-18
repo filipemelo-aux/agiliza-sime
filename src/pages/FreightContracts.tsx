@@ -219,7 +219,15 @@ export default function FreightContracts() {
       establishment_id: (r as any).establishment_id ?? null,
       cte: r.cte ? { numero: r.cte.numero, serie: r.cte.serie, tipo_talao: r.cte.tipo_talao } : null,
     });
-    openPrintWindow(html);
+    return html;
+  };
+
+  const handlePrintSelected = async () => {
+    const rowsToPrint = selectedRows;
+    if (rowsToPrint.length === 0) return;
+    const htmls: string[] = [];
+    for (const r of rowsToPrint) htmls.push(await buildHtml(r));
+    openPrintWindow(combineContractsHtml(htmls));
   };
 
   const renderPayableStatus = (r: FreightContractRow) => {
