@@ -860,6 +860,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
   const [fiscalAttachIdx, setFiscalAttachIdx] = useState<number | null>(null);
   const [rateioIdx, setRateioIdx] = useState<number | null>(null);
+  const [linkIdx, setLinkIdx] = useState<number | null>(null);
+
   const [pendingExpandFitid, setPendingExpandFitid] = useState<string | null>(null);
 
   const handleFiscalConfirm = useCallback((data: FiscalDocResult) => {
