@@ -100,45 +100,21 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
       <div className="flex flex-wrap items-end gap-4">
         {/* Date range */}
         <div>
-          <Label className="text-xs text-muted-foreground">De</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-3 w-3" />
-                {filters.dataInicio ? format(filters.dataInicio, "dd/MM/yyyy") : "Sem limite"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={filters.dataInicio ?? undefined}
-                onSelect={(d) => d && update({ dataInicio: d, quickPeriod: "todos" })}
-                locale={ptBR}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <Label className="text-xs text-muted-foreground">Período</Label>
+          <PeriodFilter
+            inicio={filters.dataInicio ? format(filters.dataInicio, "yyyy-MM-dd") : ""}
+            fim={filters.dataFim ? format(filters.dataFim, "yyyy-MM-dd") : ""}
+            allowClear
+            onChange={(i, f) =>
+              update({
+                dataInicio: i ? new Date(`${i}T12:00:00`) : null,
+                dataFim: f ? new Date(`${f}T12:00:00`) : null,
+                quickPeriod: "todos",
+              })
+            }
+          />
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Até</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-3 w-3" />
-                {filters.dataFim ? format(filters.dataFim, "dd/MM/yyyy") : "Sem limite"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={filters.dataFim ?? undefined}
-                onSelect={(d) => d && update({ dataFim: d, quickPeriod: "todos" })}
-                locale={ptBR}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+
 
         {/* Type filter */}
         <div>
