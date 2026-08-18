@@ -651,6 +651,10 @@ export type Database = {
           invoice_id: string
           itens_nota: Json | null
           observacoes: string | null
+          origem_expense_id: string | null
+          origem_installment_id: string | null
+          origem_payment_id: string | null
+          origem_tipo: string | null
           parcela_atual: number | null
           parcela_total: number | null
           parcelas_expandidas: boolean
@@ -678,6 +682,10 @@ export type Database = {
           invoice_id: string
           itens_nota?: Json | null
           observacoes?: string | null
+          origem_expense_id?: string | null
+          origem_installment_id?: string | null
+          origem_payment_id?: string | null
+          origem_tipo?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
           parcelas_expandidas?: boolean
@@ -705,6 +713,10 @@ export type Database = {
           invoice_id?: string
           itens_nota?: Json | null
           observacoes?: string | null
+          origem_expense_id?: string | null
+          origem_installment_id?: string | null
+          origem_payment_id?: string | null
+          origem_tipo?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
           parcelas_expandidas?: boolean
@@ -728,6 +740,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "credit_card_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoice_items_origem_expense_id_fkey"
+            columns: ["origem_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
           {
