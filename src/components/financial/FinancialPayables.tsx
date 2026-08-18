@@ -1440,24 +1440,13 @@ tfoot{display:table-row-group}
             <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
           </div>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <Input
-              type="date"
-              value={filterPeriodoInicio}
-              onChange={(e) => { setFilterPeriodoInicio(e.target.value); }}
-              className="h-8 text-xs flex-1 min-w-0"
+            <PeriodFilter
+              size="sm"
+              allowClear
+              inicio={filterPeriodoInicio}
+              fim={filterPeriodoFim}
+              onChange={(i, f) => { setFilterPeriodoInicio(i); setFilterPeriodoFim(f); }}
             />
-            <span className="text-xs text-muted-foreground shrink-0">até</span>
-            <Input
-              type="date"
-              value={filterPeriodoFim}
-              onChange={(e) => { setFilterPeriodoFim(e.target.value); }}
-              className="h-8 text-xs flex-1 min-w-0"
-            />
-            {(filterPeriodoInicio || filterPeriodoFim) && (
-              <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); }} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Limpar período">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
           </div>
         </div>
 
