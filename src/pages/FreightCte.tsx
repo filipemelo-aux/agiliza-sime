@@ -32,6 +32,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 
 export interface Cte {

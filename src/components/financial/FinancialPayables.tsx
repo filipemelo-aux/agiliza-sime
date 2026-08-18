@@ -28,6 +28,7 @@ import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 
 /**

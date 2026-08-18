@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { exportToCsv } from "@/lib/csvExport";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 interface ChartAccount {
   id: string;

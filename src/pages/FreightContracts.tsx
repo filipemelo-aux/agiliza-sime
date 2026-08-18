@@ -25,6 +25,7 @@ import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 import type { Cte } from "@/pages/FreightCte";
 

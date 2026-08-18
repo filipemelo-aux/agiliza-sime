@@ -18,6 +18,7 @@ import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { DreGerencial } from "./DreGerencial";
 import { PayablesDataGrid } from "./PayablesDataGrid";
 import { CashFlowDailyGrid } from "./CashFlowDailyGrid";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";

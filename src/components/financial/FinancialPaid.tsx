@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 
 interface InstallmentInfo {

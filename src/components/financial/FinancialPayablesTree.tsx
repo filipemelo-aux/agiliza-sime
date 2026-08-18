@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 interface ChartAccount {
   id: string;

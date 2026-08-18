@@ -10,6 +10,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
 import { PlanoContasCombobox, PlanoContaOption } from "./PlanoContasCombobox";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 export type QuickPeriod = "todos" | "mes_atual" | "mes_anterior";
 

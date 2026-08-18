@@ -14,6 +14,7 @@ import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loade
 import { formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 type Vehicle = { id: string; plate: string };
 type Cte = { id: string; numero: number | null; data_emissao: string | null; valor_frete: number | null; remetente_nome: string | null; destinatario_nome: string | null; veiculo_id?: string | null };

@@ -15,6 +15,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { DragScroll } from "@/components/ui/drag-scroll";
 import { toast } from "sonner";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 type ReportType =
   | "cte"
