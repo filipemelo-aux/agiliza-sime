@@ -528,23 +528,13 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
         {tipo === "motorista" && operacao === "colheita" && colaboradorId && (
           <>
             {/* Filtros de período (sem percentual — comissão = valor da diária) */}
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_2fr] gap-3 items-end max-w-4xl">
+            <div className="grid grid-cols-1 sm:grid-cols-[2fr_2fr] gap-3 items-end max-w-4xl">
               <div className="space-y-1.5">
-                <Label className="text-xs">Início</Label>
-                <Input
-                  type="date"
-                  value={colheitaInicio}
-                  onChange={(e) => setColheitaInicio(e.target.value)}
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Fim</Label>
-                <Input
-                  type="date"
-                  value={colheitaFim}
-                  onChange={(e) => setColheitaFim(e.target.value)}
-                  className="h-9 text-xs"
+                <Label className="text-xs">Período</Label>
+                <PeriodFilter
+                  inicio={colheitaInicio}
+                  fim={colheitaFim}
+                  onChange={(i, f) => { setColheitaInicio(i); setColheitaFim(f); }}
                 />
               </div>
               <p className="text-[11px] text-muted-foreground">
