@@ -252,13 +252,23 @@ export function PlanoContasCombobox({
                       key={o.id}
                       value={o.id}
                       onSelect={() => { onChange(o.id); setOpen(false); setSearch(""); }}
-                      className={itemTextCls}
+                      className={cn(itemTextCls, "items-start")}
                     >
-                      <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
-                      <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
-                      <span className="truncate">{o.nome}</span>
+                      <Check className={cn("mr-2 h-3 w-3 mt-[3px] shrink-0", value === o.id ? "opacity-100" : "opacity-0")} />
+                      <span className="min-w-0 flex-1">
+                        {parentPathOf(o) && (
+                          <span className="block truncate text-[10px] leading-tight text-muted-foreground">
+                            {parentPathOf(o)}
+                          </span>
+                        )}
+                        <span className="block truncate">
+                          <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
+                          {o.nome}
+                        </span>
+                      </span>
                     </CommandItem>
                   ))}
+
                 </CommandGroup>
               )}
             </CommandList>
