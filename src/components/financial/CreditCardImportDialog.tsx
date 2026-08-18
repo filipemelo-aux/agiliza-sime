@@ -2825,6 +2825,9 @@ interface InvoiceItemRowProps {
   onExpandParcelas: () => void;
   onAttachFiscal: () => void;
   onOpenRateio: () => void;
+  onLinkPayable: () => void;
+  onUnlinkPayable: () => void;
+
   expanding: boolean;
   referenceYM: string;
 }
