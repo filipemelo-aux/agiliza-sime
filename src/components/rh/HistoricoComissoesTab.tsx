@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PeriodFilter } from "@/components/PeriodFilter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -40,13 +41,14 @@ const monthBounds = (ym: string) => {
 export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabProps) {
   const [colaboradorId, setColaboradorId] = useState<string>("all");
   const [status, setStatus] = useState<"all" | ComissaoStatus>("all");
-  const [periodMode, setPeriodMode] = useState<"mes" | "custom">("mes");
-  const [month, setMonth] = useState(() => {
+  const [periodMode] = useState<"mes" | "custom">("custom");
+  const [month] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [dataInicio, setDataInicio] = useState<string>("");
-  const [dataFim, setDataFim] = useState<string>("");
+  const [dataInicio, setDataInicio] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).ini);
+  const [dataFim, setDataFim] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).fim);
+
   const [loading, setLoading] = useState(false);
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [removendo, setRemovendo] = useState<string | null>(null);
@@ -168,45 +170,13 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Período</Label>
-            <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mes">Mês a mês</SelectItem>
-                <SelectItem value="custom">Intervalo personalizado</SelectItem>
-              </SelectContent>
-            </Select>
+            <PeriodFilter
+              inicio={dataInicio}
+              fim={dataFim}
+              allowClear
+              onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
+            />
           </div>
-          {periodMode === "mes" ? (
-            <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" /> Mês
-              </Label>
-              <MonthPicker value={month} onChange={setMonth} className="h-9 text-xs" />
-            </div>
-          ) : (
-            <div className="space-y-1.5 grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">De</Label>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className="h-9 text-xs w-full rounded-md border border-input bg-background px-2"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Até</Label>
-                <input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className="h-9 text-xs w-full rounded-md border border-input bg-background px-2"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Lista em cards responsivos */}

@@ -14,6 +14,7 @@ import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loade
 import { formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 type Vehicle = { id: string; plate: string };
 type Cte = { id: string; numero: number | null; data_emissao: string | null; valor_frete: number | null; remetente_nome: string | null; destinatario_nome: string | null; veiculo_id?: string | null };
@@ -337,12 +338,12 @@ export default function VehicleMetrics() {
               </div>
             </div>
             <div>
-              <Label className="text-xs">Data Inicial</Label>
-              <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9 w-40" />
-            </div>
-            <div>
-              <Label className="text-xs">Data Final</Label>
-              <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-9 w-40" />
+              <Label className="text-xs">Período</Label>
+              <PeriodFilter
+                inicio={dataInicio}
+                fim={dataFim}
+                onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
+              />
             </div>
           </div>
 

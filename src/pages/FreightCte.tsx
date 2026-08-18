@@ -32,6 +32,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 
 export interface Cte {
@@ -526,37 +527,12 @@ export default function FreightCte() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                type="date"
-                title="Emissão de"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="h-9 w-[44px] pl-7 pr-1 text-xs [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-datetime-edit]:hidden"
-              />
-            </div>
-            <div className="relative">
-              <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                type="date"
-                title="Emissão até"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="h-9 w-[44px] pl-7 pr-1 text-xs [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-datetime-edit]:hidden"
-              />
-            </div>
-            {(dateFrom || dateTo) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setDateFrom(""); setDateTo(""); }}
-                className="h-9 w-9 p-0 text-muted-foreground"
-                title="Limpar datas"
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            )}
+            <PeriodFilter
+              inicio={dateFrom}
+              fim={dateTo}
+              allowClear
+              onChange={(i, f) => { setDateFrom(i); setDateTo(f); }}
+            />
             <div className="inline-flex rounded-md border border-border bg-card p-0.5 ml-auto">
               {([
                 { v: "todos", label: "Todos" },
