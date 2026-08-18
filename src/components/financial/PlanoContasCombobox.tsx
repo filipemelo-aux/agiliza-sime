@@ -46,6 +46,8 @@ interface PlanoContasComboboxProps {
   defaultTipo?: "receita" | "despesa";
   /** Callback após criação - útil para parent atualizar lista */
   onCreated?: (option: PlanoContaOption) => void;
+  /** Exibe o caminho das contas pai no valor selecionado (trigger). No dropdown sempre aparece. */
+  showParentPathOnSelected?: boolean;
 }
 
 const normalize = (s: string) =>
@@ -68,6 +70,7 @@ export function PlanoContasCombobox({
   allowCreate = true,
   defaultTipo = "despesa",
   onCreated,
+  showParentPathOnSelected = true,
 }: PlanoContasComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -175,7 +178,7 @@ export function PlanoContasCombobox({
             {selected ? (
               <span className="truncate text-left">
                 <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
-                {parentPathOf(selected) && (
+                {showParentPathOnSelected && parentPathOf(selected) && (
                   <span className="text-muted-foreground">{parentPathOf(selected)} › </span>
                 )}
                 {selected.nome}

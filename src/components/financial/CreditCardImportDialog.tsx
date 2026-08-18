@@ -55,12 +55,13 @@ const parseReferenceToYM = (label: string): string => {
 
 // Plano de contas combobox (compartilhado)
 function PlanoContasCombobox({
-  value, onChange, options, disabled,
+  value, onChange, options, disabled, showParentPathOnSelected,
 }: {
   value: string | null;
   onChange: (v: string) => void;
   options: ChartAccount[];
   disabled?: boolean;
+  showParentPathOnSelected?: boolean;
 }) {
   return (
     <SharedPlanoContasCombobox
@@ -70,6 +71,7 @@ function PlanoContasCombobox({
       disabled={disabled}
       size="sm"
       placeholder="Selecionar..."
+      showParentPathOnSelected={showParentPathOnSelected}
     />
   );
 }
@@ -2467,6 +2469,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     disabled={isClosed || selectedIdxs.size === 0}
                     size="sm"
                     placeholder="Plano de Contas..."
+                    showParentPathOnSelected={false}
                   />
                 </div>
                 <Select
@@ -2755,6 +2758,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 value={manualForm.plano_contas_id}
                 onChange={(v) => setManualForm((f) => ({ ...f, plano_contas_id: v }))}
                 options={despesaLeaves}
+                showParentPathOnSelected={false}
               />
               <p className="text-[10px] text-muted-foreground mt-1">Opcional — pode ser classificado depois na grade.</p>
             </div>
@@ -3268,6 +3272,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           onChange={(v) => onUpdate(idx, { plano_contas_id: v })}
           options={despesaLeaves}
           disabled={isClosed}
+          showParentPathOnSelected={false}
         />
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-[120px]">
