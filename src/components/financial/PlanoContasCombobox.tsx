@@ -175,8 +175,12 @@ export function PlanoContasCombobox({
             {selected ? (
               <span className="truncate text-left">
                 <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
+                {parentPathOf(selected) && (
+                  <span className="text-muted-foreground">{parentPathOf(selected)} › </span>
+                )}
                 {selected.nome}
               </span>
+
             ) : isSemClassificacao ? (
               <span className="truncate text-left text-amber-600">{semClassificacaoLabel}</span>
             ) : includeAll && (value === allValue || !value) ? (
