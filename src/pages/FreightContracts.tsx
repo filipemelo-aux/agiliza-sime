@@ -190,7 +190,7 @@ export default function FreightContracts() {
     setDateTo("");
   };
 
-  const handlePrint = async (r: FreightContractRow) => {
+  const buildHtml = async (r: FreightContractRow) => {
     const html = await buildFullContractHtml({
       numero: r.numero,
       data_contrato: r.data_contrato,
