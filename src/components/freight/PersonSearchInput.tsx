@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ } from "@/lib/masks";
+import { personDisplayName, personSecondaryName } from "@/lib/personName";
 
 interface PersonResult {
   id: string;
@@ -116,7 +117,7 @@ export function PersonSearchInput({
   };
 
   const handleSelect = (person: PersonResult) => {
-    setSelected(person.full_name);
+    setSelected(personDisplayName(person));
     setQuery("");
     setShowDropdown(false);
     onSelect(person);
@@ -174,14 +175,14 @@ export function PersonSearchInput({
               className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors border-b border-border last:border-0 min-w-0"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-medium text-sm break-words whitespace-normal min-w-0 flex-1">{person.full_name}</span>
+                <span className="font-medium text-sm break-words whitespace-normal min-w-0 flex-1">{personDisplayName(person)}</span>
                 <Badge className={`text-[10px] shrink-0 ${CATEGORY_COLORS[person.category] || ""}`}>
                   {CATEGORY_LABELS[person.category] || person.category}
                 </Badge>
               </div>
               <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-0.5 min-w-0">
                 {person.cnpj && <span>{maskCNPJ(person.cnpj)}</span>}
-                {person.razao_social && <span className="break-words">• {person.razao_social}</span>}
+                {personSecondaryName(person) && <span className="break-words">• {personSecondaryName(person)}</span>}
                 {person.address_city && person.address_state && (
                   <span>• {person.address_city}/{person.address_state}</span>
                 )}

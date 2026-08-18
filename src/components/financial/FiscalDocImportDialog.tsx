@@ -18,6 +18,7 @@ import { type RateioVehicleOption } from "./VehicleRateioEditor";
 import { type RateioRow } from "@/lib/rateio";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { supabase } from "@/integrations/supabase/client";
+import { personDisplayName } from "@/lib/personName";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 
 export interface FiscalChartAccount {
@@ -266,12 +267,12 @@ export function FiscalDocImportDialog({
       if (digits) {
         const { data } = await supabase
           .from("profiles")
-          .select("id, full_name, razao_social, cnpj")
+          .select("id, full_name, razao_social, nome_fantasia, cnpj")
           .eq("cnpj", digits)
           .limit(1);
         if (data && data.length > 0) {
           setFornecedorId(data[0].id);
-          setFornecedorNome(data[0].razao_social || data[0].full_name || nome);
+          setFornecedorNome(personDisplayName(data[0] as any, nome));
           return;
         }
       }
@@ -279,12 +280,12 @@ export function FiscalDocImportDialog({
       if (termo.length < 3) return;
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, razao_social, cnpj")
+        .select("id, full_name, razao_social, nome_fantasia, cnpj")
         .or(`razao_social.ilike.%${termo}%,full_name.ilike.%${termo}%,nome_fantasia.ilike.%${termo}%`)
         .limit(1);
       if (data && data.length > 0) {
         setFornecedorId(data[0].id);
-        setFornecedorNome(data[0].razao_social || data[0].full_name || nome);
+        setFornecedorNome(personDisplayName(data[0] as any, nome));
       }
     } catch {
       /* busca opcional */
@@ -426,7 +427,7 @@ export function FiscalDocImportDialog({
                     selectedName={fornecedorNome || undefined}
                     onSelect={(p) => {
                       setFornecedorId(p.id);
-                      setFornecedorNome(p.razao_social || p.full_name || "");
+                      setFornecedorNome(personDisplayName(p as any));
                       if (p.cnpj) setFornecedorCnpj(p.cnpj);
                     }}
                     onClear={() => { setFornecedorId(null); setFornecedorNome(""); }}
@@ -706,12 +707,12 @@ export function FiscalDocImportDialog({
           if (!createdUserId) return;
           const { data } = await supabase
             .from("profiles")
-            .select("id, full_name, razao_social, cnpj")
+            .select("id, full_name, razao_social, nome_fantasia, cnpj")
             .eq("user_id", createdUserId)
             .maybeSingle();
           if (data) {
             setFornecedorId(data.id);
-            setFornecedorNome(data.razao_social || data.full_name || fornecedorNome);
+            setFornecedorNome(personDisplayName(data as any, fornecedorNome));
             if (data.cnpj) setFornecedorCnpj(data.cnpj);
             toast.success("Fornecedor cadastrado e vinculado à nota.");
           }
