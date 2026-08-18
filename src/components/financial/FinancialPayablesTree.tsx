@@ -304,13 +304,14 @@ export function FinancialPayablesTree() {
       <Card>
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
-            <div className="space-y-1">
-              <Label className="text-xs">Vencimento — Início</Label>
-              <Input type="date" className="h-8 text-xs" value={periodoInicio} onChange={(e) => setPeriodoInicio(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Vencimento — Fim</Label>
-              <Input type="date" className="h-8 text-xs" value={periodoFim} onChange={(e) => setPeriodoFim(e.target.value)} />
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs">Vencimento</Label>
+              <PeriodFilter
+                size="sm"
+                inicio={periodoInicio}
+                fim={periodoFim}
+                onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
+              />
             </div>
             <div className="space-y-1 md:col-span-2">
               <Label className="text-xs">Veículo / Placa</Label>
