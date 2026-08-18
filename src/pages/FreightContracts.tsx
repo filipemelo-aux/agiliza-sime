@@ -364,22 +364,12 @@ export default function FreightContracts() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="md:col-span-2">
-                <Input
-                  type="date"
-                  className="h-9"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  title="Data inicial"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Input
-                  type="date"
-                  className="h-9"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  title="Data final"
+              <div className="md:col-span-4">
+                <PeriodFilter
+                  inicio={dateFrom}
+                  fim={dateTo}
+                  allowClear
+                  onChange={(i, f) => { setDateFrom(i); setDateTo(f); }}
                 />
               </div>
               <div className="md:col-span-1">
