@@ -78,6 +78,10 @@ export function PaymentDischargeDialog({
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
   const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
+  const [cardInvoices, setCardInvoices] = useState<CardInvoiceOption[]>([]);
+  const [cardInvoiceId, setCardInvoiceId] = useState<string>("");
+
+  const isCard = formaPagamento === "cartao_credito";
 
   useEffect(() => {
     if (open && expenseId) {
@@ -86,9 +90,29 @@ export function PaymentDischargeDialog({
       setObservacoes("");
       setFormaPagamento("");
       setDataPagamento(getLocalDateISO());
+      setCardInvoiceId("");
       loadHistory();
     }
   }, [open, expenseId, installment?.installmentId]);
+
+  // Carrega faturas de cartão apenas quando a forma "Cartão de Crédito" é escolhida.
+  useEffect(() => {
+    if (!open || !isCard) return;
+    (async () => {
+      try {
+        const list = await listCardInvoices();
+        setCardInvoices(list);
+        // Sugere a fatura cujo mês de referência corresponde à data do pagamento.
+        const ym = (dataPagamento || "").slice(0, 7);
+        const suggested =
+          list.find((i) => i.status !== "paga" && (i.due_date || "").slice(0, 7) === ym) ||
+          list.find((i) => i.status === "aberta");
+        setCardInvoiceId((prev) => prev || suggested?.id || "");
+      } catch (e: any) {
+        toast.error(e.message || "Erro ao carregar faturas de cartão");
+      }
+    })();
+  }, [open, isCard]);
 
   const loadHistory = async () => {
     const { data } = await supabase
@@ -98,6 +122,7 @@ export function PaymentDischargeDialog({
       .order("created_at", { ascending: false });
     setHistory((data as any) || []);
   };
+
 
   const handleConfirm = async () => {
     const valorNum = Number(valor);
