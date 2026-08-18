@@ -45,7 +45,7 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [dataInicio, setDataInicio] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).inicio);
+  const [dataInicio, setDataInicio] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).ini);
   const [dataFim, setDataFim] = useState<string>(() => monthBounds(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`).fim);
 
   const [loading, setLoading] = useState(false);
