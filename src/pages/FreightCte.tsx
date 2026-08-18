@@ -30,7 +30,8 @@ import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDia
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { buildFullContractHtml, combineContractsHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
+import { openPrintWindow } from "@/components/freight/freightContractPrint";
+import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
 
 
 export interface Cte {
@@ -106,64 +107,17 @@ export default function FreightCte() {
     if (ids.length === 0) return;
     setPrinting(true);
     try {
-      const { data, error } = await supabase
-        .from("freight_contracts")
-        .select("*")
-        .in("cte_id", ids);
+      const { data, error } = await supabase.from("ctes").select("*").in("id", ids);
       if (error) throw error;
-      const contratos = data || [];
-      if (contratos.length === 0) {
-        toast({
-          title: "Nenhum contrato encontrado",
-          description: "Os CT-es selecionados não possuem contrato de frete gerado.",
-          variant: "destructive",
-        });
+      const byId = new Map((data || []).map((c: any) => [c.id, c]));
+      const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as any[];
+      if (ordered.length === 0) {
+        toast({ title: "Nenhum CT-e encontrado", variant: "destructive" });
         return;
       }
-      const byCte = new Map(ctes.map((c) => [c.id, c]));
-      const ordered = ids
-        .map((id) => contratos.find((c: any) => c.cte_id === id))
-        .filter(Boolean) as any[];
       const htmls: string[] = [];
-      for (const d of ordered) {
-        const cte = byCte.get(d.cte_id) as any;
-        htmls.push(
-          await buildFullContractHtml({
-            numero: d.numero,
-            data_contrato: d.data_contrato,
-            contratado_id: d.contratado_id,
-            contratado_nome: d.contratado_nome,
-            contratado_documento: d.contratado_documento,
-            contratado_tipo: d.contratado_tipo,
-            motorista_id: d.motorista_id,
-            motorista_nome: d.motorista_nome,
-            motorista_cpf: d.motorista_cpf,
-            vehicle_id: d.vehicle_id,
-            placa_veiculo: d.placa_veiculo,
-            veiculo_modelo: d.veiculo_modelo,
-            municipio_origem: d.municipio_origem,
-            uf_origem: d.uf_origem,
-            municipio_destino: d.municipio_destino,
-            uf_destino: d.uf_destino,
-            natureza_carga: d.natureza_carga,
-            peso_kg: Number(d.peso_kg || 0),
-            valor_tonelada: Number(d.valor_tonelada || 0),
-            valor_total: Number(d.valor_total || 0),
-            observacoes: d.observacoes,
-            cte_id: d.cte_id,
-            establishment_id: cte?.establishment_id ?? null,
-            cte: cte ? { numero: cte.numero, serie: cte.serie, tipo_talao: cte.tipo_talao } : null,
-          })
-        );
-      }
-      const faltando = ids.length - ordered.length;
-      if (faltando > 0) {
-        toast({
-          title: "Alguns CT-es sem contrato",
-          description: `${faltando} CT-e(s) selecionado(s) não possuem contrato e foram ignorados.`,
-        });
-      }
-      openPrintWindow(combineContractsHtml(htmls));
+      for (const c of ordered) htmls.push(await buildCteHtml(c));
+      openPrintWindow(combineCtesHtml(htmls));
     } catch (err: any) {
       toast({ title: "Erro ao imprimir", description: err.message, variant: "destructive" });
     } finally {

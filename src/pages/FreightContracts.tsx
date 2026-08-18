@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
+import { buildFullContractHtml, combineContractsHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
@@ -190,7 +190,7 @@ export default function FreightContracts() {
     setDateTo("");
   };
 
-  const handlePrint = async (r: FreightContractRow) => {
+  const buildHtml = async (r: FreightContractRow) => {
     const html = await buildFullContractHtml({
       numero: r.numero,
       data_contrato: r.data_contrato,
@@ -219,7 +219,15 @@ export default function FreightContracts() {
       establishment_id: (r as any).establishment_id ?? null,
       cte: r.cte ? { numero: r.cte.numero, serie: r.cte.serie, tipo_talao: r.cte.tipo_talao } : null,
     });
-    openPrintWindow(html);
+    return html;
+  };
+
+  const handlePrintSelected = async () => {
+    const rowsToPrint = selectedRows;
+    if (rowsToPrint.length === 0) return;
+    const htmls: string[] = [];
+    for (const r of rowsToPrint) htmls.push(await buildHtml(r));
+    openPrintWindow(combineContractsHtml(htmls));
   };
 
   const renderPayableStatus = (r: FreightContractRow) => {
@@ -401,9 +409,9 @@ export default function FreightContracts() {
               },
             },
             {
-              key: "print", label: "Imprimir", icon: Printer, mode: "single",
-              disabled: !single,
-              onClick: () => single && handlePrint(single),
+              key: "print", label: "Imprimir", icon: Printer, mode: "single+batch",
+              disabled: selectedRows.length === 0,
+              onClick: handlePrintSelected,
             },
             {
               key: "cte", label: "CT-e vinculado", icon: ExternalLink, mode: "single",
