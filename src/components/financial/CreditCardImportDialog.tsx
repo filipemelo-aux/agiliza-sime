@@ -2467,6 +2467,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     disabled={isClosed || selectedIdxs.size === 0}
                     size="sm"
                     placeholder="Plano de Contas..."
+                    showParentPathOnSelected={false}
                   />
                 </div>
                 <Select
