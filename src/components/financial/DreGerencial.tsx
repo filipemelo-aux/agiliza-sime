@@ -652,13 +652,14 @@ export function DreGerencial() {
       <Card>
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
-            <div className="space-y-1">
-              <Label className="text-xs">Data Inicial</Label>
-              <Input type="date" className="h-8 text-xs" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Data Final</Label>
-              <Input type="date" className="h-8 text-xs" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs">Período</Label>
+              <PeriodFilter
+                size="sm"
+                inicio={dataInicio}
+                fim={dataFim}
+                onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
+              />
             </div>
             <div>
               <Button size="sm" onClick={gerar} disabled={loading} className="gap-1 h-8 w-full">
