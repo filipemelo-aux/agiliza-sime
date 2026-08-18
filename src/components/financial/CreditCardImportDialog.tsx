@@ -184,7 +184,16 @@ interface ItemRow {
   rateio_veiculos?: RateioRow[] | null;
   possible_duplicate?: boolean;
   duplicate_note?: string;
+  /** Vínculo com Contas a Pagar: a conta é quitada sem caixa e a dívida vive na fatura. */
+  origem_expense_id?: string | null;
+  origem_payment_id?: string | null;
+  origem_installment_id?: string | null;
+  origem_tipo?: string | null;
+  /** Apenas da sessão: rótulo da conta vinculada e estado pendente de gravação. */
+  origem_descricao?: string | null;
+  origem_pendente?: boolean;
 }
+
 
 interface VehicleOption { id: string; plate: string; }
 
