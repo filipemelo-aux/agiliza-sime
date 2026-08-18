@@ -2374,8 +2374,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         onExpandParcelas={() => expandParcelas(originalIdx)}
                         onAttachFiscal={() => { setFiscalAttachIdx(originalIdx); setFiscalDialogOpen(true); }}
                         onOpenRateio={() => setRateioIdx(originalIdx)}
+                        onLinkPayable={() => setLinkIdx(originalIdx)}
+                        onUnlinkPayable={() => unlinkPayable(originalIdx)}
                         expanding={expanding}
                         referenceYM={referenceYM}
+
                       />
 
                     ))}
