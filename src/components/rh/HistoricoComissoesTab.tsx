@@ -169,45 +169,13 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Período</Label>
-            <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mes">Mês a mês</SelectItem>
-                <SelectItem value="custom">Intervalo personalizado</SelectItem>
-              </SelectContent>
-            </Select>
+            <PeriodFilter
+              inicio={dataInicio}
+              fim={dataFim}
+              allowClear
+              onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
+            />
           </div>
-          {periodMode === "mes" ? (
-            <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" /> Mês
-              </Label>
-              <MonthPicker value={month} onChange={setMonth} className="h-9 text-xs" />
-            </div>
-          ) : (
-            <div className="space-y-1.5 grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">De</Label>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className="h-9 text-xs w-full rounded-md border border-input bg-background px-2"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Até</Label>
-                <input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className="h-9 text-xs w-full rounded-md border border-input bg-background px-2"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Lista em cards responsivos */}
