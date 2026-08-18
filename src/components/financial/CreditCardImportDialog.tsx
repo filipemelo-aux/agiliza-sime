@@ -735,11 +735,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
   }, [manualForm.amount, manualForm.amount_mode, manualParcelaCalc]);
 
+  /**
+   * Valor que os itens da nota precisam fechar.
+   * No modo "total" os itens vêm da NOTA INTEIRA (XML), então fecham com o valor total;
+   * no modo "parcela" fecham com o valor lançado na fatura.
+   */
+  const manualItensAlvo = useMemo(() => {
+    const informado = Number(unmaskCurrency(manualForm.amount)) || 0;
+    return manualForm.amount_mode === "total" ? informado : manualValorLancado;
+  }, [manualForm.amount, manualForm.amount_mode, manualValorLancado]);
+
   const manualItensOk = useMemo(() => {
     if (manualItens.length === 0) return true;
     if (gruposInvalidosManual(manualItens).length > 0) return false;
-    return Math.abs(somaItens(manualItens) - Number(manualValorLancado.toFixed(2))) < 0.01;
-  }, [manualItens, manualValorLancado]);
+    return Math.abs(somaItens(manualItens) - Number(manualItensAlvo.toFixed(2))) < 0.01;
+  }, [manualItens, manualItensAlvo]);
+
 
   const addManualItem = useCallback(() => {
     setManualEditIdx(null);
@@ -755,18 +766,30 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const item = items[idx];
     if (!item) return;
     setManualEditIdx(idx);
+    const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
+    const somaNota = Number(
+      itens.reduce((s, i: any) => s + (Number(i.valor_total) || 0), 0).toFixed(2),
+    );
+    const parcelaValor = Number(item.amount || 0);
+    const totalParcelas = Number(item.parcela_total || 0);
+    // Lançamento parcelado com nota (XML) vinculada: os itens representam a NOTA INTEIRA.
+    // Nesse caso o modal abre no modo "valor total" para não tratar a parcela como valor cheio.
+    const isNotaTotal =
+      totalParcelas > 1 &&
+      somaNota > 0 &&
+      Math.abs(somaNota - parcelaValor * totalParcelas) < Math.max(0.02, totalParcelas * 0.01);
+    const valorForm = isNotaTotal ? somaNota : parcelaValor;
     setManualForm({
       posted_date: item.posted_date,
       description: item.description || "",
-      amount: maskCurrency(Number(item.amount || 0).toFixed(2).replace(".", ",")),
-      amount_mode: "parcela",
+      amount: maskCurrency(valorForm.toFixed(2).replace(".", ",")),
+      amount_mode: isNotaTotal ? "total" : "parcela",
       parcela_atual: item.parcela_atual ? String(item.parcela_atual) : "",
       parcela_total: item.parcela_total ? String(item.parcela_total) : "",
       plano_contas_id: item.plano_contas_id,
       favorecido_id: item.favorecido_id,
       favorecido_nome: item.favorecido_nome || "",
     });
-    const itens = Array.isArray(item.itens_nota) ? (item.itens_nota as any[]) : [];
     setManualItens(
       itens.map((i: any): ManualItem => ({
         uid: newManualUid("edit"),
@@ -777,6 +800,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         veiculo_id: i.veiculo_id || null,
       }))
     );
+
     setManualItemSel([]);
     setManualNovoItem({ desc: "", qtd: "1", valor: "" });
     setManualDialogOpen(true);
@@ -807,16 +831,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
     const amountNum = manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
     if (!amountNum || amountNum <= 0) { toast.error("Valor da parcela inválido."); return; }
+    const itensAlvo = manualForm.amount_mode === "total" ? informado : amountNum;
     if (manualItens.length > 0) {
       if (gruposInvalidosManual(manualItens).length > 0) {
         toast.error("As quantidades desmembradas não conferem com o item original.");
         return;
       }
-      if (Math.abs(somaItens(manualItens) - Number(amountNum.toFixed(2))) >= 0.01) {
-        toast.error("A soma dos itens precisa ser igual ao valor do lançamento.");
+      if (Math.abs(somaItens(manualItens) - Number(itensAlvo.toFixed(2))) >= 0.01) {
+        toast.error(
+          manualForm.amount_mode === "total"
+            ? "A soma dos itens precisa ser igual ao valor total da nota."
+            : "A soma dos itens precisa ser igual ao valor do lançamento.",
+        );
         return;
       }
     }
+
     const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
     const dataInformada = safeParseDateISO(manualForm.posted_date);
     if (!dataInformada) { toast.error("Informe uma data válida para o lançamento."); return; }
@@ -2666,7 +2696,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               itens={manualItens}
               onChange={setManualItens}
               vehicles={vehicles}
-              valorAlvo={manualValorLancado}
+              valorAlvo={manualItensAlvo}
               selectedUids={manualItemSel}
               onSelectedChange={setManualItemSel}
               novoDesc={manualNovoItem.desc}
