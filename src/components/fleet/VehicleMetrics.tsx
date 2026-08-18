@@ -338,12 +338,12 @@ export default function VehicleMetrics() {
               </div>
             </div>
             <div>
-              <Label className="text-xs">Data Inicial</Label>
-              <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9 w-40" />
-            </div>
-            <div>
-              <Label className="text-xs">Data Final</Label>
-              <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-9 w-40" />
+              <Label className="text-xs">Período</Label>
+              <PeriodFilter
+                inicio={dataInicio}
+                fim={dataFim}
+                onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
+              />
             </div>
           </div>
 
