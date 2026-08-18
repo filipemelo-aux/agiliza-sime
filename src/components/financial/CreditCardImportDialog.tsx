@@ -831,16 +831,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }
     const amountNum = manualForm.amount_mode === "total" ? manualParcelaCalc.valorParcela : informado;
     if (!amountNum || amountNum <= 0) { toast.error("Valor da parcela inválido."); return; }
+    const itensAlvo = manualForm.amount_mode === "total" ? informado : amountNum;
     if (manualItens.length > 0) {
       if (gruposInvalidosManual(manualItens).length > 0) {
         toast.error("As quantidades desmembradas não conferem com o item original.");
         return;
       }
-      if (Math.abs(somaItens(manualItens) - Number(amountNum.toFixed(2))) >= 0.01) {
-        toast.error("A soma dos itens precisa ser igual ao valor do lançamento.");
+      if (Math.abs(somaItens(manualItens) - Number(itensAlvo.toFixed(2))) >= 0.01) {
+        toast.error(
+          manualForm.amount_mode === "total"
+            ? "A soma dos itens precisa ser igual ao valor total da nota."
+            : "A soma dos itens precisa ser igual ao valor do lançamento.",
+        );
         return;
       }
     }
+
     const rateio = manualItens.length > 0 ? rateioFromItens(manualItens, amountNum) : [];
     const dataInformada = safeParseDateISO(manualForm.posted_date);
     if (!dataInformada) { toast.error("Informe uma data válida para o lançamento."); return; }
