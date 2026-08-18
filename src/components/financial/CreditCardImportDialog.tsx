@@ -3056,21 +3056,55 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         {formatCurrency(item.amount)}
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle min-w-[110px] w-[12%]">
-        {item.possible_duplicate ? (
-          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
-            <div className="flex items-start gap-1.5">
-              <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-600 shrink-0" />
-              <div className="min-w-0 space-y-1">
-                <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight truncate" title={item.duplicate_note}>
-                  {item.duplicate_note}
+        <div className="space-y-1">
+          {item.possible_duplicate && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
+              <div className="flex items-start gap-1.5">
+                <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-600 shrink-0" />
+                <div className="min-w-0 space-y-1">
+                  <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight truncate" title={item.duplicate_note}>
+                    {item.duplicate_note}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <span className="text-[10px] text-muted-foreground">—</span>
-        )}
+          )}
+
+          {item.origem_expense_id ? (
+            <div className="flex items-center gap-1 min-w-0">
+              <span
+                className="flex-1 min-w-0 inline-flex items-center gap-1 h-6 px-1.5 rounded border border-success/40 bg-success/10 text-[10px] text-success-foreground truncate"
+                title={`Quita a conta a pagar: ${item.origem_descricao || item.origem_expense_id}${item.origem_pendente ? " (baixa pendente de salvamento)" : ""}`}
+              >
+                <Link2 className="h-3 w-3 shrink-0" />
+                <span className="truncate">{item.origem_descricao || "Conta vinculada"}</span>
+              </span>
+              {!isClosed && (
+                <button
+                  type="button"
+                  onClick={onUnlinkPayable}
+                  title="Remover vínculo (reabre a conta a pagar)"
+                  className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-destructive/10 text-destructive shrink-0"
+                >
+                  <Unlink className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ) : (
+            !isClosed && (
+              <button
+                type="button"
+                onClick={onLinkPayable}
+                title="Vincular a uma conta a pagar em aberto (quita sem gerar caixa)"
+                className="inline-flex items-center gap-1 h-6 px-1.5 rounded border border-border bg-muted/40 text-[10px] text-muted-foreground hover:bg-accent"
+              >
+                <Link2 className="h-3 w-3" /> Vincular conta
+              </button>
+            )
+          )}
+        </div>
       </TableCell>
+
       <TableCell className="px-1 py-1.5 align-middle min-w-[150px] w-[14%]">
 
         <PlanoContasCombobox
