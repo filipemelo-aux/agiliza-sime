@@ -2698,6 +2698,18 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
+      {/* Vínculo do lançamento do cartão com uma conta a pagar em aberto */}
+      <LinkPayableDialog
+        open={linkIdx !== null}
+        onOpenChange={(o) => { if (!o) setLinkIdx(null); }}
+        amount={linkIdx !== null ? Number(items[linkIdx]?.amount || 0) : 0}
+        postedDate={linkIdx !== null ? items[linkIdx]?.posted_date : undefined}
+        description={linkIdx !== null ? items[linkIdx]?.description : undefined}
+        onSelect={(opt) => { if (linkIdx !== null) linkPayable(linkIdx, opt); setLinkIdx(null); }}
+      />
+
+
+
       {/* Replicação de Data de Emissão entre parcelas do mesmo agrupamento */}
       <Dialog open={!!cascadeAsk} onOpenChange={(o) => { if (!o && !cascadeRunning) setCascadeAsk(null); }}>
         <DialogContent className="max-w-md">
