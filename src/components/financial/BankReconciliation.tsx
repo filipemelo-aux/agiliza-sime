@@ -122,6 +122,17 @@ interface ReconciliationSummary {
   reconciled_items: number;
 }
 
+/** Normaliza nome para casar com o cadastro (sem acento, sem pontuação, maiúsculo). */
+function normalizeName(n?: string | null): string {
+  return String(n || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
 /** Só interessa saber de onde veio / para quem foi. */
 const DETAIL_LABELS: Array<[string, string]> = [
   ["contraparte", "Contraparte"],
@@ -210,19 +221,34 @@ export function BankReconciliation() {
   const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
   // Cadastro (CNPJ -> nome) para identificar favorecidos de transferências enviadas
   const [docNameMap, setDocNameMap] = useState<Record<string, string>>({});
+  const [profileByDoc, setProfileByDoc] = useState<Record<string, { id: string; nome: string }>>({});
+  const [profileByName, setProfileByName] = useState<Record<string, { id: string; nome: string }>>({});
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("cnpj, razao_social, nome_fantasia, full_name")
-      .not("cnpj", "is", null)
+      .select("id, cnpj, cpf, razao_social, nome_fantasia, full_name")
       .then(({ data }) => {
         const map: Record<string, string> = {};
+        const byDoc: Record<string, { id: string; nome: string }> = {};
+        const byName: Record<string, { id: string; nome: string }> = {};
         (data || []).forEach((p: any) => {
-          const digits = String(p.cnpj || "").replace(/\D/g, "");
           const nome = personDisplayName(p);
-          if (digits.length >= 11 && nome) map[digits] = nome;
+          if (!nome) return;
+          [p.cnpj, p.cpf].forEach((d) => {
+            const digits = String(d || "").replace(/\D/g, "");
+            if (digits.length >= 11) {
+              map[digits] = nome;
+              byDoc[digits] = { id: p.id, nome };
+            }
+          });
+          [p.razao_social, p.full_name, p.nome_fantasia].forEach((n) => {
+            const key = normalizeName(n);
+            if (key && !byName[key]) byName[key] = { id: p.id, nome };
+          });
         });
         setDocNameMap(map);
+        setProfileByDoc(byDoc);
+        setProfileByName(byName);
       });
   }, []);
   const resolveDocName = useCallback(
@@ -232,6 +258,31 @@ export function BankReconciliation() {
       return docNameMap[digits] ?? null;
     },
     [docNameMap],
+  );
+
+  /** Resolve o favorecido/remetente de um lançamento do extrato contra o cadastro. */
+  const resolveCounterpartyProfile = useCallback(
+    (item: OfxItem | null) => {
+      if (!item) return null;
+      const fromDesc = counterpartyFromDescription(item.description);
+      const details = (item as any).details as Record<string, any> | null | undefined;
+      const documento = fromDesc.documento || (details?.documentoContraparte as string) || null;
+      const nome =
+        fromDesc.nome ||
+        (details?.contraparte as string) ||
+        (details?.estabelecimento as string) ||
+        (documento ? resolveDocName(documento) : null) ||
+        null;
+      const digits = documento ? documento.replace(/\D/g, "") : "";
+      const hit =
+        (digits.length >= 11 ? profileByDoc[digits] : undefined) ||
+        (nome ? profileByName[normalizeName(nome)] : undefined) ||
+        null;
+      if (hit) return { favorecidoId: hit.id, favorecidoNome: hit.nome };
+      if (nome) return { favorecidoId: null, favorecidoNome: nome };
+      return null;
+    },
+    [profileByDoc, profileByName, resolveDocName],
   );
 
 
@@ -2754,6 +2805,7 @@ export function BankReconciliation() {
           dataEmissao: activeItem.date,
           dataVencimento: activeItem.date,
           descricao: activeItem.description,
+          ...(resolveCounterpartyProfile(activeItem) || {}),
         } : null}
       />
 
