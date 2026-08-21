@@ -271,7 +271,9 @@ Deno.serve(async (req) => {
       total: transactions.length,
       duplicados: transactions.length - novos.length,
       novos: novos.length,
+      cartoesIgnorados,
       transactions: novos,
+
     });
   } catch (err) {
     console.error("open-finance-sync:", err);
