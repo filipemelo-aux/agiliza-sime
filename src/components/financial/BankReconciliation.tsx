@@ -226,21 +226,24 @@ export function BankReconciliation() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("id, cnpj, cpf, razao_social, nome_fantasia, full_name")
-      .then(({ data }) => {
+      .select("id, cnpj, razao_social, nome_fantasia, full_name")
+      .limit(5000)
+      .then(({ data, error }) => {
+        if (error) console.error("Falha ao carregar cadastro de pessoas", error);
         const map: Record<string, string> = {};
         const byDoc: Record<string, { id: string; nome: string }> = {};
         const byName: Record<string, { id: string; nome: string }> = {};
         (data || []).forEach((p: any) => {
           const nome = personDisplayName(p);
           if (!nome) return;
-          [p.cnpj, p.cpf].forEach((d) => {
+          [p.cnpj].forEach((d) => {
             const digits = String(d || "").replace(/\D/g, "");
             if (digits.length >= 11) {
               map[digits] = nome;
               byDoc[digits] = { id: p.id, nome };
             }
           });
+
           [p.razao_social, p.full_name, p.nome_fantasia].forEach((n) => {
             const key = normalizeName(n);
             if (key && !byName[key]) byName[key] = { id: p.id, nome };
@@ -2094,12 +2097,13 @@ export function BankReconciliation() {
     const local = resolveCounterpartyProfile(item);
     setExpenseFavorecido(local);
     setExpenseDialogOpen(true);
-    // Se não achou vínculo no cache local, busca no cadastro (documento e nome)
-    if (local && !local.favorecidoId) {
-      const found = await searchProfileInCadastro(item, local.favorecidoNome);
+    // Sempre confirma no cadastro (banco) quando ainda não há vínculo
+    if (!local?.favorecidoId) {
+      const found = await searchProfileInCadastro(item, local?.favorecidoNome);
       if (found) setExpenseFavorecido(found);
     }
   };
+
 
   /** Busca no cadastro (banco) pelo documento e, em seguida, pelo nome do favorecido. */
   const searchProfileInCadastro = useCallback(
@@ -2109,36 +2113,61 @@ export function BankReconciliation() {
       const documento = fromDesc.documento || (details?.documentoContraparte as string) || null;
       const digits = documento ? documento.replace(/\D/g, "") : "";
 
-      if (digits.length >= 11) {
-        const { data } = await supabase
+      // 1) Por CNPJ (cadastro guarda apenas dígitos)
+      if (digits.length === 14) {
+        const { data, error } = await supabase
           .from("profiles")
-          .select("id, razao_social, nome_fantasia, full_name")
-          .or(`cnpj.eq.${digits},cpf.eq.${digits}`)
+          .select("id, cnpj, razao_social, nome_fantasia, full_name")
+          .eq("cnpj", digits)
           .limit(1);
+        if (error) console.error("Busca de favorecido por CNPJ falhou", error);
         const p = (data || [])[0] as any;
         if (p) return { favorecidoId: p.id as string, favorecidoNome: personDisplayName(p) };
       }
 
-      const termo = (nome || "").trim();
+      // 2) Por nome (razão social, nome fantasia ou nome)
+      const termo = (nome || fromDesc.nome || (details?.contraparte as string) || (details?.estabelecimento as string) || "").trim();
       if (termo.length >= 3) {
-        const like = `%${termo.replace(/[%,]/g, " ").trim()}%`;
-        const { data } = await supabase
+        const clean = termo.replace(/[%,()]/g, " ").replace(/\s+/g, " ").trim();
+        const like = `%${clean}%`;
+        const { data, error } = await supabase
           .from("profiles")
-          .select("id, razao_social, nome_fantasia, full_name")
+          .select("id, cnpj, razao_social, nome_fantasia, full_name")
           .or(`razao_social.ilike.${like},full_name.ilike.${like},nome_fantasia.ilike.${like}`)
-          .limit(2);
-        const rows = (data || []) as any[];
+          .limit(10);
+        if (error) console.error("Busca de favorecido por nome falhou", error);
+        let rows = (data || []) as any[];
+
+        // Fallback: tenta sem sufixos societários (LTDA, S.A., ME, EIRELI...)
+        if (rows.length === 0) {
+          const base = clean.replace(/\b(ltda|me|epp|eireli|s\.?\/?a\.?|sa|cia|comercio|com|industria|ind)\b\.?/gi, " ").replace(/\s+/g, " ").trim();
+          if (base.length >= 4 && base.toLowerCase() !== clean.toLowerCase()) {
+            const like2 = `%${base}%`;
+            const { data: d2 } = await supabase
+              .from("profiles")
+              .select("id, cnpj, razao_social, nome_fantasia, full_name")
+              .or(`razao_social.ilike.${like2},full_name.ilike.${like2},nome_fantasia.ilike.${like2}`)
+              .limit(10);
+            rows = (d2 || []) as any[];
+          }
+        }
+
+        // Prefere match exato normalizado; senão, único resultado; senão, o único com CNPJ
+        const exact = rows.find((p) =>
+          [p.razao_social, p.full_name, p.nome_fantasia].some((n) => normalizeName(n) === normalizeName(clean)),
+        );
+        if (exact) return { favorecidoId: exact.id as string, favorecidoNome: personDisplayName(exact) };
         if (rows.length === 1) {
           return { favorecidoId: rows[0].id as string, favorecidoNome: personDisplayName(rows[0]) };
         }
-        // Múltiplos: prefere match exato normalizado
-        const exact = rows.find((p) =>
-          [p.razao_social, p.full_name, p.nome_fantasia].some((n) => normalizeName(n) === normalizeName(termo)),
-        );
-        if (exact) return { favorecidoId: exact.id as string, favorecidoNome: personDisplayName(exact) };
+        const comCnpj = rows.filter((p) => String(p.cnpj || "").replace(/\D/g, "").length === 14);
+        if (comCnpj.length === 1) {
+          return { favorecidoId: comCnpj[0].id as string, favorecidoNome: personDisplayName(comCnpj[0]) };
+        }
       }
       return null;
     },
+
     [],
   );
 
