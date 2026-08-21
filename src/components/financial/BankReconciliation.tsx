@@ -13,7 +13,7 @@ import { formatDateBR } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Link2, Plus, ArrowDownCircle, Loader2, CheckSquare, History, Trash2, Search,
+  Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Link2, Plus, ArrowDownCircle, Loader2, CheckSquare, History, Trash2, Search, RefreshCw,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1375,38 +1375,18 @@ export function BankReconciliation() {
     return list;
   }, [items, statusFilter, tipoFilter, searchText]);
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLoading(true);
-
-    try {
-      // OFX files from Brazilian banks are often encoded in ISO-8859-1 / Windows-1252
-      // Try to detect encoding from OFX header, fallback to latin1
-      let text: string;
-      const rawBytes = await file.arrayBuffer();
-      const latin1Text = new TextDecoder("iso-8859-1").decode(rawBytes);
-      const charsetMatch = latin1Text.match(/CHARSET:\s*(\d+|[A-Za-z0-9_-]+)/i);
-      const charset = charsetMatch?.[1];
-      if (charset === "UTF-8" || charset === "65001") {
-        text = new TextDecoder("utf-8").decode(rawBytes);
-      } else {
-        // Default to latin1 for Brazilian banks (CHARSET:1252, CHARSET:ISO-8859-1, or unspecified)
-        text = latin1Text;
-      }
-      const parsed = parseOfx(text);
-
+  const runImport = useCallback(async (parsed: { bankName: string; accountId: string; transactions: OfxTransaction[] }, sourceName: string) => {
       if (parsed.transactions.length === 0) {
-        toast.error("Nenhuma transação encontrada no arquivo OFX");
-        setLoading(false);
+        toast.error("Nenhuma transação encontrada");
         return;
       }
+
 
       // Save reconciliation header
       const { data: rec, error: recErr } = await supabase
         .from("bank_reconciliations")
         .insert({
-          file_name: file.name,
+          file_name: sourceName,
           bank_name: parsed.bankName,
           account_id: parsed.accountId,
           total_items: parsed.transactions.length,
@@ -1642,16 +1622,70 @@ export function BankReconciliation() {
 
       setReconciliationId(rec.id);
       setItems(ofxItems);
-      setFileName(file.name);
+      setFileName(sourceName);
       loadHistory();
       toast.success(`${ofxItems.length} transações importadas`);
+  }, [user, loadHistory]);
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      let text: string;
+      const rawBytes = await file.arrayBuffer();
+      const latin1Text = new TextDecoder("iso-8859-1").decode(rawBytes);
+      const charsetMatch = latin1Text.match(/CHARSET:\s*(\d+|[A-Za-z0-9_-]+)/i);
+      const charset = charsetMatch?.[1];
+      if (charset === "UTF-8" || charset === "65001") {
+        text = new TextDecoder("utf-8").decode(rawBytes);
+      } else {
+        text = latin1Text;
+      }
+      await runImport(parseOfx(text), file.name);
     } catch (err: any) {
       toast.error("Erro ao importar OFX: " + (err.message || ""));
     } finally {
       setLoading(false);
       e.target.value = "";
     }
-  }, [user, loadHistory]);
+  }, [runImport]);
+
+  const [syncing, setSyncing] = useState(false);
+  const handleOpenFinanceSync = useCallback(async () => {
+    setSyncing(true);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("open-finance-sync");
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const txs = ((data as any)?.transactions || []) as Array<{ externalId: string; data: string; descricao: string; valor: number; tipo: "entrada" | "saida" }>;
+      const duplicados = Number((data as any)?.duplicados || 0);
+      if (txs.length === 0) {
+        toast.info(duplicados > 0 ? `Nenhum lançamento inédito (${duplicados} já registrados)` : "Nenhuma transação retornada pelo banco");
+        return;
+      }
+      const parsed = {
+        bankName: "Open Finance",
+        accountId: "",
+        transactions: txs.map((t) => ({
+          fitid: t.externalId,
+          date: t.data,
+          amount: t.tipo === "saida" ? -Math.abs(t.valor) : Math.abs(t.valor),
+          description: t.descricao,
+          tipo: t.tipo,
+        })) as OfxTransaction[],
+      };
+      await runImport(parsed, `Open Finance · ${formatDateBR(new Date())}`);
+      if (duplicados > 0) toast.info(`${duplicados} lançamento(s) já existentes foram ignorados`);
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar Open Finance: " + (err.message || ""));
+    } finally {
+      setSyncing(false);
+      setLoading(false);
+    }
+  }, [runImport]);
+
 
   const handleConfirmMatch = useCallback(async () => {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
@@ -1913,30 +1947,46 @@ export function BankReconciliation() {
         <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
-            <FileSpreadsheet className="h-12 w-12 text-muted-foreground/40" />
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-foreground">Importar Extrato OFX</p>
-              <p className="text-xs text-muted-foreground max-w-sm">
-                Selecione um arquivo OFX do seu banco para comparar com as movimentações já registradas no sistema
-              </p>
-            </div>
-            <label>
-              <input
-                type="file"
-                accept=".ofx,.qfx"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={loading}
-              />
-              <Button asChild variant="default" size="sm" disabled={loading} className="gap-2 cursor-pointer">
-                <span>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  {loading ? "Importando..." : "Selecionar Arquivo OFX"}
-                </span>
-              </Button>
-            </label>
+            {syncing ? (
+              <>
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="text-sm font-medium text-foreground">Sincronizando com o banco...</p>
+                <p className="text-xs text-muted-foreground">Buscando movimentações via Open Finance</p>
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="h-12 w-12 text-muted-foreground/40" />
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-foreground">Importar Movimentações</p>
+                  <p className="text-xs text-muted-foreground max-w-sm">
+                    Sincronize automaticamente via Open Finance ou selecione um arquivo OFX do seu banco
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <Button variant="default" size="sm" className="gap-2" disabled={loading} onClick={handleOpenFinanceSync}>
+                    <RefreshCw className="h-4 w-4" /> Sincronizar Open Finance
+                  </Button>
+                  <label>
+                    <input
+                      type="file"
+                      accept=".ofx,.qfx"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={loading}
+                    />
+                    <Button asChild variant="outline" size="sm" disabled={loading} className="gap-2 cursor-pointer">
+                      <span>
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        {loading ? "Importando..." : "Selecionar Arquivo OFX"}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
+
 
         {/* History */}
         {!loadingHistory && history.length > 0 && (
@@ -1997,6 +2047,10 @@ export function BankReconciliation() {
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack}>
             <History className="h-3.5 w-3.5" /> Histórico
           </Button>
+          <Button variant="default" size="sm" className="gap-1" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
+            {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {syncing ? "Sincronizando..." : "Sincronizar Open Finance"}
+          </Button>
           <label>
             <input
               type="file"
@@ -2012,6 +2066,7 @@ export function BankReconciliation() {
             </Button>
           </label>
         </div>
+
       </div>
 
       {/* Summary */}
