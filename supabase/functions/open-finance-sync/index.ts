@@ -71,6 +71,11 @@ class McpClient {
     await this.rpc({ jsonrpc: "2.0", method: "notifications/initialized" });
   }
 
+  async listTools(): Promise<any> {
+    const res = await this.rpc({ jsonrpc: "2.0", id: this.nextId++, method: "tools/list", params: {} });
+    return McpClient.parseBody(await res.text());
+  }
+
   async callTool(name: string, args: Record<string, unknown> = {}): Promise<any> {
     const res = await this.rpc({
       jsonrpc: "2.0",
@@ -174,7 +179,7 @@ Deno.serve(async (req) => {
       accounts = pickArray(accountsRes);
     }
     if (body?.debug) {
-      const toolsRes = await (mcp as any).rpc?.call(mcp, {}) ?? null;
+      const toolsRes = await mcp.listTools();
       let sample: any = null;
       const first = accounts[0];
       if (first) {
