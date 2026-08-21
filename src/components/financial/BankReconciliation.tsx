@@ -1752,7 +1752,7 @@ export function BankReconciliation() {
   }, [runImport]);
 
   const [syncing, setSyncing] = useState(false);
-  // -2 = período manual, -1 = somente ontem, 0 = somente hoje, >0 = últimos N dias
+  // -3 = mês atual, -2 = período manual, -1 = somente ontem, 0 = somente hoje, >0 = últimos N dias
   const [syncDays, setSyncDays] = useState(90);
   const [syncFrom, setSyncFrom] = useState("");
   const [syncTo, setSyncTo] = useState("");
