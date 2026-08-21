@@ -1947,30 +1947,46 @@ export function BankReconciliation() {
         <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
-            <FileSpreadsheet className="h-12 w-12 text-muted-foreground/40" />
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-foreground">Importar Extrato OFX</p>
-              <p className="text-xs text-muted-foreground max-w-sm">
-                Selecione um arquivo OFX do seu banco para comparar com as movimentações já registradas no sistema
-              </p>
-            </div>
-            <label>
-              <input
-                type="file"
-                accept=".ofx,.qfx"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={loading}
-              />
-              <Button asChild variant="default" size="sm" disabled={loading} className="gap-2 cursor-pointer">
-                <span>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  {loading ? "Importando..." : "Selecionar Arquivo OFX"}
-                </span>
-              </Button>
-            </label>
+            {syncing ? (
+              <>
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="text-sm font-medium text-foreground">Sincronizando com o banco...</p>
+                <p className="text-xs text-muted-foreground">Buscando movimentações via Open Finance</p>
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="h-12 w-12 text-muted-foreground/40" />
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-foreground">Importar Movimentações</p>
+                  <p className="text-xs text-muted-foreground max-w-sm">
+                    Sincronize automaticamente via Open Finance ou selecione um arquivo OFX do seu banco
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <Button variant="default" size="sm" className="gap-2" disabled={loading} onClick={handleOpenFinanceSync}>
+                    <RefreshCw className="h-4 w-4" /> Sincronizar Open Finance
+                  </Button>
+                  <label>
+                    <input
+                      type="file"
+                      accept=".ofx,.qfx"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={loading}
+                    />
+                    <Button asChild variant="outline" size="sm" disabled={loading} className="gap-2 cursor-pointer">
+                      <span>
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        {loading ? "Importando..." : "Selecionar Arquivo OFX"}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
+
 
         {/* History */}
         {!loadingHistory && history.length > 0 && (
