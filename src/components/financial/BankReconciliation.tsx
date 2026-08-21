@@ -707,6 +707,7 @@ export function BankReconciliation() {
 
   // Manual registration dialogs
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [expenseFavorecido, setExpenseFavorecido] = useState<{ favorecidoId: string | null; favorecidoNome: string | null } | null>(null);
   const [manualMovDialogOpen, setManualMovDialogOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<OfxItem | null>(null);
 
