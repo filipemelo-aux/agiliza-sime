@@ -92,11 +92,6 @@ class McpClient {
     await this.rpc({ jsonrpc: "2.0", method: "notifications/initialized" });
   }
 
-  async listTools(): Promise<any> {
-    const res = await this.rpc({ jsonrpc: "2.0", id: this.nextId++, method: "tools/list", params: {} });
-    return McpClient.parseBody(await res.text());
-  }
-
   async callTool(name: string, args: Record<string, unknown> = {}): Promise<any> {
     const res = await this.rpc({
       jsonrpc: "2.0",
