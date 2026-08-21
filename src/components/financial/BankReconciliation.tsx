@@ -1723,25 +1723,58 @@ export function BankReconciliation() {
       setSyncing(false);
       setLoading(false);
     }
-  }, [runImport, syncDays]);
+  }, [runImport, syncDays, syncFrom, syncTo]);
 
   const syncDaysSelect = (
-    <select
-      value={syncDays}
-      onChange={(e) => setSyncDays(Number(e.target.value))}
-      disabled={loading || syncing}
-      title="Período buscado no Open Finance"
-      className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-    >
-      <option value={0}>Somente hoje</option>
-      <option value={-1}>Somente ontem</option>
-      <option value={7}>Últimos 7 dias</option>
-      <option value={30}>Últimos 30 dias</option>
-      <option value={60}>Últimos 60 dias</option>
-      <option value={90}>Últimos 90 dias</option>
-      <option value={180}>Últimos 180 dias</option>
-      <option value={365}>Últimos 365 dias</option>
-    </select>
+    <div className="flex items-center gap-1.5">
+      <select
+        value={syncDays}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          setSyncDays(v);
+          if (v === -2 && !syncFrom && !syncTo) {
+            const hoje = new Date();
+            const iso = (d: Date) => d.toISOString().slice(0, 10);
+            setSyncFrom(iso(new Date(hoje.getTime() - 7 * 86400000)));
+            setSyncTo(iso(hoje));
+          }
+        }}
+        disabled={loading || syncing}
+        title="Período buscado no Open Finance"
+        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+      >
+        <option value={0}>Somente hoje</option>
+        <option value={-1}>Somente ontem</option>
+        <option value={7}>Últimos 7 dias</option>
+        <option value={30}>Últimos 30 dias</option>
+        <option value={60}>Últimos 60 dias</option>
+        <option value={90}>Últimos 90 dias</option>
+        <option value={180}>Últimos 180 dias</option>
+        <option value={365}>Últimos 365 dias</option>
+        <option value={-2}>Período definido...</option>
+      </select>
+      {syncDays === -2 && (
+        <>
+          <Input
+            type="date"
+            aria-label="Data inicial"
+            className="h-8 w-[130px] text-xs"
+            value={syncFrom}
+            disabled={loading || syncing}
+            onChange={(e) => setSyncFrom(e.target.value)}
+          />
+          <span className="text-xs text-muted-foreground">a</span>
+          <Input
+            type="date"
+            aria-label="Data final"
+            className="h-8 w-[130px] text-xs"
+            value={syncTo}
+            disabled={loading || syncing}
+            onChange={(e) => setSyncTo(e.target.value)}
+          />
+        </>
+      )}
+    </div>
   );
 
 
