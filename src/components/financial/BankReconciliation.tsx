@@ -1998,6 +1998,7 @@ export function BankReconciliation() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-center">
+                  {syncDaysSelect}
                   <Button variant="default" size="sm" className="gap-2" disabled={loading} onClick={handleOpenFinanceSync}>
                     <RefreshCw className="h-4 w-4" /> Sincronizar Open Finance
                   </Button>
@@ -2082,6 +2083,7 @@ export function BankReconciliation() {
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack}>
             <History className="h-3.5 w-3.5" /> Histórico
           </Button>
+          {syncDaysSelect}
           <Button variant="default" size="sm" className="gap-1" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             {syncing ? "Sincronizando..." : "Sincronizar Open Finance"}
