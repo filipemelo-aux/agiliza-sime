@@ -130,7 +130,11 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     typeHint === "CREDIT" ? "entrada" : typeHint === "DEBIT" ? "saida" : amount >= 0 ? "entrada" : "saida";
 
   const pd = (row.paymentData ?? {}) as Record<string, any>;
-  const contraparte = (tipo === "saida" ? pd.receiver : pd.payer) ?? pd.receiver ?? pd.payer ?? null;
+  const rawParty = (tipo === "saida" ? pd.receiver : pd.payer) ?? pd.receiver ?? pd.payer ?? null;
+  // Alguns bancos devolvem payer/receiver como string simples ("POZI LTDA")
+  const contraparte: Record<string, any> | null =
+    typeof rawParty === "string" ? { name: rawParty } : (rawParty as Record<string, any> | null);
+
   const merchant = (row.merchantInfo ?? row.merchant ?? null) as Record<string, any> | null;
   const clean = (v: unknown) => {
     const t = v === null || v === undefined ? "" : fixMojibake(String(v)).trim();
