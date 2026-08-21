@@ -2854,7 +2854,7 @@ export function BankReconciliation() {
           dataEmissao: activeItem.date,
           dataVencimento: activeItem.date,
           descricao: activeItem.description,
-          ...(resolveCounterpartyProfile(activeItem) || {}),
+          ...(expenseFavorecido || resolveCounterpartyProfile(activeItem) || {}),
         } : null}
       />
 
