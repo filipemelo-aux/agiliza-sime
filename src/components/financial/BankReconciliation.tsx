@@ -1656,8 +1656,18 @@ export function BankReconciliation() {
     setSyncing(true);
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("open-finance-sync");
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("open-finance-sync", { body: {} });
+      if (error) {
+        let detail = error.message || "";
+        const ctx: any = (error as any).context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const j = await ctx.json();
+            if (j?.error) detail = j.error;
+          } catch { /* ignora */ }
+        }
+        throw new Error(detail);
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       const txs = ((data as any)?.transactions || []) as Array<{ externalId: string; data: string; descricao: string; valor: number; tipo: "entrada" | "saida" }>;
       const duplicados = Number((data as any)?.duplicados || 0);
@@ -1666,8 +1676,8 @@ export function BankReconciliation() {
         return;
       }
       const parsed = {
-        bankName: "Open Finance",
-        accountId: "",
+        bankName: String((data as any)?.bankName || "Open Finance"),
+        accountId: String((data as any)?.accountLabel || ""),
         transactions: txs.map((t) => ({
           fitid: t.externalId,
           date: t.data,
@@ -1676,10 +1686,11 @@ export function BankReconciliation() {
           tipo: t.tipo,
         })) as OfxTransaction[],
       };
-      await runImport(parsed, `Open Finance · ${formatDateBR(new Date())}`);
+      await runImport(parsed, `Open Finance · ${parsed.bankName} · ${formatDateBR(new Date())}`);
       if (duplicados > 0) toast.info(`${duplicados} lançamento(s) já existentes foram ignorados`);
     } catch (err: any) {
       toast.error("Erro ao sincronizar Open Finance: " + (err.message || ""));
+
     } finally {
       setSyncing(false);
       setLoading(false);
