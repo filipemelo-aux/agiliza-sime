@@ -4136,6 +4136,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      merge_duplicate_profiles: {
+        Args: { _drop: string; _keep: string }
+        Returns: Json
+      }
       next_cte_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
