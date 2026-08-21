@@ -9,6 +9,8 @@ export interface OfxTransaction {
   amount: number; // positive = credit, negative = debit
   description: string;
   tipo: "entrada" | "saida";
+  /** Detalhes extras (Open Finance): categoria, forma de pagamento, contraparte etc. */
+  details?: Record<string, string | number | null> | null;
 }
 
 export interface OfxParseResult {

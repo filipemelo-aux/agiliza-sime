@@ -487,6 +487,7 @@ export function BankReconciliation() {
           date: txDate,
           amount: tipo === "saida" ? -absVal : absVal,
           description: dbItem.description || "",
+          details: (dbItem as any).details ?? null,
           tipo,
           id: crypto.randomUUID(),
           dbItemId: dbItem.id,
@@ -1596,6 +1597,7 @@ export function BankReconciliation() {
           amount: Math.abs(item.amount),
           tipo: item.tipo,
           fitid: item.fitid || null,
+          details: item.details ?? null,
           status: "pendente",
           matched_movimentacao_id: null,
         }))
@@ -1697,7 +1699,7 @@ export function BankReconciliation() {
         throw new Error(detail);
       }
       if ((data as any)?.error) throw new Error((data as any).error);
-      const txs = ((data as any)?.transactions || []) as Array<{ externalId: string; data: string; descricao: string; valor: number; tipo: "entrada" | "saida" }>;
+      const txs = ((data as any)?.transactions || []) as Array<{ externalId: string; data: string; descricao: string; valor: number; tipo: "entrada" | "saida"; detalhes?: Record<string, string | number | null> }>;
       const duplicados = Number((data as any)?.duplicados || 0);
       if (txs.length === 0) {
         toast.info(duplicados > 0 ? `Nenhum lançamento inédito (${duplicados} já registrados)` : "Nenhuma transação retornada pelo banco");
@@ -1712,6 +1714,7 @@ export function BankReconciliation() {
           amount: t.tipo === "saida" ? -Math.abs(t.valor) : Math.abs(t.valor),
           description: t.descricao,
           tipo: t.tipo,
+          details: t.detalhes ?? null,
         })) as OfxTransaction[],
       };
       await runImport(parsed, `Open Finance · ${parsed.bankName} · ${formatDateBR(new Date())}`);
@@ -2399,6 +2402,7 @@ export function BankReconciliation() {
                     <StatusBadge status={item.status} />
                   </div>
                   <p className="text-xs text-foreground truncate">{item.description}</p>
+                  <TransactionDetails details={item.details} />
                   {item.matchedMovId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedMovDesc}
@@ -2516,6 +2520,7 @@ export function BankReconciliation() {
                     </div>
                   </div>
                   <p className="text-xs text-foreground">{item.description}</p>
+                  <TransactionDetails details={item.details} />
                   {item.matchedMovId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedMovDesc}
