@@ -160,14 +160,25 @@ Deno.serve(async (req) => {
       return [];
     };
 
+    const billingError = (res: any): string | null => {
+      if (res && typeof res === "object" && (res.is_billing_notice || res.status === "trial_limit_reached")) {
+        return String(res.message || "Limite do plano Open Finance atingido.");
+      }
+      return null;
+    };
+
     let accountsRes = await mcp.callTool("openfinance_list_accounts", {});
     let accounts = pickArray(accountsRes);
-    if (accounts.length === 0) {
+    if (accounts.length === 0 && !billingError(accountsRes)) {
       accountsRes = await mcp.callTool("openfinance_list_accounts", { type: "BANK" });
       accounts = pickArray(accountsRes);
     }
     if (body?.debug) {
       return json({ debug: true, accountsRes });
+    }
+    const billing = billingError(accountsRes);
+    if (billing) {
+      return json({ error: billing, billing: true, checkoutUrls: accountsRes?.checkout_urls ?? null }, 402);
     }
     if (accounts.length === 0) {
       return json({
@@ -175,6 +186,7 @@ Deno.serve(async (req) => {
         detalhe: JSON.stringify(accountsRes).slice(0, 500),
       }, 400);
     }
+
 
     const bankName = fixMojibake(String(accountsRes?.bank ?? accounts[0]?.bank ?? accounts[0]?.name ?? "Open Finance"));
     const accountLabel = String(accounts[0]?.number ?? accounts[0]?.account ?? "");
