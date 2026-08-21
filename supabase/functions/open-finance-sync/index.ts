@@ -7,6 +7,27 @@ interface NormalizedTx {
   descricao: string;
   valor: number; // sempre positivo
   tipo: "entrada" | "saida";
+  /** Detalhes adicionais do Open Finance (quando o banco fornece) */
+  detalhes?: {
+    categoria?: string | null;
+    tipoOperacao?: string | null;
+    formaPagamento?: string | null;
+    situacao?: string | null;
+    contraparte?: string | null;
+    documentoContraparte?: string | null;
+    banco?: string | null;
+    agencia?: string | null;
+    conta?: string | null;
+    codigoAutenticacao?: string | null;
+    numeroReferencia?: string | null;
+    motivo?: string | null;
+    boleto?: string | null;
+    estabelecimento?: string | null;
+    cnpjEstabelecimento?: string | null;
+    cnaeEstabelecimento?: string | null;
+    saldoApos?: number | null;
+    idProvedor?: string | null;
+  };
 }
 
 /** Corrige textos UTF-8 que chegaram interpretados como latin-1 (ex.: "DÃ‰B."). */
@@ -113,12 +134,43 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
   const tipo: "entrada" | "saida" =
     typeHint === "CREDIT" ? "entrada" : typeHint === "DEBIT" ? "saida" : amount >= 0 ? "entrada" : "saida";
 
+  const pd = (row.paymentData ?? {}) as Record<string, any>;
+  const contraparte = (tipo === "saida" ? pd.receiver : pd.payer) ?? pd.receiver ?? pd.payer ?? null;
+  const merchant = (row.merchantInfo ?? row.merchant ?? null) as Record<string, any> | null;
+  const clean = (v: unknown) => {
+    const t = v === null || v === undefined ? "" : fixMojibake(String(v)).trim();
+    return t ? t : null;
+  };
+
+  const detalhes = {
+    categoria: clean(row.category),
+    tipoOperacao: clean(row.operationType),
+    formaPagamento: clean(pd.paymentMethod),
+    situacao: clean(row.status),
+    contraparte: clean(contraparte?.name ?? merchant?.businessName ?? merchant?.name),
+    documentoContraparte: clean(contraparte?.documentNumber?.value ?? merchant?.cnpj),
+    banco: clean(contraparte?.routingNumber),
+    agencia: clean(contraparte?.branchNumber),
+    conta: clean(contraparte?.accountNumber),
+    codigoAutenticacao: clean(pd.authenticationCode),
+    numeroReferencia: clean(pd.referenceNumber),
+    motivo: clean(pd.reason),
+    boleto: clean(pd.boletoMetadata?.digitableLine ?? pd.boletoMetadata?.barcode),
+    estabelecimento: clean(merchant?.businessName ?? merchant?.name),
+    cnpjEstabelecimento: clean(merchant?.cnpj),
+    cnaeEstabelecimento: clean(merchant?.cnae),
+    saldoApos: Number.isFinite(Number(row.balance)) && row.balance !== null ? Number(row.balance) : null,
+    idProvedor: clean(row.providerId),
+  };
+  const temDetalhe = Object.values(detalhes).some((v) => v !== null && v !== undefined);
+
   return {
     externalId: String(row.id ?? row.transactionId ?? `${data}-${Math.round(Math.abs(amount) * 100)}`),
     data,
     descricao: fixMojibake(String(row.description ?? row.descricao ?? "Lançamento Open Finance")).trim(),
     valor: Math.abs(amount),
     tipo,
+    ...(temDetalhe ? { detalhes } : {}),
   };
 }
 
@@ -179,20 +231,7 @@ Deno.serve(async (req) => {
       accounts = pickArray(accountsRes);
     }
     if (body?.debug) {
-      const toolsRes = await mcp.listTools();
-      let sample: any = null;
-      const first = accounts[0];
-      if (first) {
-        sample = await mcp.callTool("openfinance_list_transactions", {
-          account_id: String(first.account_id ?? first.id),
-          from,
-          to,
-          page: 1,
-          page_size: 3,
-          detail: "raw",
-        });
-      }
-      return json({ debug: true, accountsRes, sample, toolsRes });
+      return json({ debug: true, accountsRes });
     }
 
     const billing = billingError(accountsRes);
@@ -241,7 +280,7 @@ Deno.serve(async (req) => {
           to,
           page,
           page_size: 200,
-          detail: "compact",
+          detail: "rich",
         });
         const results = (res?.results ?? []) as Record<string, any>[];
         // Segurança extra: descarta linhas marcadas como cartão de crédito pela API
