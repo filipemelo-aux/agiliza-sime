@@ -1652,11 +1652,17 @@ export function BankReconciliation() {
   }, [runImport]);
 
   const [syncing, setSyncing] = useState(false);
+  const [syncDays, setSyncDays] = useState(90);
   const handleOpenFinanceSync = useCallback(async () => {
     setSyncing(true);
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("open-finance-sync", { body: {} });
+      const hoje = new Date();
+      const inicio = new Date(hoje.getTime() - syncDays * 86400000);
+      const iso = (d: Date) => d.toISOString().slice(0, 10);
+      const { data, error } = await supabase.functions.invoke("open-finance-sync", {
+        body: { from: iso(inicio), to: iso(hoje) },
+      });
       if (error) {
         let detail = error.message || "";
         const ctx: any = (error as any).context;
@@ -1689,13 +1695,31 @@ export function BankReconciliation() {
       await runImport(parsed, `Open Finance · ${parsed.bankName} · ${formatDateBR(new Date())}`);
       if (duplicados > 0) toast.info(`${duplicados} lançamento(s) já existentes foram ignorados`);
     } catch (err: any) {
-      toast.error("Erro ao sincronizar Open Finance: " + (err.message || ""));
+      toast.error("Erro ao sincronizar Open Finance: " + (err.message || ""), { duration: 12000 });
 
     } finally {
       setSyncing(false);
       setLoading(false);
     }
-  }, [runImport]);
+  }, [runImport, syncDays]);
+
+  const syncDaysSelect = (
+    <select
+      value={syncDays}
+      onChange={(e) => setSyncDays(Number(e.target.value))}
+      disabled={loading || syncing}
+      title="Período buscado no Open Finance"
+      className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+    >
+      <option value={7}>Últimos 7 dias</option>
+      <option value={30}>Últimos 30 dias</option>
+      <option value={60}>Últimos 60 dias</option>
+      <option value={90}>Últimos 90 dias</option>
+      <option value={180}>Últimos 180 dias</option>
+      <option value={365}>Últimos 365 dias</option>
+    </select>
+  );
+
 
 
   const handleConfirmMatch = useCallback(async () => {
