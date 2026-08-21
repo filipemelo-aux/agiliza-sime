@@ -187,9 +187,27 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
+    // Conciliação bancária deve considerar SOMENTE conta corrente/poupança.
+    // Cartão de crédito é tratado exclusivamente no módulo de Cartão de Crédito.
+    const isCreditCardAccount = (acc: Record<string, any>): boolean => {
+      const blob = [acc.type, acc.subtype, acc.product, acc.category, acc.name, acc.description]
+        .filter(Boolean)
+        .join(" ")
+        .toUpperCase();
+      return /CREDIT_?CARD|CREDITCARD|CARTAO|CARTÃO|\bCARD\b|CREDITO ROTATIVO/.test(blob);
+    };
+    const bankAccounts = accounts.filter((a) => !isCreditCardAccount(a));
+    const cartoesIgnorados = accounts.length - bankAccounts.length;
+    if (bankAccounts.length === 0) {
+      return json({
+        error: "Nenhuma conta corrente conectada no Open Finance (apenas cartões de crédito foram encontrados).",
+      }, 400);
+    }
+    accounts = bankAccounts;
 
     const bankName = fixMojibake(String(accountsRes?.bank ?? accounts[0]?.bank ?? accounts[0]?.name ?? "Open Finance"));
     const accountLabel = String(accounts[0]?.number ?? accounts[0]?.account ?? "");
+
 
 
     const raw: Record<string, any>[] = [];
@@ -207,7 +225,15 @@ Deno.serve(async (req) => {
           detail: "compact",
         });
         const results = (res?.results ?? []) as Record<string, any>[];
-        raw.push(...results);
+        // Segurança extra: descarta linhas marcadas como cartão de crédito pela API
+        const somenteConta = results.filter((r) => {
+          const blob = [r.accountType, r.account_type, r.productType, r.cardNumber, r.card_number, r.creditCardMetadata]
+            .filter(Boolean)
+            .join(" ")
+            .toUpperCase();
+          return !/CREDIT_?CARD|CREDITCARD|CARTAO|CARTÃO|\bCARD\b/.test(blob);
+        });
+        raw.push(...somenteConta);
         totalPages = Number(res?.totalPages ?? 1) || 1;
         if (results.length === 0) break;
         page++;
@@ -217,6 +243,7 @@ Deno.serve(async (req) => {
     const transactions = raw
       .map(adaptTransaction)
       .filter((t): t is NormalizedTx => t !== null);
+
 
     // Deduplicação pelo ID único da API contra o que já foi gravado
     const admin = createClient(supabaseUrl, serviceKey);
@@ -244,7 +271,9 @@ Deno.serve(async (req) => {
       total: transactions.length,
       duplicados: transactions.length - novos.length,
       novos: novos.length,
+      cartoesIgnorados,
       transactions: novos,
+
     });
   } catch (err) {
     console.error("open-finance-sync:", err);
