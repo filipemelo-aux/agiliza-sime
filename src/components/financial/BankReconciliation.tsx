@@ -1850,6 +1850,7 @@ export function BankReconciliation() {
       >
         <option value={0}>Somente hoje</option>
         <option value={-1}>Somente ontem</option>
+        <option value={-3}>Mês atual</option>
         <option value={7}>Últimos 7 dias</option>
         <option value={30}>Últimos 30 dias</option>
         <option value={60}>Últimos 60 dias</option>
