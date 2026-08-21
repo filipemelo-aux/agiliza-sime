@@ -139,15 +139,22 @@ const DETAIL_LABELS: Array<[string, string]> = [
 ];
 
 /** Exibe os detalhes adicionais trazidos pelo Open Finance (quando o banco fornece). */
-function TransactionDetails({ details }: { details?: Record<string, string | number | null> | null }) {
-  if (!details) return null;
+function TransactionDetails({ details, description }: { details?: Record<string, string | number | null> | null; description?: string | null }) {
+  const fromDesc = counterpartyFromDescription(description);
+  const merged: Record<string, string | number | null> = {
+    ...(details || {}),
+    contraparte: (details?.contraparte as string) || fromDesc.nome || null,
+    documentoContraparte: (details?.documentoContraparte as string) || fromDesc.documento || null,
+  };
+  if (!details && !fromDesc.nome && !fromDesc.documento) return null;
   const chips = DETAIL_LABELS
     .map(([key, label]) => {
-      const value = details[key];
+      const value = merged[key];
       return value === null || value === undefined || value === "" ? null : { label, value: String(value) };
     })
     .filter((c): c is { label: string; value: string } => c !== null);
   if (chips.length === 0) return null;
+
   return (
     <div className="flex flex-wrap gap-1">
       {chips.map((c) => (
