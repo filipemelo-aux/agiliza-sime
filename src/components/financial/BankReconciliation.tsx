@@ -1652,17 +1652,36 @@ export function BankReconciliation() {
   }, [runImport]);
 
   const [syncing, setSyncing] = useState(false);
+  // -2 = período manual, -1 = somente ontem, 0 = somente hoje, >0 = últimos N dias
   const [syncDays, setSyncDays] = useState(90);
+  const [syncFrom, setSyncFrom] = useState("");
+  const [syncTo, setSyncTo] = useState("");
   const handleOpenFinanceSync = useCallback(async () => {
+    const hoje = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const ontem = new Date(hoje.getTime() - 86400000);
+    let from: string;
+    let to: string;
+    if (syncDays === -2) {
+      if (!syncFrom || !syncTo) {
+        toast.error("Informe a data inicial e final do período");
+        return;
+      }
+      from = syncFrom;
+      to = syncTo;
+    } else if (syncDays === -1) {
+      from = iso(ontem);
+      to = iso(ontem);
+    } else if (syncDays === 0) {
+      from = iso(hoje);
+      to = iso(hoje);
+    } else {
+      from = iso(new Date(hoje.getTime() - syncDays * 86400000));
+      to = iso(hoje);
+    }
     setSyncing(true);
     setLoading(true);
     try {
-      const hoje = new Date();
-      const iso = (d: Date) => d.toISOString().slice(0, 10);
-      // -1 = somente o dia anterior (ontem); 0 = somente hoje
-      const ontem = new Date(hoje.getTime() - 86400000);
-      const from = syncDays === -1 ? iso(ontem) : syncDays === 0 ? iso(hoje) : iso(new Date(hoje.getTime() - syncDays * 86400000));
-      const to = syncDays === -1 ? iso(ontem) : iso(hoje);
       const { data, error } = await supabase.functions.invoke("open-finance-sync", {
         body: { from, to },
       });
