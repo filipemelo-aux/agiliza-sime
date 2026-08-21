@@ -2031,6 +2031,10 @@ export function BankReconciliation() {
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack}>
             <History className="h-3.5 w-3.5" /> Histórico
           </Button>
+          <Button variant="default" size="sm" className="gap-1" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
+            {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {syncing ? "Sincronizando..." : "Sincronizar Open Finance"}
+          </Button>
           <label>
             <input
               type="file"
@@ -2046,6 +2050,7 @@ export function BankReconciliation() {
             </Button>
           </label>
         </div>
+
       </div>
 
       {/* Summary */}
