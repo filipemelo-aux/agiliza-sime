@@ -319,9 +319,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (body?.debugTx) {
-      return json({ debugTx: true, amostra: raw.slice(0, 8) });
-    }
 
     const transactions = raw
       .map(adaptTransaction)
