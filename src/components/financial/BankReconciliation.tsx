@@ -120,6 +120,50 @@ interface ReconciliationSummary {
   reconciled_items: number;
 }
 
+const DETAIL_LABELS: Array<[string, string]> = [
+  ["categoria", "Categoria"],
+  ["formaPagamento", "Forma"],
+  ["tipoOperacao", "Operação"],
+  ["situacao", "Situação"],
+  ["contraparte", "Contraparte"],
+  ["documentoContraparte", "Documento"],
+  ["estabelecimento", "Estabelecimento"],
+  ["cnpjEstabelecimento", "CNPJ"],
+  ["cnaeEstabelecimento", "CNAE"],
+  ["agencia", "Agência"],
+  ["conta", "Conta"],
+  ["boleto", "Boleto"],
+  ["numeroReferencia", "Ref."],
+  ["codigoAutenticacao", "Autenticação"],
+  ["motivo", "Motivo"],
+];
+
+/** Exibe os detalhes adicionais trazidos pelo Open Finance (quando o banco fornece). */
+function TransactionDetails({ details }: { details?: Record<string, string | number | null> | null }) {
+  if (!details) return null;
+  const chips = DETAIL_LABELS
+    .map(([key, label]) => {
+      const value = details[key];
+      return value === null || value === undefined || value === "" ? null : { label, value: String(value) };
+    })
+    .filter((c): c is { label: string; value: string } => c !== null);
+  if (chips.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {chips.map((c) => (
+        <span
+          key={c.label}
+          title={`${c.label}: ${c.value}`}
+          className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground max-w-[220px] truncate"
+        >
+          <span className="text-muted-foreground/70">{c.label}:</span> {c.value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+
 export function BankReconciliation() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
