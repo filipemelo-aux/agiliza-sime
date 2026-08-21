@@ -1752,7 +1752,7 @@ export function BankReconciliation() {
   }, [runImport]);
 
   const [syncing, setSyncing] = useState(false);
-  // -2 = período manual, -1 = somente ontem, 0 = somente hoje, >0 = últimos N dias
+  // -3 = mês atual, -2 = período manual, -1 = somente ontem, 0 = somente hoje, >0 = últimos N dias
   const [syncDays, setSyncDays] = useState(90);
   const [syncFrom, setSyncFrom] = useState("");
   const [syncTo, setSyncTo] = useState("");
@@ -1769,6 +1769,10 @@ export function BankReconciliation() {
       }
       from = syncFrom;
       to = syncTo;
+    } else if (syncDays === -3) {
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      from = iso(inicioMes);
+      to = iso(hoje);
     } else if (syncDays === -1) {
       from = iso(ontem);
       to = iso(ontem);
@@ -1846,6 +1850,7 @@ export function BankReconciliation() {
       >
         <option value={0}>Somente hoje</option>
         <option value={-1}>Somente ontem</option>
+        <option value={-3}>Mês atual</option>
         <option value={7}>Últimos 7 dias</option>
         <option value={30}>Últimos 30 dias</option>
         <option value={60}>Últimos 60 dias</option>
