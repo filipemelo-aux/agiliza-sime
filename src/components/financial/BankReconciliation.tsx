@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { counterpartyFromDescription } from "@/lib/counterpartyFromDescription";
+import { personDisplayName } from "@/lib/personName";
 
 type MatchPrecision = "exato" | "proximo";
 
@@ -2499,7 +2500,7 @@ export function BankReconciliation() {
                     <StatusBadge status={item.status} />
                   </div>
                   <p className="text-xs text-foreground truncate">{item.description}</p>
-                  <TransactionDetails details={item.details} description={item.description} />
+                  <TransactionDetails details={item.details} description={item.description} tipo={item.tipo} resolveName={resolveDocName} />
                   {item.matchedMovId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedMovDesc}
@@ -2617,7 +2618,7 @@ export function BankReconciliation() {
                     </div>
                   </div>
                   <p className="text-xs text-foreground">{item.description}</p>
-                  <TransactionDetails details={item.details} description={item.description} />
+                  <TransactionDetails details={item.details} description={item.description} tipo={item.tipo} resolveName={resolveDocName} />
                   {item.matchedMovId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedMovDesc}
