@@ -2097,12 +2097,13 @@ export function BankReconciliation() {
     const local = resolveCounterpartyProfile(item);
     setExpenseFavorecido(local);
     setExpenseDialogOpen(true);
-    // Se não achou vínculo no cache local, busca no cadastro (documento e nome)
-    if (local && !local.favorecidoId) {
-      const found = await searchProfileInCadastro(item, local.favorecidoNome);
+    // Sempre confirma no cadastro (banco) quando ainda não há vínculo
+    if (!local?.favorecidoId) {
+      const found = await searchProfileInCadastro(item, local?.favorecidoNome);
       if (found) setExpenseFavorecido(found);
     }
   };
+
 
   /** Busca no cadastro (banco) pelo documento e, em seguida, pelo nome do favorecido. */
   const searchProfileInCadastro = useCallback(
