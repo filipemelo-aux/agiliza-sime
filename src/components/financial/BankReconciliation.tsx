@@ -210,6 +210,32 @@ export function BankReconciliation() {
   const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
   const [showMissing, setShowMissing] = useState(false);
   const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
+  // Cadastro (CNPJ -> nome) para identificar favorecidos de transferências enviadas
+  const [docNameMap, setDocNameMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("cnpj, razao_social, nome_fantasia, full_name")
+      .not("cnpj", "is", null)
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        (data || []).forEach((p: any) => {
+          const digits = String(p.cnpj || "").replace(/\D/g, "");
+          const nome = personDisplayName(p);
+          if (digits.length >= 11 && nome) map[digits] = nome;
+        });
+        setDocNameMap(map);
+      });
+  }, []);
+  const resolveDocName = useCallback(
+    (doc: string) => {
+      const digits = doc.replace(/\D/g, "");
+      if (digits.length < 11) return null;
+      return docNameMap[digits] ?? null;
+    },
+    [docNameMap],
+  );
+
 
   // Load chart of accounts
   useEffect(() => {
