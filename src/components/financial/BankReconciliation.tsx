@@ -122,6 +122,17 @@ interface ReconciliationSummary {
   reconciled_items: number;
 }
 
+/** Normaliza nome para casar com o cadastro (sem acento, sem pontuação, maiúsculo). */
+function normalizeName(n?: string | null): string {
+  return String(n || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
 /** Só interessa saber de onde veio / para quem foi. */
 const DETAIL_LABELS: Array<[string, string]> = [
   ["contraparte", "Contraparte"],
