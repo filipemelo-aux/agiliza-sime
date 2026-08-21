@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
           to,
           page: 1,
           page_size: 3,
-          detail: "rich",
+          detail: "raw",
         });
       }
       return json({ debug: true, accountsRes, sample, toolsRes });
