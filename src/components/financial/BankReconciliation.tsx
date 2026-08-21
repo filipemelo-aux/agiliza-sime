@@ -1714,6 +1714,8 @@ export function BankReconciliation() {
       title="Período buscado no Open Finance"
       className="h-8 rounded-md border border-input bg-background px-2 text-xs"
     >
+      <option value={0}>Somente hoje</option>
+      <option value={-1}>Somente ontem</option>
       <option value={7}>Últimos 7 dias</option>
       <option value={30}>Últimos 30 dias</option>
       <option value={60}>Últimos 60 dias</option>
