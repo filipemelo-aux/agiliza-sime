@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { counterpartyFromDescription } from "@/lib/counterpartyFromDescription";
+import { personDisplayName } from "@/lib/personName";
 
 type MatchPrecision = "exato" | "proximo";
 
@@ -140,21 +141,40 @@ const DETAIL_LABELS: Array<[string, string]> = [
 ];
 
 /** Exibe os detalhes adicionais trazidos pelo Open Finance (quando o banco fornece). */
-function TransactionDetails({ details, description }: { details?: Record<string, string | number | null> | null; description?: string | null }) {
+function TransactionDetails({
+  details,
+  description,
+  tipo,
+  resolveName,
+}: {
+  details?: Record<string, string | number | null> | null;
+  description?: string | null;
+  tipo?: "entrada" | "saida";
+  resolveName?: (doc: string) => string | null;
+}) {
   const fromDesc = counterpartyFromDescription(description);
+  const documento = (details?.documentoContraparte as string) || fromDesc.documento || null;
+  const nome =
+    (details?.contraparte as string) ||
+    fromDesc.nome ||
+    (documento && resolveName ? resolveName(documento) : null) ||
+    null;
   const merged: Record<string, string | number | null> = {
     ...(details || {}),
-    contraparte: (details?.contraparte as string) || fromDesc.nome || null,
-    documentoContraparte: (details?.documentoContraparte as string) || fromDesc.documento || null,
+    contraparte: nome,
+    documentoContraparte: documento,
   };
-  if (!details && !fromDesc.nome && !fromDesc.documento) return null;
+  if (!details && !nome && !documento) return null;
+  const partyLabel = tipo === "saida" ? "Favorecido" : "Remetente";
   const chips = DETAIL_LABELS
     .map(([key, label]) => {
       const value = merged[key];
-      return value === null || value === undefined || value === "" ? null : { label, value: String(value) };
+      if (value === null || value === undefined || value === "") return null;
+      return { label: key === "contraparte" ? partyLabel : label, value: String(value) };
     })
     .filter((c): c is { label: string; value: string } => c !== null);
   if (chips.length === 0) return null;
+
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -191,6 +211,32 @@ export function BankReconciliation() {
   const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
   const [showMissing, setShowMissing] = useState(false);
   const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
+  // Cadastro (CNPJ -> nome) para identificar favorecidos de transferências enviadas
+  const [docNameMap, setDocNameMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("cnpj, razao_social, nome_fantasia, full_name")
+      .not("cnpj", "is", null)
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        (data || []).forEach((p: any) => {
+          const digits = String(p.cnpj || "").replace(/\D/g, "");
+          const nome = personDisplayName(p);
+          if (digits.length >= 11 && nome) map[digits] = nome;
+        });
+        setDocNameMap(map);
+      });
+  }, []);
+  const resolveDocName = useCallback(
+    (doc: string) => {
+      const digits = doc.replace(/\D/g, "");
+      if (digits.length < 11) return null;
+      return docNameMap[digits] ?? null;
+    },
+    [docNameMap],
+  );
+
 
   // Load chart of accounts
   useEffect(() => {
@@ -2454,7 +2500,7 @@ export function BankReconciliation() {
                     <StatusBadge status={item.status} />
                   </div>
                   <p className="text-xs text-foreground truncate">{item.description}</p>
-                  <TransactionDetails details={item.details} description={item.description} />
+                  <TransactionDetails details={item.details} description={item.description} tipo={item.tipo} resolveName={resolveDocName} />
                   {item.matchedMovId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedMovDesc}
@@ -2572,7 +2618,7 @@ export function BankReconciliation() {
                     </div>
                   </div>
                   <p className="text-xs text-foreground">{item.description}</p>
-                  <TransactionDetails details={item.details} description={item.description} />
+                  <TransactionDetails details={item.details} description={item.description} tipo={item.tipo} resolveName={resolveDocName} />
                   {item.matchedMovId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedMovDesc}
