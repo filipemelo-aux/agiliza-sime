@@ -187,9 +187,27 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
+    // Conciliação bancária deve considerar SOMENTE conta corrente/poupança.
+    // Cartão de crédito é tratado exclusivamente no módulo de Cartão de Crédito.
+    const isCreditCardAccount = (acc: Record<string, any>): boolean => {
+      const blob = [acc.type, acc.subtype, acc.product, acc.category, acc.name, acc.description]
+        .filter(Boolean)
+        .join(" ")
+        .toUpperCase();
+      return /CREDIT_?CARD|CREDITCARD|CARTAO|CARTÃO|\bCARD\b|CREDITO ROTATIVO/.test(blob);
+    };
+    const bankAccounts = accounts.filter((a) => !isCreditCardAccount(a));
+    const cartoesIgnorados = accounts.length - bankAccounts.length;
+    if (bankAccounts.length === 0) {
+      return json({
+        error: "Nenhuma conta corrente conectada no Open Finance (apenas cartões de crédito foram encontrados).",
+      }, 400);
+    }
+    accounts = bankAccounts;
 
     const bankName = fixMojibake(String(accountsRes?.bank ?? accounts[0]?.bank ?? accounts[0]?.name ?? "Open Finance"));
     const accountLabel = String(accounts[0]?.number ?? accounts[0]?.account ?? "");
+
 
 
     const raw: Record<string, any>[] = [];
