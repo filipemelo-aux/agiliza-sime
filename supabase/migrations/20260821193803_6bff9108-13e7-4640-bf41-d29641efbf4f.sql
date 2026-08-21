@@ -1,0 +1,1 @@
+ALTER TABLE public.bank_reconciliation_items ADD COLUMN IF NOT EXISTS details jsonb;

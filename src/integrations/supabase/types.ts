@@ -88,6 +88,7 @@ export type Database = {
           amount: number
           created_at: string
           description: string | null
+          details: Json | null
           fitid: string | null
           id: string
           matched_movimentacao_id: string | null
@@ -100,6 +101,7 @@ export type Database = {
           amount: number
           created_at?: string
           description?: string | null
+          details?: Json | null
           fitid?: string | null
           id?: string
           matched_movimentacao_id?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           amount?: number
           created_at?: string
           description?: string | null
+          details?: Json | null
           fitid?: string | null
           id?: string
           matched_movimentacao_id?: string | null
