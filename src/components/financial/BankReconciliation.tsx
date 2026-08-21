@@ -1375,27 +1375,7 @@ export function BankReconciliation() {
     return list;
   }, [items, statusFilter, tipoFilter, searchText]);
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLoading(true);
-
-    try {
-      // OFX files from Brazilian banks are often encoded in ISO-8859-1 / Windows-1252
-      // Try to detect encoding from OFX header, fallback to latin1
-      let text: string;
-      const rawBytes = await file.arrayBuffer();
-      const latin1Text = new TextDecoder("iso-8859-1").decode(rawBytes);
-      const charsetMatch = latin1Text.match(/CHARSET:\s*(\d+|[A-Za-z0-9_-]+)/i);
-      const charset = charsetMatch?.[1];
-      if (charset === "UTF-8" || charset === "65001") {
-        text = new TextDecoder("utf-8").decode(rawBytes);
-      } else {
-        // Default to latin1 for Brazilian banks (CHARSET:1252, CHARSET:ISO-8859-1, or unspecified)
-        text = latin1Text;
-      }
-      const parsed = parseOfx(text);
-
+  const runImport = useCallback(async (parsed: { bankName: string; accountId: string; transactions: OfxTransaction[] }, sourceName: string) => {
       if (parsed.transactions.length === 0) {
         toast.error("Nenhuma transação encontrada no arquivo OFX");
         setLoading(false);
@@ -1406,7 +1386,7 @@ export function BankReconciliation() {
       const { data: rec, error: recErr } = await supabase
         .from("bank_reconciliations")
         .insert({
-          file_name: file.name,
+          file_name: sourceName,
           bank_name: parsed.bankName,
           account_id: parsed.accountId,
           total_items: parsed.transactions.length,
@@ -1642,16 +1622,70 @@ export function BankReconciliation() {
 
       setReconciliationId(rec.id);
       setItems(ofxItems);
-      setFileName(file.name);
+      setFileName(sourceName);
       loadHistory();
       toast.success(`${ofxItems.length} transações importadas`);
+  }, [user, loadHistory]);
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      let text: string;
+      const rawBytes = await file.arrayBuffer();
+      const latin1Text = new TextDecoder("iso-8859-1").decode(rawBytes);
+      const charsetMatch = latin1Text.match(/CHARSET:\s*(\d+|[A-Za-z0-9_-]+)/i);
+      const charset = charsetMatch?.[1];
+      if (charset === "UTF-8" || charset === "65001") {
+        text = new TextDecoder("utf-8").decode(rawBytes);
+      } else {
+        text = latin1Text;
+      }
+      await runImport(parseOfx(text), file.name);
     } catch (err: any) {
       toast.error("Erro ao importar OFX: " + (err.message || ""));
     } finally {
       setLoading(false);
       e.target.value = "";
     }
-  }, [user, loadHistory]);
+  }, [runImport]);
+
+  const [syncing, setSyncing] = useState(false);
+  const handleOpenFinanceSync = useCallback(async () => {
+    setSyncing(true);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("open-finance-sync");
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const txs = ((data as any)?.transactions || []) as Array<{ externalId: string; data: string; descricao: string; valor: number; tipo: "entrada" | "saida" }>;
+      const duplicados = Number((data as any)?.duplicados || 0);
+      if (txs.length === 0) {
+        toast.info(duplicados > 0 ? `Nenhum lançamento inédito (${duplicados} já registrados)` : "Nenhuma transação retornada pelo banco");
+        return;
+      }
+      const parsed = {
+        bankName: "Open Finance",
+        accountId: "",
+        transactions: txs.map((t) => ({
+          fitid: t.externalId,
+          date: t.data,
+          amount: t.tipo === "saida" ? -Math.abs(t.valor) : Math.abs(t.valor),
+          description: t.descricao,
+          tipo: t.tipo,
+        })) as OfxTransaction[],
+      };
+      await runImport(parsed, `Open Finance · ${formatDateBR(new Date())}`);
+      if (duplicados > 0) toast.info(`${duplicados} lançamento(s) já existentes foram ignorados`);
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar Open Finance: " + (err.message || ""));
+    } finally {
+      setSyncing(false);
+      setLoading(false);
+    }
+  }, [runImport]);
+
 
   const handleConfirmMatch = useCallback(async () => {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
