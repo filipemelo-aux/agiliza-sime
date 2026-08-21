@@ -9,86 +9,112 @@ interface NormalizedTx {
   tipo: "entrada" | "saida";
 }
 
-function pick(obj: Record<string, unknown>, keys: string[]): unknown {
-  for (const k of keys) {
-    if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+/** Corrige textos UTF-8 que chegaram interpretados como latin-1 (ex.: "DÃ‰B."). */
+function fixMojibake(input: string): string {
+  if (!/[ÃÂ][\u0080-\u00BF\u2000-\u206F]/.test(input)) return input;
+  try {
+    const bytes = Uint8Array.from([...input].map((c) => c.charCodeAt(0) & 0xff));
+    const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    return decoded.includes("\uFFFD") ? input : decoded;
+  } catch {
+    return input;
   }
-  return undefined;
 }
 
-function toISODate(raw: unknown): string | null {
-  if (!raw) return null;
-  const s = String(raw).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-    const [d, m, y] = s.split("/");
-    return `${y}-${m}-${d}`;
+// ---------- Cliente MCP (Streamable HTTP) ----------
+class McpClient {
+  private sessionId: string | null = null;
+  private nextId = 1;
+  constructor(private url: string) {}
+
+  private async rpc(body: Record<string, unknown>): Promise<Response> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      // Exigido pela spec MCP Streamable HTTP — sem isso o servidor responde 406
+      Accept: "application/json, text/event-stream",
+    };
+    if (this.sessionId) headers["mcp-session-id"] = this.sessionId;
+    return await fetch(this.url, { method: "POST", headers, body: JSON.stringify(body) });
   }
-  if (/^\d{8}$/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
-  const parsed = new Date(s);
-  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
-  return null;
-}
 
-function toNumber(raw: unknown): number {
-  if (typeof raw === "number") return raw;
-  if (raw == null) return NaN;
-  let s = String(raw).trim().replace(/[R$\s]/g, "");
-  if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, "").replace(",", ".");
-  else s = s.replace(/,/g, "");
-  return Number(s);
-}
-
-/** Localiza o array de transações em qualquer formato de envelope JSON. */
-function findTransactionArray(payload: unknown): Record<string, unknown>[] {
-  if (Array.isArray(payload)) return payload as Record<string, unknown>[];
-  if (!payload || typeof payload !== "object") return [];
-  const obj = payload as Record<string, unknown>;
-  const preferred = ["transactions", "transacoes", "movimentacoes", "movements", "data", "items", "results", "lancamentos"];
-  for (const key of preferred) {
-    const v = obj[key];
-    if (Array.isArray(v)) return v as Record<string, unknown>[];
-    if (v && typeof v === "object") {
-      const nested = findTransactionArray(v);
-      if (nested.length) return nested;
+  private static parseBody(text: string): any {
+    for (const line of text.split("\n")) {
+      if (line.startsWith("data: ")) {
+        try {
+          return JSON.parse(line.slice(6));
+        } catch { /* continua */ }
+      }
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
     }
   }
-  for (const v of Object.values(obj)) {
-    if (Array.isArray(v) && v.length && typeof v[0] === "object") return v as Record<string, unknown>[];
+
+  async initialize(): Promise<void> {
+    const res = await this.rpc({
+      jsonrpc: "2.0",
+      id: this.nextId++,
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "agiliza-open-finance", version: "1.0.0" },
+      },
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Falha ao iniciar sessão Open Finance (${res.status}): ${text.slice(0, 200)}`);
+    this.sessionId = res.headers.get("mcp-session-id");
+    const parsed = McpClient.parseBody(text);
+    if (parsed?.error) throw new Error(parsed.error.message || "Erro na inicialização");
+    await this.rpc({ jsonrpc: "2.0", method: "notifications/initialized" });
   }
-  return [];
+
+  async callTool(name: string, args: Record<string, unknown> = {}): Promise<any> {
+    const res = await this.rpc({
+      jsonrpc: "2.0",
+      id: this.nextId++,
+      method: "tools/call",
+      params: { name, arguments: args },
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Erro na chamada ${name} (${res.status}): ${text.slice(0, 200)}`);
+    const parsed = McpClient.parseBody(text);
+    if (!parsed) throw new Error(`Resposta inválida da API em ${name}`);
+    if (parsed.error) throw new Error(parsed.error.message || `Erro em ${name}`);
+    const content = parsed.result?.content;
+    const textPart = Array.isArray(content) ? content.find((c: any) => c?.type === "text")?.text : null;
+    if (typeof textPart === "string") {
+      try {
+        return JSON.parse(textPart);
+      } catch {
+        return { raw: textPart };
+      }
+    }
+    return parsed.result ?? {};
+  }
 }
 
-/** Adaptador: JSON bruto da API -> tipagem padrão de conciliação. */
-export function adaptTransactions(payload: unknown): NormalizedTx[] {
-  const rows = findTransactionArray(payload);
-  const out: NormalizedTx[] = [];
-  rows.forEach((row, idx) => {
-    if (!row || typeof row !== "object") return;
-    const externalIdRaw = pick(row, ["id", "transactionId", "transaction_id", "externalId", "external_id", "fitid", "FITID", "uuid", "identificador"]);
-    const dateRaw = pick(row, ["date", "data", "postedAt", "posted_at", "transactionDate", "transaction_date", "dtPosted", "dataMovimentacao", "data_movimentacao"]);
-    const descRaw = pick(row, ["description", "descricao", "memo", "name", "historico", "detalhe", "merchant"]);
-    const amountRaw = pick(row, ["amount", "valor", "value", "montante", "trnamt"]);
+/** Adaptador: transação bruta da API -> tipagem padrão de conciliação. */
+export function adaptTransaction(row: Record<string, any>): NormalizedTx | null {
+  const amount = Number(String(row.amount ?? row.valor ?? "").replace(/[^\d.,-]/g, "").replace(",", "."));
+  const rawDate = String(row.date ?? row.data ?? "");
+  if (!rawDate || !Number.isFinite(amount)) return null;
+  const data = rawDate.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return null;
 
-    const data = toISODate(dateRaw);
-    const amount = toNumber(amountRaw);
-    if (!data || !Number.isFinite(amount)) return;
+  const typeHint = String(row.type ?? "").toUpperCase();
+  const tipo: "entrada" | "saida" =
+    typeHint === "CREDIT" ? "entrada" : typeHint === "DEBIT" ? "saida" : amount >= 0 ? "entrada" : "saida";
 
-    const typeHint = String(pick(row, ["type", "tipo", "direction", "creditDebitType", "natureza"]) ?? "").toLowerCase();
-    let tipo: "entrada" | "saida";
-    if (typeHint.includes("cred") || typeHint === "entrada" || typeHint === "in" || typeHint === "inflow") tipo = "entrada";
-    else if (typeHint.includes("deb") || typeHint === "saida" || typeHint === "saída" || typeHint === "out" || typeHint === "outflow") tipo = "saida";
-    else tipo = amount >= 0 ? "entrada" : "saida";
-
-    out.push({
-      externalId: String(externalIdRaw ?? `${data}-${Math.round(Math.abs(amount) * 100)}-${idx}`),
-      data,
-      descricao: String(descRaw ?? "Lançamento Open Finance").trim(),
-      valor: Math.abs(amount),
-      tipo,
-    });
-  });
-  return out;
+  return {
+    externalId: String(row.id ?? row.transactionId ?? `${data}-${Math.round(Math.abs(amount) * 100)}`),
+    data,
+    descricao: fixMojibake(String(row.description ?? row.descricao ?? "Lançamento Open Finance")).trim(),
+    valor: Math.abs(amount),
+    tipo,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -112,22 +138,55 @@ Deno.serve(async (req) => {
     const apiUrl = Deno.env.get("OPEN_FINANCE_API_URL");
     if (!apiUrl) return json({ error: "Integração Open Finance não configurada" }, 500);
 
-    const upstream = await fetch(apiUrl, { method: "GET", headers: { Accept: "application/json" } });
-    const text = await upstream.text();
-    if (!upstream.ok) {
-      return json({ error: `Falha na API Open Finance (${upstream.status})`, detail: text.slice(0, 300) }, 502);
-    }
-
-    let payload: unknown;
+    let body: any = {};
     try {
-      payload = JSON.parse(text);
-    } catch {
-      return json({ error: "Resposta da API Open Finance não é um JSON válido", detail: text.slice(0, 300) }, 502);
+      body = await req.json();
+    } catch { /* sem corpo */ }
+
+    const today = new Date();
+    const defaultFrom = new Date(today.getTime() - 90 * 86400000);
+    const from = typeof body?.from === "string" ? body.from : defaultFrom.toISOString().slice(0, 10);
+    const to = typeof body?.to === "string" ? body.to : today.toISOString().slice(0, 10);
+
+    const mcp = new McpClient(apiUrl);
+    await mcp.initialize();
+
+    const accountsRes = await mcp.callTool("openfinance_list_accounts", { type: "BANK" });
+    const accounts = (accountsRes?.results ?? []) as Record<string, any>[];
+    if (accounts.length === 0) {
+      return json({ error: "Nenhuma conta bancária conectada no Open Finance" }, 400);
     }
 
-    const transactions = adaptTransactions(payload);
+    const bankName = fixMojibake(String(accountsRes?.bank ?? accounts[0]?.name ?? "Open Finance"));
+    const accountLabel = String(accounts[0]?.number ?? "");
 
-    // Deduplicação: ignora tudo que já foi gravado em conciliações anteriores
+    const raw: Record<string, any>[] = [];
+    for (const acc of accounts) {
+      const accountId = String(acc.account_id ?? acc.id);
+      let page = 1;
+      let totalPages = 1;
+      while (page <= totalPages && page <= 20) {
+        const res = await mcp.callTool("openfinance_list_transactions", {
+          account_id: accountId,
+          from,
+          to,
+          page,
+          page_size: 200,
+          detail: "compact",
+        });
+        const results = (res?.results ?? []) as Record<string, any>[];
+        raw.push(...results);
+        totalPages = Number(res?.totalPages ?? 1) || 1;
+        if (results.length === 0) break;
+        page++;
+      }
+    }
+
+    const transactions = raw
+      .map(adaptTransaction)
+      .filter((t): t is NormalizedTx => t !== null);
+
+    // Deduplicação pelo ID único da API contra o que já foi gravado
     const admin = createClient(supabaseUrl, serviceKey);
     const ids = transactions.map((t) => t.externalId);
     const known = new Set<string>();
@@ -138,16 +197,25 @@ Deno.serve(async (req) => {
       (data ?? []).forEach((r: { fitid: string | null }) => r.fitid && known.add(r.fitid));
     }
 
-    const novos = transactions.filter((t) => !known.has(t.externalId));
+    const seen = new Set<string>();
+    const novos = transactions.filter((t) => {
+      if (known.has(t.externalId) || seen.has(t.externalId)) return false;
+      seen.add(t.externalId);
+      return true;
+    });
 
     return json({
       fetchedAt: new Date().toISOString(),
+      bankName,
+      accountLabel,
+      periodo: { from, to },
       total: transactions.length,
       duplicados: transactions.length - novos.length,
       novos: novos.length,
       transactions: novos,
     });
   } catch (err) {
+    console.error("open-finance-sync:", err);
     return json({ error: err instanceof Error ? err.message : "Erro inesperado" }, 500);
   }
 });
