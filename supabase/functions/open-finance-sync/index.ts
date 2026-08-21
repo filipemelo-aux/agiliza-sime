@@ -174,8 +174,22 @@ Deno.serve(async (req) => {
       accounts = pickArray(accountsRes);
     }
     if (body?.debug) {
-      return json({ debug: true, accountsRes });
+      const toolsRes = await (mcp as any).rpc?.call(mcp, {}) ?? null;
+      let sample: any = null;
+      const first = accounts[0];
+      if (first) {
+        sample = await mcp.callTool("openfinance_list_transactions", {
+          account_id: String(first.account_id ?? first.id),
+          from,
+          to,
+          page: 1,
+          page_size: 3,
+          detail: "full",
+        });
+      }
+      return json({ debug: true, accountsRes, sample, toolsRes });
     }
+
     const billing = billingError(accountsRes);
     if (billing) {
       return json({ error: billing, billing: true, checkoutUrls: accountsRes?.checkout_urls ?? null }, 402);
