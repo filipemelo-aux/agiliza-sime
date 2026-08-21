@@ -1769,13 +1769,11 @@ export function BankReconciliation() {
       }
       from = syncFrom;
       to = syncTo;
-    } else if (syncDays === -1) {
-      from = iso(ontem);
-      to = iso(ontem);
-    } else if (syncDays === 0) {
-      from = iso(hoje);
+    } else if (syncDays === -3) {
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      from = iso(inicioMes);
       to = iso(hoje);
-    } else {
+    } else if (syncDays === -1) {
       from = iso(new Date(hoje.getTime() - syncDays * 86400000));
       to = iso(hoje);
     }
