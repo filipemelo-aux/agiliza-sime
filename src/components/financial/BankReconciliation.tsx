@@ -1377,10 +1377,10 @@ export function BankReconciliation() {
 
   const runImport = useCallback(async (parsed: { bankName: string; accountId: string; transactions: OfxTransaction[] }, sourceName: string) => {
       if (parsed.transactions.length === 0) {
-        toast.error("Nenhuma transação encontrada no arquivo OFX");
-        setLoading(false);
+        toast.error("Nenhuma transação encontrada");
         return;
       }
+
 
       // Save reconciliation header
       const { data: rec, error: recErr } = await supabase
