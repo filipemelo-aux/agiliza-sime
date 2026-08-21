@@ -146,13 +146,14 @@ function TransactionDetails({
   const nome =
     fromDesc.nome ||
     (details?.contraparte as string) ||
+    (details?.estabelecimento as string) ||
     (documento && resolveName ? resolveName(documento) : null) ||
     null;
   const merged: Record<string, string | number | null> = {
-    ...(details || {}),
     contraparte: nome,
     documentoContraparte: documento,
   };
+
   if (!details && !nome && !documento) return null;
   const partyLabel = fromDesc.papel
     ? fromDesc.papel === "favorecido"
