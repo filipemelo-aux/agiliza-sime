@@ -225,7 +225,15 @@ Deno.serve(async (req) => {
           detail: "compact",
         });
         const results = (res?.results ?? []) as Record<string, any>[];
-        raw.push(...results);
+        // Segurança extra: descarta linhas marcadas como cartão de crédito pela API
+        const somenteConta = results.filter((r) => {
+          const blob = [r.accountType, r.account_type, r.productType, r.cardNumber, r.card_number, r.creditCardMetadata]
+            .filter(Boolean)
+            .join(" ")
+            .toUpperCase();
+          return !/CREDIT_?CARD|CREDITCARD|CARTAO|CARTÃO|\bCARD\b/.test(blob);
+        });
+        raw.push(...somenteConta);
         totalPages = Number(res?.totalPages ?? 1) || 1;
         if (results.length === 0) break;
         page++;
@@ -235,6 +243,7 @@ Deno.serve(async (req) => {
     const transactions = raw
       .map(adaptTransaction)
       .filter((t): t is NormalizedTx => t !== null);
+
 
     // Deduplicação pelo ID único da API contra o que já foi gravado
     const admin = createClient(supabaseUrl, serviceKey);
