@@ -315,9 +315,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (body?.debugTx) {
+      return json({ debugTx: true, amostra: raw.slice(0, 8) });
+    }
+
     const transactions = raw
       .map(adaptTransaction)
       .filter((t): t is NormalizedTx => t !== null);
+
 
 
     // Deduplicação pelo ID único da API contra o que já foi gravado
