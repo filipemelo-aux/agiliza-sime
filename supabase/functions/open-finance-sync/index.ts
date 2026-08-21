@@ -310,8 +310,9 @@ Deno.serve(async (req) => {
     }
 
     const seen = new Set<string>();
+    const forcarTodos = body?.ignoreDedup === true;
     const novos = transactions.filter((t) => {
-      if (known.has(t.externalId) || seen.has(t.externalId)) return false;
+      if ((!forcarTodos && known.has(t.externalId)) || seen.has(t.externalId)) return false;
       seen.add(t.externalId);
       return true;
     });
