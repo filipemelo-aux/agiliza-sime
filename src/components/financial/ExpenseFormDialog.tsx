@@ -118,7 +118,7 @@ interface Props {
   empresaId: string;
   chartAccounts: ChartAccount[];
   onSaved: (savedExpenseId?: string) => void;
-  initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string } | null;
+  initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string; favorecidoId?: string | null; favorecidoNome?: string | null } | null;
 }
 
 export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues }: Props) {
