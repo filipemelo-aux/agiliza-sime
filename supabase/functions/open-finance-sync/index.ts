@@ -138,11 +138,25 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
   };
 
   // Fallback: Sicoob (e outros) embutem favorecido/pagador na descrição: "...|@NOME|@DOC|@msg"
+  // ou "DÉB.TRANSF.CONTAS DIF.TITULARIDADE - FAV.: NOME" / "CRÉD.TRANSF.CONTAS - REM.: NOME".
   const descRaw = fixMojibake(String(row.description ?? row.descricao ?? ""));
   const descParts = descRaw.split("|@").slice(1).map((p) => p.trim()).filter(Boolean);
   const isDoc = (p: string) => /^[\d*.\-/\s]+$/.test(p) && (p.includes("*") || p.replace(/\D/g, "").length >= 11);
-  const nomeDesc = descParts.find((p) => !isDoc(p) && /[a-zA-ZÀ-ÿ]{3}/.test(p)) ?? null;
-  const docDesc = descParts.find(isDoc) ?? null;
+  const markerMatch = descRaw.match(/\b(FAV|BENEF(?:ICIARIO)?|REM|REMET(?:ENTE)?|PAG(?:ADOR)?)\b\.?\s*[:\-]\s*([^|]+)/i);
+  let markerNome: string | null = null;
+  let markerDoc: string | null = null;
+  if (markerMatch) {
+    let rest = markerMatch[2].trim();
+    const docM = rest.match(/([\d*][\d*.\-/\s]{9,})$/);
+    if (docM && isDoc(docM[1].trim())) {
+      markerDoc = docM[1].trim();
+      rest = rest.slice(0, docM.index).replace(/[\s\-–]+$/, "").trim();
+    }
+    if (rest && /[a-zA-ZÀ-ÿ]{3}/.test(rest)) markerNome = rest;
+  }
+  const nomeDesc = markerNome ?? descParts.find((p) => !isDoc(p) && /[a-zA-ZÀ-ÿ]{3}/.test(p)) ?? null;
+  const docDesc = markerDoc ?? descParts.find(isDoc) ?? null;
+
 
   const detalhes = {
     categoria: clean(row.category),
