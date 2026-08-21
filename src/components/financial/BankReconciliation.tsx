@@ -2507,65 +2507,80 @@ export function BankReconciliation() {
       </AlertDialog>
 
 
-      {/* Batch action bar */}
-      {(selectableItems.length > 0 || items.some((i) => i.status === "pendente")) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {selectableItems.length > 0 && (
-            <>
-              <Checkbox
-                checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
-                onCheckedChange={toggleSelectAll}
-                className="h-4 w-4"
-              />
-              <span className="text-xs text-muted-foreground">
-                {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
-              </span>
-            </>
-          )}
-          {selectedIds.size > 0 && (
-            <div className="flex items-center gap-1.5 ml-auto">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 border-blue-300 text-blue-600 hover:bg-blue-50"
-                onClick={() => openLinkAccountDialog(linkableSelectedItems.map((i) => i.id))}
-                disabled={loading || linkableSelectedItems.length === 0}
-              >
-                <Link2 className="h-3 w-3" /> Vincular a uma conta
-              </Button>
-              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId || i.matchedReceivableId) && (
-                <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBatchConciliate} disabled={loading}>
-                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
-                  Conciliar {selectedIds.size} em lote
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10"
-                onClick={() => handleDeleteItems(Array.from(selectedIds))}
-                disabled={loading}
-              >
-                <Trash2 className="h-3 w-3" /> Excluir {selectedIds.size}
-              </Button>
-
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
+      {/* Global Toolbar (ações + filtros) */}
+      <GlobalToolbar
+        actions={[
+          {
+            key: "conciliar",
+            label: "Conciliar",
+            icon: CheckCircle2,
+            mode: "single+batch",
+            variant: "default",
+            disabled: loading || !gridSelected.some((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
+            onClick: () => {
+              if (gridSelected.length === 1) {
+                const it = gridSelected[0];
+                if (it.matchedPayableId || it.matchedReceivableId) openConfirmPayable(it);
+                else openConfirm(it);
+              } else {
+                handleBatchConciliate();
+              }
+            },
+          },
+          {
+            key: "vincular",
+            label: "Vincular a conta",
+            icon: Link2,
+            mode: "single+batch",
+            disabled: loading || linkableSelectedItems.length === 0,
+            onClick: () => openLinkAccountDialog(linkableSelectedItems.map((i) => i.id)),
+          },
+          {
+            key: "despesa",
+            label: "Nova Despesa",
+            icon: Plus,
+            mode: "single",
+            disabled: !(gridSelected[0]?.status === "pendente" && gridSelected[0]?.tipo === "saida"),
+            onClick: () => { const it = gridSelected[0]; if (it) handleNewExpense(it); },
+          },
+          {
+            key: "movimentacao",
+            label: "Movimentação",
+            icon: ArrowDownCircle,
+            mode: "single",
+            disabled: gridSelected[0]?.status !== "pendente",
+            onClick: () => { const it = gridSelected[0]; if (it) handleNewMovement(it); },
+          },
+          {
+            key: "desfazer",
+            label: "Desfazer",
+            icon: History,
+            mode: "single",
+            disabled: gridSelected[0]?.status !== "conciliado",
+            onClick: () => { const it = gridSelected[0]; if (it) handleUndoReconcile(it); },
+          },
+          {
+            key: "excluir",
+            label: "Excluir",
+            icon: Trash2,
+            mode: "single+batch",
+            variant: "ghost",
+            disabled: loading,
+            onClick: () => handleDeleteItems(Array.from(selectedIds)),
+          },
+        ]}
+        selectedCount={selectedIds.size}
+      >
+        <div className="relative w-[180px] md:w-[220px] shrink-0">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar por descrição ou valor..."
+            placeholder="Buscar..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="h-8 pl-8 text-xs"
+            className="h-9 md:h-8 pl-8 text-xs"
           />
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {(["todos", "pendente", "conciliado"] as const).map((tab) => {
             const labels: Record<string, string> = { todos: "Todos", pendente: "Pendentes", conciliado: "Conciliados" };
             const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
@@ -2574,7 +2589,7 @@ export function BankReconciliation() {
                 key={tab}
                 size="sm"
                 variant={statusFilter === tab ? "default" : "outline"}
-                className="h-7 text-[10px] px-2 gap-1"
+                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0"
                 onClick={() => setStatusFilter(tab)}
               >
                 {labels[tab]} <span className="opacity-70">({count})</span>
@@ -2582,7 +2597,7 @@ export function BankReconciliation() {
             );
           })}
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {(["todos", "debito", "credito"] as const).map((tab) => {
             const labels: Record<string, string> = { todos: "Todos", debito: "Débitos", credito: "Créditos" };
             const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
@@ -2591,7 +2606,7 @@ export function BankReconciliation() {
                 key={tab}
                 size="sm"
                 variant={tipoFilter === tab ? "default" : "outline"}
-                className="h-7 text-[10px] px-2 gap-1"
+                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0"
                 onClick={() => setTipoFilter(tab)}
               >
                 {labels[tab]} <span className="opacity-70">({count})</span>
@@ -2599,234 +2614,37 @@ export function BankReconciliation() {
             );
           })}
         </div>
-      </div>
+      </GlobalToolbar>
 
-      {/* Items */}
-      <Card>
-        <CardContent className="p-0">
-          <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider">
-            Transações do Extrato ({filteredItems.length})
-          </p>
+      {/* Data Grid */}
+      <DataGrid
+        rows={filteredItems}
+        columns={reconColumns}
+        rowId={(r) => r.id}
+        selected={selectedIds}
+        onSelectedChange={setSelectedIds}
+        loading={loading && items.length === 0}
+        minWidth={980}
+        emptyMessage="Nenhuma transação encontrada."
+        rowClassName={(r) => rowToneClass(r.status === "conciliado" ? "resolved" : "pending")}
+        footer={
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{filteredItems.length} transação(ões)</span>
+            <span className="font-mono">
+              Total: {formatCurrency(filteredItems.reduce((s, i) => s + Math.abs(i.amount), 0))}
+            </span>
+          </div>
+        }
+      />
 
-          {isMobile ? (
-            <div className="divide-y divide-border">
-              {filteredItems.map((item) => (
-                <div key={item.id} className="p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    {item.status === "pendente" && (
-                      <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
-                    )}
-                    <Badge
-                      variant={item.tipo === "entrada" ? "default" : "destructive"}
-                      className={cn("text-[10px] shrink-0", item.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
-                    >
-                      {item.tipo === "entrada" ? "Crédito" : "Débito"}
-                    </Badge>
-                    <span className={cn("text-sm font-mono font-bold", item.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
-                      {formatCurrency(Math.abs(item.amount))}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{formatDateBR(item.date)}</span>
-                    <StatusBadge status={item.status} />
-                  </div>
-                  <p className="text-xs text-foreground truncate">{item.description}</p>
-                  <TransactionDetails details={item.details} description={item.description} tipo={item.tipo} resolveName={resolveDocName} />
-                  {item.matchedMovId && item.status === "pendente" && (
-                    <MatchBox
-                      desc={item.matchedMovDesc}
-                      date={item.matchedMovDate}
-                      valor={item.matchedMovValor}
-                      origem={translateOrigem(item.matchedMovOrigem)}
-                      precision={item.matchedMovPrecision}
-                    />
-                  )}
-                   {item.matchedPayableId && item.status === "pendente" && (
-                    <MatchBox
-                      desc={item.matchedPayableDesc}
-                      date={item.matchedPayableDue}
-                      valor={item.matchedPayableValor}
-                      origem="Conta a Pagar (pendente)"
-                      variant="blue"
-                      label="Conta a Pagar encontrada"
-                      precision={item.matchedPayablePrecision}
-                      fornecedor={item.matchedPayableFornecedor}
-                    />
-                  )}
-                  {item.matchedReceivableId && item.status === "pendente" && (
-                    <MatchBox
-                      desc={`${item.matchedReceivableDesc || ""}${item.matchedReceivableFaturaNumero ? ` (Fatura #${item.matchedReceivableFaturaNumero})` : ""}`}
-                      date={item.matchedReceivableDue}
-                      valor={item.matchedReceivableValor}
-                      origem="Conta a Receber (pendente)"
-                      variant="green"
-                      label="Conta a Receber encontrada"
-                      precision={item.matchedReceivablePrecision}
-                      fornecedor={item.matchedReceivableCliente}
-                    />
-                  )}
-                  <ItemActions
-                    item={item}
-                    onConfirmMatch={() => openConfirm(item)}
-                    onConfirmPayable={() => openConfirmPayable(item)}
-                    onNewExpense={() => handleNewExpense(item)}
-                    onNewMovement={() => handleNewMovement(item)}
-                    onLinkAccount={() => openLinkAccountDialog([item.id])}
-                    onDelete={() => handleDeleteItems([item.id])}
-                  />
+      <StatusLegend
+        className="px-1"
+        items={[
+          { tone: "pending", label: "Pendente de conciliação" },
+          { tone: "resolved", label: "Conciliado" },
+        ]}
+      />
 
-                  {item.status === "conciliado" && item.matchedMovId && (
-                    <MatchBox
-                      desc={item.matchedMovDesc}
-                      date={item.matchedMovDate}
-                      valor={item.matchedMovValor}
-                      origem={translateOrigem(item.matchedMovOrigem)}
-                      variant="green"
-                      label="Vinculado a"
-                      precision={item.matchedMovPrecision}
-                      fornecedor={item.matchedMovFavorecido}
-                    />
-                  )}
-                  {item.status === "conciliado" && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-green-600 text-[11px]">
-                        ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleUndoReconcile(item)}
-                        >
-                          Desfazer conciliação
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px] gap-1 text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteItems([item.id])}
-                        >
-                          <Trash2 className="h-3 w-3" /> Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filteredItems.map((item) => (
-                <div key={item.id} className="px-4 py-2.5 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {item.status === "pendente" && (
-                      <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
-                    )}
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(item.date)}</span>
-                    <Badge
-                      variant={item.tipo === "entrada" ? "default" : "destructive"}
-                      className={cn("text-[10px] h-5", item.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
-                    >
-                      {item.tipo === "entrada" ? "Crédito" : "Débito"}
-                    </Badge>
-                    <span className={cn("text-xs font-mono font-bold", item.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
-                      {formatCurrency(Math.abs(item.amount))}
-                    </span>
-                    <StatusBadge status={item.status} />
-                    <div className="ml-auto">
-                      <ItemActions
-                        item={item}
-                        onConfirmMatch={() => openConfirm(item)}
-                        onConfirmPayable={() => openConfirmPayable(item)}
-                        onNewExpense={() => handleNewExpense(item)}
-                        onNewMovement={() => handleNewMovement(item)}
-                        onLinkAccount={() => openLinkAccountDialog([item.id])}
-                        onDelete={() => handleDeleteItems([item.id])}
-                      />
-
-                    </div>
-                  </div>
-                  <p className="text-xs text-foreground">{item.description}</p>
-                  <TransactionDetails details={item.details} description={item.description} tipo={item.tipo} resolveName={resolveDocName} />
-                  {item.matchedMovId && item.status === "pendente" && (
-                    <MatchBox
-                      desc={item.matchedMovDesc}
-                      date={item.matchedMovDate}
-                      valor={item.matchedMovValor}
-                      origem={translateOrigem(item.matchedMovOrigem)}
-                      precision={item.matchedMovPrecision}
-                    />
-                  )}
-                  {item.matchedPayableId && item.status === "pendente" && (
-                    <MatchBox
-                      desc={item.matchedPayableDesc}
-                      date={item.matchedPayableDue}
-                      valor={item.matchedPayableValor}
-                      origem="Conta a Pagar (pendente)"
-                      variant="blue"
-                      label="Conta a Pagar encontrada"
-                      precision={item.matchedPayablePrecision}
-                      fornecedor={item.matchedPayableFornecedor}
-                    />
-                  )}
-                  {item.matchedReceivableId && item.status === "pendente" && (
-                    <MatchBox
-                      desc={`${item.matchedReceivableDesc || ""}${item.matchedReceivableFaturaNumero ? ` (Fatura #${item.matchedReceivableFaturaNumero})` : ""}`}
-                      date={item.matchedReceivableDue}
-                      valor={item.matchedReceivableValor}
-                      origem="Conta a Receber (pendente)"
-                      variant="green"
-                      label="Conta a Receber encontrada"
-                      precision={item.matchedReceivablePrecision}
-                      fornecedor={item.matchedReceivableCliente}
-                    />
-                  )}
-                  {item.status === "conciliado" && item.matchedMovId && (
-                    <MatchBox
-                      desc={item.matchedMovDesc}
-                      date={item.matchedMovDate}
-                      valor={item.matchedMovValor}
-                      origem={translateOrigem(item.matchedMovOrigem)}
-                      variant="green"
-                      label="Vinculado a"
-                      precision={item.matchedMovPrecision}
-                      fornecedor={item.matchedMovFavorecido}
-                    />
-                  )}
-                  {item.status === "conciliado" && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-green-600 text-[11px]">
-                        ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleUndoReconcile(item)}
-                        >
-                          Desfazer
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px] gap-1 text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteItems([item.id])}
-                        >
-                          <Trash2 className="h-3 w-3" /> Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Confirm match dialog */}
       <AlertDialog open={!!confirmItem} onOpenChange={(o) => { if (!o) { setConfirmItem(null); setConfirmMatch(null); } }}>
