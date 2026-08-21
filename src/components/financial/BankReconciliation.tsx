@@ -140,21 +140,40 @@ const DETAIL_LABELS: Array<[string, string]> = [
 ];
 
 /** Exibe os detalhes adicionais trazidos pelo Open Finance (quando o banco fornece). */
-function TransactionDetails({ details, description }: { details?: Record<string, string | number | null> | null; description?: string | null }) {
+function TransactionDetails({
+  details,
+  description,
+  tipo,
+  resolveName,
+}: {
+  details?: Record<string, string | number | null> | null;
+  description?: string | null;
+  tipo?: "entrada" | "saida";
+  resolveName?: (doc: string) => string | null;
+}) {
   const fromDesc = counterpartyFromDescription(description);
+  const documento = (details?.documentoContraparte as string) || fromDesc.documento || null;
+  const nome =
+    (details?.contraparte as string) ||
+    fromDesc.nome ||
+    (documento && resolveName ? resolveName(documento) : null) ||
+    null;
   const merged: Record<string, string | number | null> = {
     ...(details || {}),
-    contraparte: (details?.contraparte as string) || fromDesc.nome || null,
-    documentoContraparte: (details?.documentoContraparte as string) || fromDesc.documento || null,
+    contraparte: nome,
+    documentoContraparte: documento,
   };
-  if (!details && !fromDesc.nome && !fromDesc.documento) return null;
+  if (!details && !nome && !documento) return null;
+  const partyLabel = tipo === "saida" ? "Favorecido" : "Remetente";
   const chips = DETAIL_LABELS
     .map(([key, label]) => {
       const value = merged[key];
-      return value === null || value === undefined || value === "" ? null : { label, value: String(value) };
+      if (value === null || value === undefined || value === "") return null;
+      return { label: key === "contraparte" ? partyLabel : label, value: String(value) };
     })
     .filter((c): c is { label: string; value: string } => c !== null);
   if (chips.length === 0) return null;
+
 
   return (
     <div className="flex flex-wrap gap-1">
