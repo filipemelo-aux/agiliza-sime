@@ -226,21 +226,24 @@ export function BankReconciliation() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("id, cnpj, cpf, razao_social, nome_fantasia, full_name")
-      .then(({ data }) => {
+      .select("id, cnpj, razao_social, nome_fantasia, full_name")
+      .limit(5000)
+      .then(({ data, error }) => {
+        if (error) console.error("Falha ao carregar cadastro de pessoas", error);
         const map: Record<string, string> = {};
         const byDoc: Record<string, { id: string; nome: string }> = {};
         const byName: Record<string, { id: string; nome: string }> = {};
         (data || []).forEach((p: any) => {
           const nome = personDisplayName(p);
           if (!nome) return;
-          [p.cnpj, p.cpf].forEach((d) => {
+          [p.cnpj].forEach((d) => {
             const digits = String(d || "").replace(/\D/g, "");
             if (digits.length >= 11) {
               map[digits] = nome;
               byDoc[digits] = { id: p.id, nome };
             }
           });
+
           [p.razao_social, p.full_name, p.nome_fantasia].forEach((n) => {
             const key = normalizeName(n);
             if (key && !byName[key]) byName[key] = { id: p.id, nome };
