@@ -122,23 +122,12 @@ interface ReconciliationSummary {
   reconciled_items: number;
 }
 
+/** Só interessa saber de onde veio / para quem foi. */
 const DETAIL_LABELS: Array<[string, string]> = [
-  ["categoria", "Categoria"],
-  ["formaPagamento", "Forma"],
-  ["tipoOperacao", "Operação"],
-  ["situacao", "Situação"],
   ["contraparte", "Contraparte"],
   ["documentoContraparte", "Documento"],
-  ["estabelecimento", "Estabelecimento"],
-  ["cnpjEstabelecimento", "CNPJ"],
-  ["cnaeEstabelecimento", "CNAE"],
-  ["agencia", "Agência"],
-  ["conta", "Conta"],
-  ["boleto", "Boleto"],
-  ["numeroReferencia", "Ref."],
-  ["codigoAutenticacao", "Autenticação"],
-  ["motivo", "Motivo"],
 ];
+
 
 /** Exibe os detalhes adicionais trazidos pelo Open Finance (quando o banco fornece). */
 function TransactionDetails({
@@ -157,13 +146,14 @@ function TransactionDetails({
   const nome =
     fromDesc.nome ||
     (details?.contraparte as string) ||
+    (details?.estabelecimento as string) ||
     (documento && resolveName ? resolveName(documento) : null) ||
     null;
   const merged: Record<string, string | number | null> = {
-    ...(details || {}),
     contraparte: nome,
     documentoContraparte: documento,
   };
+
   if (!details && !nome && !documento) return null;
   const partyLabel = fromDesc.papel
     ? fromDesc.papel === "favorecido"
