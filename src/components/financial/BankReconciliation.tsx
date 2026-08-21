@@ -1658,10 +1658,13 @@ export function BankReconciliation() {
     setLoading(true);
     try {
       const hoje = new Date();
-      const inicio = new Date(hoje.getTime() - syncDays * 86400000);
       const iso = (d: Date) => d.toISOString().slice(0, 10);
+      // -1 = somente o dia anterior (ontem); 0 = somente hoje
+      const ontem = new Date(hoje.getTime() - 86400000);
+      const from = syncDays === -1 ? iso(ontem) : syncDays === 0 ? iso(hoje) : iso(new Date(hoje.getTime() - syncDays * 86400000));
+      const to = syncDays === -1 ? iso(ontem) : iso(hoje);
       const { data, error } = await supabase.functions.invoke("open-finance-sync", {
-        body: { from: iso(inicio), to: iso(hoje) },
+        body: { from, to },
       });
       if (error) {
         let detail = error.message || "";
@@ -1711,6 +1714,8 @@ export function BankReconciliation() {
       title="Período buscado no Open Finance"
       className="h-8 rounded-md border border-input bg-background px-2 text-xs"
     >
+      <option value={0}>Somente hoje</option>
+      <option value={-1}>Somente ontem</option>
       <option value={7}>Últimos 7 dias</option>
       <option value={30}>Últimos 30 dias</option>
       <option value={60}>Últimos 60 dias</option>
