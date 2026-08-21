@@ -151,14 +151,34 @@ Deno.serve(async (req) => {
     const mcp = new McpClient(apiUrl);
     await mcp.initialize();
 
-    const accountsRes = await mcp.callTool("openfinance_list_accounts", { type: "BANK" });
-    const accounts = (accountsRes?.results ?? []) as Record<string, any>[];
+    const pickArray = (res: any): Record<string, any>[] => {
+      if (!res) return [];
+      for (const k of ["results", "accounts", "data", "items"]) {
+        if (Array.isArray(res[k])) return res[k];
+      }
+      if (Array.isArray(res)) return res;
+      return [];
+    };
+
+    let accountsRes = await mcp.callTool("openfinance_list_accounts", {});
+    let accounts = pickArray(accountsRes);
     if (accounts.length === 0) {
-      return json({ error: "Nenhuma conta bancária conectada no Open Finance" }, 400);
+      accountsRes = await mcp.callTool("openfinance_list_accounts", { type: "BANK" });
+      accounts = pickArray(accountsRes);
+    }
+    if (body?.debug) {
+      return json({ debug: true, accountsRes });
+    }
+    if (accounts.length === 0) {
+      return json({
+        error: "Nenhuma conta bancária conectada no Open Finance",
+        detalhe: JSON.stringify(accountsRes).slice(0, 500),
+      }, 400);
     }
 
-    const bankName = fixMojibake(String(accountsRes?.bank ?? accounts[0]?.name ?? "Open Finance"));
-    const accountLabel = String(accounts[0]?.number ?? "");
+    const bankName = fixMojibake(String(accountsRes?.bank ?? accounts[0]?.bank ?? accounts[0]?.name ?? "Open Finance"));
+    const accountLabel = String(accounts[0]?.number ?? accounts[0]?.account ?? "");
+
 
     const raw: Record<string, any>[] = [];
     for (const acc of accounts) {
