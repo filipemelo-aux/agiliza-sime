@@ -137,13 +137,21 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     return t ? t : null;
   };
 
+  // Fallback: Sicoob (e outros) embutem favorecido/pagador na descrição: "...|@NOME|@DOC|@msg"
+  const descRaw = fixMojibake(String(row.description ?? row.descricao ?? ""));
+  const descParts = descRaw.split("|@").slice(1).map((p) => p.trim()).filter(Boolean);
+  const isDoc = (p: string) => /^[\d*.\-/\s]+$/.test(p) && (p.includes("*") || p.replace(/\D/g, "").length >= 11);
+  const nomeDesc = descParts.find((p) => !isDoc(p) && /[a-zA-ZÀ-ÿ]{3}/.test(p)) ?? null;
+  const docDesc = descParts.find(isDoc) ?? null;
+
   const detalhes = {
     categoria: clean(row.category),
     tipoOperacao: clean(row.operationType),
     formaPagamento: clean(pd.paymentMethod),
     situacao: clean(row.status),
-    contraparte: clean(contraparte?.name ?? merchant?.businessName ?? merchant?.name),
-    documentoContraparte: clean(contraparte?.documentNumber?.value ?? merchant?.cnpj),
+    contraparte: clean(contraparte?.name ?? merchant?.businessName ?? merchant?.name ?? nomeDesc),
+    documentoContraparte: clean(contraparte?.documentNumber?.value ?? merchant?.cnpj ?? docDesc),
+
     banco: clean(contraparte?.routingNumber),
     agencia: clean(contraparte?.branchNumber),
     conta: clean(contraparte?.accountNumber),
