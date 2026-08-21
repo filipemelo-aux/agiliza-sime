@@ -153,10 +153,10 @@ function TransactionDetails({
   resolveName?: (doc: string) => string | null;
 }) {
   const fromDesc = counterpartyFromDescription(description);
-  const documento = (details?.documentoContraparte as string) || fromDesc.documento || null;
+  const documento = fromDesc.documento || (details?.documentoContraparte as string) || null;
   const nome =
-    (details?.contraparte as string) ||
     fromDesc.nome ||
+    (details?.contraparte as string) ||
     (documento && resolveName ? resolveName(documento) : null) ||
     null;
   const merged: Record<string, string | number | null> = {
@@ -165,13 +165,20 @@ function TransactionDetails({
     documentoContraparte: documento,
   };
   if (!details && !nome && !documento) return null;
-  const partyLabel = tipo === "saida" ? "Favorecido" : "Remetente";
+  const partyLabel = fromDesc.papel
+    ? fromDesc.papel === "favorecido"
+      ? "Favorecido"
+      : "Remetente"
+    : tipo === "saida"
+      ? "Favorecido"
+      : "Remetente";
   const chips = DETAIL_LABELS
     .map(([key, label]) => {
       const value = merged[key];
       if (value === null || value === undefined || value === "") return null;
       return { label: key === "contraparte" ? partyLabel : label, value: String(value) };
     })
+
     .filter((c): c is { label: string; value: string } => c !== null);
   if (chips.length === 0) return null;
 
