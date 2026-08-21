@@ -415,20 +415,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   };
 
-  // Carrega categoria do favorecido (necessário para regras de auto-descrição em edição)
+  // Carrega categoria e CNPJ do favorecido (necessário para regras de auto-descrição e preenchimento)
   useEffect(() => {
     if (!favorecidoId) { setFavorecidoCategory(null); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("category")
+        .select("category, cnpj, razao_social, nome_fantasia, full_name")
         .eq("id", favorecidoId)
         .maybeSingle();
-      if (!cancelled) setFavorecidoCategory((data as any)?.category || null);
+      if (cancelled || !data) return;
+      const p = data as any;
+      setFavorecidoCategory(p.category || null);
+      setFavorecidoNome((prev) => prev || p.razao_social || p.full_name || p.nome_fantasia || "");
+      if (p.cnpj) setFornecedorCnpj((prev) => prev || maskCNPJ(p.cnpj));
     })();
     return () => { cancelled = true; };
   }, [favorecidoId]);
+
 
   // Regra: descrição automática quando conta = Salários
   // - Motorista: emissão+vencimento entre dia 16-30 → "Comissão 01 a 15 (mês atual)."
