@@ -122,23 +122,12 @@ interface ReconciliationSummary {
   reconciled_items: number;
 }
 
+/** Só interessa saber de onde veio / para quem foi. */
 const DETAIL_LABELS: Array<[string, string]> = [
-  ["categoria", "Categoria"],
-  ["formaPagamento", "Forma"],
-  ["tipoOperacao", "Operação"],
-  ["situacao", "Situação"],
   ["contraparte", "Contraparte"],
   ["documentoContraparte", "Documento"],
-  ["estabelecimento", "Estabelecimento"],
-  ["cnpjEstabelecimento", "CNPJ"],
-  ["cnaeEstabelecimento", "CNAE"],
-  ["agencia", "Agência"],
-  ["conta", "Conta"],
-  ["boleto", "Boleto"],
-  ["numeroReferencia", "Ref."],
-  ["codigoAutenticacao", "Autenticação"],
-  ["motivo", "Motivo"],
 ];
+
 
 /** Exibe os detalhes adicionais trazidos pelo Open Finance (quando o banco fornece). */
 function TransactionDetails({
