@@ -1774,6 +1774,12 @@ export function BankReconciliation() {
       from = iso(inicioMes);
       to = iso(hoje);
     } else if (syncDays === -1) {
+      from = iso(ontem);
+      to = iso(ontem);
+    } else if (syncDays === 0) {
+      from = iso(hoje);
+      to = iso(hoje);
+    } else {
       from = iso(new Date(hoje.getTime() - syncDays * 86400000));
       to = iso(hoje);
     }
