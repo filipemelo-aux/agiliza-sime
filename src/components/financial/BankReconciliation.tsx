@@ -1652,17 +1652,36 @@ export function BankReconciliation() {
   }, [runImport]);
 
   const [syncing, setSyncing] = useState(false);
+  // -2 = período manual, -1 = somente ontem, 0 = somente hoje, >0 = últimos N dias
   const [syncDays, setSyncDays] = useState(90);
+  const [syncFrom, setSyncFrom] = useState("");
+  const [syncTo, setSyncTo] = useState("");
   const handleOpenFinanceSync = useCallback(async () => {
+    const hoje = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const ontem = new Date(hoje.getTime() - 86400000);
+    let from: string;
+    let to: string;
+    if (syncDays === -2) {
+      if (!syncFrom || !syncTo) {
+        toast.error("Informe a data inicial e final do período");
+        return;
+      }
+      from = syncFrom;
+      to = syncTo;
+    } else if (syncDays === -1) {
+      from = iso(ontem);
+      to = iso(ontem);
+    } else if (syncDays === 0) {
+      from = iso(hoje);
+      to = iso(hoje);
+    } else {
+      from = iso(new Date(hoje.getTime() - syncDays * 86400000));
+      to = iso(hoje);
+    }
     setSyncing(true);
     setLoading(true);
     try {
-      const hoje = new Date();
-      const iso = (d: Date) => d.toISOString().slice(0, 10);
-      // -1 = somente o dia anterior (ontem); 0 = somente hoje
-      const ontem = new Date(hoje.getTime() - 86400000);
-      const from = syncDays === -1 ? iso(ontem) : syncDays === 0 ? iso(hoje) : iso(new Date(hoje.getTime() - syncDays * 86400000));
-      const to = syncDays === -1 ? iso(ontem) : iso(hoje);
       const { data, error } = await supabase.functions.invoke("open-finance-sync", {
         body: { from, to },
       });
@@ -1704,25 +1723,58 @@ export function BankReconciliation() {
       setSyncing(false);
       setLoading(false);
     }
-  }, [runImport, syncDays]);
+  }, [runImport, syncDays, syncFrom, syncTo]);
 
   const syncDaysSelect = (
-    <select
-      value={syncDays}
-      onChange={(e) => setSyncDays(Number(e.target.value))}
-      disabled={loading || syncing}
-      title="Período buscado no Open Finance"
-      className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-    >
-      <option value={0}>Somente hoje</option>
-      <option value={-1}>Somente ontem</option>
-      <option value={7}>Últimos 7 dias</option>
-      <option value={30}>Últimos 30 dias</option>
-      <option value={60}>Últimos 60 dias</option>
-      <option value={90}>Últimos 90 dias</option>
-      <option value={180}>Últimos 180 dias</option>
-      <option value={365}>Últimos 365 dias</option>
-    </select>
+    <div className="flex items-center gap-1.5">
+      <select
+        value={syncDays}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          setSyncDays(v);
+          if (v === -2 && !syncFrom && !syncTo) {
+            const hoje = new Date();
+            const iso = (d: Date) => d.toISOString().slice(0, 10);
+            setSyncFrom(iso(new Date(hoje.getTime() - 7 * 86400000)));
+            setSyncTo(iso(hoje));
+          }
+        }}
+        disabled={loading || syncing}
+        title="Período buscado no Open Finance"
+        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+      >
+        <option value={0}>Somente hoje</option>
+        <option value={-1}>Somente ontem</option>
+        <option value={7}>Últimos 7 dias</option>
+        <option value={30}>Últimos 30 dias</option>
+        <option value={60}>Últimos 60 dias</option>
+        <option value={90}>Últimos 90 dias</option>
+        <option value={180}>Últimos 180 dias</option>
+        <option value={365}>Últimos 365 dias</option>
+        <option value={-2}>Período definido...</option>
+      </select>
+      {syncDays === -2 && (
+        <>
+          <Input
+            type="date"
+            aria-label="Data inicial"
+            className="h-8 w-[130px] text-xs"
+            value={syncFrom}
+            disabled={loading || syncing}
+            onChange={(e) => setSyncFrom(e.target.value)}
+          />
+          <span className="text-xs text-muted-foreground">a</span>
+          <Input
+            type="date"
+            aria-label="Data final"
+            className="h-8 w-[130px] text-xs"
+            value={syncTo}
+            disabled={loading || syncing}
+            onChange={(e) => setSyncTo(e.target.value)}
+          />
+        </>
+      )}
+    </div>
   );
 
 
