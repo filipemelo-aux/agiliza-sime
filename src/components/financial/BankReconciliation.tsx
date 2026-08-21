@@ -707,6 +707,7 @@ export function BankReconciliation() {
 
   // Manual registration dialogs
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [expenseFavorecido, setExpenseFavorecido] = useState<{ favorecidoId: string | null; favorecidoNome: string | null } | null>(null);
   const [manualMovDialogOpen, setManualMovDialogOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<OfxItem | null>(null);
 
@@ -2088,10 +2089,58 @@ export function BankReconciliation() {
     }
   }, []);
 
-  const handleNewExpense = (item: OfxItem) => {
+  const handleNewExpense = async (item: OfxItem) => {
     setActiveItem(item);
+    const local = resolveCounterpartyProfile(item);
+    setExpenseFavorecido(local);
     setExpenseDialogOpen(true);
+    // Se não achou vínculo no cache local, busca no cadastro (documento e nome)
+    if (local && !local.favorecidoId) {
+      const found = await searchProfileInCadastro(item, local.favorecidoNome);
+      if (found) setExpenseFavorecido(found);
+    }
   };
+
+  /** Busca no cadastro (banco) pelo documento e, em seguida, pelo nome do favorecido. */
+  const searchProfileInCadastro = useCallback(
+    async (item: OfxItem, nome?: string | null) => {
+      const fromDesc = counterpartyFromDescription(item.description);
+      const details = (item as any).details as Record<string, any> | null | undefined;
+      const documento = fromDesc.documento || (details?.documentoContraparte as string) || null;
+      const digits = documento ? documento.replace(/\D/g, "") : "";
+
+      if (digits.length >= 11) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, razao_social, nome_fantasia, full_name")
+          .or(`cnpj.eq.${digits},cpf.eq.${digits}`)
+          .limit(1);
+        const p = (data || [])[0] as any;
+        if (p) return { favorecidoId: p.id as string, favorecidoNome: personDisplayName(p) };
+      }
+
+      const termo = (nome || "").trim();
+      if (termo.length >= 3) {
+        const like = `%${termo.replace(/[%,]/g, " ").trim()}%`;
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, razao_social, nome_fantasia, full_name")
+          .or(`razao_social.ilike.${like},full_name.ilike.${like},nome_fantasia.ilike.${like}`)
+          .limit(2);
+        const rows = (data || []) as any[];
+        if (rows.length === 1) {
+          return { favorecidoId: rows[0].id as string, favorecidoNome: personDisplayName(rows[0]) };
+        }
+        // Múltiplos: prefere match exato normalizado
+        const exact = rows.find((p) =>
+          [p.razao_social, p.full_name, p.nome_fantasia].some((n) => normalizeName(n) === normalizeName(termo)),
+        );
+        if (exact) return { favorecidoId: exact.id as string, favorecidoNome: personDisplayName(exact) };
+      }
+      return null;
+    },
+    [],
+  );
 
   const handleNewMovement = (item: OfxItem) => {
     setActiveItem(item);
@@ -2805,7 +2854,7 @@ export function BankReconciliation() {
           dataEmissao: activeItem.date,
           dataVencimento: activeItem.date,
           descricao: activeItem.description,
-          ...(resolveCounterpartyProfile(activeItem) || {}),
+          ...(expenseFavorecido || resolveCounterpartyProfile(activeItem) || {}),
         } : null}
       />
 

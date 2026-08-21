@@ -330,6 +330,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   }, [expense, open, chartAccounts]);
 
+  // Favorecido resolvido de forma assíncrona (ex.: busca no cadastro a partir do extrato)
+  useEffect(() => {
+    if (!open || expense) return;
+    if (initialValues?.favorecidoId) {
+      setFavorecidoId(initialValues.favorecidoId);
+      setFavorecidoNome(initialValues.favorecidoNome || "");
+    } else if (initialValues?.favorecidoNome) {
+      setFavorecidoNome((prev) => prev || initialValues.favorecidoNome || "");
+    }
+  }, [open, expense, initialValues?.favorecidoId, initialValues?.favorecidoNome]);
+
   // Show fuel suggestion for combustivel account
   const isCategoryCombustivel = selectedAccount?.tipo_operacional === "combustivel";
   useEffect(() => {
