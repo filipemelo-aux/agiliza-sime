@@ -2268,6 +2268,126 @@ export function BankReconciliation() {
     loadHistory();
   };
 
+  const gridSelected = items.filter((i) => selectedIds.has(i.id));
+
+  const reconColumns: DataGridColumn<OfxItem>[] = [
+    {
+      key: "date",
+      header: "Data",
+      width: "90px",
+      sortValue: (r) => r.date,
+      cell: (r) => <span className="whitespace-nowrap">{formatDateBR(r.date)}</span>,
+    },
+    {
+      key: "tipo",
+      header: "Tipo",
+      width: "84px",
+      align: "center",
+      sortValue: (r) => r.tipo,
+      cell: (r) => (
+        <Badge
+          variant={r.tipo === "entrada" ? "default" : "destructive"}
+          className={cn("text-[10px] h-5", r.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+        >
+          {r.tipo === "entrada" ? "Crédito" : "Débito"}
+        </Badge>
+      ),
+    },
+    {
+      key: "valor",
+      header: "Valor",
+      width: "110px",
+      align: "right",
+      sortValue: (r) => Math.abs(r.amount),
+      cell: (r) => (
+        <span className={cn("font-mono font-bold whitespace-nowrap", r.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+          {formatCurrency(Math.abs(r.amount))}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      header: "Descrição",
+      sortValue: (r) => r.description,
+      cell: (r) => (
+        <div className="space-y-1 min-w-[240px]">
+          <p className="text-xs text-foreground">{r.description}</p>
+          <TransactionDetails details={r.details} description={r.description} tipo={r.tipo} resolveName={resolveDocName} />
+        </div>
+      ),
+    },
+    {
+      key: "vinculo",
+      header: "Correspondência",
+      width: "300px",
+      sortValue: (r) => r.matchedMovDesc || r.matchedPayableDesc || r.matchedReceivableDesc || "",
+      cell: (r) => (
+        <div className="space-y-1">
+          {r.matchedMovId && r.status === "pendente" && (
+            <MatchBox
+              desc={r.matchedMovDesc}
+              date={r.matchedMovDate}
+              valor={r.matchedMovValor}
+              origem={translateOrigem(r.matchedMovOrigem)}
+              precision={r.matchedMovPrecision}
+            />
+          )}
+          {r.matchedPayableId && r.status === "pendente" && (
+            <MatchBox
+              desc={r.matchedPayableDesc}
+              date={r.matchedPayableDue}
+              valor={r.matchedPayableValor}
+              origem="Conta a Pagar (pendente)"
+              variant="blue"
+              label="Conta a Pagar encontrada"
+              precision={r.matchedPayablePrecision}
+              fornecedor={r.matchedPayableFornecedor}
+            />
+          )}
+          {r.matchedReceivableId && r.status === "pendente" && (
+            <MatchBox
+              desc={`${r.matchedReceivableDesc || ""}${r.matchedReceivableFaturaNumero ? ` (Fatura #${r.matchedReceivableFaturaNumero})` : ""}`}
+              date={r.matchedReceivableDue}
+              valor={r.matchedReceivableValor}
+              origem="Conta a Receber (pendente)"
+              variant="green"
+              label="Conta a Receber encontrada"
+              precision={r.matchedReceivablePrecision}
+              fornecedor={r.matchedReceivableCliente}
+            />
+          )}
+          {r.status === "conciliado" && r.matchedMovId && (
+            <MatchBox
+              desc={r.matchedMovDesc}
+              date={r.matchedMovDate}
+              valor={r.matchedMovValor}
+              origem={translateOrigem(r.matchedMovOrigem)}
+              variant="green"
+              label="Vinculado a"
+              precision={r.matchedMovPrecision}
+              fornecedor={r.matchedMovFavorecido}
+            />
+          )}
+          {r.status === "conciliado" && !r.matchedMovId && (
+            <span className="text-[10px] text-muted-foreground">Conciliado sem vínculo</span>
+          )}
+          {r.status === "pendente" && !r.matchedMovId && !r.matchedPayableId && !r.matchedReceivableId && (
+            <span className="text-[10px] text-muted-foreground">Sem correspondência</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Situação",
+      width: "100px",
+      align: "center",
+      sortValue: (r) => r.status,
+      cell: (r) => <StatusBadge status={r.status} />,
+    },
+  ];
+
+
   // Empty state: show history + upload
   if (items.length === 0) {
     return (
