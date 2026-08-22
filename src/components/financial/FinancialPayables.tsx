@@ -1139,7 +1139,7 @@ export function FinancialPayables() {
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
     },
-  ], []);
+  ], [profilesMap]);
 
 
   const hasSelectedPaid = useMemo(() => {
