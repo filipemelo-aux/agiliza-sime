@@ -209,26 +209,26 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   });
 
   if (filtersFirstOnMobile) {
-    // Mobile: duas linhas (filtros em cima, ações embaixo).
-    // Desktop: uma linha — ações, busca (divisor) e filtros, da esquerda p/ direita.
+    // Mobile/Tablet (até lg): duas linhas (filtros em cima, ações embaixo).
+    // Desktop (lg+): uma linha — ações, busca (divisor) e filtros, da esquerda p/ direita.
     return (
       <>
         <div
           ref={ref}
           className={cn(
-            "sticky top-0 z-40 flex flex-col gap-1.5 md:flex-row md:flex-nowrap md:items-center md:gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+            "sticky top-0 z-40 flex flex-col gap-1.5 lg:flex-row lg:flex-nowrap lg:items-center lg:gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
             scrolled ? "shadow-md border-b-border" : "shadow-none",
             className,
           )}
         >
-          {/* Ações: mobile embaixo (order-2), desktop primeiro (order-1) */}
-          <div className="order-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto md:order-1 md:overflow-visible">
+          {/* Ações: mobile/tablet embaixo (order-2), desktop primeiro (order-1) */}
+          <div className="order-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto lg:order-1 lg:overflow-visible">
             {orderedActions.map(renderAction)}
             {countSpan}
           </div>
-          {/* Filtros + busca: mobile em cima (order-1), desktop depois das ações (order-2) */}
+          {/* Filtros + busca: mobile/tablet em cima (order-1), desktop depois das ações (order-2) */}
           {children && (
-            <div className="order-1 flex flex-wrap items-center gap-1.5 md:order-2 md:flex-nowrap md:overflow-x-auto">
+            <div className="order-1 flex flex-wrap items-center gap-1.5 lg:order-2 lg:flex-nowrap lg:overflow-x-auto">
               {children}
             </div>
           )}
