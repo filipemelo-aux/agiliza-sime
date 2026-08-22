@@ -2293,6 +2293,9 @@ export function BankReconciliation() {
   };
 
   const gridSelected = items.filter((i) => selectedIds.has(i.id));
+  // seleção mista (crédito + débito): só permite excluir
+  const mixedSelection = gridSelected.some((i) => i.tipo === "entrada") && gridSelected.some((i) => i.tipo === "saida");
+
 
   const _sel = gridSelected[0];
   const matchMovAtivo = !!_sel?.matchedMovId && _sel?.status === "pendente" && !loading && gridSelected.length === 1;
