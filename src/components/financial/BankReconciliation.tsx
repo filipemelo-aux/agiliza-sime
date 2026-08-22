@@ -2660,6 +2660,7 @@ export function BankReconciliation() {
 
       {/* Global Toolbar (ações + filtros) */}
       <GlobalToolbar
+        iconOnlyOnDesktop
         actions={[
           {
             key: "conciliar-movimento",
@@ -2667,8 +2668,7 @@ export function BankReconciliation() {
             icon: CheckCircle2,
             mode: "single",
             variant: "default",
-            hidden: !gridSelected[0]?.matchedMovId,
-            disabled: loading || gridSelected[0]?.status !== "pendente",
+            disabled: loading || !gridSelected[0]?.matchedMovId || gridSelected[0]?.status !== "pendente",
             className: "bg-amber-500 hover:bg-amber-600 border-amber-500 text-white",
             onClick: () => { const it = gridSelected[0]; if (it) openConfirm(it); },
           },
@@ -2678,8 +2678,7 @@ export function BankReconciliation() {
             icon: CheckCircle2,
             mode: "single",
             variant: "default",
-            hidden: !gridSelected[0]?.matchedPayableId,
-            disabled: loading || gridSelected[0]?.status !== "pendente",
+            disabled: loading || !gridSelected[0]?.matchedPayableId || gridSelected[0]?.status !== "pendente",
             className: "bg-blue-600 hover:bg-blue-700 border-blue-600 text-white",
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
@@ -2689,8 +2688,7 @@ export function BankReconciliation() {
             icon: CheckCircle2,
             mode: "single",
             variant: "default",
-            hidden: !gridSelected[0]?.matchedReceivableId,
-            disabled: loading || gridSelected[0]?.status !== "pendente",
+            disabled: loading || !gridSelected[0]?.matchedReceivableId || gridSelected[0]?.status !== "pendente",
             className: "bg-green-600 hover:bg-green-700 border-green-600 text-white",
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
@@ -2700,8 +2698,7 @@ export function BankReconciliation() {
             icon: CheckSquare,
             mode: "batch",
             variant: "default",
-            hidden: gridSelected.length < 2,
-            disabled: loading || !gridSelected.some((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
+            disabled: loading || gridSelected.length < 2 || !gridSelected.some((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
             onClick: handleBatchConciliate,
           },
           {
