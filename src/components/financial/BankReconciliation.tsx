@@ -2330,6 +2330,8 @@ export function BankReconciliation() {
               valor={r.matchedMovValor}
               origem={translateOrigem(r.matchedMovOrigem)}
               precision={r.matchedMovPrecision}
+              actionLabel="Conciliar com este"
+              onAction={() => openConfirm(r)}
             />
           )}
           {r.matchedPayableId && r.status === "pendente" && (
@@ -2342,6 +2344,8 @@ export function BankReconciliation() {
               label="Conta a Pagar encontrada"
               precision={r.matchedPayablePrecision}
               fornecedor={r.matchedPayableFornecedor}
+              actionLabel="Pagar e conciliar"
+              onAction={() => openConfirmPayable(r)}
             />
           )}
           {r.matchedReceivableId && r.status === "pendente" && (
@@ -2354,8 +2358,11 @@ export function BankReconciliation() {
               label="Conta a Receber encontrada"
               precision={r.matchedReceivablePrecision}
               fornecedor={r.matchedReceivableCliente}
+              actionLabel="Receber e conciliar"
+              onAction={() => openConfirmPayable(r)}
             />
           )}
+
           {r.status === "conciliado" && r.matchedMovId && (
             <MatchBox
               desc={r.matchedMovDesc}
