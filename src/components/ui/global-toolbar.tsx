@@ -209,26 +209,26 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   });
 
   if (filtersFirstOnMobile) {
-    // Mobile: duas linhas (filtros em cima, ações embaixo).
-    // Desktop: uma linha — ações, busca (divisor) e filtros, da esquerda p/ direita.
+    // Mobile/Tablet (até lg): duas linhas (filtros em cima, ações embaixo).
+    // Desktop (lg+): uma linha — ações, busca (divisor) e filtros, da esquerda p/ direita.
     return (
       <>
         <div
           ref={ref}
           className={cn(
-            "sticky top-0 z-40 flex flex-col gap-1.5 md:flex-row md:flex-nowrap md:items-center md:gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+            "sticky top-0 z-40 flex flex-col gap-1.5 lg:flex-row lg:flex-nowrap lg:items-center lg:gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
             scrolled ? "shadow-md border-b-border" : "shadow-none",
             className,
           )}
         >
-          {/* Ações: mobile embaixo (order-2), desktop primeiro (order-1) */}
-          <div className="order-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto md:order-1 md:overflow-visible">
+          {/* Ações: mobile/tablet embaixo (order-2), desktop primeiro (order-1) */}
+          <div className="order-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto lg:order-1 lg:overflow-visible">
             {orderedActions.map(renderAction)}
             {countSpan}
           </div>
-          {/* Filtros + busca: mobile em cima (order-1), desktop depois das ações (order-2) */}
+          {/* Filtros + busca: mobile/tablet em cima (order-1), desktop depois das ações (order-2) */}
           {children && (
-            <div className="order-1 flex flex-wrap items-center gap-1.5 md:order-2 md:flex-nowrap md:overflow-x-auto">
+            <div className="order-1 flex flex-wrap items-center gap-1.5 lg:order-2 lg:flex-nowrap lg:overflow-x-auto">
               {children}
             </div>
           )}
@@ -320,15 +320,15 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         }}
 
         className={cn(
-          "h-9 w-9 md:h-8 md:w-8 p-0 justify-center",
-          showLabel && "md:w-auto md:px-2 md:gap-1.5",
+          "h-9 w-9 lg:h-8 lg:w-8 p-0 justify-center",
+          showLabel && "lg:w-auto lg:px-2 lg:gap-1.5",
           pending && "ring-2 ring-ring",
           className,
         )}
       >
-        <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
+        <Icon className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
         {showLabel ? (
-          <span className={cn("hidden md:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
+          <span className={cn("hidden lg:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
         ) : (
           <span className="sr-only">{label}</span>
         )}
