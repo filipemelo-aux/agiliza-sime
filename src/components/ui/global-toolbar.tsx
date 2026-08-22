@@ -260,17 +260,12 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         disabled={disabled}
         aria-label={label}
         onClick={(e) => {
-          if (coarse && !pending) {
-            e.stopPropagation();
-            show(e.currentTarget, `${label} — toque novamente`);
-            setPending(true);
-            return;
+          if (coarse) {
+            show(e.currentTarget, label);
           }
-          setPending(false);
-          setTip(null);
           onClick();
         }}
-        className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", pending && "ring-2 ring-ring", className)}
+        className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", className)}
       >
         <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
         <span className="sr-only">{label}</span>
