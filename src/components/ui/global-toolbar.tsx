@@ -59,7 +59,7 @@ function getScrollParent(el: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
-export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false }: GlobalToolbarProps) {
+export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false, iconOnlyOnDesktop = false }: GlobalToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
