@@ -26,6 +26,7 @@ import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { counterpartyFromDescription } from "@/lib/counterpartyFromDescription";
 import { personDisplayName } from "@/lib/personName";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -208,6 +209,7 @@ export function BankReconciliation() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { matrizId } = useUnifiedCompany();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [items, setItems] = useState<OfxItem[]>([]);
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1823,7 +1825,7 @@ export function BankReconciliation() {
   const [syncDays, setSyncDays] = useState(90);
   const [syncFrom, setSyncFrom] = useState("");
   const [syncTo, setSyncTo] = useState("");
-  const handleOpenFinanceSync = useCallback(async () => {
+  const runOpenFinanceSync = useCallback(async () => {
     const hoje = new Date();
     const iso = (d: Date) => d.toISOString().slice(0, 10);
     const ontem = new Date(hoje.getTime() - 86400000);
@@ -1896,6 +1898,17 @@ export function BankReconciliation() {
       setLoading(false);
     }
   }, [runImport, syncDays, syncFrom, syncTo]);
+
+  const handleOpenFinanceSync = useCallback(async () => {
+    const ok = await confirm({
+      title: "Sincronizar Open Finance",
+      description: "Será realizada a busca de movimentações bancárias via Open Finance para o período selecionado. Deseja continuar?",
+      confirmLabel: "Sincronizar",
+      cancelLabel: "Cancelar",
+    });
+    if (!ok) return;
+    await runOpenFinanceSync();
+  }, [confirm, runOpenFinanceSync]);
 
   const syncDaysSelect = (
     <div className="flex items-center gap-1.5">
@@ -2402,8 +2415,9 @@ export function BankReconciliation() {
 
   // Empty state: show history + upload
   if (items.length === 0) {
-    return (
-      <div className="space-y-4">
+     return (
+       <div className="space-y-4">
+        {ConfirmDialog}
         <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
@@ -2499,6 +2513,7 @@ export function BankReconciliation() {
 
   return (
     <div className="space-y-4">
+      {ConfirmDialog}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
