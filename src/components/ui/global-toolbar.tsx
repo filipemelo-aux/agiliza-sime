@@ -99,7 +99,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const renderAction = (a: ToolbarAction) => {
     const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
     const Icon = a.icon;
-    const iconOnly = !!Icon;
+    const iconOnly = iconOnlyOnDesktop && !!Icon;
     const isPending = pendingKey === a.key;
     const showTip = (el: HTMLElement, label: string) => {
       const r = el.getBoundingClientRect();
