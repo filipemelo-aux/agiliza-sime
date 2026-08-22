@@ -2330,8 +2330,6 @@ export function BankReconciliation() {
               valor={r.matchedMovValor}
               origem={translateOrigem(r.matchedMovOrigem)}
               precision={r.matchedMovPrecision}
-              actionLabel="Conciliar com este"
-              onAction={() => openConfirm(r)}
             />
           )}
           {r.matchedPayableId && r.status === "pendente" && (
@@ -2344,8 +2342,6 @@ export function BankReconciliation() {
               label="Conta a Pagar encontrada"
               precision={r.matchedPayablePrecision}
               fornecedor={r.matchedPayableFornecedor}
-              actionLabel="Pagar e conciliar"
-              onAction={() => openConfirmPayable(r)}
             />
           )}
           {r.matchedReceivableId && r.status === "pendente" && (
@@ -2358,8 +2354,6 @@ export function BankReconciliation() {
               label="Conta a Receber encontrada"
               precision={r.matchedReceivablePrecision}
               fornecedor={r.matchedReceivableCliente}
-              actionLabel="Receber e conciliar"
-              onAction={() => openConfirmPayable(r)}
             />
           )}
 
@@ -2499,14 +2493,14 @@ export function BankReconciliation() {
           <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
           <p className="text-xs text-muted-foreground">{fileName}</p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex w-full items-center justify-end gap-1.5 md:w-auto">
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack}>
             <History className="h-3.5 w-3.5" /> Histórico
           </Button>
           {syncDaysSelect}
-          <Button variant="default" size="sm" className="gap-1" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
+          <Button variant="default" size="sm" className="h-8 w-8 gap-1 p-0 md:w-auto md:px-3" title="Sincronizar Open Finance" aria-label="Sincronizar Open Finance" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {syncing ? "Sincronizando..." : "Sincronizar Open Finance"}
+            <span className="max-md:hidden">{syncing ? "Sincronizando..." : "Sincronizar Open Finance"}</span>
           </Button>
           <label>
             <input
@@ -2516,9 +2510,9 @@ export function BankReconciliation() {
               onChange={handleFileUpload}
               disabled={loading}
             />
-            <Button asChild variant="outline" size="sm" disabled={loading} className="gap-1 cursor-pointer">
+            <Button asChild variant="outline" size="sm" disabled={loading} className="h-8 w-8 gap-1 p-0 cursor-pointer md:w-auto md:px-3" title="Novo Extrato" aria-label="Novo Extrato">
               <span>
-                <Upload className="h-3.5 w-3.5" /> Novo Extrato
+                <Upload className="h-3.5 w-3.5" /> <span className="max-md:hidden">Novo Extrato</span>
               </span>
             </Button>
           </label>
@@ -2642,27 +2636,44 @@ export function BankReconciliation() {
       <GlobalToolbar
         actions={[
           {
-            key: "conciliar",
-            label: "Conciliar",
+            key: "conciliar-movimento",
+            label: "Conciliar movimento",
             icon: CheckCircle2,
-            mode: "single+batch",
+            mode: "single",
             variant: "default",
+            hidden: !gridSelected[0]?.matchedMovId,
+            disabled: loading || gridSelected[0]?.status !== "pendente",
+            onClick: () => { const it = gridSelected[0]; if (it) openConfirm(it); },
+          },
+          {
+            key: "pagar-conciliar",
+            label: "Pagar e conciliar",
+            icon: CheckCircle2,
+            mode: "single",
+            variant: "default",
+            hidden: !gridSelected[0]?.matchedPayableId,
+            disabled: loading || gridSelected[0]?.status !== "pendente",
+            onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
+          },
+          {
+            key: "receber-conciliar",
+            label: "Receber e conciliar",
+            icon: CheckCircle2,
+            mode: "single",
+            variant: "default",
+            hidden: !gridSelected[0]?.matchedReceivableId,
+            disabled: loading || gridSelected[0]?.status !== "pendente",
+            onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
+          },
+          {
+            key: "conciliar-lote",
+            label: "Conciliar lote",
+            icon: CheckSquare,
+            mode: "batch",
+            variant: "default",
+            hidden: gridSelected.length < 2,
             disabled: loading || !gridSelected.some((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
-            onClick: () => {
-              if (gridSelected.length === 1) {
-                const it = gridSelected[0];
-                const multi = !!it.matchedMovId && (!!it.matchedPayableId || !!it.matchedReceivableId);
-                if (multi) {
-                  toast.info("Este lançamento tem mais de uma correspondência. Escolha o botão dentro do match desejado na coluna Correspondência.");
-                  return;
-                }
-                if (it.matchedPayableId || it.matchedReceivableId) openConfirmPayable(it);
-                else openConfirm(it);
-              } else {
-                handleBatchConciliate();
-              }
-            },
-
+            onClick: handleBatchConciliate,
           },
           {
             key: "vincular",
@@ -2707,8 +2718,9 @@ export function BankReconciliation() {
           },
         ]}
         selectedCount={selectedIds.size}
+        filtersFirstOnMobile
       >
-        <div className="relative w-[180px] md:w-[220px] shrink-0">
+        <div className="relative order-3 w-full md:order-none md:w-[220px] shrink-0">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Buscar..."
@@ -2781,6 +2793,10 @@ export function BankReconciliation() {
           { tone: "resolved", label: "Conciliado" },
         ]}
       />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[10px] text-muted-foreground md:hidden">
+        <span className="inline-flex items-center gap-1.5"><RefreshCw className="h-3 w-3" /> Sincronizar Open Finance</span>
+        <span className="inline-flex items-center gap-1.5"><Upload className="h-3 w-3" /> Novo Extrato</span>
+      </div>
 
 
       {/* Confirm match dialog */}
@@ -2969,10 +2985,9 @@ function translateOrigem(origem: string | null): string {
 }
 
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor, actionLabel, onAction }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
   variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
-  actionLabel?: string; onAction?: () => void;
 }) {
   const isProximo = precision === "proximo";
   const colors =
@@ -2993,23 +3008,6 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
         <p><span className="font-medium">Desc:</span> {truncDesc || "Sem descrição"}</p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
-      {onAction && (
-        <div className="pl-4 pt-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className={cn(
-              "h-6 text-[10px] gap-1",
-              variant === "blue" && "border-blue-300 text-blue-600 hover:bg-blue-100/60",
-              variant === "green" && "border-green-300 text-green-700 hover:bg-green-100/60",
-              variant === "amber" && "border-amber-300 text-amber-700 hover:bg-amber-100/60",
-            )}
-            onClick={(e) => { e.stopPropagation(); onAction(); }}
-          >
-            <CheckCircle2 className="h-3 w-3" /> {actionLabel || "Conciliar com este"}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

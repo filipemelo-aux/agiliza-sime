@@ -41,6 +41,8 @@ interface GlobalToolbarProps {
   /** conteúdo extra à direita (filtros, busca, totais) */
   children?: React.ReactNode;
   className?: string;
+  /** no mobile, coloca filtros em uma linha acima das ações */
+  filtersFirstOnMobile?: boolean;
 }
 
 function getScrollParent(el: HTMLElement | null): HTMLElement | null {
@@ -53,7 +55,7 @@ function getScrollParent(el: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
-export function GlobalToolbar({ actions, selectedCount, children, className }: GlobalToolbarProps) {
+export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false }: GlobalToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -74,6 +76,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
       ref={ref}
       className={cn(
         "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+        filtersFirstOnMobile && "max-md:flex-wrap max-md:overflow-x-hidden",
         scrolled ? "shadow-md border-b-border" : "shadow-none",
         className
       )}
@@ -95,6 +98,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
               aria-label={a.label}
               className={cn(
                 "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40 shrink-0",
+                filtersFirstOnMobile && "max-md:order-2",
                 Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
               )}
             >
@@ -103,8 +107,18 @@ export function GlobalToolbar({ actions, selectedCount, children, className }: G
             </Button>
           );
         })}
-      {children && <div className="contents max-md:ml-0">{children}</div>}
-      <span className="ml-2 self-center text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
+      {children && (
+        <div className={cn(
+          "contents max-md:ml-0",
+          filtersFirstOnMobile && "max-md:order-1 max-md:flex max-md:w-full max-md:flex-wrap max-md:items-center max-md:gap-1.5",
+        )}>
+          {children}
+        </div>
+      )}
+      <span className={cn(
+        "ml-2 self-center text-[11px] text-muted-foreground whitespace-nowrap shrink-0",
+        filtersFirstOnMobile && "max-md:order-2",
+      )}>
         {selectedCount > 0 ? `${selectedCount} sel.` : <span className="max-md:hidden">Nenhum selecionado</span>}
       </span>
     </div>
