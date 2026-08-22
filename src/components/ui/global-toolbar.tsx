@@ -320,15 +320,15 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         }}
 
         className={cn(
-          "h-9 w-9 md:h-8 md:w-8 p-0 justify-center",
-          showLabel && "md:w-auto md:px-2 md:gap-1.5",
+          "h-9 w-9 lg:h-8 lg:w-8 p-0 justify-center",
+          showLabel && "lg:w-auto lg:px-2 lg:gap-1.5",
           pending && "ring-2 ring-ring",
           className,
         )}
       >
-        <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
+        <Icon className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
         {showLabel ? (
-          <span className={cn("hidden md:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
+          <span className={cn("hidden lg:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
         ) : (
           <span className="sr-only">{label}</span>
         )}
