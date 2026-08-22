@@ -2294,6 +2294,11 @@ export function BankReconciliation() {
 
   const gridSelected = items.filter((i) => selectedIds.has(i.id));
 
+  const _sel = gridSelected[0];
+  const matchMovAtivo = !!_sel?.matchedMovId && _sel?.status === "pendente" && !loading && gridSelected.length === 1;
+  const matchPagarAtivo = !!_sel?.matchedPayableId && _sel?.status === "pendente" && !loading && gridSelected.length === 1;
+  const matchReceberAtivo = !!_sel?.matchedReceivableId && _sel?.status === "pendente" && !loading && gridSelected.length === 1;
+
   const reconColumns: DataGridColumn<OfxItem>[] = [
     {
       key: "date",
