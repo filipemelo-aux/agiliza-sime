@@ -75,12 +75,12 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     return () => mq.removeEventListener("change", read);
   }, []);
 
-  // auto-oculta a legenda no mobile após 2s
+  // auto-oculta a legenda/estado pendente no mobile após 3s
   useEffect(() => {
-    if (!coarse || !tip) return;
-    const t = window.setTimeout(() => setTip(null), 2000);
+    if (!coarse || (!tip && !pendingKey)) return;
+    const t = window.setTimeout(() => { setTip(null); setPendingKey(null); }, 3000);
     return () => window.clearTimeout(t);
-  }, [coarse, tip]);
+  }, [coarse, tip, pendingKey]);
 
   useEffect(() => {
     const parent = getScrollParent(ref.current);
