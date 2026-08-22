@@ -2674,7 +2674,7 @@ export function BankReconciliation() {
             mode: "single",
             variant: "default",
             disabled: loading || !gridSelected[0]?.matchedMovId || gridSelected[0]?.status !== "pendente",
-            className: "bg-amber-500 hover:bg-amber-600 border-amber-500 text-white",
+            className: cn(matchMovAtivo && "bg-amber-500 hover:bg-amber-600 border-amber-500 text-white"),
             onClick: () => { const it = gridSelected[0]; if (it) openConfirm(it); },
           },
           {
