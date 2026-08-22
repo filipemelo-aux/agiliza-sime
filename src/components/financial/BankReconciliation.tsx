@@ -2694,7 +2694,7 @@ export function BankReconciliation() {
             mode: "single",
             variant: "default",
             disabled: loading || !gridSelected[0]?.matchedReceivableId || gridSelected[0]?.status !== "pendente",
-            className: "bg-green-600 hover:bg-green-700 border-green-600 text-white",
+            className: cn(matchReceberAtivo && "bg-green-600 hover:bg-green-700 border-green-600 text-white"),
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
           {
