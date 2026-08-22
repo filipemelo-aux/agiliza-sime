@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,8 +44,10 @@ interface GlobalToolbarProps {
   /** conteúdo extra à direita (filtros, busca, totais) */
   children?: React.ReactNode;
   className?: string;
-  /** no mobile, coloca filtros em uma linha acima das ações */
+  /** quando a tela estreita (abaixo de xl), coloca os filtros em uma linha acima das ações, sem quebra dos botões de ação */
   filtersFirstOnMobile?: boolean;
+  /** no desktop mostra só ícone (legenda no hover); no mobile mantém legenda discreta abaixo do ícone */
+  iconOnlyOnDesktop?: boolean;
 }
 
 function getScrollParent(el: HTMLElement | null): HTMLElement | null {
@@ -57,9 +60,10 @@ function getScrollParent(el: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
-export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false }: GlobalToolbarProps) {
+export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false, iconOnlyOnDesktop = false }: GlobalToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [tip, setTip] = useState<{ key: string; label: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     const parent = getScrollParent(ref.current);
@@ -73,57 +77,110 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     };
   }, []);
 
-  return (
+  const renderAction = (a: ToolbarAction) => {
+    const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
+    const Icon = a.icon;
+    const iconOnly = iconOnlyOnDesktop && !!Icon;
+    return (
+      <div
+        key={a.key}
+        className="relative shrink-0"
+        onMouseEnter={iconOnly ? (e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setTip({ key: a.key, label: a.label, x: r.left + r.width / 2, y: r.bottom + 4 });
+        } : undefined}
+        onMouseLeave={iconOnly ? () => setTip(null) : undefined}
+      >
+        <Button
+          type="button"
+          size="sm"
+          variant={a.variant ?? "outline"}
+          disabled={!enabled}
+          onClick={a.onClick}
+          title={iconOnly ? undefined : a.label}
+          aria-label={a.label}
+          className={cn(
+            "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40",
+            iconOnly && "md:px-2 md:gap-0",
+            Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
+            a.className,
+          )}
+        >
+          {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+          {Icon ? (
+            <span className={cn(
+              "max-md:text-[8px] max-md:font-medium max-md:leading-none max-md:opacity-60",
+              iconOnly && "md:hidden",
+            )}>{a.label}</span>
+          ) : (
+            <span>{a.label}</span>
+          )}
+        </Button>
+      </div>
+    );
+  };
+
+  const countSpan = (
+    <span className="ml-2 self-center text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
+      {selectedCount > 0 ? `${selectedCount} sel.` : <span className="max-md:hidden">Nenhum selecionado</span>}
+    </span>
+  );
+
+  const tooltipPortal = iconOnlyOnDesktop && tip && createPortal(
     <div
-      ref={ref}
-      className={cn(
-        "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
-        filtersFirstOnMobile && "max-md:flex-wrap max-md:overflow-x-hidden",
-        scrolled ? "shadow-md border-b-border" : "shadow-none",
-        className
-      )}
+      style={{ position: "fixed", left: tip.x, top: tip.y, transform: "translateX(-50%)", zIndex: 9999 }}
+      className="pointer-events-none whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border"
     >
-      {actions
-        .filter((a) => !a.hidden)
-        .map((a) => {
-          const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
-          const Icon = a.icon;
-          return (
-            <Button
-              key={a.key}
-              type="button"
-              size="sm"
-              variant={a.variant ?? "outline"}
-              disabled={!enabled}
-              onClick={a.onClick}
-              title={a.label}
-              aria-label={a.label}
-              className={cn(
-                "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40 shrink-0",
-                filtersFirstOnMobile && "max-md:order-2",
-                Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
-                a.className,
-              )}
-            >
-              {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
-              <span className={cn(Icon && "max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80")}>{a.label}</span>
-            </Button>
-          );
-        })}
-      {children && (
-        <div className={cn(
-          "contents max-md:ml-0",
-          filtersFirstOnMobile && "max-md:order-1 max-md:flex max-md:w-full max-md:flex-wrap max-md:items-center max-md:gap-1.5",
-        )}>
-          {children}
+      {tip.label}
+    </div>,
+    document.body
+  );
+
+  if (filtersFirstOnMobile) {
+    // DOM: ações primeiro, filtros depois. flex-col-reverse => filtros em cima, ações embaixo (abaixo de xl).
+    // Em xl+: flex-row => ações à esquerda, filtros à direita, sem quebra.
+    return (
+      <>
+        <div
+          ref={ref}
+          className={cn(
+            "sticky top-0 z-40 flex flex-col-reverse gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200 xl:flex-row xl:flex-nowrap xl:items-center xl:overflow-x-auto",
+            scrolled ? "shadow-md border-b-border" : "shadow-none",
+            className,
+          )}
+        >
+          {/* Linha de ações (nowrap, scroll horizontal se necessário) */}
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+            {actions.filter((a) => !a.hidden).map(renderAction)}
+            {countSpan}
+          </div>
+          {/* Linha de filtros (topo quando estreito) */}
+          {children && (
+            <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:overflow-x-auto">
+              {children}
+            </div>
+          )}
         </div>
-      )}
-      <span className={cn(
-        "ml-2 self-center text-[11px] text-muted-foreground whitespace-nowrap shrink-0",
-        filtersFirstOnMobile && "max-md:order-2",
-      )}>
-        {selectedCount > 0 ? `${selectedCount} sel.` : <span className="max-md:hidden">Nenhum selecionado</span>}
-      </span>
-    </div>
+        {tooltipPortal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        ref={ref}
+        className={cn(
+          "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+          scrolled ? "shadow-md border-b-border" : "shadow-none",
+          className,
+        )}
+      >
+        {actions.filter((a) => !a.hidden).map(renderAction)}
+        {children && <div className="contents max-md:ml-0">{children}</div>}
+        {countSpan}
+      </div>
+      {tooltipPortal}
+    </>
   );
 }
