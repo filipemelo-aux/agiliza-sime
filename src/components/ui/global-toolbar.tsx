@@ -13,6 +13,8 @@ export interface ToolbarAction {
   /** always = sempre ativo | create = só com 0 selecionados (Novo) | single = só 1 selecionado | batch = 1+ | single+batch = 1+ */
   mode: ToolbarActionMode;
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary";
+  /** classes extras aplicadas ao botão (ex.: cores de destaque por tipo de match) */
+  className?: string;
   /** desabilita mesmo quando a seleção permitiria */
   disabled?: boolean;
   hidden?: boolean;
@@ -99,7 +101,8 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
               className={cn(
                 "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40 shrink-0",
                 filtersFirstOnMobile && "max-md:order-2",
-                Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
+                Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
+                a.className,
               )}
             >
               {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
