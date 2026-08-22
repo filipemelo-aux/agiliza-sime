@@ -26,6 +26,7 @@ import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { counterpartyFromDescription } from "@/lib/counterpartyFromDescription";
 import { personDisplayName } from "@/lib/personName";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
