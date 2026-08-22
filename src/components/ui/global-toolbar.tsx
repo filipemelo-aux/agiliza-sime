@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ function getScrollParent(el: HTMLElement | null): HTMLElement | null {
 export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false, iconOnlyOnDesktop = false }: GlobalToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [tip, setTip] = useState<{ key: string; label: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     const parent = getScrollParent(ref.current);
@@ -80,7 +82,15 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     const Icon = a.icon;
     const iconOnly = iconOnlyOnDesktop && !!Icon;
     return (
-      <div key={a.key} className="relative group shrink-0">
+      <div
+        key={a.key}
+        className="relative shrink-0"
+        onMouseEnter={iconOnly ? (e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setTip({ key: a.key, label: a.label, x: r.left + r.width / 2, y: r.bottom + 4 });
+        } : undefined}
+        onMouseLeave={iconOnly ? () => setTip(null) : undefined}
+      >
         <Button
           type="button"
           size="sm"
@@ -106,11 +116,6 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
             <span>{a.label}</span>
           )}
         </Button>
-        {iconOnly && (
-          <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-0.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border group-hover:block">
-            {a.label}
-          </span>
-        )}
       </div>
     );
   };
@@ -121,45 +126,61 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     </span>
   );
 
+  const tooltipPortal = iconOnlyOnDesktop && tip && createPortal(
+    <div
+      style={{ position: "fixed", left: tip.x, top: tip.y, transform: "translateX(-50%)", zIndex: 9999 }}
+      className="pointer-events-none whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border"
+    >
+      {tip.label}
+    </div>,
+    document.body
+  );
+
   if (filtersFirstOnMobile) {
     // DOM: ações primeiro, filtros depois. flex-col-reverse => filtros em cima, ações embaixo (abaixo de xl).
     // Em xl+: flex-row => ações à esquerda, filtros à direita, sem quebra.
     return (
-      <div
-        ref={ref}
-        className={cn(
-          "sticky top-0 z-40 flex flex-col-reverse gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200 xl:flex-row xl:flex-nowrap xl:items-center xl:overflow-x-auto",
-          scrolled ? "shadow-md border-b-border" : "shadow-none",
-          className,
-        )}
-      >
-        {/* Linha de ações (nowrap, scroll horizontal se necessário) */}
-        <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
-          {actions.filter((a) => !a.hidden).map(renderAction)}
-          {countSpan}
-        </div>
-        {/* Linha de filtros (topo quando estreito) */}
-        {children && (
-          <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:overflow-x-auto">
-            {children}
+      <>
+        <div
+          ref={ref}
+          className={cn(
+            "sticky top-0 z-40 flex flex-col-reverse gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200 xl:flex-row xl:flex-nowrap xl:items-center xl:overflow-x-auto",
+            scrolled ? "shadow-md border-b-border" : "shadow-none",
+            className,
+          )}
+        >
+          {/* Linha de ações (nowrap, scroll horizontal se necessário) */}
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+            {actions.filter((a) => !a.hidden).map(renderAction)}
+            {countSpan}
           </div>
-        )}
-      </div>
+          {/* Linha de filtros (topo quando estreito) */}
+          {children && (
+            <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:overflow-x-auto">
+              {children}
+            </div>
+          )}
+        </div>
+        {tooltipPortal}
+      </>
     );
   }
 
   return (
-    <div
-      ref={ref}
-      className={cn(
-        "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
-        scrolled ? "shadow-md border-b-border" : "shadow-none",
-        className,
-      )}
-    >
-      {actions.filter((a) => !a.hidden).map(renderAction)}
-      {children && <div className="contents max-md:ml-0">{children}</div>}
-      {countSpan}
-    </div>
+    <>
+      <div
+        ref={ref}
+        className={cn(
+          "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+          scrolled ? "shadow-md border-b-border" : "shadow-none",
+          className,
+        )}
+      >
+        {actions.filter((a) => !a.hidden).map(renderAction)}
+        {children && <div className="contents max-md:ml-0">{children}</div>}
+        {countSpan}
+      </div>
+      {tooltipPortal}
+    </>
   );
 }
