@@ -163,6 +163,14 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     document.body
   );
 
+  // Ordena: ações habilitadas primeiro (preservando ordem original dentro de cada grupo)
+  const orderedActions = [...actions].filter((a) => !a.hidden).sort((a, b) => {
+    const aEn = isActionEnabled(a.mode, selectedCount) && !a.disabled;
+    const bEn = isActionEnabled(b.mode, selectedCount) && !b.disabled;
+    if (aEn === bEn) return 0;
+    return aEn ? -1 : 1;
+  });
+
   if (filtersFirstOnMobile) {
     // Mobile: duas linhas (filtros em cima, ações embaixo). Desktop: tudo em uma linha.
     return (
@@ -181,7 +189,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
             </div>
           )}
           <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto md:contents">
-            {actions.filter((a) => !a.hidden).map(renderAction)}
+            {orderedActions.map(renderAction)}
             {countSpan}
           </div>
         </div>
@@ -201,7 +209,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           className,
         )}
       >
-        {actions.filter((a) => !a.hidden).map(renderAction)}
+        {orderedActions.map(renderAction)}
         {children && <div className="contents max-md:ml-0">{children}</div>}
         {countSpan}
       </div>
