@@ -2,6 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { cn } from "@/lib/utils";
 
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
