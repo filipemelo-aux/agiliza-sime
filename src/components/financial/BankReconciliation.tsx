@@ -2643,6 +2643,7 @@ export function BankReconciliation() {
             variant: "default",
             hidden: !gridSelected[0]?.matchedMovId,
             disabled: loading || gridSelected[0]?.status !== "pendente",
+            className: "bg-amber-500 hover:bg-amber-600 border-amber-500 text-white",
             onClick: () => { const it = gridSelected[0]; if (it) openConfirm(it); },
           },
           {
@@ -2653,6 +2654,7 @@ export function BankReconciliation() {
             variant: "default",
             hidden: !gridSelected[0]?.matchedPayableId,
             disabled: loading || gridSelected[0]?.status !== "pendente",
+            className: "bg-blue-600 hover:bg-blue-700 border-blue-600 text-white",
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
           {
@@ -2663,6 +2665,7 @@ export function BankReconciliation() {
             variant: "default",
             hidden: !gridSelected[0]?.matchedReceivableId,
             disabled: loading || gridSelected[0]?.status !== "pendente",
+            className: "bg-green-600 hover:bg-green-700 border-green-600 text-white",
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
           {
