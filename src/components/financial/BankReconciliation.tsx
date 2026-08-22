@@ -1899,6 +1899,17 @@ export function BankReconciliation() {
     }
   }, [runImport, syncDays, syncFrom, syncTo]);
 
+  const handleOpenFinanceSync = useCallback(async () => {
+    const ok = await confirm({
+      title: "Sincronizar Open Finance",
+      description: "Será realizada a busca de movimentações bancárias via Open Finance para o período selecionado. Deseja continuar?",
+      confirmLabel: "Sincronizar",
+      cancelLabel: "Cancelar",
+    });
+    if (!ok) return;
+    await runOpenFinanceSync();
+  }, [confirm, runOpenFinanceSync]);
+
   const syncDaysSelect = (
     <div className="flex items-center gap-1.5">
       <select
