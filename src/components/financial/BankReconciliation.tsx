@@ -2956,9 +2956,10 @@ function translateOrigem(origem: string | null): string {
 }
 
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor, actionLabel, onAction }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
   variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
+  actionLabel?: string; onAction?: () => void;
 }) {
   const isProximo = precision === "proximo";
   const colors =
@@ -2979,9 +2980,27 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
         <p><span className="font-medium">Desc:</span> {truncDesc || "Sem descrição"}</p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
+      {onAction && (
+        <div className="pl-4 pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(
+              "h-6 text-[10px] gap-1",
+              variant === "blue" && "border-blue-300 text-blue-600 hover:bg-blue-100/60",
+              variant === "green" && "border-green-300 text-green-700 hover:bg-green-100/60",
+              variant === "amber" && "border-amber-300 text-amber-700 hover:bg-amber-100/60",
+            )}
+            onClick={(e) => { e.stopPropagation(); onAction(); }}
+          >
+            <CheckCircle2 className="h-3 w-3" /> {actionLabel || "Conciliar com este"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "conciliado")
