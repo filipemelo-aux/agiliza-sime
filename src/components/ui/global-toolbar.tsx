@@ -239,12 +239,12 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
     return () => mq.removeEventListener("change", read);
   }, []);
 
-  // auto-oculta a legenda no mobile após 2s
+  // auto-oculta a legenda/estado pendente no mobile após 3s
   useEffect(() => {
-    if (!coarse || !tip) return;
-    const t = window.setTimeout(() => setTip(null), 2000);
+    if (!coarse || (!tip && !pending)) return;
+    const t = window.setTimeout(() => { setTip(null); setPending(false); }, 3000);
     return () => window.clearTimeout(t);
-  }, [coarse, tip]);
+  }, [coarse, tip, pending]);
 
   const show = (el: HTMLElement, text: string) => {
     const r = el.getBoundingClientRect();
