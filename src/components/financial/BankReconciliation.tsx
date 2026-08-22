@@ -2772,6 +2772,7 @@ export function BankReconciliation() {
                 label={`${label} (${count})`}
                 icon={Icon}
                 active={statusFilter === tab}
+                showLabel
                 onClick={() => setStatusFilter(tab)}
               />
             );
@@ -2786,6 +2787,7 @@ export function BankReconciliation() {
                 label={`${label} (${count})`}
                 icon={Icon}
                 active={tipoFilter === tab}
+                showLabel
                 onClick={() => setTipoFilter(tab)}
               />
             );
