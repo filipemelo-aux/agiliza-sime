@@ -1825,7 +1825,7 @@ export function BankReconciliation() {
   const [syncDays, setSyncDays] = useState(90);
   const [syncFrom, setSyncFrom] = useState("");
   const [syncTo, setSyncTo] = useState("");
-  const handleOpenFinanceSync = useCallback(async () => {
+  const runOpenFinanceSync = useCallback(async () => {
     const hoje = new Date();
     const iso = (d: Date) => d.toISOString().slice(0, 10);
     const ontem = new Date(hoje.getTime() - 86400000);
