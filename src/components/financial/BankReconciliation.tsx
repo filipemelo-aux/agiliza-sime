@@ -2651,12 +2651,18 @@ export function BankReconciliation() {
             onClick: () => {
               if (gridSelected.length === 1) {
                 const it = gridSelected[0];
+                const multi = !!it.matchedMovId && (!!it.matchedPayableId || !!it.matchedReceivableId);
+                if (multi) {
+                  toast.info("Este lançamento tem mais de uma correspondência. Escolha o botão dentro do match desejado na coluna Correspondência.");
+                  return;
+                }
                 if (it.matchedPayableId || it.matchedReceivableId) openConfirmPayable(it);
                 else openConfirm(it);
               } else {
                 handleBatchConciliate();
               }
             },
+
           },
           {
             key: "vincular",
