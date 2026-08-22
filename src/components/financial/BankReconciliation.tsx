@@ -2330,6 +2330,8 @@ export function BankReconciliation() {
               valor={r.matchedMovValor}
               origem={translateOrigem(r.matchedMovOrigem)}
               precision={r.matchedMovPrecision}
+              actionLabel="Conciliar com este"
+              onAction={() => openConfirm(r)}
             />
           )}
           {r.matchedPayableId && r.status === "pendente" && (
@@ -2342,6 +2344,8 @@ export function BankReconciliation() {
               label="Conta a Pagar encontrada"
               precision={r.matchedPayablePrecision}
               fornecedor={r.matchedPayableFornecedor}
+              actionLabel="Pagar e conciliar"
+              onAction={() => openConfirmPayable(r)}
             />
           )}
           {r.matchedReceivableId && r.status === "pendente" && (
@@ -2354,8 +2358,11 @@ export function BankReconciliation() {
               label="Conta a Receber encontrada"
               precision={r.matchedReceivablePrecision}
               fornecedor={r.matchedReceivableCliente}
+              actionLabel="Receber e conciliar"
+              onAction={() => openConfirmPayable(r)}
             />
           )}
+
           {r.status === "conciliado" && r.matchedMovId && (
             <MatchBox
               desc={r.matchedMovDesc}
@@ -2644,12 +2651,18 @@ export function BankReconciliation() {
             onClick: () => {
               if (gridSelected.length === 1) {
                 const it = gridSelected[0];
+                const multi = !!it.matchedMovId && (!!it.matchedPayableId || !!it.matchedReceivableId);
+                if (multi) {
+                  toast.info("Este lançamento tem mais de uma correspondência. Escolha o botão dentro do match desejado na coluna Correspondência.");
+                  return;
+                }
                 if (it.matchedPayableId || it.matchedReceivableId) openConfirmPayable(it);
                 else openConfirm(it);
               } else {
                 handleBatchConciliate();
               }
             },
+
           },
           {
             key: "vincular",
@@ -2956,9 +2969,10 @@ function translateOrigem(origem: string | null): string {
 }
 
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor, actionLabel, onAction }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
   variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
+  actionLabel?: string; onAction?: () => void;
 }) {
   const isProximo = precision === "proximo";
   const colors =
@@ -2979,9 +2993,27 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
         <p><span className="font-medium">Desc:</span> {truncDesc || "Sem descrição"}</p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
+      {onAction && (
+        <div className="pl-4 pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(
+              "h-6 text-[10px] gap-1",
+              variant === "blue" && "border-blue-300 text-blue-600 hover:bg-blue-100/60",
+              variant === "green" && "border-green-300 text-green-700 hover:bg-green-100/60",
+              variant === "amber" && "border-amber-300 text-amber-700 hover:bg-amber-100/60",
+            )}
+            onClick={(e) => { e.stopPropagation(); onAction(); }}
+          >
+            <CheckCircle2 className="h-3 w-3" /> {actionLabel || "Conciliar com este"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "conciliado")
