@@ -2754,7 +2754,7 @@ export function BankReconciliation() {
         selectedCount={selectedIds.size}
         filtersFirstOnMobile
       >
-        <div className="relative order-3 w-full md:order-none md:ml-1 md:w-[220px] md:border-l md:border-border md:pl-2 shrink-0">
+        <div className="relative order-3 w-full lg:order-none lg:ml-1 lg:w-[220px] lg:border-l lg:border-border lg:pl-2 shrink-0">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Buscar..."
