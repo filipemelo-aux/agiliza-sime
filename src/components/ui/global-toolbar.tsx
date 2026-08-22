@@ -45,6 +45,8 @@ interface GlobalToolbarProps {
   className?: string;
   /** no mobile, coloca filtros em uma linha acima das ações */
   filtersFirstOnMobile?: boolean;
+  /** no desktop mostra só ícone (legenda no hover); no mobile mantém legenda discreta abaixo do ícone */
+  iconOnlyOnDesktop?: boolean;
 }
 
 function getScrollParent(el: HTMLElement | null): HTMLElement | null {
