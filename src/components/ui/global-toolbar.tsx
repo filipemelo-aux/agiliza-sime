@@ -161,6 +161,34 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     document.body
   );
 
+  const confirmDialog = (
+    <AlertDialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
+      <AlertDialogContent className="max-w-[320px]">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-base">{confirmAction?.label}</AlertDialogTitle>
+          <AlertDialogDescription className="text-xs">
+            Confirmar esta ação{selectedCount > 0 ? ` para ${selectedCount} item(ns) selecionado(s)` : ""}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="h-9 text-xs">Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="h-9 text-xs"
+            onClick={() => {
+              const act = confirmAction;
+              setConfirmAction(null);
+              act?.onClick();
+            }}
+          >
+            Confirmar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+
+
   // Ordena: ações habilitadas primeiro (preservando ordem original dentro de cada grupo)
   const orderedActions = [...actions].filter((a) => !a.hidden).sort((a, b) => {
     const aEn = isActionEnabled(a.mode, selectedCount) && !a.disabled;
