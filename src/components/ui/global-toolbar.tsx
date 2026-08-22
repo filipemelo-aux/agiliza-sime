@@ -65,7 +65,9 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const [scrolled, setScrolled] = useState(false);
   const [tip, setTip] = useState<{ key: string; label: string; x: number; y: number } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ToolbarAction | null>(null);
   const [coarse, setCoarse] = useState(false);
+
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
