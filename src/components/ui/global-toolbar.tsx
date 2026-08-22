@@ -43,7 +43,7 @@ interface GlobalToolbarProps {
   /** conteúdo extra à direita (filtros, busca, totais) */
   children?: React.ReactNode;
   className?: string;
-  /** no mobile, coloca filtros em uma linha acima das ações */
+  /** quando a tela estreita (abaixo de xl), coloca os filtros em uma linha acima das ações, sem quebra dos botões de ação */
   filtersFirstOnMobile?: boolean;
   /** no desktop mostra só ícone (legenda no hover); no mobile mantém legenda discreta abaixo do ícone */
   iconOnlyOnDesktop?: boolean;
@@ -75,74 +75,91 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     };
   }, []);
 
+  const renderAction = (a: ToolbarAction) => {
+    const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
+    const Icon = a.icon;
+    const iconOnly = iconOnlyOnDesktop && !!Icon;
+    return (
+      <div key={a.key} className="relative group shrink-0">
+        <Button
+          type="button"
+          size="sm"
+          variant={a.variant ?? "outline"}
+          disabled={!enabled}
+          onClick={a.onClick}
+          title={iconOnly ? undefined : a.label}
+          aria-label={a.label}
+          className={cn(
+            "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40",
+            iconOnly && "md:px-2 md:gap-0",
+            Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
+            a.className,
+          )}
+        >
+          {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+          {Icon ? (
+            <span className={cn(
+              "max-md:text-[8px] max-md:font-medium max-md:leading-none max-md:opacity-60",
+              iconOnly && "md:hidden",
+            )}>{a.label}</span>
+          ) : (
+            <span>{a.label}</span>
+          )}
+        </Button>
+        {iconOnly && (
+          <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-0.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border group-hover:block group-hover:animate-in">
+            {a.label}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const countSpan = (
+    <span className="ml-2 self-center text-[11px] text-muted-foreground whitespace-nowrap shrink-0">
+      {selectedCount > 0 ? `${selectedCount} sel.` : <span className="max-md:hidden">Nenhum selecionado</span>}
+    </span>
+  );
+
+  if (filtersFirstOnMobile) {
+    // DOM: ações primeiro, filtros depois. flex-col-reverse => filtros em cima, ações embaixo (abaixo de xl).
+    // Em xl+: flex-row => ações à esquerda, filtros à direita, sem quebra.
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "sticky top-0 z-40 flex flex-col-reverse gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200 xl:flex-row xl:flex-nowrap xl:items-center xl:overflow-x-auto",
+          scrolled ? "shadow-md border-b-border" : "shadow-none",
+          className,
+        )}
+      >
+        {/* Linha de ações (nowrap, scroll horizontal se necessário) */}
+        <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+          {actions.filter((a) => !a.hidden).map(renderAction)}
+          {countSpan}
+        </div>
+        {/* Linha de filtros (topo quando estreito) */}
+        {children && (
+          <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:overflow-x-auto">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={ref}
       className={cn(
         "sticky top-0 z-40 flex flex-nowrap overflow-x-auto md:overflow-visible md:flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
-        filtersFirstOnMobile && "max-md:flex-wrap max-md:overflow-x-hidden",
         scrolled ? "shadow-md border-b-border" : "shadow-none",
-        className
+        className,
       )}
     >
-      {actions
-        .filter((a) => !a.hidden)
-        .map((a) => {
-          const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
-          const Icon = a.icon;
-          const iconOnly = iconOnlyOnDesktop && !!Icon;
-          return (
-            <div
-              key={a.key}
-              className={cn("relative group shrink-0", filtersFirstOnMobile && "max-md:order-2")}
-            >
-              <Button
-                type="button"
-                size="sm"
-                variant={a.variant ?? "outline"}
-                disabled={!enabled}
-                onClick={a.onClick}
-                title={iconOnly ? undefined : a.label}
-                aria-label={a.label}
-                className={cn(
-                  "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40",
-                  iconOnly && "md:px-2 md:gap-0",
-                  Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
-                  a.className,
-                )}
-              >
-                {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
-                {Icon ? (
-                  <span className={cn(
-                    "max-md:text-[8px] max-md:font-medium max-md:leading-none max-md:opacity-60",
-                    iconOnly && "md:hidden",
-                  )}>{a.label}</span>
-                ) : (
-                  <span>{a.label}</span>
-                )}
-              </Button>
-              {iconOnly && (
-                <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border group-hover:block">
-                  {a.label}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      {children && (
-        <div className={cn(
-          "contents max-md:ml-0",
-          filtersFirstOnMobile && "max-md:order-1 max-md:flex max-md:w-full max-md:flex-wrap max-md:items-center max-md:gap-1.5",
-        )}>
-          {children}
-        </div>
-      )}
-      <span className={cn(
-        "ml-2 self-center text-[11px] text-muted-foreground whitespace-nowrap shrink-0",
-        filtersFirstOnMobile && "max-md:order-2",
-      )}>
-        {selectedCount > 0 ? `${selectedCount} sel.` : <span className="max-md:hidden">Nenhum selecionado</span>}
-      </span>
+      {actions.filter((a) => !a.hidden).map(renderAction)}
+      {children && <div className="contents max-md:ml-0">{children}</div>}
+      {countSpan}
     </div>
   );
 }
