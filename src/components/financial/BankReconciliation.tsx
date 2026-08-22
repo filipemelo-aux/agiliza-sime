@@ -2415,8 +2415,9 @@ export function BankReconciliation() {
 
   // Empty state: show history + upload
   if (items.length === 0) {
-    return (
-      <div className="space-y-4">
+     return (
+       <div className="space-y-4">
+        {ConfirmDialog}
         <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
