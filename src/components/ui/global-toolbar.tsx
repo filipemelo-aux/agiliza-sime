@@ -64,6 +64,25 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const ref = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [tip, setTip] = useState<{ key: string; label: string; x: number; y: number } | null>(null);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const read = () => setCoarse(mq.matches);
+    read();
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  }, []);
+
+  // fecha confirmação pendente ao tocar fora
+  useEffect(() => {
+    if (!pendingKey) return;
+    const clear = () => { setPendingKey(null); setTip(null); };
+    const t = window.setTimeout(clear, 3000);
+    document.addEventListener("click", clear, { capture: true, once: true });
+    return () => { window.clearTimeout(t); document.removeEventListener("click", clear, { capture: true } as any); };
+  }, [pendingKey]);
 
   useEffect(() => {
     const parent = getScrollParent(ref.current);
@@ -80,41 +99,49 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const renderAction = (a: ToolbarAction) => {
     const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
     const Icon = a.icon;
-    const iconOnly = iconOnlyOnDesktop && !!Icon;
+    const iconOnly = !!Icon;
+    const isPending = pendingKey === a.key;
+    const showTip = (el: HTMLElement, label: string) => {
+      const r = el.getBoundingClientRect();
+      setTip({ key: a.key, label, x: r.left + r.width / 2, y: r.bottom + 4 });
+    };
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (coarse && iconOnly) {
+        if (!isPending) {
+          e.stopPropagation();
+          showTip(e.currentTarget, `${a.label} — toque novamente`);
+          setPendingKey(a.key);
+          return;
+        }
+        setPendingKey(null);
+        setTip(null);
+      }
+      a.onClick();
+    };
     return (
       <div
         key={a.key}
         className="relative shrink-0"
-        onMouseEnter={iconOnly ? (e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          setTip({ key: a.key, label: a.label, x: r.left + r.width / 2, y: r.bottom + 4 });
-        } : undefined}
-        onMouseLeave={iconOnly ? () => setTip(null) : undefined}
+        onMouseEnter={iconOnly && !coarse ? (e) => showTip(e.currentTarget, a.label) : undefined}
+        onMouseLeave={iconOnly && !coarse ? () => setTip(null) : undefined}
       >
         <Button
           type="button"
           size="sm"
           variant={a.variant ?? "outline"}
           disabled={!enabled}
-          onClick={a.onClick}
+          onClick={handleClick}
           title={iconOnly ? undefined : a.label}
           aria-label={a.label}
           className={cn(
             "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40",
-            iconOnly && "md:px-2 md:gap-0",
-            Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
+            iconOnly && "px-2 gap-0 max-md:h-9 max-md:w-9 max-md:px-0 max-md:justify-center",
+            isPending && "ring-2 ring-ring",
             a.className,
           )}
         >
           {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
-          {Icon ? (
-            <span className={cn(
-              "max-md:text-[8px] max-md:font-medium max-md:leading-none max-md:opacity-60",
-              iconOnly && "md:hidden",
-            )}>{a.label}</span>
-          ) : (
-            <span>{a.label}</span>
-          )}
+          {Icon ? <span className="sr-only">{a.label}</span> : <span>{a.label}</span>}
         </Button>
       </div>
     );
@@ -126,7 +153,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     </span>
   );
 
-  const tooltipPortal = iconOnlyOnDesktop && tip && createPortal(
+  const tooltipPortal = tip && createPortal(
     <div
       style={{ position: "fixed", left: tip.x, top: tip.y, transform: "translateX(-50%)", zIndex: 9999 }}
       className="pointer-events-none whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border"
@@ -137,34 +164,32 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   );
 
   if (filtersFirstOnMobile) {
-    // DOM: ações primeiro, filtros depois. flex-col-reverse => filtros em cima, ações embaixo (abaixo de xl).
-    // Em xl+: flex-row => ações à esquerda, filtros à direita, sem quebra.
+    // Sempre em duas linhas: filtros + busca em cima, ações embaixo.
     return (
       <>
         <div
           ref={ref}
           className={cn(
-            "sticky top-0 z-40 flex flex-col-reverse gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200 xl:flex-row xl:flex-nowrap xl:items-center xl:overflow-x-auto",
+            "sticky top-0 z-40 flex flex-col gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
             scrolled ? "shadow-md border-b-border" : "shadow-none",
             className,
           )}
         >
-          {/* Linha de ações (nowrap, scroll horizontal se necessário) */}
+          {children && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {children}
+            </div>
+          )}
           <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
             {actions.filter((a) => !a.hidden).map(renderAction)}
             {countSpan}
           </div>
-          {/* Linha de filtros (topo quando estreito) */}
-          {children && (
-            <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:overflow-x-auto">
-              {children}
-            </div>
-          )}
         </div>
         {tooltipPortal}
       </>
     );
   }
+
 
   return (
     <>
