@@ -75,14 +75,12 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     return () => mq.removeEventListener("change", read);
   }, []);
 
-  // fecha confirmação pendente ao tocar fora
+  // auto-oculta a legenda no mobile após 2s
   useEffect(() => {
-    if (!pendingKey) return;
-    const clear = () => { setPendingKey(null); setTip(null); };
-    const t = window.setTimeout(clear, 3000);
-    document.addEventListener("click", clear, { capture: true, once: true });
-    return () => { window.clearTimeout(t); document.removeEventListener("click", clear, { capture: true } as any); };
-  }, [pendingKey]);
+    if (!coarse || !tip) return;
+    const t = window.setTimeout(() => setTip(null), 2000);
+    return () => window.clearTimeout(t);
+  }, [coarse, tip]);
 
   useEffect(() => {
     const parent = getScrollParent(ref.current);
@@ -234,13 +232,12 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
     return () => mq.removeEventListener("change", read);
   }, []);
 
+  // auto-oculta a legenda no mobile após 2s
   useEffect(() => {
-    if (!pending) return;
-    const clear = () => { setPending(false); setTip(null); };
-    const t = window.setTimeout(clear, 3000);
-    document.addEventListener("click", clear, { capture: true, once: true });
-    return () => { window.clearTimeout(t); document.removeEventListener("click", clear, { capture: true } as any); };
-  }, [pending]);
+    if (!coarse || !tip) return;
+    const t = window.setTimeout(() => setTip(null), 2000);
+    return () => window.clearTimeout(t);
+  }, [coarse, tip]);
 
   const show = (el: HTMLElement, text: string) => {
     const r = el.getBoundingClientRect();
