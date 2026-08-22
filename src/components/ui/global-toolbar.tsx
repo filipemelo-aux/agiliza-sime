@@ -90,26 +90,43 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
         .map((a) => {
           const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
           const Icon = a.icon;
+          const iconOnly = iconOnlyOnDesktop && !!Icon;
           return (
-            <Button
+            <div
               key={a.key}
-              type="button"
-              size="sm"
-              variant={a.variant ?? "outline"}
-              disabled={!enabled}
-              onClick={a.onClick}
-              title={a.label}
-              aria-label={a.label}
-              className={cn(
-                "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40 shrink-0",
-                filtersFirstOnMobile && "max-md:order-2",
-                Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
-                a.className,
-              )}
+              className={cn("relative group shrink-0", filtersFirstOnMobile && "max-md:order-2")}
             >
-              {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
-              <span className={cn(Icon && "max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80")}>{a.label}</span>
-            </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={a.variant ?? "outline"}
+                disabled={!enabled}
+                onClick={a.onClick}
+                title={iconOnly ? undefined : a.label}
+                aria-label={a.label}
+                className={cn(
+                  "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40",
+                  iconOnly && "md:px-2 md:gap-0",
+                  Icon && "max-md:h-auto max-md:min-w-[52px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center",
+                  a.className,
+                )}
+              >
+                {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+                {Icon ? (
+                  <span className={cn(
+                    "max-md:text-[8px] max-md:font-medium max-md:leading-none max-md:opacity-60",
+                    iconOnly && "md:hidden",
+                  )}>{a.label}</span>
+                ) : (
+                  <span>{a.label}</span>
+                )}
+              </Button>
+              {iconOnly && (
+                <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border group-hover:block">
+                  {a.label}
+                </span>
+              )}
+            </div>
           );
         })}
       {children && (
