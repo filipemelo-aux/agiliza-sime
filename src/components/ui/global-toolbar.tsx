@@ -107,7 +107,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           )}
         </Button>
         {iconOnly && (
-          <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-0.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border group-hover:block group-hover:animate-in">
+          <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-0.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border group-hover:block">
             {a.label}
           </span>
         )}
