@@ -1499,17 +1499,28 @@ export function BankReconciliation() {
   const missingFromOfx = useMemo(() => {
     if (!ofxRange || movsInPeriod.length === 0) return [] as typeof movsInPeriod;
     const linkedIds = new Set(items.map((i) => i.matchedMovId).filter(Boolean) as string[]);
-    return movsInPeriod.filter((m) => {
-      if (linkedIds.has(m.id)) return false;
+    // Cada linha do extrato só pode "cobrir" UMA movimentação do sistema.
+    // Linhas já conciliadas com outra movimentação ficam indisponíveis, de modo que
+    // o segundo candidato de um match duplo passe a aparecer aqui como divergência.
+    const consumed = new Set<string>(
+      items.filter((i) => i.matchedMovId).map((i) => i.id)
+    );
+    const candidates = movsInPeriod.filter((m) => !linkedIds.has(m.id));
+    const missing: typeof movsInPeriod = [];
+    for (const m of candidates) {
       const absVal = Math.abs(m.valor);
-      const hit = items.some((i) =>
+      const hit = items.find((i) =>
+        !consumed.has(i.id) &&
         i.tipo === m.tipo &&
         Math.abs(Math.abs(i.amount) - absVal) < 0.01 &&
         daysDiff(i.date, m.data_movimentacao) <= 5
       );
-      return !hit;
-    });
+      if (hit) consumed.add(hit.id);
+      else missing.push(m);
+    }
+    return missing;
   }, [items, movsInPeriod, ofxRange]);
+
 
   const filteredItems = useMemo(() => {
     let list = items;
