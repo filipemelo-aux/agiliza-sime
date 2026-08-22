@@ -2759,35 +2759,45 @@ export function BankReconciliation() {
           />
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {(["todos", "pendente", "conciliado"] as const).map((tab) => {
-            const labels: Record<string, string> = { todos: "Todos", pendente: "Pendentes", conciliado: "Conciliados" };
+          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pend.", icon: AlertCircle }, { tab: "conciliado", label: "Concil.", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
             const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
+            const active = statusFilter === tab;
             return (
               <Button
                 key={tab}
                 size="sm"
-                variant={statusFilter === tab ? "default" : "outline"}
-                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0"
+                variant={active ? "default" : "outline"}
+                title={`${label} (${count})`}
+                aria-label={`${label} (${count})`}
+                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0 max-md:h-auto max-md:min-w-[48px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
                 onClick={() => setStatusFilter(tab)}
               >
-                {labels[tab]} <span className="opacity-70">({count})</span>
+                <Icon className="h-3.5 w-3.5 max-md:h-4 max-md:w-4 md:hidden" />
+                <span className="md:hidden max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80">{label}</span>
+                <span className="hidden md:inline">{label}</span>
+                <span className="opacity-70 hidden md:inline">({count})</span>
               </Button>
             );
           })}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {(["todos", "debito", "credito"] as const).map((tab) => {
-            const labels: Record<string, string> = { todos: "Todos", debito: "Débitos", credito: "Créditos" };
+          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "debito", label: "Débito", icon: ArrowDownCircle }, { tab: "credito", label: "Crédito", icon: ArrowUpCircle }] as const)).map(({ tab, label, icon: Icon }) => {
             const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
+            const active = tipoFilter === tab;
             return (
               <Button
                 key={tab}
                 size="sm"
-                variant={tipoFilter === tab ? "default" : "outline"}
-                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0"
+                variant={active ? "default" : "outline"}
+                title={`${label} (${count})`}
+                aria-label={`${label} (${count})`}
+                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0 max-md:h-auto max-md:min-w-[48px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
                 onClick={() => setTipoFilter(tab)}
               >
-                {labels[tab]} <span className="opacity-70">({count})</span>
+                <Icon className="h-3.5 w-3.5 max-md:h-4 max-md:w-4 md:hidden" />
+                <span className="md:hidden max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80">{label}</span>
+                <span className="hidden md:inline">{label}</span>
+                <span className="opacity-70 hidden md:inline">({count})</span>
               </Button>
             );
           })}
