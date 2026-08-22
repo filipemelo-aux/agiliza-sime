@@ -209,3 +209,80 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     </>
   );
 }
+
+interface ToolbarIconButtonProps {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  className?: string;
+}
+
+/** Botão só com ícone: legenda no hover (desktop) e toque duplo para confirmar (mobile). */
+export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled, className }: ToolbarIconButtonProps) {
+  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [pending, setPending] = useState(false);
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const read = () => setCoarse(mq.matches);
+    read();
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  }, []);
+
+  useEffect(() => {
+    if (!pending) return;
+    const clear = () => { setPending(false); setTip(null); };
+    const t = window.setTimeout(clear, 3000);
+    document.addEventListener("click", clear, { capture: true, once: true });
+    return () => { window.clearTimeout(t); document.removeEventListener("click", clear, { capture: true } as any); };
+  }, [pending]);
+
+  const show = (el: HTMLElement, text: string) => {
+    const r = el.getBoundingClientRect();
+    setTip({ x: r.left + r.width / 2, y: r.bottom + 4, text });
+  };
+
+  return (
+    <div
+      className="relative shrink-0"
+      onMouseEnter={!coarse ? (e) => show(e.currentTarget, label) : undefined}
+      onMouseLeave={!coarse ? () => setTip(null) : undefined}
+    >
+      <Button
+        type="button"
+        size="sm"
+        variant={active ? "default" : "outline"}
+        disabled={disabled}
+        aria-label={label}
+        onClick={(e) => {
+          if (coarse && !pending) {
+            e.stopPropagation();
+            show(e.currentTarget, `${label} — toque novamente`);
+            setPending(true);
+            return;
+          }
+          setPending(false);
+          setTip(null);
+          onClick();
+        }}
+        className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", pending && "ring-2 ring-ring", className)}
+      >
+        <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
+        <span className="sr-only">{label}</span>
+      </Button>
+      {tip && createPortal(
+        <div
+          style={{ position: "fixed", left: tip.x, top: tip.y, transform: "translateX(-50%)", zIndex: 9999 }}
+          className="pointer-events-none whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md ring-1 ring-border"
+        >
+          {tip.text}
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}

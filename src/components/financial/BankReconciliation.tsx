@@ -27,7 +27,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { counterpartyFromDescription } from "@/lib/counterpartyFromDescription";
 import { personDisplayName } from "@/lib/personName";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { GlobalToolbar, ToolbarIconButton } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 
@@ -2293,6 +2293,9 @@ export function BankReconciliation() {
   };
 
   const gridSelected = items.filter((i) => selectedIds.has(i.id));
+  // seleção mista (crédito + débito): só permite excluir
+  const mixedSelection = gridSelected.some((i) => i.tipo === "entrada") && gridSelected.some((i) => i.tipo === "saida");
+
 
   const _sel = gridSelected[0];
   const matchMovAtivo = !!_sel?.matchedMovId && _sel?.status === "pendente" && !loading && gridSelected.length === 1;
@@ -2673,7 +2676,7 @@ export function BankReconciliation() {
             icon: CheckCircle2,
             mode: "single",
             variant: "default",
-            disabled: loading || !gridSelected[0]?.matchedMovId || gridSelected[0]?.status !== "pendente",
+            disabled: mixedSelection || loading || !gridSelected[0]?.matchedMovId || gridSelected[0]?.status !== "pendente",
             className: cn(matchMovAtivo && "bg-amber-500 hover:bg-amber-600 border-amber-500 text-white"),
             onClick: () => { const it = gridSelected[0]; if (it) openConfirm(it); },
           },
@@ -2683,7 +2686,7 @@ export function BankReconciliation() {
             icon: CheckCircle2,
             mode: "single",
             variant: "default",
-            disabled: loading || !gridSelected[0]?.matchedPayableId || gridSelected[0]?.status !== "pendente",
+            disabled: mixedSelection || loading || !gridSelected[0]?.matchedPayableId || gridSelected[0]?.status !== "pendente",
             className: cn(matchPagarAtivo && "bg-blue-600 hover:bg-blue-700 border-blue-600 text-white"),
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
@@ -2693,7 +2696,7 @@ export function BankReconciliation() {
             icon: CheckCircle2,
             mode: "single",
             variant: "default",
-            disabled: loading || !gridSelected[0]?.matchedReceivableId || gridSelected[0]?.status !== "pendente",
+            disabled: mixedSelection || loading || !gridSelected[0]?.matchedReceivableId || gridSelected[0]?.status !== "pendente",
             className: cn(matchReceberAtivo && "bg-green-600 hover:bg-green-700 border-green-600 text-white"),
             onClick: () => { const it = gridSelected[0]; if (it) openConfirmPayable(it); },
           },
@@ -2703,7 +2706,7 @@ export function BankReconciliation() {
             icon: CheckSquare,
             mode: "batch",
             variant: "default",
-            disabled: loading || gridSelected.length < 2 || !gridSelected.some((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
+            disabled: mixedSelection || loading || gridSelected.length < 2 || !gridSelected.some((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
             onClick: handleBatchConciliate,
           },
           {
@@ -2711,7 +2714,7 @@ export function BankReconciliation() {
             label: "Vincular a conta",
             icon: Link2,
             mode: "single+batch",
-            disabled: loading || linkableSelectedItems.length === 0,
+            disabled: mixedSelection || loading || linkableSelectedItems.length === 0,
             onClick: () => openLinkAccountDialog(linkableSelectedItems.map((i) => i.id)),
           },
           {
@@ -2719,7 +2722,7 @@ export function BankReconciliation() {
             label: "Nova Despesa",
             icon: Plus,
             mode: "single",
-            disabled: !(gridSelected[0]?.status === "pendente" && gridSelected[0]?.tipo === "saida"),
+            disabled: mixedSelection || !(gridSelected[0]?.status === "pendente" && gridSelected[0]?.tipo === "saida"),
             onClick: () => { const it = gridSelected[0]; if (it) handleNewExpense(it); },
           },
           {
@@ -2727,7 +2730,7 @@ export function BankReconciliation() {
             label: "Movimentação",
             icon: ArrowDownCircle,
             mode: "single",
-            disabled: gridSelected[0]?.status !== "pendente",
+            disabled: mixedSelection || gridSelected[0]?.status !== "pendente",
             onClick: () => { const it = gridSelected[0]; if (it) handleNewMovement(it); },
           },
           {
@@ -2735,7 +2738,7 @@ export function BankReconciliation() {
             label: "Desfazer",
             icon: History,
             mode: "single",
-            disabled: gridSelected[0]?.status !== "conciliado",
+            disabled: mixedSelection || gridSelected[0]?.status !== "conciliado",
             onClick: () => { const it = gridSelected[0]; if (it) handleUndoReconcile(it); },
           },
           {
@@ -2763,47 +2766,32 @@ export function BankReconciliation() {
         <div className="flex items-center gap-1 shrink-0">
           {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pend.", icon: AlertCircle }, { tab: "conciliado", label: "Concil.", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
             const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
-            const active = statusFilter === tab;
             return (
-              <Button
+              <ToolbarIconButton
                 key={tab}
-                size="sm"
-                variant={active ? "default" : "outline"}
-                title={`${label} (${count})`}
-                aria-label={`${label} (${count})`}
-                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0 max-md:h-auto max-md:min-w-[48px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
+                label={`${label} (${count})`}
+                icon={Icon}
+                active={statusFilter === tab}
                 onClick={() => setStatusFilter(tab)}
-              >
-                <Icon className="h-3.5 w-3.5 max-md:h-4 max-md:w-4 md:hidden" />
-                <span className="md:hidden max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80">{label}</span>
-                <span className="hidden md:inline">{label}</span>
-                <span className="opacity-70 hidden md:inline">({count})</span>
-              </Button>
+              />
             );
           })}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "debito", label: "Débito", icon: ArrowDownCircle }, { tab: "credito", label: "Crédito", icon: ArrowUpCircle }] as const)).map(({ tab, label, icon: Icon }) => {
             const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
-            const active = tipoFilter === tab;
             return (
-              <Button
+              <ToolbarIconButton
                 key={tab}
-                size="sm"
-                variant={active ? "default" : "outline"}
-                title={`${label} (${count})`}
-                aria-label={`${label} (${count})`}
-                className="h-9 md:h-8 text-[11px] px-2 gap-1 shrink-0 max-md:h-auto max-md:min-w-[48px] max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1 max-md:justify-center"
+                label={`${label} (${count})`}
+                icon={Icon}
+                active={tipoFilter === tab}
                 onClick={() => setTipoFilter(tab)}
-              >
-                <Icon className="h-3.5 w-3.5 max-md:h-4 max-md:w-4 md:hidden" />
-                <span className="md:hidden max-md:text-[9px] max-md:font-medium max-md:leading-none max-md:opacity-80">{label}</span>
-                <span className="hidden md:inline">{label}</span>
-                <span className="opacity-70 hidden md:inline">({count})</span>
-              </Button>
+              />
             );
           })}
         </div>
+
       </GlobalToolbar>
 
       {/* Data Grid */}
