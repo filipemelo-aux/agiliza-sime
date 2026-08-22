@@ -328,7 +328,7 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
       >
         <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
         {showLabel ? (
-          <span className="hidden md:inline text-[10px] font-normal text-muted-foreground/80">{label}</span>
+          <span className={cn("hidden md:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
         ) : (
           <span className="sr-only">{label}</span>
         )}
