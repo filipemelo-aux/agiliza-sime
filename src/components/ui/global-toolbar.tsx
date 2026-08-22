@@ -231,6 +231,8 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           </div>
         </div>
         {tooltipPortal}
+        {confirmDialog}
+
       </>
     );
   }
