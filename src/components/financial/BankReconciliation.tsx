@@ -209,6 +209,7 @@ export function BankReconciliation() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { matrizId } = useUnifiedCompany();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [items, setItems] = useState<OfxItem[]>([]);
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
