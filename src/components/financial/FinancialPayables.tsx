@@ -1066,9 +1066,18 @@ export function FinancialPayables() {
       header: "Favorecido",
       width: "220px",
       sortValue: (r) => r.favorecido,
-      cell: (r) => (
-        <span className="font-medium text-foreground truncate block max-w-[220px]">{r.favorecido}</span>
-      ),
+      cell: (r) => {
+        const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
+        return (
+          <span className="block min-w-0">
+            <span className="font-medium text-foreground truncate block max-w-[220px]">{r.favorecido}</span>
+            {creator && (
+              <span className="text-[10px] text-muted-foreground truncate block max-w-[220px]">por {creator}</span>
+            )}
+          </span>
+        );
+      },
+
     },
     {
       key: "descricao",
@@ -1130,7 +1139,7 @@ export function FinancialPayables() {
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
     },
-  ], []);
+  ], [profilesMap]);
 
 
   const hasSelectedPaid = useMemo(() => {

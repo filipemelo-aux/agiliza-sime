@@ -416,10 +416,18 @@ export function FinancialPaid() {
       width: "220px",
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
-        <span className="font-medium text-foreground truncate block max-w-[220px]">
-          {r.creditor_name || "Sem favorecido"}
+        <span className="block min-w-0">
+          <span className="font-medium text-foreground truncate block max-w-[220px]">
+            {r.creditor_name || "Sem favorecido"}
+          </span>
+          {r.created_by_name && (
+            <span className="text-[10px] text-muted-foreground truncate block max-w-[220px]">
+              por {r.created_by_name}
+            </span>
+          )}
         </span>
       ),
+
     },
     {
       key: "description",
