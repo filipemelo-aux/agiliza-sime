@@ -164,20 +164,26 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   );
 
   if (filtersFirstOnMobile) {
-    // Tudo em uma única linha: ações + filtros + busca + contagem.
+    // Mobile: duas linhas (filtros em cima, ações embaixo). Desktop: tudo em uma linha.
     return (
       <>
         <div
           ref={ref}
           className={cn(
-            "sticky top-0 z-40 flex flex-nowrap items-center gap-1.5 overflow-x-auto rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+            "sticky top-0 z-40 flex flex-col gap-1.5 md:flex-row md:flex-nowrap md:items-center md:gap-1.5 md:overflow-x-auto rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
             scrolled ? "shadow-md border-b-border" : "shadow-none",
             className,
           )}
         >
-          {actions.filter((a) => !a.hidden).map(renderAction)}
-          {children}
-          {countSpan}
+          {children && (
+            <div className="flex flex-wrap items-center gap-1.5 md:contents md:flex-nowrap md:overflow-visible">
+              {children}
+            </div>
+          )}
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto md:contents">
+            {actions.filter((a) => !a.hidden).map(renderAction)}
+            {countSpan}
+          </div>
         </div>
         {tooltipPortal}
       </>
