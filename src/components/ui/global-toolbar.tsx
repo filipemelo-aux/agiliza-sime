@@ -75,12 +75,12 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     return () => mq.removeEventListener("change", read);
   }, []);
 
-  // auto-oculta a legenda no mobile após 2s
+  // auto-oculta a legenda/estado pendente no mobile após 3s
   useEffect(() => {
-    if (!coarse || !tip) return;
-    const t = window.setTimeout(() => setTip(null), 2000);
+    if (!coarse || (!tip && !pendingKey)) return;
+    const t = window.setTimeout(() => { setTip(null); setPendingKey(null); }, 3000);
     return () => window.clearTimeout(t);
-  }, [coarse, tip]);
+  }, [coarse, tip, pendingKey]);
 
   useEffect(() => {
     const parent = getScrollParent(ref.current);
@@ -105,7 +105,14 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     };
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (coarse && iconOnly) {
-        showTip(e.currentTarget, a.label);
+        if (!isPending) {
+          e.stopPropagation();
+          showTip(e.currentTarget, a.label);
+          setPendingKey(a.key);
+          return;
+        }
+        setPendingKey(null);
+        setTip(null);
       }
       a.onClick();
     };
@@ -232,12 +239,12 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
     return () => mq.removeEventListener("change", read);
   }, []);
 
-  // auto-oculta a legenda no mobile após 2s
+  // auto-oculta a legenda/estado pendente no mobile após 3s
   useEffect(() => {
-    if (!coarse || !tip) return;
-    const t = window.setTimeout(() => setTip(null), 2000);
+    if (!coarse || (!tip && !pending)) return;
+    const t = window.setTimeout(() => { setTip(null); setPending(false); }, 3000);
     return () => window.clearTimeout(t);
-  }, [coarse, tip]);
+  }, [coarse, tip, pending]);
 
   const show = (el: HTMLElement, text: string) => {
     const r = el.getBoundingClientRect();
@@ -258,11 +265,18 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         aria-label={label}
         onClick={(e) => {
           if (coarse) {
-            show(e.currentTarget, label);
+            if (!pending) {
+              e.stopPropagation();
+              show(e.currentTarget, label);
+              setPending(true);
+              return;
+            }
+            setPending(false);
+            setTip(null);
           }
           onClick();
         }}
-        className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", className)}
+        className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", pending && "ring-2 ring-ring", className)}
       >
         <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
         <span className="sr-only">{label}</span>
