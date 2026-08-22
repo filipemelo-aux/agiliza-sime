@@ -2,6 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { cn } from "@/lib/utils";
 
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
@@ -65,7 +76,9 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const [scrolled, setScrolled] = useState(false);
   const [tip, setTip] = useState<{ key: string; label: string; x: number; y: number } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ToolbarAction | null>(null);
   const [coarse, setCoarse] = useState(false);
+
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
@@ -105,17 +118,15 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     };
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (coarse && iconOnly) {
-        if (!isPending) {
-          e.stopPropagation();
-          showTip(e.currentTarget, a.label);
-          setPendingKey(a.key);
-          return;
-        }
-        setPendingKey(null);
+        e.stopPropagation();
         setTip(null);
+        setPendingKey(null);
+        setConfirmAction(a);
+        return;
       }
       a.onClick();
     };
+
     return (
       <div
         key={a.key}
@@ -161,6 +172,34 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     document.body
   );
 
+  const confirmDialog = (
+    <AlertDialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
+      <AlertDialogContent className="max-w-[320px]">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-base">{confirmAction?.label}</AlertDialogTitle>
+          <AlertDialogDescription className="text-xs">
+            Confirmar esta ação{selectedCount > 0 ? ` para ${selectedCount} item(ns) selecionado(s)` : ""}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="h-9 text-xs">Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="h-9 text-xs"
+            onClick={() => {
+              const act = confirmAction;
+              setConfirmAction(null);
+              act?.onClick();
+            }}
+          >
+            Confirmar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+
+
   // Ordena: ações habilitadas primeiro (preservando ordem original dentro de cada grupo)
   const orderedActions = [...actions].filter((a) => !a.hidden).sort((a, b) => {
     const aEn = isActionEnabled(a.mode, selectedCount) && !a.disabled;
@@ -192,6 +231,8 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           </div>
         </div>
         {tooltipPortal}
+        {confirmDialog}
+
       </>
     );
   }
@@ -212,6 +253,8 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
         {countSpan}
       </div>
       {tooltipPortal}
+      {confirmDialog}
+
     </>
   );
 }
@@ -265,17 +308,12 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         aria-label={label}
         onClick={(e) => {
           if (coarse) {
-            if (!pending) {
-              e.stopPropagation();
-              show(e.currentTarget, label);
-              setPending(true);
-              return;
-            }
+            show(e.currentTarget, label);
             setPending(false);
-            setTip(null);
           }
           onClick();
         }}
+
         className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", pending && "ring-2 ring-ring", className)}
       >
         <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
