@@ -2512,6 +2512,7 @@ export function BankReconciliation() {
 
   return (
     <div className="space-y-4">
+      {ConfirmDialog}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
