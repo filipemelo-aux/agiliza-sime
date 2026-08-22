@@ -209,23 +209,23 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   });
 
   if (filtersFirstOnMobile) {
-    // Mobile: duas linhas (filtros em cima, ações embaixo). Desktop: tudo em uma linha.
+    // Duas linhas em qualquer largura: filtros (children) em cima, ações (só ícones) embaixo.
     return (
       <>
         <div
           ref={ref}
           className={cn(
-            "sticky top-0 z-40 flex flex-col gap-1.5 md:flex-row md:flex-nowrap md:items-center md:gap-1.5 md:overflow-x-auto rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
+            "sticky top-0 z-40 flex flex-col gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 transition-shadow duration-200",
             scrolled ? "shadow-md border-b-border" : "shadow-none",
             className,
           )}
         >
           {children && (
-            <div className="flex flex-wrap items-center gap-1.5 md:contents md:flex-nowrap md:overflow-visible">
+            <div className="flex flex-wrap items-center gap-1.5">
               {children}
             </div>
           )}
-          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto md:contents">
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto">
             {orderedActions.map(renderAction)}
             {countSpan}
           </div>
@@ -266,10 +266,12 @@ interface ToolbarIconButtonProps {
   active?: boolean;
   disabled?: boolean;
   className?: string;
+  /** exibe a legenda ao lado do ícone no desktop (texto discreto, muted) */
+  showLabel?: boolean;
 }
 
-/** Botão só com ícone: legenda no hover (desktop) e toque duplo para confirmar (mobile). */
-export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled, className }: ToolbarIconButtonProps) {
+/** Botão de filtro: ícone + legenda discreta no desktop; no mobile só ícone (legenda no toque). */
+export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled, className, showLabel = false }: ToolbarIconButtonProps) {
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [pending, setPending] = useState(false);
   const [coarse, setCoarse] = useState(false);
@@ -297,8 +299,8 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
   return (
     <div
       className="relative shrink-0"
-      onMouseEnter={!coarse ? (e) => show(e.currentTarget, label) : undefined}
-      onMouseLeave={!coarse ? () => setTip(null) : undefined}
+      onMouseEnter={!coarse && !showLabel ? (e) => show(e.currentTarget, label) : undefined}
+      onMouseLeave={!coarse && !showLabel ? () => setTip(null) : undefined}
     >
       <Button
         type="button"
@@ -314,10 +316,19 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
           onClick();
         }}
 
-        className={cn("h-9 w-9 md:h-8 md:w-8 p-0 justify-center", pending && "ring-2 ring-ring", className)}
+        className={cn(
+          "h-9 w-9 md:h-8 md:w-8 p-0 justify-center",
+          showLabel && "md:w-auto md:px-2 md:gap-1.5",
+          pending && "ring-2 ring-ring",
+          className,
+        )}
       >
         <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />
-        <span className="sr-only">{label}</span>
+        {showLabel ? (
+          <span className="hidden md:inline text-[10px] font-normal text-muted-foreground/80">{label}</span>
+        ) : (
+          <span className="sr-only">{label}</span>
+        )}
       </Button>
       {tip && createPortal(
         <div
