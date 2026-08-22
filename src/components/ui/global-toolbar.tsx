@@ -107,14 +107,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     };
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (coarse && iconOnly) {
-        if (!isPending) {
-          e.stopPropagation();
-          showTip(e.currentTarget, `${a.label} — toque novamente`);
-          setPendingKey(a.key);
-          return;
-        }
-        setPendingKey(null);
-        setTip(null);
+        showTip(e.currentTarget, a.label);
       }
       a.onClick();
     };
