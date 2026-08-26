@@ -403,6 +403,14 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                   </Button>
                 ) : (
                   <>
+                    <Tabs defaultValue="cadastro">
+                    <TabsList className="grid w-full grid-cols-3 h-9">
+                      <TabsTrigger value="cadastro" className="text-xs">Cadastro</TabsTrigger>
+                      <TabsTrigger value="alienacao" className="text-xs">Alienação e Crédito</TabsTrigger>
+                      <TabsTrigger value="documentos" className="text-xs">Documentação e Taxas</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="cadastro" className="space-y-3 mt-3">
                     {/* Categoria do veículo no topo */}
                     <div className="space-y-1">
                       <Label className="text-xs font-medium">Categoria *</Label>
