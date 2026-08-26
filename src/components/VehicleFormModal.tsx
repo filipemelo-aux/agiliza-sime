@@ -732,7 +732,70 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                         </>
                       )}
                     </div>
+                    </TabsContent>
 
+                    <TabsContent value="alienacao" className="space-y-3 mt-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="veiculo-alienado"
+                          checked={form.alienado}
+                          onCheckedChange={(checked) => {
+                            const isChecked = !!checked;
+                            setForm((p) => ({
+                              ...p,
+                              alienado: isChecked,
+                              ...(isChecked ? {} : { tipoAlienacao: "", instituicaoFinanceira: "", observacoesAlienacao: "" }),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor="veiculo-alienado" className="text-sm font-normal cursor-pointer">
+                          Veículo Alienado?
+                        </Label>
+                      </div>
+
+                      {form.alienado && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Tipo de Alienação</Label>
+                              <Select
+                                value={form.tipoAlienacao}
+                                onValueChange={(v) => setForm((p) => ({ ...p, tipoAlienacao: v }))}
+                              >
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  {TIPOS_ALIENACAO.map((t) => (
+                                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Instituição Financeira</Label>
+                              <Input
+                                placeholder="Banco / Consórcio"
+                                value={form.instituicaoFinanceira}
+                                onChange={(e) => setForm((p) => ({ ...p, instituicaoFinanceira: maskName(e.target.value) }))}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Observações</Label>
+                            <Textarea
+                              rows={3}
+                              placeholder="Nº do contrato, parcelas, prazo..."
+                              value={form.observacoesAlienacao}
+                              onChange={(e) => setForm((p) => ({ ...p, observacoesAlienacao: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="documentos" className="mt-3">
+                      <VehicleDocumentsTab vehicleId={vehicleId} />
+                    </TabsContent>
+                    </Tabs>
 
                     <Button className="w-full mt-2" onClick={handleSubmit} disabled={loading}>
                       {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
