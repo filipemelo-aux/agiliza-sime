@@ -12,6 +12,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -44,6 +47,8 @@ const vehicleTypes = [
 ];
 
 const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
+
+const TIPOS_ALIENACAO = ["Financiamento", "Consórcio", "Contrato de Custódia", "Outros"] as const;
 
 const cargoTypes = [
   { value: "cacamba", label: "Caçamba" },
@@ -82,6 +87,10 @@ interface VehicleFormData {
   fleetType: string;
   intervaloRevisaoKm: string;
   proximaRevisaoKm: string;
+  alienado: boolean;
+  tipoAlienacao: string;
+  instituicaoFinanceira: string;
+  observacoesAlienacao: string;
 }
 
 const emptyVehicle: VehicleFormData = {
@@ -92,6 +101,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate3: "", trailerRenavam3: "",
   driverId: "", ownerId: "", fleetType: "terceiros",
   intervaloRevisaoKm: "", proximaRevisaoKm: "",
+  alienado: false, tipoAlienacao: "", instituicaoFinanceira: "", observacoesAlienacao: "",
 };
 
 interface ExistingVehicle {
@@ -188,6 +198,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           fleetType: (data as any).fleet_type || "terceiros",
           intervaloRevisaoKm: (data as any).intervalo_revisao_km ? String((data as any).intervalo_revisao_km) : "",
           proximaRevisaoKm: (data as any).proxima_revisao_km ? String((data as any).proxima_revisao_km) : "",
+          alienado: !!(data as any).alienado,
+          tipoAlienacao: (data as any).tipo_alienacao || "",
+          instituicaoFinanceira: (data as any).instituicao_financeira || "",
+          observacoesAlienacao: (data as any).observacoes_alienacao || "",
         });
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
@@ -293,6 +307,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     fleet_type: form.fleetType || "terceiros",
     intervalo_revisao_km: form.intervaloRevisaoKm ? Number(form.intervaloRevisaoKm) : null,
     proxima_revisao_km: form.proximaRevisaoKm ? Number(form.proximaRevisaoKm) : null,
+    alienado: form.alienado,
+    tipo_alienacao: form.alienado && form.tipoAlienacao ? (form.tipoAlienacao as any) : null,
+    instituicao_financeira: form.alienado ? (form.instituicaoFinanceira || null) : null,
+    observacoes_alienacao: form.alienado ? (form.observacoesAlienacao || null) : null,
   });
 
   // Link existing vehicle to this driver
@@ -361,7 +379,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-5 pb-1">
           <DialogTitle>{isEdit ? "Editar Veículo" : showLinkOption ? "Vincular Veículo" : "Novo Veículo"}</DialogTitle>
         </DialogHeader>
@@ -403,6 +421,14 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                   </Button>
                 ) : (
                   <>
+                    <Tabs defaultValue="cadastro">
+                    <TabsList className="grid w-full grid-cols-3 h-9">
+                      <TabsTrigger value="cadastro" className="text-xs">Cadastro</TabsTrigger>
+                      <TabsTrigger value="alienacao" className="text-xs">Alienação e Crédito</TabsTrigger>
+                      <TabsTrigger value="documentos" className="text-xs">Documentação e Taxas</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="cadastro" className="space-y-3 mt-3">
                     {/* Categoria do veículo no topo */}
                     <div className="space-y-1">
                       <Label className="text-xs font-medium">Categoria *</Label>
@@ -508,12 +534,12 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                               <div key={i} className="grid grid-cols-2 gap-3 p-2.5 rounded-lg bg-muted/30 border border-border">
                                 <div className="space-y-1">
                                   <Label className="text-xs">{trailerConfig.labels[i]}</Label>
-                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
+                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={String(form[plateKey] ?? "")} onChange={handleChange} className="uppercase" />
                                   {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs">RENAVAM</Label>
-                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
+                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={String(form[renavamKey] ?? "")} onChange={handleChange} />
                                   {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
                                 </div>
                               </div>
@@ -732,7 +758,70 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                         </>
                       )}
                     </div>
+                    </TabsContent>
 
+                    <TabsContent value="alienacao" className="space-y-3 mt-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="veiculo-alienado"
+                          checked={form.alienado}
+                          onCheckedChange={(checked) => {
+                            const isChecked = !!checked;
+                            setForm((p) => ({
+                              ...p,
+                              alienado: isChecked,
+                              ...(isChecked ? {} : { tipoAlienacao: "", instituicaoFinanceira: "", observacoesAlienacao: "" }),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor="veiculo-alienado" className="text-sm font-normal cursor-pointer">
+                          Veículo Alienado?
+                        </Label>
+                      </div>
+
+                      {form.alienado && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Tipo de Alienação</Label>
+                              <Select
+                                value={form.tipoAlienacao}
+                                onValueChange={(v) => setForm((p) => ({ ...p, tipoAlienacao: v }))}
+                              >
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  {TIPOS_ALIENACAO.map((t) => (
+                                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Instituição Financeira</Label>
+                              <Input
+                                placeholder="Banco / Consórcio"
+                                value={form.instituicaoFinanceira}
+                                onChange={(e) => setForm((p) => ({ ...p, instituicaoFinanceira: maskName(e.target.value) }))}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Observações</Label>
+                            <Textarea
+                              rows={3}
+                              placeholder="Nº do contrato, parcelas, prazo..."
+                              value={form.observacoesAlienacao}
+                              onChange={(e) => setForm((p) => ({ ...p, observacoesAlienacao: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="documentos" className="mt-3">
+                      <VehicleDocumentsTab vehicleId={vehicleId} />
+                    </TabsContent>
+                    </Tabs>
 
                     <Button className="w-full mt-2" onClick={handleSubmit} disabled={loading}>
                       {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}

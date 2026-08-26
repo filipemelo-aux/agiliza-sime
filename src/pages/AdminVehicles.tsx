@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -42,6 +43,10 @@ interface VehicleRow {
   trailer_plate_1: string | null; trailer_plate_2: string | null; trailer_plate_3: string | null;
   driver_id: string | null; owner_id: string | null;
   driver_name?: string; owner_name?: string;
+  alienado?: boolean | null;
+  tipo_alienacao?: string | null;
+  instituicao_financeira?: string | null;
+  observacoes_alienacao?: string | null;
 }
 
 interface FuelingRow {
@@ -384,7 +389,19 @@ export default function AdminVehicles() {
                 <span className="font-semibold text-base">{TRUCK_TYPES.has(viewVehicle.vehicle_type) ? "🚛" : "🚗"} {viewVehicle.plate}</span>
                 <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
                 {viewVehicle.cargo_type && <Badge variant="secondary" className="capitalize">{viewVehicle.cargo_type}</Badge>}
+                {viewVehicle.alienado && (
+                  <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Alienado</Badge>
+                )}
               </div>
+
+              <Tabs defaultValue="geral">
+                <TabsList className="grid w-full grid-cols-3 h-9">
+                  <TabsTrigger value="geral" className="text-xs">Geral</TabsTrigger>
+                  <TabsTrigger value="alienacao" className="text-xs">Alienação e Crédito</TabsTrigger>
+                  <TabsTrigger value="documentos" className="text-xs">Documentação e Taxas</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="geral" className="mt-3 space-y-3">
               <p><span className="text-muted-foreground">Veículo:</span> {viewVehicle.brand} {viewVehicle.model} • {viewVehicle.year}</p>
               {(() => {
                 const trailerLabels = TRAILER_LABELS[viewVehicle.vehicle_type] || [];
@@ -448,6 +465,25 @@ export default function AdminVehicles() {
                   </div>
                 );
               })()}
+                </TabsContent>
+
+                <TabsContent value="alienacao" className="mt-3 space-y-2">
+                  {viewVehicle.alienado ? (
+                    <>
+                      <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Veículo Alienado</Badge>
+                      <p><span className="text-muted-foreground">Tipo de Alienação:</span> {viewVehicle.tipo_alienacao || "—"}</p>
+                      <p><span className="text-muted-foreground">Instituição Financeira:</span> {viewVehicle.instituicao_financeira || "—"}</p>
+                      <p className="whitespace-pre-wrap"><span className="text-muted-foreground">Observações:</span> {viewVehicle.observacoes_alienacao || "—"}</p>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">Veículo sem alienação registrada (quitado).</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="documentos" className="mt-3">
+                  <VehicleDocumentsTab vehicleId={viewVehicle.id} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </DialogContent>
