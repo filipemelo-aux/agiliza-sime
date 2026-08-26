@@ -202,6 +202,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           alienado: !!(data as any).alienado,
           tipoAlienacao: (data as any).tipo_alienacao || "",
           instituicaoFinanceira: (data as any).instituicao_financeira || "",
+          instituicaoFinanceiraId: (data as any).instituicao_financeira_id || "",
           observacoesAlienacao: (data as any).observacoes_alienacao || "",
         });
         const dId = (data as any).driver_id || "";
