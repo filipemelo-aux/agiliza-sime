@@ -90,6 +90,7 @@ interface VehicleFormData {
   alienado: boolean;
   tipoAlienacao: string;
   instituicaoFinanceira: string;
+  instituicaoFinanceiraId: string;
   observacoesAlienacao: string;
 }
 
