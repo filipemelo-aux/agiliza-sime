@@ -307,6 +307,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     fleet_type: form.fleetType || "terceiros",
     intervalo_revisao_km: form.intervaloRevisaoKm ? Number(form.intervaloRevisaoKm) : null,
     proxima_revisao_km: form.proximaRevisaoKm ? Number(form.proximaRevisaoKm) : null,
+    alienado: form.alienado,
+    tipo_alienacao: form.alienado && form.tipoAlienacao ? (form.tipoAlienacao as any) : null,
+    instituicao_financeira: form.alienado ? (form.instituicaoFinanceira || null) : null,
+    observacoes_alienacao: form.alienado ? (form.observacoesAlienacao || null) : null,
   });
 
   // Link existing vehicle to this driver
