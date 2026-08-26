@@ -452,6 +452,25 @@ export default function AdminVehicles() {
                   </div>
                 );
               })()}
+                </TabsContent>
+
+                <TabsContent value="alienacao" className="mt-3 space-y-2">
+                  {viewVehicle.alienado ? (
+                    <>
+                      <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Veículo Alienado</Badge>
+                      <p><span className="text-muted-foreground">Tipo de Alienação:</span> {viewVehicle.tipo_alienacao || "—"}</p>
+                      <p><span className="text-muted-foreground">Instituição Financeira:</span> {viewVehicle.instituicao_financeira || "—"}</p>
+                      <p className="whitespace-pre-wrap"><span className="text-muted-foreground">Observações:</span> {viewVehicle.observacoes_alienacao || "—"}</p>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">Veículo sem alienação registrada (quitado).</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="documentos" className="mt-3">
+                  <VehicleDocumentsTab vehicleId={viewVehicle.id} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </DialogContent>
