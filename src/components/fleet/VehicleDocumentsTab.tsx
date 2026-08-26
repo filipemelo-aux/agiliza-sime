@@ -114,7 +114,7 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
         veiculo_id: vehicleId,
         tipo_documento: form.tipo_documento,
         ano_exercicio: Number(form.ano_exercicio) || new Date().getFullYear(),
-        valor_total: unmaskCurrency(form.valor_total) || 0,
+        valor_total: Number(unmaskCurrency(form.valor_total)) || 0,
         data_vencimento: form.data_vencimento,
         status_pagamento: form.status_pagamento,
         observacoes: form.observacoes || null,
@@ -124,7 +124,9 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
         if (error) throw error;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from("veiculo_documentos").insert({ ...payload, created_by: user?.id ?? null });
+        const { error } = await supabase
+          .from("veiculo_documentos")
+          .insert([{ ...payload, created_by: user?.id ?? null }] as any);
         if (error) throw error;
       }
       toast({ title: editingId ? "Documento atualizado!" : "Documento cadastrado!" });
