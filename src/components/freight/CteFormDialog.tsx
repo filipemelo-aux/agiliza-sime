@@ -1320,7 +1320,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   setMotoristaNome(person.full_name);
                   // Auto-fill vehicle if driver is linked to one
                   try {
-                    const v = await lookupVehicleByDriver(person.user_id);
+                    const v = await lookupVehicleByDriver(person.user_id, person.id);
                     if (v) {
                       set("placa_veiculo", maskPlate(v.plate));
                       if (v.rntrc) set("rntrc", v.rntrc);
@@ -1346,7 +1346,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                         .then((r) => {
                           if (!r) return;
                           if (r.rntrc) set("rntrc", r.rntrc);
-                          if (r.motorista_id && !form.motorista_id) {
+                          if (r.motorista_id) {
                             set("motorista_id", r.motorista_id);
                             setMotoristaNome(r.motorista_nome || undefined);
                           }
@@ -1354,6 +1354,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                         .catch(() => {});
                     }
                   }}
+
                   maxLength={8}
                   placeholder="ABC-1D23"
                   className="uppercase"

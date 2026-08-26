@@ -607,9 +607,9 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                     motorista_id: p.id,
                     motorista_nome: p.full_name,
                   }));
-                  // Auto-preenche placa do veículo ativo vinculado ao motorista
+                  // Auto-preenche placa do veículo vinculado ao motorista
                   try {
-                    const v = await lookupVehicleByDriver(p.user_id);
+                    const v = await lookupVehicleByDriver(p.user_id, p.id);
                     if (v) setForm((f) => ({ ...f, placa_veiculo: maskPlate(v.plate) }));
                   } catch {}
                 }}
@@ -629,16 +629,17 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                       lookupDriverByPlate(masked)
                         .then((r) => {
                           if (r?.motorista_id) {
-                            setForm((f) =>
-                              f.motorista_id
-                                ? f
-                                : { ...f, motorista_id: r.motorista_id, motorista_nome: r.motorista_nome || "" },
-                            );
+                            setForm((f) => ({
+                              ...f,
+                              motorista_id: r.motorista_id,
+                              motorista_nome: r.motorista_nome || "",
+                            }));
                           }
                         })
                         .catch(() => {});
                     }
                   }}
+
                   placeholder="ABC1D23"
                   maxLength={8}
                 />
