@@ -198,6 +198,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           fleetType: (data as any).fleet_type || "terceiros",
           intervaloRevisaoKm: (data as any).intervalo_revisao_km ? String((data as any).intervalo_revisao_km) : "",
           proximaRevisaoKm: (data as any).proxima_revisao_km ? String((data as any).proxima_revisao_km) : "",
+          alienado: !!(data as any).alienado,
+          tipoAlienacao: (data as any).tipo_alienacao || "",
+          instituicaoFinanceira: (data as any).instituicao_financeira || "",
+          observacoesAlienacao: (data as any).observacoes_alienacao || "",
         });
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
