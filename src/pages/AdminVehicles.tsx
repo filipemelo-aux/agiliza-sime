@@ -46,6 +46,7 @@ interface VehicleRow {
   alienado?: boolean | null;
   tipo_alienacao?: string | null;
   instituicao_financeira?: string | null;
+  instituicao_financeira_id?: string | null;
   observacoes_alienacao?: string | null;
 }
 
