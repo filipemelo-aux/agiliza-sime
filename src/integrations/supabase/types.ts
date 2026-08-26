@@ -4051,6 +4051,66 @@ export type Database = {
           },
         ]
       }
+      veiculo_alienacao_parcelas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_vencimento: string
+          expense_id: string | null
+          id: string
+          numero_parcela: number
+          observacoes: string | null
+          status_pagamento: Database["public"]["Enums"]["status_parcela_alienacao"]
+          total_parcelas: number
+          updated_at: string
+          valor_parcela: number
+          veiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_vencimento: string
+          expense_id?: string | null
+          id?: string
+          numero_parcela: number
+          observacoes?: string | null
+          status_pagamento?: Database["public"]["Enums"]["status_parcela_alienacao"]
+          total_parcelas: number
+          updated_at?: string
+          valor_parcela?: number
+          veiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_vencimento?: string
+          expense_id?: string | null
+          id?: string
+          numero_parcela?: number
+          observacoes?: string | null
+          status_pagamento?: Database["public"]["Enums"]["status_parcela_alienacao"]
+          total_parcelas?: number
+          updated_at?: string
+          valor_parcela?: number
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculo_alienacao_parcelas_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculo_alienacao_parcelas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       veiculo_documentos: {
         Row: {
           ano_exercicio: number
@@ -4332,6 +4392,7 @@ export type Database = {
       previsao_origem_tipo: "cte" | "colheita" | "manual"
       previsao_status: "pendente" | "faturado"
       status_pagamento_documento: "A Vencer" | "Vencido" | "Pago"
+      status_parcela_alienacao: "Pendente" | "Pago" | "Atrasado"
       tipo_alienacao:
         | "Financiamento"
         | "Consórcio"
@@ -4523,6 +4584,7 @@ export const Constants = {
       previsao_origem_tipo: ["cte", "colheita", "manual"],
       previsao_status: ["pendente", "faturado"],
       status_pagamento_documento: ["A Vencer", "Vencido", "Pago"],
+      status_parcela_alienacao: ["Pendente", "Pago", "Atrasado"],
       tipo_alienacao: [
         "Financiamento",
         "Consórcio",

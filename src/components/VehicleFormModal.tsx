@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
+import { VehicleAlienacaoParcelas } from "@/components/fleet/VehicleAlienacaoParcelas";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -824,8 +826,16 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                               onChange={(e) => setForm((p) => ({ ...p, observacoesAlienacao: e.target.value }))}
                             />
                           </div>
+                          <VehicleAlienacaoParcelas
+                            vehicleId={vehicleId}
+                            vehiclePlate={form.plate}
+                            tipoAlienacao={form.tipoAlienacao}
+                            instituicaoFinanceiraId={form.instituicaoFinanceiraId}
+                            instituicaoFinanceiraNome={form.instituicaoFinanceira}
+                          />
                         </div>
                       )}
+
                     </TabsContent>
 
                     <TabsContent value="documentos" className="mt-3">
