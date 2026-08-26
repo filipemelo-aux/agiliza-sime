@@ -48,6 +48,8 @@ const vehicleTypes = [
 
 const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
 
+const TIPOS_ALIENACAO = ["Financiamento", "Consórcio", "Contrato de Custódia", "Outros"] as const;
+
 const cargoTypes = [
   { value: "cacamba", label: "Caçamba" },
   { value: "graneleiro", label: "Graneleiro" },
