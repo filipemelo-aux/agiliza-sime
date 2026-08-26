@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { personDisplayName } from "@/lib/personName";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 
@@ -26,10 +31,19 @@ export interface VeiculoDocumento {
   data_vencimento: string;
   status_pagamento: StatusPagamentoDocumento;
   observacoes: string | null;
+  favorecido_id: string | null;
+  expense_id: string | null;
 }
 
 const TIPOS: TipoDocumentoVeiculo[] = ["IPVA", "Licenciamento", "Multa", "Seguro"];
 const STATUS: StatusPagamentoDocumento[] = ["A Vencer", "Vencido", "Pago"];
+
+const TIPO_DESPESA_MAP: Record<TipoDocumentoVeiculo, string> = {
+  IPVA: "imposto",
+  Licenciamento: "imposto",
+  Multa: "multa",
+  Seguro: "outros",
+};
 
 export function statusBadgeClass(status: StatusPagamentoDocumento) {
   switch (status) {
@@ -44,6 +58,7 @@ export function statusBadgeClass(status: StatusPagamentoDocumento) {
 
 interface Props {
   vehicleId: string | null | undefined;
+  vehiclePlate?: string | null;
   readOnly?: boolean;
 }
 
@@ -54,16 +69,29 @@ const emptyDoc = {
   data_vencimento: "",
   status_pagamento: "A Vencer" as StatusPagamentoDocumento,
   observacoes: "",
+  favorecido_id: "",
+  favorecido_nome: "",
+  gerar_financeiro: true,
 };
 
-export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
+export function VehicleDocumentsTab({ vehicleId, vehiclePlate, readOnly = false }: Props) {
   const { toast } = useToast();
+  const { matrizId } = useUnifiedCompany();
   const [docs, setDocs] = useState<VeiculoDocumento[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyDoc);
   const [saving, setSaving] = useState(false);
+  const [plate, setPlate] = useState<string>(vehiclePlate || "");
+
+  useEffect(() => {
+    if (vehiclePlate) { setPlate(vehiclePlate); return; }
+    if (!vehicleId) return;
+    supabase.from("vehicles").select("plate").eq("id", vehicleId).maybeSingle()
+      .then(({ data }) => setPlate((data as any)?.plate || ""));
+  }, [vehicleId, vehiclePlate]);
 
   const load = useCallback(async () => {
     if (!vehicleId) return;
@@ -76,7 +104,7 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
     if (error) {
       toast({ title: "Erro ao carregar documentos", description: error.message, variant: "destructive" });
     } else {
-      setDocs((data as VeiculoDocumento[]) || []);
+      setDocs((data as unknown as VeiculoDocumento[]) || []);
     }
     setLoading(false);
   }, [vehicleId, toast]);
@@ -85,12 +113,23 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
 
   const openNew = () => {
     setEditingId(null);
+    setEditingExpenseId(null);
     setForm(emptyDoc);
     setDialogOpen(true);
   };
 
-  const openEdit = (d: VeiculoDocumento) => {
+  const openEdit = async (d: VeiculoDocumento) => {
     setEditingId(d.id);
+    setEditingExpenseId(d.expense_id);
+    let favorecidoNome = "";
+    if (d.favorecido_id) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, razao_social, nome_fantasia")
+        .eq("id", d.favorecido_id)
+        .maybeSingle();
+      if (data) favorecidoNome = personDisplayName(data as any);
+    }
     setForm({
       tipo_documento: d.tipo_documento,
       ano_exercicio: String(d.ano_exercicio),
@@ -98,9 +137,15 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
       data_vencimento: d.data_vencimento || "",
       status_pagamento: d.status_pagamento,
       observacoes: d.observacoes || "",
+      favorecido_id: d.favorecido_id || "",
+      favorecido_nome: favorecidoNome,
+      gerar_financeiro: !!d.expense_id,
     });
     setDialogOpen(true);
   };
+
+  const buildDescricao = () =>
+    `${form.tipo_documento} ${form.ano_exercicio}${plate ? ` - ${plate}` : ""}`;
 
   const handleSave = async () => {
     if (!vehicleId) return;
@@ -110,25 +155,75 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
     }
     setSaving(true);
     try {
+      const valor = Number(unmaskCurrency(form.valor_total)) || 0;
       const payload = {
         veiculo_id: vehicleId,
         tipo_documento: form.tipo_documento,
         ano_exercicio: Number(form.ano_exercicio) || new Date().getFullYear(),
-        valor_total: Number(unmaskCurrency(form.valor_total)) || 0,
+        valor_total: valor,
         data_vencimento: form.data_vencimento,
         status_pagamento: form.status_pagamento,
         observacoes: form.observacoes || null,
+        favorecido_id: form.favorecido_id || null,
       };
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      let docId = editingId;
       if (editingId) {
-        const { error } = await supabase.from("veiculo_documentos").update(payload).eq("id", editingId);
+        const { error } = await supabase.from("veiculo_documentos").update(payload as any).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("veiculo_documentos")
-          .insert([{ ...payload, created_by: user?.id ?? null }] as any);
+          .insert([{ ...payload, created_by: user?.id ?? null }] as any)
+          .select("id")
+          .single();
         if (error) throw error;
+        docId = (data as any).id;
       }
+
+      // Financeiro
+      if (form.gerar_financeiro && !editingExpenseId) {
+        if (!matrizId) {
+          toast({ title: "Documento salvo, mas sem lançamento financeiro", description: "Empresa não identificada.", variant: "destructive" });
+        } else {
+          const expensePayload: any = {
+            empresa_id: matrizId,
+            descricao: buildDescricao(),
+            tipo_despesa: TIPO_DESPESA_MAP[form.tipo_documento],
+            centro_custo: "operacional",
+            valor_total: valor,
+            data_emissao: new Date().toISOString().slice(0, 10),
+            data_vencimento: form.data_vencimento,
+            status: form.status_pagamento === "Pago" ? "pago" : "pendente",
+            favorecido_id: form.favorecido_id || null,
+            favorecido_nome: form.favorecido_nome || null,
+            veiculo_id: vehicleId,
+            veiculo_placa: plate || null,
+            origem: "manual",
+            observacoes: form.observacoes || null,
+            created_by: user?.id,
+          };
+          const { data: exp, error: expErr } = await supabase
+            .from("expenses").insert(expensePayload).select("id").single();
+          if (expErr) throw expErr;
+          const { error: linkErr } = await supabase
+            .from("veiculo_documentos")
+            .update({ expense_id: (exp as any).id } as any)
+            .eq("id", docId!);
+          if (linkErr) throw linkErr;
+        }
+      } else if (editingExpenseId) {
+        await supabase.from("expenses").update({
+          descricao: buildDescricao(),
+          valor_total: valor,
+          data_vencimento: form.data_vencimento,
+          favorecido_id: form.favorecido_id || null,
+          favorecido_nome: form.favorecido_nome || null,
+        } as any).eq("id", editingExpenseId);
+      }
+
       toast({ title: editingId ? "Documento atualizado!" : "Documento cadastrado!" });
       setDialogOpen(false);
       load();
@@ -145,7 +240,7 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Documento excluído" });
+    toast({ title: "Documento excluído", description: "O lançamento no Contas a Pagar, se houver, foi mantido." });
     load();
   };
 
@@ -193,7 +288,21 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
               <tr><td colSpan={6} className="p-4 text-center text-muted-foreground italic">Nenhum documento registrado.</td></tr>
             ) : docs.map((d) => (
               <tr key={d.id} className="border-t">
-                <td className="p-2 font-medium">{d.tipo_documento}</td>
+                <td className="p-2 font-medium">
+                  <span className="inline-flex items-center gap-1">
+                    {d.tipo_documento}
+                    {d.expense_id && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link2 className="h-3.5 w-3.5 text-primary" />
+                          </TooltipTrigger>
+                          <TooltipContent>Vinculado ao Contas a Pagar</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </span>
+                </td>
                 <td className="p-2">{d.ano_exercicio}</td>
                 <td className="p-2 text-right">{formatCurrency(Number(d.valor_total))}</td>
                 <td className="p-2">{formatDateBR(d.data_vencimento)}</td>
@@ -242,6 +351,16 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
                 onChange={(e) => setForm(p => ({ ...p, ano_exercicio: e.target.value.replace(/\D/g, "") }))}
               />
             </div>
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs">Favorecido / Órgão Autuador</Label>
+              <PersonSearchInput
+                categories={["fornecedor", "cliente", "banco", "proprietario"]}
+                placeholder="Buscar favorecido (Detran, PRF...)"
+                selectedName={form.favorecido_nome || undefined}
+                onSelect={(p) => setForm(prev => ({ ...prev, favorecido_id: p.id, favorecido_nome: personDisplayName(p) }))}
+                onClear={() => setForm(prev => ({ ...prev, favorecido_id: "", favorecido_nome: "" }))}
+              />
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Valor Total</Label>
               <Input
@@ -268,6 +387,24 @@ export function VehicleDocumentsTab({ vehicleId, readOnly = false }: Props) {
                   {STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2.5">
+              <Checkbox
+                id="doc-gerar-financeiro"
+                checked={form.gerar_financeiro}
+                disabled={!!editingExpenseId}
+                onCheckedChange={(c) => setForm(p => ({ ...p, gerar_financeiro: !!c }))}
+              />
+              <div className="space-y-0.5">
+                <Label htmlFor="doc-gerar-financeiro" className="text-xs font-medium cursor-pointer">
+                  Gerar lançamento no Contas a Pagar
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  {editingExpenseId
+                    ? "Já existe lançamento vinculado — as alterações serão replicadas."
+                    : "Cria a despesa vinculada ao veículo com o favorecido e vencimento informados."}
+                </p>
+              </div>
             </div>
             <div className="space-y-1 col-span-2">
               <Label className="text-xs">Observações</Label>
