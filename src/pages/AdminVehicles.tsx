@@ -42,6 +42,10 @@ interface VehicleRow {
   trailer_plate_1: string | null; trailer_plate_2: string | null; trailer_plate_3: string | null;
   driver_id: string | null; owner_id: string | null;
   driver_name?: string; owner_name?: string;
+  alienado?: boolean | null;
+  tipo_alienacao?: string | null;
+  instituicao_financeira?: string | null;
+  observacoes_alienacao?: string | null;
 }
 
 interface FuelingRow {
