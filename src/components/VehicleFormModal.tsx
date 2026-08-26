@@ -525,12 +525,12 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                               <div key={i} className="grid grid-cols-2 gap-3 p-2.5 rounded-lg bg-muted/30 border border-border">
                                 <div className="space-y-1">
                                   <Label className="text-xs">{trailerConfig.labels[i]}</Label>
-                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
+                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={String(form[plateKey] ?? "")} onChange={handleChange} className="uppercase" />
                                   {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs">RENAVAM</Label>
-                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
+                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={String(form[renavamKey] ?? "")} onChange={handleChange} />
                                   {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
                                 </div>
                               </div>
