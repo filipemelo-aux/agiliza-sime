@@ -3958,6 +3958,7 @@ export type Database = {
           fleet_type: string
           id: string
           instituicao_financeira: string | null
+          instituicao_financeira_id: string | null
           intervalo_revisao_km: number | null
           is_active: boolean | null
           model: string
@@ -3988,6 +3989,7 @@ export type Database = {
           fleet_type?: string
           id?: string
           instituicao_financeira?: string | null
+          instituicao_financeira_id?: string | null
           intervalo_revisao_km?: number | null
           is_active?: boolean | null
           model: string
@@ -4018,6 +4020,7 @@ export type Database = {
           fleet_type?: string
           id?: string
           instituicao_financeira?: string | null
+          instituicao_financeira_id?: string | null
           intervalo_revisao_km?: number | null
           is_active?: boolean | null
           model?: string
@@ -4038,7 +4041,15 @@ export type Database = {
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_instituicao_financeira_id_fkey"
+            columns: ["instituicao_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       veiculo_documentos: {
         Row: {
@@ -4046,6 +4057,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_vencimento: string
+          expense_id: string | null
+          favorecido_id: string | null
           id: string
           observacoes: string | null
           status_pagamento: Database["public"]["Enums"]["status_pagamento_documento"]
@@ -4059,6 +4072,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_vencimento: string
+          expense_id?: string | null
+          favorecido_id?: string | null
           id?: string
           observacoes?: string | null
           status_pagamento?: Database["public"]["Enums"]["status_pagamento_documento"]
@@ -4072,6 +4087,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_vencimento?: string
+          expense_id?: string | null
+          favorecido_id?: string | null
           id?: string
           observacoes?: string | null
           status_pagamento?: Database["public"]["Enums"]["status_pagamento_documento"]
@@ -4081,6 +4098,20 @@ export type Database = {
           veiculo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "veiculo_documentos_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculo_documentos_favorecido_id_fkey"
+            columns: ["favorecido_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "veiculo_documentos_veiculo_id_fkey"
             columns: ["veiculo_id"]

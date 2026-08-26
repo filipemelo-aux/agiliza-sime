@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { personDisplayName } from "@/lib/personName";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { UserPlus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -90,6 +91,7 @@ interface VehicleFormData {
   alienado: boolean;
   tipoAlienacao: string;
   instituicaoFinanceira: string;
+  instituicaoFinanceiraId: string;
   observacoesAlienacao: string;
 }
 
@@ -101,7 +103,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate3: "", trailerRenavam3: "",
   driverId: "", ownerId: "", fleetType: "terceiros",
   intervaloRevisaoKm: "", proximaRevisaoKm: "",
-  alienado: false, tipoAlienacao: "", instituicaoFinanceira: "", observacoesAlienacao: "",
+  alienado: false, tipoAlienacao: "", instituicaoFinanceira: "", instituicaoFinanceiraId: "", observacoesAlienacao: "",
 };
 
 interface ExistingVehicle {
@@ -201,6 +203,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           alienado: !!(data as any).alienado,
           tipoAlienacao: (data as any).tipo_alienacao || "",
           instituicaoFinanceira: (data as any).instituicao_financeira || "",
+          instituicaoFinanceiraId: (data as any).instituicao_financeira_id || "",
           observacoesAlienacao: (data as any).observacoes_alienacao || "",
         });
         const dId = (data as any).driver_id || "";
@@ -310,6 +313,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     alienado: form.alienado,
     tipo_alienacao: form.alienado && form.tipoAlienacao ? (form.tipoAlienacao as any) : null,
     instituicao_financeira: form.alienado ? (form.instituicaoFinanceira || null) : null,
+    instituicao_financeira_id: form.alienado ? (form.instituicaoFinanceiraId || null) : null,
     observacoes_alienacao: form.alienado ? (form.observacoesAlienacao || null) : null,
   });
 
@@ -798,10 +802,16 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs">Instituição Financeira</Label>
-                              <Input
-                                placeholder="Banco / Consórcio"
-                                value={form.instituicaoFinanceira}
-                                onChange={(e) => setForm((p) => ({ ...p, instituicaoFinanceira: maskName(e.target.value) }))}
+                              <PersonSearchInput
+                                categories={["banco", "fornecedor", "cliente", "proprietario"]}
+                                placeholder="Buscar banco / credor..."
+                                selectedName={form.instituicaoFinanceira || undefined}
+                                onSelect={(p) => setForm((prev) => ({
+                                  ...prev,
+                                  instituicaoFinanceiraId: p.id,
+                                  instituicaoFinanceira: personDisplayName(p),
+                                }))}
+                                onClear={() => setForm((prev) => ({ ...prev, instituicaoFinanceiraId: "", instituicaoFinanceira: "" }))}
                               />
                             </div>
                           </div>
@@ -819,7 +829,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     </TabsContent>
 
                     <TabsContent value="documentos" className="mt-3">
-                      <VehicleDocumentsTab vehicleId={vehicleId} />
+                      <VehicleDocumentsTab vehicleId={vehicleId} vehiclePlate={form.plate} />
                     </TabsContent>
                     </Tabs>
 

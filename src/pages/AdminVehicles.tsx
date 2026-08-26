@@ -46,6 +46,7 @@ interface VehicleRow {
   alienado?: boolean | null;
   tipo_alienacao?: string | null;
   instituicao_financeira?: string | null;
+  instituicao_financeira_id?: string | null;
   observacoes_alienacao?: string | null;
 }
 
@@ -481,7 +482,7 @@ export default function AdminVehicles() {
                 </TabsContent>
 
                 <TabsContent value="documentos" className="mt-3">
-                  <VehicleDocumentsTab vehicleId={viewVehicle.id} />
+                  <VehicleDocumentsTab vehicleId={viewVehicle.id} vehiclePlate={viewVehicle.plate} />
                 </TabsContent>
               </Tabs>
             </div>
