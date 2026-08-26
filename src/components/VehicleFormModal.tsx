@@ -87,6 +87,10 @@ interface VehicleFormData {
   fleetType: string;
   intervaloRevisaoKm: string;
   proximaRevisaoKm: string;
+  alienado: boolean;
+  tipoAlienacao: string;
+  instituicaoFinanceira: string;
+  observacoesAlienacao: string;
 }
 
 const emptyVehicle: VehicleFormData = {
