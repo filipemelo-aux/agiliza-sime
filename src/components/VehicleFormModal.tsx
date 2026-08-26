@@ -101,6 +101,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate3: "", trailerRenavam3: "",
   driverId: "", ownerId: "", fleetType: "terceiros",
   intervaloRevisaoKm: "", proximaRevisaoKm: "",
+  alienado: false, tipoAlienacao: "", instituicaoFinanceira: "", observacoesAlienacao: "",
 };
 
 interface ExistingVehicle {
