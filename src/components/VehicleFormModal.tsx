@@ -801,10 +801,16 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs">Instituição Financeira</Label>
-                              <Input
-                                placeholder="Banco / Consórcio"
-                                value={form.instituicaoFinanceira}
-                                onChange={(e) => setForm((p) => ({ ...p, instituicaoFinanceira: maskName(e.target.value) }))}
+                              <PersonSearchInput
+                                categories={["banco", "fornecedor", "cliente", "proprietario"]}
+                                placeholder="Buscar banco / credor..."
+                                selectedName={form.instituicaoFinanceira || undefined}
+                                onSelect={(p) => setForm((prev) => ({
+                                  ...prev,
+                                  instituicaoFinanceiraId: p.id,
+                                  instituicaoFinanceira: personDisplayName(p),
+                                }))}
+                                onClear={() => setForm((prev) => ({ ...prev, instituicaoFinanceiraId: "", instituicaoFinanceira: "" }))}
                               />
                             </div>
                           </div>
