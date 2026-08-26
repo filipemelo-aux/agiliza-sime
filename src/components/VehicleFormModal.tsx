@@ -824,8 +824,16 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                               onChange={(e) => setForm((p) => ({ ...p, observacoesAlienacao: e.target.value }))}
                             />
                           </div>
+                          <VehicleAlienacaoParcelas
+                            vehicleId={vehicleId}
+                            vehiclePlate={form.plate}
+                            tipoAlienacao={form.tipoAlienacao}
+                            instituicaoFinanceiraId={form.instituicaoFinanceiraId}
+                            instituicaoFinanceiraNome={form.instituicaoFinanceira}
+                          />
                         </div>
                       )}
+
                     </TabsContent>
 
                     <TabsContent value="documentos" className="mt-3">
