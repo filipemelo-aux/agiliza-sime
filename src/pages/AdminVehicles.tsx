@@ -388,7 +388,19 @@ export default function AdminVehicles() {
                 <span className="font-semibold text-base">{TRUCK_TYPES.has(viewVehicle.vehicle_type) ? "🚛" : "🚗"} {viewVehicle.plate}</span>
                 <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
                 {viewVehicle.cargo_type && <Badge variant="secondary" className="capitalize">{viewVehicle.cargo_type}</Badge>}
+                {viewVehicle.alienado && (
+                  <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Alienado</Badge>
+                )}
               </div>
+
+              <Tabs defaultValue="geral">
+                <TabsList className="grid w-full grid-cols-3 h-9">
+                  <TabsTrigger value="geral" className="text-xs">Geral</TabsTrigger>
+                  <TabsTrigger value="alienacao" className="text-xs">Alienação e Crédito</TabsTrigger>
+                  <TabsTrigger value="documentos" className="text-xs">Documentação e Taxas</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="geral" className="mt-3 space-y-3">
               <p><span className="text-muted-foreground">Veículo:</span> {viewVehicle.brand} {viewVehicle.model} • {viewVehicle.year}</p>
               {(() => {
                 const trailerLabels = TRAILER_LABELS[viewVehicle.vehicle_type] || [];
