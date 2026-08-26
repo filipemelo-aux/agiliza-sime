@@ -482,7 +482,7 @@ export default function AdminVehicles() {
                 </TabsContent>
 
                 <TabsContent value="documentos" className="mt-3">
-                  <VehicleDocumentsTab vehicleId={viewVehicle.id} />
+                  <VehicleDocumentsTab vehicleId={viewVehicle.id} vehiclePlate={viewVehicle.plate} />
                 </TabsContent>
               </Tabs>
             </div>
