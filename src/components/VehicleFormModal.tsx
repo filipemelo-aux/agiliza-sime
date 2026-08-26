@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
+import { VehicleAlienacaoParcelas } from "@/components/fleet/VehicleAlienacaoParcelas";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
