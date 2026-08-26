@@ -28,11 +28,14 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
   let motorista_nome: string | null = null;
 
   if (vehicle.driver_id) {
-    const { data: profile } = await supabase
+    // driver_id normalmente aponta para profiles.user_id, mas cadastros manuais
+    // (sem conta de acesso) podem estar vinculados por profiles.id.
+    const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, full_name")
-      .eq("user_id", vehicle.driver_id)
-      .maybeSingle();
+      .select("id, user_id, full_name")
+      .or(`user_id.eq.${vehicle.driver_id},id.eq.${vehicle.driver_id}`)
+      .limit(1);
+    const profile = profiles?.[0];
     if (profile) {
       motorista_id = profile.id;
       motorista_nome = profile.full_name;
@@ -52,15 +55,33 @@ export interface VehicleByDriver {
   rntrc: string | null;
 }
 
-/** Busca o veículo ativo vinculado ao motorista (profiles.user_id). */
-export async function lookupVehicleByDriver(userId?: string | null): Promise<VehicleByDriver | null> {
-  if (!userId) return null;
+/**
+ * Busca o veículo vinculado ao motorista.
+ * Aceita tanto profiles.user_id quanto profiles.id, pois cadastros manuais
+ * de motorista podem não possuir conta de acesso (user_id nulo).
+ */
+export async function lookupVehicleByDriver(
+  userId?: string | null,
+  profileId?: string | null
+): Promise<VehicleByDriver | null> {
+  const ids = [userId, profileId].filter(Boolean) as string[];
+  if (ids.length === 0) return null;
+
   const { data } = await supabase
     .from("vehicles")
-    .select("plate, antt_number")
-    .eq("driver_id", userId)
-    .eq("is_active", true)
-    .limit(1);
+    .select("plate, antt_number, is_active, vehicle_type")
+    .in("driver_id", ids);
+
   if (!data || data.length === 0) return null;
-  return { plate: data[0].plate, rntrc: data[0].antt_number || null };
+
+  // Prioriza veículo ativo e tração (evita reboques/implementos).
+  const tracao = ["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"];
+  const sorted = [...data].sort((a, b) => {
+    const score = (v: typeof a) =>
+      (v.is_active ? 2 : 0) + (tracao.includes(v.vehicle_type as string) ? 1 : 0);
+    return score(b) - score(a);
+  });
+
+  return { plate: sorted[0].plate, rntrc: sorted[0].antt_number || null };
 }
+
