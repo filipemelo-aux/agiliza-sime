@@ -829,7 +829,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     </TabsContent>
 
                     <TabsContent value="documentos" className="mt-3">
-                      <VehicleDocumentsTab vehicleId={vehicleId} />
+                      <VehicleDocumentsTab vehicleId={vehicleId} vehiclePlate={form.plate} />
                     </TabsContent>
                     </Tabs>
 
