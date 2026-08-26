@@ -3949,6 +3949,7 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          alienado: boolean
           antt_number: string | null
           brand: string
           cargo_type: string | null
@@ -3956,13 +3957,16 @@ export type Database = {
           driver_id: string | null
           fleet_type: string
           id: string
+          instituicao_financeira: string | null
           intervalo_revisao_km: number | null
           is_active: boolean | null
           model: string
+          observacoes_alienacao: string | null
           owner_id: string | null
           plate: string
           proxima_revisao_km: number | null
           renavam: string
+          tipo_alienacao: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1: string | null
           trailer_plate_2: string | null
           trailer_plate_3: string | null
@@ -3975,6 +3979,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          alienado?: boolean
           antt_number?: string | null
           brand: string
           cargo_type?: string | null
@@ -3982,13 +3987,16 @@ export type Database = {
           driver_id?: string | null
           fleet_type?: string
           id?: string
+          instituicao_financeira?: string | null
           intervalo_revisao_km?: number | null
           is_active?: boolean | null
           model: string
+          observacoes_alienacao?: string | null
           owner_id?: string | null
           plate: string
           proxima_revisao_km?: number | null
           renavam: string
+          tipo_alienacao?: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
           trailer_plate_3?: string | null
@@ -4001,6 +4009,7 @@ export type Database = {
           year: number
         }
         Update: {
+          alienado?: boolean
           antt_number?: string | null
           brand?: string
           cargo_type?: string | null
@@ -4008,13 +4017,16 @@ export type Database = {
           driver_id?: string | null
           fleet_type?: string
           id?: string
+          instituicao_financeira?: string | null
           intervalo_revisao_km?: number | null
           is_active?: boolean | null
           model?: string
+          observacoes_alienacao?: string | null
           owner_id?: string | null
           plate?: string
           proxima_revisao_km?: number | null
           renavam?: string
+          tipo_alienacao?: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
           trailer_plate_3?: string | null
@@ -4027,6 +4039,56 @@ export type Database = {
           year?: number
         }
         Relationships: []
+      }
+      veiculo_documentos: {
+        Row: {
+          ano_exercicio: number
+          created_at: string
+          created_by: string | null
+          data_vencimento: string
+          id: string
+          observacoes: string | null
+          status_pagamento: Database["public"]["Enums"]["status_pagamento_documento"]
+          tipo_documento: Database["public"]["Enums"]["tipo_documento_veiculo"]
+          updated_at: string
+          valor_total: number
+          veiculo_id: string
+        }
+        Insert: {
+          ano_exercicio: number
+          created_at?: string
+          created_by?: string | null
+          data_vencimento: string
+          id?: string
+          observacoes?: string | null
+          status_pagamento?: Database["public"]["Enums"]["status_pagamento_documento"]
+          tipo_documento: Database["public"]["Enums"]["tipo_documento_veiculo"]
+          updated_at?: string
+          valor_total?: number
+          veiculo_id: string
+        }
+        Update: {
+          ano_exercicio?: number
+          created_at?: string
+          created_by?: string | null
+          data_vencimento?: string
+          id?: string
+          observacoes?: string | null
+          status_pagamento?: Database["public"]["Enums"]["status_pagamento_documento"]
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento_veiculo"]
+          updated_at?: string
+          valor_total?: number
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculo_documentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -4238,7 +4300,14 @@ export type Database = {
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       previsao_origem_tipo: "cte" | "colheita" | "manual"
       previsao_status: "pendente" | "faturado"
+      status_pagamento_documento: "A Vencer" | "Vencido" | "Pago"
+      tipo_alienacao:
+        | "Financiamento"
+        | "Consórcio"
+        | "Contrato de Custódia"
+        | "Outros"
       tipo_colaborador_rh: "clt" | "pj" | "freelancer"
+      tipo_documento_veiculo: "IPVA" | "Licenciamento" | "Multa" | "Seguro"
       vehicle_type:
         | "truck"
         | "bitruck"
@@ -4422,7 +4491,15 @@ export const Constants = {
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       previsao_origem_tipo: ["cte", "colheita", "manual"],
       previsao_status: ["pendente", "faturado"],
+      status_pagamento_documento: ["A Vencer", "Vencido", "Pago"],
+      tipo_alienacao: [
+        "Financiamento",
+        "Consórcio",
+        "Contrato de Custódia",
+        "Outros",
+      ],
       tipo_colaborador_rh: ["clt", "pj", "freelancer"],
+      tipo_documento_veiculo: ["IPVA", "Licenciamento", "Multa", "Seguro"],
       vehicle_type: [
         "truck",
         "bitruck",
