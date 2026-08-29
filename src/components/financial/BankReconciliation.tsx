@@ -1543,6 +1543,24 @@ export function BankReconciliation() {
     return list;
   }, [items, statusFilter, tipoFilter, searchText]);
 
+  // Mantém a seleção sempre coerente com as linhas visíveis: itens ocultos por
+  // filtro/busca ou removidos da lista deixam de contar em "N sel.".
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(filteredItems.map((i) => i.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (visible.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [filteredItems]);
+
+
+
   const runImport = useCallback(async (parsed: { bankName: string; accountId: string; transactions: OfxTransaction[] }, sourceName: string) => {
       if (parsed.transactions.length === 0) {
         toast.error("Nenhuma transação encontrada");
