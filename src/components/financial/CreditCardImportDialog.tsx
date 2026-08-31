@@ -392,6 +392,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .select("*")
         .eq("invoice_id", invoiceId)
         .order("posted_date");
+      const rateioMap = await fetchRateiosByItemIds(
+        ((rows as any[]) || []).map((r) => r.id).filter(Boolean),
+      );
       const mapped = ((rows as any[]) || []).map((r) => ({
         id: r.id,
         fitid: r.fitid || "",
@@ -414,7 +417,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: r.fornecedor_cnpj ?? null,
         itens_nota: r.itens_nota ?? null,
         xml_original: r.xml_original ?? null,
-        rateio_veiculos: (r.rateio_veiculos as any) ?? null,
+        rateio_veiculos: rateioMap.get(r.id) ?? null,
         origem_expense_id: r.origem_expense_id ?? null,
         origem_payment_id: r.origem_payment_id ?? null,
         origem_installment_id: r.origem_installment_id ?? null,
@@ -1639,6 +1642,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .select("*")
       .eq("invoice_id", targetId)
       .order("posted_date");
+    const rateioMap = await fetchRateiosByItemIds(
+      ((rows as any[]) || []).map((r: any) => r.id).filter(Boolean),
+    );
     const mapped = ((rows as any[]) || []).map((r: any) => ({
       id: r.id,
       fitid: r.fitid || "",
@@ -1661,7 +1667,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       fornecedor_cnpj: r.fornecedor_cnpj ?? null,
       itens_nota: r.itens_nota ?? null,
       xml_original: r.xml_original ?? null,
-      rateio_veiculos: (r.rateio_veiculos as any) ?? null,
+      rateio_veiculos: rateioMap.get(r.id) ?? null,
     }));
     // Preserva lançamentos ainda NÃO gravados (ex.: OFX recém-importado em conferência).
     // Sem isso, qualquer recarga (geração de parcelas, etc.) descartaria o trabalho em andamento.
