@@ -1,15 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, ChevronRight, ChevronDown, FolderTree } from "lucide-react";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { GlobalToolbar, ToolbarIconButton } from "@/components/ui/global-toolbar";
+import { Plus, Pencil, ChevronRight, ChevronDown, Search, FolderTree, List, ListTree } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const TIPO_OPERACIONAL_OPTIONS = [
   { value: "", label: "Nenhum (conta genérica)" },
@@ -47,7 +49,11 @@ interface Account {
 
 interface TreeNode extends Account {
   children: TreeNode[];
-  expanded?: boolean;
+}
+
+interface FlatRow extends Account {
+  depth: number;
+  hasChildren: boolean;
 }
 
 function buildTree(accounts: Account[]): TreeNode[] {
@@ -73,65 +79,6 @@ function buildTree(accounts: Account[]): TreeNode[] {
   return roots;
 }
 
-function AccountRow({
-  node,
-  depth,
-  expanded,
-  onToggle,
-  onEdit,
-}: {
-  node: TreeNode;
-  depth: number;
-  expanded: Set<string>;
-  onToggle: (id: string) => void;
-  onEdit: (a: Account) => void;
-}) {
-  const hasChildren = node.children.length > 0;
-  const isExpanded = expanded.has(node.id);
-
-  return (
-    <>
-      <div
-        className={`flex items-center gap-2 py-2 px-3 hover:bg-muted/50 rounded-md transition-colors ${!node.ativo ? "opacity-50" : ""}`}
-        style={{ paddingLeft: `${depth * 24 + 12}px` }}
-      >
-        {hasChildren ? (
-          <button onClick={() => onToggle(node.id)} className="p-0.5 hover:bg-muted rounded">
-            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          </button>
-        ) : (
-          <span className="w-5" />
-        )}
-        <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{node.codigo}</span>
-        <span className="flex-1 text-sm font-medium">{node.nome}</span>
-        <Badge variant={node.tipo === "despesa" ? "secondary" : "default"} className="text-[10px]">
-          {node.tipo === "despesa" ? "Despesa" : "Receita"}
-        </Badge>
-        {node.tipo_operacional && (
-          <Badge variant="outline" className="text-[10px]">
-            {node.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
-          </Badge>
-        )}
-        {node.centro_custo_default && (
-          <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
-            CC: {CENTRO_CUSTO_LABELS[node.centro_custo_default] || node.centro_custo_default}
-          </Badge>
-        )}
-        {!node.ativo && (
-          <Badge variant="outline" className="text-[10px] text-muted-foreground">Inativo</Badge>
-        )}
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(node)}>
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      {isExpanded &&
-        node.children.map((child) => (
-          <AccountRow key={child.id} node={child} depth={depth + 1} expanded={expanded} onToggle={onToggle} onEdit={onEdit} />
-        ))}
-    </>
-  );
-}
-
 export function ChartOfAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [establishments, setEstablishments] = useState<{ id: string; razao_social: string }[]>([]);
@@ -139,6 +86,9 @@ export function ChartOfAccounts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchText, setSearchText] = useState("");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "despesa" | "receita">("todos");
 
   // Form state
   const [codigo, setCodigo] = useState("");
@@ -149,7 +99,6 @@ export function ChartOfAccounts() {
   const [tipoOperacional, setTipoOperacional] = useState("");
   const [centroCustoDefault, setCentroCustoDefault] = useState("");
   const [empresaId, setEmpresaId] = useState("");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
 
   const fetchData = async () => {
     setLoading(true);
@@ -162,30 +111,58 @@ export function ChartOfAccounts() {
     if (estRes.error) toast.error(estRes.error.message);
     else {
       setEstablishments(estRes.data || []);
-      // Auto-select matriz as the unified company
       const matriz = estRes.data?.find((e: any) => e.type === "matriz") || estRes.data?.[0];
-      if (matriz && !empresaId) {
-        setEmpresaId(matriz.id);
-        setFilterEmpresa(matriz.id);
-      }
+      if (matriz && !empresaId) setEmpresaId(matriz.id);
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
+  const searching = searchText.trim().length > 0;
+
   const filtered = useMemo(() => {
-    if (filterEmpresa === "all") return accounts;
-    return accounts.filter((a) => a.empresa_id === filterEmpresa);
-  }, [accounts, filterEmpresa]);
+    let list = accounts;
+    if (tipoFilter !== "todos") list = list.filter((a) => a.tipo === tipoFilter);
+    if (searching) {
+      const q = searchText.trim().toLowerCase();
+      list = list.filter((a) => a.nome.toLowerCase().includes(q) || a.codigo.toLowerCase().includes(q));
+    }
+    return list;
+  }, [accounts, tipoFilter, searchText, searching]);
 
   const tree = useMemo(() => buildTree(filtered), [filtered]);
 
+  // Linhas achatadas: com busca mostra lista plana; sem busca respeita árvore/expansão
+  const flatRows = useMemo<FlatRow[]>(() => {
+    if (searching) {
+      return filtered.map((a) => ({ ...a, depth: 0, hasChildren: false }));
+    }
+    const rows: FlatRow[] = [];
+    const walk = (nodes: TreeNode[], depth: number) => {
+      nodes.forEach((n) => {
+        rows.push({ ...n, depth, hasChildren: n.children.length > 0 });
+        if (expanded.has(n.id)) walk(n.children, depth + 1);
+      });
+    };
+    walk(tree, 0);
+    return rows;
+  }, [tree, expanded, searching, filtered]);
+
+  // limpa seleção de linhas que saíram do filtro
+  useEffect(() => {
+    setSelected((prev) => {
+      const visible = new Set(flatRows.map((r) => r.id));
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [flatRows]);
+
   const parentOptions = useMemo(() => {
-    const target = empresaId || filterEmpresa;
-    if (!target || target === "all") return accounts;
+    const target = empresaId;
+    if (!target) return accounts;
     return accounts.filter((a) => a.empresa_id === target && a.id !== editingId);
-  }, [accounts, empresaId, filterEmpresa, editingId]);
+  }, [accounts, empresaId, editingId]);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -195,9 +172,8 @@ export function ChartOfAccounts() {
     });
   };
 
-  const expandAll = () => {
-    setExpanded(new Set(filtered.map((a) => a.id)));
-  };
+  const expandAll = () => setExpanded(new Set(accounts.map((a) => a.id)));
+  const collapseAll = () => setExpanded(new Set());
 
   const resetForm = () => {
     setEditingId(null);
@@ -209,8 +185,12 @@ export function ChartOfAccounts() {
     setTipoOperacional("");
     setCentroCustoDefault("");
     if (establishments.length === 1) setEmpresaId(establishments[0].id);
-    else if (filterEmpresa !== "all") setEmpresaId(filterEmpresa);
     else setEmpresaId("");
+  };
+
+  const openNew = () => {
+    resetForm();
+    setDialogOpen(true);
   };
 
   const handleEdit = (acc: Account) => {
@@ -224,6 +204,12 @@ export function ChartOfAccounts() {
     setCentroCustoDefault(acc.centro_custo_default || "");
     setEmpresaId(acc.empresa_id);
     setDialogOpen(true);
+  };
+
+  const editSelected = () => {
+    const id = [...selected][0];
+    const acc = accounts.find((a) => a.id === id);
+    if (acc) handleEdit(acc);
   };
 
   const computeNivel = (parentId: string | null): number => {
@@ -287,121 +273,228 @@ export function ChartOfAccounts() {
     fetchData();
   };
 
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FolderTree className="h-5 w-5 text-primary" />
-          Plano de Contas
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          {/* Empresa unificada - filtro removido */}
-          <Button variant="outline" size="sm" onClick={expandAll}>Expandir tudo</Button>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nova Conta</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Editar" : "Nova"} Conta</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                {/* Empresa auto-selecionada */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Código</Label>
-                    <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="1.1.01" />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Nome</Label>
-                    <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Combustível" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tipo</Label>
-                    <Select value={tipo} onValueChange={(v) => setTipo(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="despesa">Despesa</SelectItem>
-                        <SelectItem value="receita">Receita</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Conta Pai</Label>
-                    <Select value={contaPaiId || "none"} onValueChange={(v) => setContaPaiId(v === "none" ? null : v)}>
-                      <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma (raiz)</SelectItem>
-                        {parentOptions.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            <span className="font-mono text-xs mr-2">{a.codigo}</span> {a.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {tipo === "despesa" && (
-                  <div>
-                    <Label>Comportamento Operacional</Label>
-                    <Select value={tipoOperacional || "none"} onValueChange={v => setTipoOperacional(v === "none" ? "" : v)}>
-                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                      <SelectContent>
-                        {TIPO_OPERACIONAL_OPTIONS.map(o => (
-                          <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Define se essa conta ativa campos especiais (ex: dados de manutenção ou combustível).
-                    </p>
-                  </div>
-                )}
-                {tipo === "despesa" && (
-                  <div>
-                    <Label>Centro de Custo Padrão</Label>
-                    <Select value={centroCustoDefault || "none"} onValueChange={v => setCentroCustoDefault(v === "none" ? "" : v)}>
-                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                      <SelectContent>
-                        {CENTRO_CUSTO_DEFAULT_OPTIONS.map(o => (
-                          <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Quando definido, o sistema preenche automaticamente o centro de custo nos lançamentos (ex: fatura de cartão).
-                    </p>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Switch checked={ativo} onCheckedChange={setAtivo} />
-                  <Label>Conta ativa</Label>
-                </div>
-                <Button onClick={handleSave} className="w-full">Salvar</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+  const columns: DataGridColumn<FlatRow>[] = [
+    {
+      key: "conta",
+      header: "Conta",
+      sortValue: (r) => r.codigo,
+      cell: (r) => (
+        <div className="flex items-center gap-1.5" style={{ paddingLeft: `${r.depth * 20}px` }}>
+          {!searching && r.hasChildren ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }}
+              className="p-0.5 hover:bg-muted rounded shrink-0"
+              aria-label={expanded.has(r.id) ? "Recolher" : "Expandir"}
+            >
+              {expanded.has(r.id) ? (
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+            </button>
+          ) : (
+            <span className="w-[18px] shrink-0" />
+          )}
+          <span className="font-mono text-[11px] text-muted-foreground shrink-0">{r.codigo}</span>
+          <span className="font-medium truncate">{r.nome}</span>
         </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        ) : tree.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <FolderTree className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Nenhuma conta cadastrada</p>
-            <p className="text-xs mt-1">Crie a estrutura do seu plano de contas para padronizar o financeiro.</p>
-          </div>
+      ),
+    },
+    {
+      key: "tipo",
+      header: "Tipo",
+      width: "90px",
+      sortValue: (r) => r.tipo,
+      cell: (r) => (
+        <Badge variant={r.tipo === "despesa" ? "secondary" : "default"} className="text-[10px]">
+          {r.tipo === "despesa" ? "Despesa" : "Receita"}
+        </Badge>
+      ),
+    },
+    {
+      key: "operacional",
+      header: "Operacional",
+      width: "120px",
+      cell: (r) =>
+        r.tipo_operacional ? (
+          <Badge variant="outline" className="text-[10px]">
+            {r.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
+          </Badge>
+        ) : null,
+    },
+    {
+      key: "centro_custo",
+      header: "Centro de Custo",
+      width: "130px",
+      sortValue: (r) => r.centro_custo_default,
+      cell: (r) =>
+        r.centro_custo_default ? (
+          <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+            {CENTRO_CUSTO_LABELS[r.centro_custo_default] || r.centro_custo_default}
+          </Badge>
+        ) : null,
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "80px",
+      sortValue: (r) => (r.ativo ? 1 : 0),
+      cell: (r) =>
+        r.ativo ? (
+          <Badge variant="outline" className="text-[10px] text-success border-success/40">Ativa</Badge>
         ) : (
-          <div className="border rounded-lg divide-y">
-            {tree.map((node) => (
-              <AccountRow key={node.id} node={node} depth={0} expanded={expanded} onToggle={toggleExpand} onEdit={handleEdit} />
-            ))}
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">Inativa</Badge>
+        ),
+    },
+  ];
+
+  const totalizadores = useMemo(() => {
+    const desp = filtered.filter((a) => a.tipo === "despesa").length;
+    const rec = filtered.filter((a) => a.tipo === "receita").length;
+    return { desp, rec, total: filtered.length };
+  }, [filtered]);
+
+  return (
+    <div className="space-y-3">
+      <GlobalToolbar
+        iconOnlyOnDesktop
+        selectedCount={selected.size}
+        filtersFirstOnMobile
+        actions={[
+          { key: "nova", label: "Nova Conta", icon: Plus, mode: "create", variant: "default", onClick: openNew },
+          { key: "editar", label: "Editar", icon: Pencil, mode: "single", onClick: editSelected },
+          { key: "expandir", label: "Expandir tudo", icon: ListTree, mode: "always", variant: "outline", hidden: searching, onClick: expandAll },
+          { key: "recolher", label: "Recolher tudo", icon: List, mode: "always", variant: "outline", hidden: searching, onClick: collapseAll },
+        ]}
+      >
+        <div className="relative order-3 w-full lg:order-none lg:ml-1 lg:w-[240px] lg:border-l lg:border-border lg:pl-2 shrink-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por código ou nome..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="h-9 md:h-8 pl-8 text-xs"
+          />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {(([
+            { tab: "todos", label: `Todos (${totalizadores.total})`, icon: FolderTree },
+            { tab: "despesa", label: `Desp. (${totalizadores.desp})`, icon: List },
+            { tab: "receita", label: `Rec. (${totalizadores.rec})`, icon: List },
+          ] as const)).map(({ tab, label, icon: Icon }) => (
+            <ToolbarIconButton
+              key={tab}
+              label={label}
+              icon={Icon}
+              active={tipoFilter === tab}
+              showLabel
+              onClick={() => setTipoFilter(tab)}
+            />
+          ))}
+        </div>
+      </GlobalToolbar>
+
+      <DataGrid
+        rows={flatRows}
+        columns={columns}
+        rowId={(r) => r.id}
+        selected={selected}
+        onSelectedChange={setSelected}
+        loading={loading}
+        emptyMessage={searching ? "Nenhuma conta encontrada para a busca" : "Nenhuma conta cadastrada"}
+        minWidth={760}
+        maxHeight="calc(100vh - 260px)"
+        rowClassName={(r) => cn(!r.ativo && "opacity-50")}
+        footer={
+          <div className="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground">
+            <span>{flatRows.length} conta(s) exibida(s){selected.size > 0 ? ` · ${selected.size} selecionada(s)` : ""}</span>
+            <span>Despesas: {totalizadores.desp} · Receitas: {totalizadores.rec}</span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        }
+      />
+
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar" : "Nova"} Conta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Código</Label>
+                <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="1.1.01" />
+              </div>
+              <div className="col-span-2">
+                <Label>Nome</Label>
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Combustível" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={tipo} onValueChange={(v) => setTipo(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="despesa">Despesa</SelectItem>
+                    <SelectItem value="receita">Receita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Conta Pai</Label>
+                <Select value={contaPaiId || "none"} onValueChange={(v) => setContaPaiId(v === "none" ? null : v)}>
+                  <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma (raiz)</SelectItem>
+                    {parentOptions.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="font-mono text-xs mr-2">{a.codigo}</span> {a.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {tipo === "despesa" && (
+              <div>
+                <Label>Comportamento Operacional</Label>
+                <Select value={tipoOperacional || "none"} onValueChange={v => setTipoOperacional(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                  <SelectContent>
+                    {TIPO_OPERACIONAL_OPTIONS.map(o => (
+                      <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Define se essa conta ativa campos especiais (ex: dados de manutenção ou combustível).
+                </p>
+              </div>
+            )}
+            {tipo === "despesa" && (
+              <div>
+                <Label>Centro de Custo Padrão</Label>
+                <Select value={centroCustoDefault || "none"} onValueChange={v => setCentroCustoDefault(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                  <SelectContent>
+                    {CENTRO_CUSTO_DEFAULT_OPTIONS.map(o => (
+                      <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Quando definido, o sistema preenche automaticamente o centro de custo nos lançamentos (ex: fatura de cartão).
+                </p>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Switch checked={ativo} onCheckedChange={setAtivo} />
+              <Label>Conta ativa</Label>
+            </div>
+            <Button onClick={handleSave} className="w-full">Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
