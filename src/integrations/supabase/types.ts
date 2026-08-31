@@ -526,6 +526,56 @@ export type Database = {
           },
         ]
       }
+      contas_bancarias: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          banco: string | null
+          conta: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          saldo_inicial: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          conta?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          saldo_inicial?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          conta?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          saldo_inicial?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_bancarias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_receber: {
         Row: {
           cliente_id: string
@@ -1539,6 +1589,7 @@ export type Database = {
       }
       expense_payments: {
         Row: {
+          conta_bancaria_id: string | null
           created_at: string
           created_by: string
           data_pagamento: string
@@ -1553,6 +1604,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          conta_bancaria_id?: string | null
           created_at?: string
           created_by: string
           data_pagamento?: string
@@ -1567,6 +1619,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          conta_bancaria_id?: string | null
           created_at?: string
           created_by?: string
           data_pagamento?: string
@@ -1581,6 +1634,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "expense_payments_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expense_payments_expense_id_fkey"
             columns: ["expense_id"]
@@ -3796,6 +3856,7 @@ export type Database = {
       }
       receivable_payments: {
         Row: {
+          conta_bancaria_id: string | null
           conta_receber_id: string
           created_at: string
           created_by: string
@@ -3806,6 +3867,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          conta_bancaria_id?: string | null
           conta_receber_id: string
           created_at?: string
           created_by: string
@@ -3816,6 +3878,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          conta_bancaria_id?: string | null
           conta_receber_id?: string
           created_at?: string
           created_by?: string
@@ -3826,6 +3889,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "receivable_payments_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receivable_payments_conta_receber_id_fkey"
             columns: ["conta_receber_id"]
