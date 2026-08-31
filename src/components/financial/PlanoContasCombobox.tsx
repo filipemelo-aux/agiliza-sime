@@ -345,9 +345,10 @@ function CreatePlanoContaDialog({
     })();
   }, [open, defaultNome, defaultTipo]);
 
+  // Plano de contas é único/compartilhado entre as empresas
   const parentOptions = useMemo(
-    () => allAccounts.filter((o) => o.tipo === tipo && (!empresaId || o.empresa_id === empresaId)),
-    [allAccounts, tipo, empresaId]
+    () => allAccounts.filter((o) => o.tipo === tipo),
+    [allAccounts, tipo]
   );
 
   const handleSave = async () => {
