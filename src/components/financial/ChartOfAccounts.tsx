@@ -111,8 +111,9 @@ export function ChartOfAccounts() {
     if (estRes.error) toast.error(estRes.error.message);
     else {
       setEstablishments(estRes.data || []);
+      // Plano de contas único: sempre gravado na matriz e visível para as duas empresas
       const matriz = estRes.data?.find((e: any) => e.type === "matriz") || estRes.data?.[0];
-      if (matriz && !empresaId) setEmpresaId(matriz.id);
+      if (matriz) setEmpresaId(matriz.id);
     }
     setLoading(false);
   };
