@@ -29,6 +29,7 @@ import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 
 
 /**
@@ -172,6 +173,7 @@ export function FinancialPayables() {
   const [search, setSearch] = useState(stored?.search ?? "");
   const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "a_vencer");
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
+  const [filterEmpresa, setFilterEmpresa] = useState<string>(stored?.filterEmpresa ?? "");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
   const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
   const [filterCentroCusto, setFilterCentroCusto] = useState(stored?.filterCentroCusto ?? "all");
@@ -201,10 +203,10 @@ export function FinancialPayables() {
   // Persist filters to sessionStorage
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      search, quickFilter, filterPlanoContas, filterNivel,
+      search, quickFilter, filterPlanoContas, filterEmpresa, filterNivel,
       filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim,
     }));
-  }, [search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+  }, [search, quickFilter, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   // Maintenance detail modal state
   const [maintDetailOpen, setMaintDetailOpen] = useState(false);
@@ -853,7 +855,8 @@ export function FinancialPayables() {
       const matchPeriodo = hasInst
         ? installs.some(inst => matchesPeriod(inst.data_vencimento))
         : matchesPeriod(getExpenseDateRef(i));
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
+      const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo && matchEmpresa;
     });
 
     baseForCounts.forEach(i => {
@@ -884,7 +887,7 @@ export function FinancialPayables() {
     });
 
     return { all, hoje, semana, atrasadas, pagas, aVencer };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef, favorecidoMap]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef, favorecidoMap]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -922,7 +925,9 @@ export function FinancialPayables() {
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
 
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro;
+      const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
+
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchEmpresa;
     }).sort((a, b) => {
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
@@ -949,7 +954,7 @@ export function FinancialPayables() {
       }
       return dateA.localeCompare(dateB);
     });
-  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef, favorecidoMap]);
+  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef, favorecidoMap]);
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
@@ -1061,6 +1066,14 @@ export function FinancialPayables() {
   );
 
   const payableColumns: DataGridColumn<PayableRow>[] = useMemo(() => [
+    {
+      key: "empresa",
+      header: "Emp.",
+      width: "52px",
+      align: "center",
+      sortValue: (r) => (r.item as any).empresa_id || "",
+      cell: (r) => <EmpresaBadge empresaId={(r.item as any).empresa_id} />,
+    },
     {
       key: "favorecido",
       header: "Favorecido",
@@ -1458,6 +1471,7 @@ tfoot{display:table-row-group}
               onChange={(i, f) => { setFilterPeriodoInicio(i); setFilterPeriodoFim(f); }}
             />
           </div>
+          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </div>
 
         {/* Row 2: Search */}
@@ -1521,7 +1535,7 @@ tfoot{display:table-row-group}
             />
           </div>
 
-          {(quickFilter !== "all" || filterPlanoContas !== "all" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
+          {(quickFilter !== "all" || filterPlanoContas !== "all" || filterEmpresa !== "" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
             <Button
               variant="ghost"
               size="sm"
@@ -1529,6 +1543,7 @@ tfoot{display:table-row-group}
               onClick={() => {
                 setQuickFilter("all");
                 setFilterPlanoContas("all");
+                setFilterEmpresa("");
                 setFilterNivel("all");
                 setFilterCentroCusto("all");
                 setFilterVeiculo("all");
