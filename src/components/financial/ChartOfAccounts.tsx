@@ -202,7 +202,6 @@ export function ChartOfAccounts() {
     setAtivo(acc.ativo);
     setTipoOperacional(acc.tipo_operacional || "");
     setCentroCustoDefault(acc.centro_custo_default || "");
-    setEmpresaId(acc.empresa_id);
     setDialogOpen(true);
   };
 
