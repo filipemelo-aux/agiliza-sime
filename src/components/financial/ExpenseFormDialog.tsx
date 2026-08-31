@@ -28,6 +28,7 @@ import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
 import VehicleRateioEditor from "./VehicleRateioEditor";
 import { type RateioRow, loadRateio, saveRateio, validateRateio } from "@/lib/rateio";
+import { EmpresaSelect } from "./EmpresaControls";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -285,6 +286,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   useEffect(() => {
     if (!open) return;
     if (expense) {
+      setEmpresaSelecionada(expense.empresa_id || empresaId || "");
       setDescricao(expense.descricao);
       setPlanoContasId(expense.plano_contas_id || "");
       setCentroCusto(expense.centro_custo);
@@ -499,6 +501,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
     setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]); setNfseBoletoPdfFile(null);
+    setEmpresaSelecionada(empresaId || "");
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(true); setShowHistory(false);
     setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
@@ -643,6 +646,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   }, [isMaintenanceType, itensNota]);
 
   const handleSave = async () => {
+    if (!empresaSelecionada) return toast.error("Selecione a Empresa / Unidade");
     if (!planoContasId) return toast.error("Selecione a conta contábil");
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
@@ -689,7 +693,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     setSaving(true);
     const payload: any = {
-      empresa_id: empresaId || null, unidade_id: empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
+      empresa_id: empresaSelecionada || empresaId || null, unidade_id: empresaSelecionada || empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
       plano_contas_id: planoContasId || null, centro_custo: centroCusto,
       valor_total: Number(valorTotal), data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
@@ -882,7 +886,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (hasNfse && nfseValorTotal > 0) {
       const nfseDescStr = nfseItens.map(i => i.descricao).join(", ");
       const nfsePayload: any = {
-        empresa_id: empresaId || null,
+        empresa_id: empresaSelecionada || empresaId || null,
         descricao: nfseDescStr || `NFSe ${nfseNumero} - Serviço`,
         tipo_despesa: isMaintenanceType ? "manutencao" : (selectedAccount?.tipo_operacional || "outros"),
         plano_contas_id: planoContasId || null,
@@ -1018,6 +1022,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 />
 
               </div>
+              <EmpresaSelect value={empresaSelecionada} onChange={setEmpresaSelecionada} />
               <div className="sm:col-span-2">
                 <Label className="text-xs">Descrição *</Label>
                 <Input value={descricao} onChange={e => setDescricao(maskSentence(e.target.value))} placeholder="Ex: Troca de óleo..." className="h-9" />
