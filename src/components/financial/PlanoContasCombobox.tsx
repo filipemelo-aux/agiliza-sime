@@ -345,9 +345,10 @@ function CreatePlanoContaDialog({
     })();
   }, [open, defaultNome, defaultTipo]);
 
+  // Plano de contas é único/compartilhado entre as empresas
   const parentOptions = useMemo(
-    () => allAccounts.filter((o) => o.tipo === tipo && (!empresaId || o.empresa_id === empresaId)),
-    [allAccounts, tipo, empresaId]
+    () => allAccounts.filter((o) => o.tipo === tipo),
+    [allAccounts, tipo]
   );
 
   const handleSave = async () => {
@@ -429,19 +430,6 @@ function CreatePlanoContaDialog({
               </Select>
             </div>
           </div>
-          {establishments.length > 1 && (
-            <div>
-              <Label className="text-xs">Empresa</Label>
-              <Select value={empresaId} onValueChange={setEmpresaId}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {establishments.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           <div className="flex items-center gap-2">
             <Switch checked={ativo} onCheckedChange={setAtivo} />
             <Label className="text-xs">Conta ativa</Label>

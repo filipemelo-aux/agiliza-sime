@@ -104,15 +104,16 @@ export function ChartOfAccounts() {
     setLoading(true);
     const [accRes, estRes] = await Promise.all([
       supabase.from("chart_of_accounts").select("*").order("codigo"),
-      supabase.from("fiscal_establishments").select("id, razao_social").eq("active", true).order("razao_social"),
+      supabase.from("fiscal_establishments").select("id, razao_social, type").eq("active", true).order("razao_social"),
     ]);
     if (accRes.error) toast.error(accRes.error.message);
     else setAccounts((accRes.data as any) || []);
     if (estRes.error) toast.error(estRes.error.message);
     else {
       setEstablishments(estRes.data || []);
+      // Plano de contas único: sempre gravado na matriz e visível para as duas empresas
       const matriz = estRes.data?.find((e: any) => e.type === "matriz") || estRes.data?.[0];
-      if (matriz && !empresaId) setEmpresaId(matriz.id);
+      if (matriz) setEmpresaId(matriz.id);
     }
     setLoading(false);
   };
@@ -158,11 +159,11 @@ export function ChartOfAccounts() {
     });
   }, [flatRows]);
 
-  const parentOptions = useMemo(() => {
-    const target = empresaId;
-    if (!target) return accounts;
-    return accounts.filter((a) => a.empresa_id === target && a.id !== editingId);
-  }, [accounts, empresaId, editingId]);
+  // Plano de contas é único e compartilhado entre as empresas
+  const parentOptions = useMemo(
+    () => accounts.filter((a) => a.id !== editingId),
+    [accounts, editingId]
+  );
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -184,8 +185,7 @@ export function ChartOfAccounts() {
     setAtivo(true);
     setTipoOperacional("");
     setCentroCustoDefault("");
-    if (establishments.length === 1) setEmpresaId(establishments[0].id);
-    else setEmpresaId("");
+    // mantém a empresa padrão (matriz): plano de contas é compartilhado
   };
 
   const openNew = () => {
@@ -202,7 +202,6 @@ export function ChartOfAccounts() {
     setAtivo(acc.ativo);
     setTipoOperacional(acc.tipo_operacional || "");
     setCentroCustoDefault(acc.centro_custo_default || "");
-    setEmpresaId(acc.empresa_id);
     setDialogOpen(true);
   };
 
