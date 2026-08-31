@@ -142,6 +142,7 @@ export function FinancialPaid() {
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
   const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy">("todos");
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Detail dialog
@@ -500,13 +501,14 @@ export function FinancialPaid() {
   ], []);
 
 
-  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos";
+  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos" || filterEmpresa !== "";
 
   const clearFilters = () => {
     setSearch("");
     setPeriodoInicio("");
     setPeriodoFim("");
     setOrigemFilter("todos");
+    setFilterEmpresa("");
   };
 
 
