@@ -184,8 +184,7 @@ export function ChartOfAccounts() {
     setAtivo(true);
     setTipoOperacional("");
     setCentroCustoDefault("");
-    if (establishments.length === 1) setEmpresaId(establishments[0].id);
-    else setEmpresaId("");
+    // mantém a empresa padrão (matriz): plano de contas é compartilhado
   };
 
   const openNew = () => {
