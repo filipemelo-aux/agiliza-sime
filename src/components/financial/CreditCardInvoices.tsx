@@ -9,6 +9,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";
 import { printCreditCardInvoice } from "./printCreditCardInvoice";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 
 interface InvoiceRow {
@@ -22,6 +23,7 @@ interface InvoiceRow {
   expense_id: string | null;
   ofx_file_name: string | null;
   created_at: string;
+  empresa_id: string | null;
 }
 
 export function CreditCardInvoices() {
@@ -30,13 +32,14 @@ export function CreditCardInvoices() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("credit_card_invoices" as any)
-      .select("id, card_name, reference_label, due_date, closing_date, total_amount, status, expense_id, ofx_file_name, created_at")
+      .select("id, card_name, reference_label, due_date, closing_date, total_amount, status, expense_id, ofx_file_name, created_at, empresa_id")
       .is("deleted_at", null)
       .order("due_date", { ascending: false });
     if (error) {
@@ -105,7 +108,20 @@ export function CreditCardInvoices() {
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDelete },
   ];
 
+  const visibleInvoices = useMemo(
+    () => (filterEmpresa ? invoices.filter((i) => i.empresa_id === filterEmpresa) : invoices),
+    [invoices, filterEmpresa]
+  );
+
   const columns: DataGridColumn<InvoiceRow>[] = [
+    {
+      key: "empresa",
+      header: "Emp.",
+      width: "52px",
+      align: "center",
+      sortValue: (r) => r.empresa_id || "",
+      cell: (r) => <EmpresaBadge empresaId={r.empresa_id} />,
+    },
     {
       key: "card_name",
       header: "Cartão",
@@ -176,7 +192,7 @@ export function CreditCardInvoices() {
   ];
 
   const totalSelecionado = selectedRows.reduce((s, i) => s + Number(i.total_amount), 0);
-  const totalGeral = invoices.reduce((s, i) => s + Number(i.total_amount), 0);
+  const totalGeral = visibleInvoices.reduce((s, i) => s + Number(i.total_amount), 0);
 
   return (
     <div className="space-y-3">
@@ -185,10 +201,14 @@ export function CreditCardInvoices() {
         <p className="text-xs text-muted-foreground">Importe arquivos OFX e classifique os lançamentos para gerar uma despesa única no Contas a Pagar.</p>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+      </div>
+
       <GlobalToolbar actions={actions} selectedCount={selected.size} />
 
       <DataGrid
-        rows={invoices}
+        rows={visibleInvoices}
         columns={columns}
         rowId={(r) => r.id}
         selected={selected}
@@ -199,7 +219,7 @@ export function CreditCardInvoices() {
         emptyMessage='Nenhuma fatura registrada. Clique em "Nova Fatura" para começar.'
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{invoices.length} fatura(s)</span>
+            <span>{visibleInvoices.length} fatura(s)</span>
             <span className="font-mono">
               {selected.size > 0 && (
                 <span className="mr-4 text-primary">Selecionado: {formatCurrency(totalSelecionado)}</span>

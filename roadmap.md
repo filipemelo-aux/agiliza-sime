@@ -1,0 +1,17 @@
+# Roadmap — Multi-Empresa Financeiro
+
+## Fase 1 — Multi-Empresa (em andamento)
+- [x] Migração: `empresa_id` em faturas_recebimento, contas_receber, previsoes_recebimento, movimentacoes_bancarias (backfill Matriz)
+- [ ] Componentes compartilhados: `EmpresaSelect` (form, obrigatório), `EmpresaFilter` (Todas/Matriz/Filial), `EmpresaBadge` (M/F)
+- [ ] Formulários: Despesa (Contas a Pagar), Lançamento manual do Cartão, Conta a Receber/Previsão, Lançamento manual Fluxo de Caixa/Conciliação
+- [ ] Filtros nas listagens: Contas a Pagar, Contas Pagas, Faturamento, Cartão de Crédito, Conciliação
+- [ ] DRE e Fluxo de Caixa com filtro de empresa
+- [ ] Badge de empresa nos data grids
+
+## Fase 2 — Tesouraria Centralizada (contas bancárias)
+- [ ] Criar tabela `contas_bancarias` (banco, agência, conta, apelido, `empresa_id` → fiscal_establishments, ativo) + RLS/GRANTs
+- [ ] CRUD de contas bancárias em Configurações/Cadastros
+- [ ] FK de `movimentacoes_bancarias.conta_bancaria_id`
+- [ ] Modal de baixa (Contas a Pagar) com select de conta bancária listando TODAS as contas do grupo ("Sicoob — Matriz"), sem filtro por empresa da despesa
+- [ ] Fluxo de Caixa / Conciliação: saldo e extrato por conta bancária
+- [ ] DRE segue alocando custo pela empresa da despesa (fato gerador)

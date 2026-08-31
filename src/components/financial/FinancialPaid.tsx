@@ -18,6 +18,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 
 
 interface InstallmentInfo {
@@ -46,6 +47,7 @@ interface PaidItem {
   group_payment_ids?: string[];
   installment?: InstallmentInfo | null;
   payment_id?: string | null;
+  empresa_id?: string | null;
 }
 
 interface ExpenseDetail {
@@ -140,6 +142,7 @@ export function FinancialPaid() {
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
   const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy">("todos");
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Detail dialog
@@ -190,7 +193,8 @@ export function FinancialPaid() {
             favorecido_nome,
             data_vencimento,
             data_emissao,
-            documento_fiscal_numero
+            documento_fiscal_numero,
+            empresa_id
           ),
           installment:installment_id (
             id,
@@ -304,6 +308,7 @@ export function FinancialPaid() {
         created_by_name: creatorsMap[p.created_by] || null,
         created_at: p.created_at || null,
         documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
+        empresa_id: p.expenses?.empresa_id || null,
         payment_id: p.id,
         installment: resolvedInstallment
           ? {
@@ -340,6 +345,7 @@ export function FinancialPaid() {
         created_by_name: creatorsMap[first.created_by] || null,
         created_at: first.created_at || null,
         documento_fiscal_numero: null,
+        empresa_id: first.expenses?.empresa_id || null,
         lote_id: loteId,
         group_count: payments.length,
         group_payment_ids: payments.map(p => p.id),
@@ -387,10 +393,11 @@ export function FinancialPaid() {
       }
 
       const matchOrigem = origemFilter === "todos" || i.source === origemFilter;
+      const matchEmpresa = !filterEmpresa || i.empresa_id === filterEmpresa;
 
-      return matchSearch && matchPeriodo && matchOrigem;
+      return matchSearch && matchPeriodo && matchOrigem && matchEmpresa;
     });
-  }, [items, search, periodoInicio, periodoFim, origemFilter]);
+  }, [items, search, periodoInicio, periodoFim, origemFilter, filterEmpresa]);
 
   const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment" || i.source === "group").map(i => i.id), [filtered]);
 
@@ -410,6 +417,14 @@ export function FinancialPaid() {
   );
 
   const paidColumns: DataGridColumn<PaidItem>[] = useMemo(() => [
+    {
+      key: "empresa",
+      header: "Emp.",
+      width: "52px",
+      align: "center",
+      sortValue: (r) => r.empresa_id || "",
+      cell: (r) => <EmpresaBadge empresaId={r.empresa_id} />,
+    },
     {
       key: "creditor",
       header: "Favorecido",
@@ -486,13 +501,14 @@ export function FinancialPaid() {
   ], []);
 
 
-  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos";
+  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos" || filterEmpresa !== "";
 
   const clearFilters = () => {
     setSearch("");
     setPeriodoInicio("");
     setPeriodoFim("");
     setOrigemFilter("todos");
+    setFilterEmpresa("");
   };
 
 
@@ -785,6 +801,7 @@ export function FinancialPaid() {
               onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
             />
           </div>
+          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex-1 min-w-0 relative">

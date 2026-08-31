@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2 } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
+import { EmpresaFilter } from "./EmpresaControls";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
@@ -56,6 +57,7 @@ export function FinancialCashFlow() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
   const [editPlanoMov, setEditPlanoMov] = useState<MovimentacaoEnriquecida | null>(null);
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
@@ -88,6 +90,7 @@ export function FinancialCashFlow() {
     } else if (filters.origem !== "todos") {
       query = query.eq("origem", filters.origem);
     }
+    if (filterEmpresa) query = query.eq("empresa_id", filterEmpresa);
     if (filters.valorMin) query = query.gte("valor", Number(filters.valorMin));
     if (filters.valorMax) query = query.lte("valor", Number(filters.valorMax));
 
@@ -269,7 +272,7 @@ export function FinancialCashFlow() {
 
     setMovimentacoes(enriched);
     setLoading(false);
-  }, [filters, chartAccounts]);
+  }, [filters, chartAccounts, filterEmpresa]);
 
 
   useEffect(() => { loadMovimentacoes(); }, [loadMovimentacoes]);
@@ -381,6 +384,9 @@ export function FinancialCashFlow() {
           <Button size="sm" className="gap-1" onClick={() => setManualDialogOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Nova Movimentação
           </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </div>
         <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
       </div>

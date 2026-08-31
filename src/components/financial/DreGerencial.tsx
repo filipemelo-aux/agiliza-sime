@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { exportToCsv } from "@/lib/csvExport";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { EmpresaFilter } from "./EmpresaControls";
 import { PeriodFilter } from "@/components/PeriodFilter";
 
 interface ChartAccount {
@@ -61,6 +62,7 @@ const ORIGEM_ORDER: OrigemKind[] = ["cartao", "contas_pagar", "direta"];
 
 
 export function DreGerencial() {
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   
@@ -103,12 +105,14 @@ export function DreGerencial() {
       // ============================================================
       const { data: ccInvoices } = await supabase
         .from("credit_card_invoices")
-        .select("id, expense_id")
+        .select("id, expense_id, empresa_id")
         .is("deleted_at", null);
       const ccExpenseIds = new Set<string>(
         (ccInvoices || []).filter((r: any) => r.expense_id).map((r: any) => r.expense_id),
       );
-      const invoiceIds = (ccInvoices || []).map((r: any) => r.id);
+      const invoiceIds = (ccInvoices || [])
+        .filter((r: any) => !filterEmpresa || r.empresa_id === filterEmpresa)
+        .map((r: any) => r.id);
 
       if (invoiceIds.length > 0) {
         let itemsQ: any = supabase
@@ -149,6 +153,7 @@ export function DreGerencial() {
         .from("expenses")
         .select("id, descricao, plano_contas_id, valor_total, data_competencia, data_emissao, favorecido_nome")
         .is("deleted_at", null);
+      if (filterEmpresa) expQ = expQ.eq("empresa_id", filterEmpresa);
       if (dataInicio) expQ = expQ.gte("data_competencia", dataInicio);
       if (dataFim) expQ = expQ.lte("data_competencia", dataFim);
       const { data: expData, error: expErr } = await expQ.limit(20000);
@@ -185,6 +190,7 @@ export function DreGerencial() {
       let prevQ: any = supabase
         .from("previsoes_recebimento")
         .select("id, origem_tipo, valor, data_prevista");
+      if (filterEmpresa) prevQ = prevQ.eq("empresa_id", filterEmpresa);
       if (dataInicio) prevQ = prevQ.gte("data_prevista", dataInicio);
       if (dataFim) prevQ = prevQ.lte("data_prevista", dataFim);
       const { data: prevData, error: prevErr } = await prevQ.limit(20000);
@@ -223,6 +229,7 @@ export function DreGerencial() {
           .select("id, valor, data_movimentacao, descricao, plano_contas_id, origem")
           .eq("tipo", "entrada")
           .in("plano_contas_id", nonOpRevenueIds);
+        if (filterEmpresa) movQ = movQ.eq("empresa_id", filterEmpresa);
         if (dataInicio) movQ = movQ.gte("data_movimentacao", dataInicio);
         if (dataFim) movQ = movQ.lte("data_movimentacao", dataFim);
         const { data: movData, error: movErr } = await movQ.limit(20000);
@@ -249,7 +256,7 @@ export function DreGerencial() {
     } finally {
       setLoading(false);
     }
-  }, [dataInicio, dataFim]);
+  }, [dataInicio, dataFim, filterEmpresa]);
 
 
 
@@ -660,6 +667,10 @@ export function DreGerencial() {
                 fim={dataFim}
                 onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
               />
+            </div>
+            <div className="space-y-1 col-span-2 md:col-span-1">
+              <Label className="text-xs">Empresa</Label>
+              <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
             </div>
             <div>
               <Button size="sm" onClick={gerar} disabled={loading} className="gap-1 h-8 w-full">
