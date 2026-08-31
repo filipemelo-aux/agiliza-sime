@@ -241,6 +241,27 @@ function SortHeader<K extends string>({ label, sortKey, sort, toggle }: {
   );
 }
 
+/** Fonte única de rateio: lê exclusivamente de despesa_rateio_veiculos (coluna JSONB removida). */
+async function fetchRateiosByItemIds(itemIds: string[]): Promise<Map<string, RateioRow[]>> {
+  const map = new Map<string, RateioRow[]>();
+  const ids = itemIds.filter(Boolean);
+  if (ids.length === 0) return map;
+  const { data } = await (supabase.from("despesa_rateio_veiculos" as any) as any)
+    .select("id, card_item_id, veiculo_id, valor_rateado, percentual")
+    .in("card_item_id", ids);
+  for (const r of (data as any[]) || []) {
+    const list = map.get(r.card_item_id) || [];
+    list.push({
+      id: r.id,
+      veiculo_id: r.veiculo_id,
+      valor_rateado: Number(r.valor_rateado || 0),
+      percentual: r.percentual === null || r.percentual === undefined ? null : Number(r.percentual),
+    });
+    map.set(r.card_item_id, list);
+  }
+  return map;
+}
+
 export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId }: Props) {
   const { user } = useAuth();
   const { matrizId } = useUnifiedCompany();
