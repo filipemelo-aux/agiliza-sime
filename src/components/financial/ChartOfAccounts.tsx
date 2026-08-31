@@ -158,11 +158,11 @@ export function ChartOfAccounts() {
     });
   }, [flatRows]);
 
-  const parentOptions = useMemo(() => {
-    const target = empresaId;
-    if (!target) return accounts;
-    return accounts.filter((a) => a.empresa_id === target && a.id !== editingId);
-  }, [accounts, empresaId, editingId]);
+  // Plano de contas é único e compartilhado entre as empresas
+  const parentOptions = useMemo(
+    () => accounts.filter((a) => a.id !== editingId),
+    [accounts, editingId]
+  );
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
