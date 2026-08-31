@@ -533,6 +533,7 @@ export type Database = {
           data_lancamento: string
           data_recebimento: string | null
           data_vencimento: string
+          empresa_id: string | null
           fatura_id: string
           forma_recebimento: string | null
           id: string
@@ -546,6 +547,7 @@ export type Database = {
           data_lancamento?: string
           data_recebimento?: string | null
           data_vencimento: string
+          empresa_id?: string | null
           fatura_id: string
           forma_recebimento?: string | null
           id?: string
@@ -559,6 +561,7 @@ export type Database = {
           data_lancamento?: string
           data_recebimento?: string | null
           data_vencimento?: string
+          empresa_id?: string | null
           fatura_id?: string
           forma_recebimento?: string | null
           id?: string
@@ -572,6 +575,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
           {
@@ -1829,6 +1839,7 @@ export type Database = {
           cliente_id: string
           created_at: string
           data_emissao: string
+          empresa_id: string | null
           id: string
           intervalo_dias: number
           num_parcelas: number
@@ -1844,6 +1855,7 @@ export type Database = {
           cliente_id: string
           created_at?: string
           data_emissao?: string
+          empresa_id?: string | null
           id?: string
           intervalo_dias?: number
           num_parcelas?: number
@@ -1859,6 +1871,7 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           data_emissao?: string
+          empresa_id?: string | null
           id?: string
           intervalo_dias?: number
           num_parcelas?: number
@@ -1876,6 +1889,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_recebimento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
         ]
@@ -3276,6 +3296,7 @@ export type Database = {
           created_at: string
           data_movimentacao: string
           descricao: string | null
+          empresa_id: string | null
           id: string
           lote_id: string | null
           origem: string
@@ -3289,6 +3310,7 @@ export type Database = {
           created_at?: string
           data_movimentacao: string
           descricao?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           origem: string
@@ -3302,6 +3324,7 @@ export type Database = {
           created_at?: string
           data_movimentacao?: string
           descricao?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           origem?: string
@@ -3311,6 +3334,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacoes_bancarias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimentacoes_bancarias_plano_contas_id_fkey"
             columns: ["plano_contas_id"]
@@ -3422,6 +3452,7 @@ export type Database = {
           cliente_id: string
           created_at: string
           data_prevista: string
+          empresa_id: string | null
           id: string
           metadata: Json | null
           origem_id: string
@@ -3434,6 +3465,7 @@ export type Database = {
           cliente_id: string
           created_at?: string
           data_prevista: string
+          empresa_id?: string | null
           id?: string
           metadata?: Json | null
           origem_id: string
@@ -3446,6 +3478,7 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           data_prevista?: string
+          empresa_id?: string | null
           id?: string
           metadata?: Json | null
           origem_id?: string
@@ -3460,6 +3493,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "previsoes_recebimento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
           {
