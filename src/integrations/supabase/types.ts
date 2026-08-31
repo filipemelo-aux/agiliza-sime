@@ -4259,6 +4259,7 @@ export type Database = {
         Args: { _addr: string }
         Returns: string
       }
+      fn_empresa_unificada_id: { Args: never; Returns: string }
       fn_infer_salario_competencia: {
         Args: { _data_emissao: string }
         Returns: string
