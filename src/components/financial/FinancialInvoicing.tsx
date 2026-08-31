@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -51,6 +52,7 @@ interface Fatura {
   has_partial?: boolean;
   origem_label?: string;
   origem_sort?: string;
+  empresa_id?: string | null;
 }
 
 interface Previsao {
@@ -180,6 +182,7 @@ export function FinancialInvoicing() {
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
   const [receiveContaId, setReceiveContaId] = useState<string>("");
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
@@ -1633,7 +1636,17 @@ ${hasRecebimentos ? `
 
   const singleFatura = selectedFaturas.length === 1 ? selectedFaturas[0] : null;
 
+  const faturasVisiveis = useMemo(
+    () => (filterEmpresa ? faturasSorted.filter((f) => f.empresa_id === filterEmpresa) : faturasSorted),
+    [faturasSorted, filterEmpresa],
+  );
+
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
+    {
+      key: "empresa", header: "Emp.", width: "52px", align: "center",
+      sortValue: (f) => f.empresa_id || "",
+      cell: (f) => <EmpresaBadge empresaId={f.empresa_id} />,
+    },
     {
       key: "numero", header: "Nº", width: "80px",
       sortValue: (f) => f.numero,
@@ -1710,6 +1723,10 @@ ${hasRecebimentos ? `
         <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+      </div>
+
       <GlobalToolbar
         actions={[
           { key: "new", label: "Nova Fatura", icon: Plus, mode: "create", variant: "default", onClick: openNewInvoice },
@@ -1758,7 +1775,7 @@ ${hasRecebimentos ? `
       </GlobalToolbar>
 
       <DataGrid
-        rows={faturasSorted}
+        rows={faturasVisiveis}
         columns={faturaColumns}
         rowId={(f) => f.id}
         selected={selectedFaturaIds}
@@ -1769,7 +1786,7 @@ ${hasRecebimentos ? `
         emptyMessage='Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.'
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{faturasSorted.length} fatura(s)</span>
+            <span>{faturasVisiveis.length} fatura(s)</span>
             <span className="font-mono">Total: {formatCurrency(totalFaturado)}</span>
           </div>
         }
