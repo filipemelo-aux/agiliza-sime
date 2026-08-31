@@ -104,7 +104,7 @@ export function ChartOfAccounts() {
     setLoading(true);
     const [accRes, estRes] = await Promise.all([
       supabase.from("chart_of_accounts").select("*").order("codigo"),
-      supabase.from("fiscal_establishments").select("id, razao_social").eq("active", true).order("razao_social"),
+      supabase.from("fiscal_establishments").select("id, razao_social, type").eq("active", true).order("razao_social"),
     ]);
     if (accRes.error) toast.error(accRes.error.message);
     else setAccounts((accRes.data as any) || []);
