@@ -57,6 +57,7 @@ export function FinancialCashFlow() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
   const [editPlanoMov, setEditPlanoMov] = useState<MovimentacaoEnriquecida | null>(null);
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
@@ -271,7 +272,7 @@ export function FinancialCashFlow() {
 
     setMovimentacoes(enriched);
     setLoading(false);
-  }, [filters, chartAccounts]);
+  }, [filters, chartAccounts, filterEmpresa]);
 
 
   useEffect(() => { loadMovimentacoes(); }, [loadMovimentacoes]);
