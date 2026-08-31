@@ -241,6 +241,27 @@ function SortHeader<K extends string>({ label, sortKey, sort, toggle }: {
   );
 }
 
+/** Fonte única de rateio: lê exclusivamente de despesa_rateio_veiculos (coluna JSONB removida). */
+async function fetchRateiosByItemIds(itemIds: string[]): Promise<Map<string, RateioRow[]>> {
+  const map = new Map<string, RateioRow[]>();
+  const ids = itemIds.filter(Boolean);
+  if (ids.length === 0) return map;
+  const { data } = await (supabase.from("despesa_rateio_veiculos" as any) as any)
+    .select("id, card_item_id, veiculo_id, valor_rateado, percentual")
+    .in("card_item_id", ids);
+  for (const r of (data as any[]) || []) {
+    const list = map.get(r.card_item_id) || [];
+    list.push({
+      id: r.id,
+      veiculo_id: r.veiculo_id,
+      valor_rateado: Number(r.valor_rateado || 0),
+      percentual: r.percentual === null || r.percentual === undefined ? null : Number(r.percentual),
+    });
+    map.set(r.card_item_id, list);
+  }
+  return map;
+}
+
 export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId }: Props) {
   const { user } = useAuth();
   const { matrizId } = useUnifiedCompany();
@@ -392,6 +413,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .select("*")
         .eq("invoice_id", invoiceId)
         .order("posted_date");
+      const rateioMap = await fetchRateiosByItemIds(
+        ((rows as any[]) || []).map((r) => r.id).filter(Boolean),
+      );
       const mapped = ((rows as any[]) || []).map((r) => ({
         id: r.id,
         fitid: r.fitid || "",
@@ -414,7 +438,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         fornecedor_cnpj: r.fornecedor_cnpj ?? null,
         itens_nota: r.itens_nota ?? null,
         xml_original: r.xml_original ?? null,
-        rateio_veiculos: (r.rateio_veiculos as any) ?? null,
+        rateio_veiculos: rateioMap.get(r.id) ?? null,
         origem_expense_id: r.origem_expense_id ?? null,
         origem_payment_id: r.origem_payment_id ?? null,
         origem_installment_id: r.origem_installment_id ?? null,
@@ -1639,6 +1663,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .select("*")
       .eq("invoice_id", targetId)
       .order("posted_date");
+    const rateioMap = await fetchRateiosByItemIds(
+      ((rows as any[]) || []).map((r: any) => r.id).filter(Boolean),
+    );
     const mapped = ((rows as any[]) || []).map((r: any) => ({
       id: r.id,
       fitid: r.fitid || "",
@@ -1661,7 +1688,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       fornecedor_cnpj: r.fornecedor_cnpj ?? null,
       itens_nota: r.itens_nota ?? null,
       xml_original: r.xml_original ?? null,
-      rateio_veiculos: (r.rateio_veiculos as any) ?? null,
+      rateio_veiculos: rateioMap.get(r.id) ?? null,
     }));
     // Preserva lançamentos ainda NÃO gravados (ex.: OFX recém-importado em conferência).
     // Sem isso, qualquer recarga (geração de parcelas, etc.) descartaria o trabalho em andamento.

@@ -15,3 +15,9 @@
 - [ ] Modal de baixa (Contas a Pagar) com select de conta bancária listando TODAS as contas do grupo ("Sicoob — Matriz"), sem filtro por empresa da despesa
 - [ ] Fluxo de Caixa / Conciliação: saldo e extrato por conta bancária
 - [ ] DRE segue alocando custo pela empresa da despesa (fato gerador)
+
+## Fase 3 — Integridade e fonte única (31/08)
+- [x] Drop trigger duplicado `trg_validar_conta_receber_recebimento` (contas_receber)
+- [x] Triggers AFTER DELETE de limpeza de `movimentacoes_bancarias` (expenses, contas_receber, expense_payments)
+- [x] Rateio fonte única: migrar JSONB → `despesa_rateio_veiculos`, refatorar RPCs, DROP coluna `credit_card_invoice_items.rateio_veiculos`, ajustar UI
+- [x] Unificar contas a pagar: migrar `accounts_payable` → `expenses`, drop triggers legadas, atestar leitura exclusiva de `expenses`
