@@ -580,16 +580,14 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState("__all__");
   const [statusFilter, setStatusFilter] = useState("__all__");
-  const { allIds } = useUnifiedCompany();
-
-  useEffect(() => { if (allIds.length > 0) fetchData(); }, [allIds]);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setLoading(true);
+    // Plano de contas é único/unificado entre as empresas
     const { data } = await supabase
       .from("chart_of_accounts")
       .select("*")
-      .in("empresa_id", allIds)
       .order("codigo");
     setData(data || []);
     setLoading(false);

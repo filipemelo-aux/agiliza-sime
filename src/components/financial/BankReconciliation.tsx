@@ -295,12 +295,10 @@ export function BankReconciliation() {
   );
 
 
-  // Load chart of accounts
+  // Load chart of accounts (plano de contas é único/unificado entre as empresas)
   useEffect(() => {
-    if (matrizId) {
-      supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("empresa_id", matrizId).eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
-    }
-  }, [matrizId]);
+    supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
+  }, []);
 
   // Load reconciliation history
   const loadHistory = useCallback(async () => {
