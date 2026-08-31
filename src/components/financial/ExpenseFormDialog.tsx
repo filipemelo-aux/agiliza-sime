@@ -57,6 +57,7 @@ interface ChartAccount { id: string; codigo: string; nome: string; tipo: string;
 
 interface Expense {
   id: string;
+  empresa_id?: string | null;
   descricao: string;
   plano_contas_id: string | null;
   centro_custo: string;
@@ -126,6 +127,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
 
+  const [empresaSelecionada, setEmpresaSelecionada] = useState<string>(empresaId || "");
   const [descricao, setDescricao] = useState("");
   const [manualItemsEnabled, setManualItemsEnabled] = useState(false);
   const [newItemDesc, setNewItemDesc] = useState("");
