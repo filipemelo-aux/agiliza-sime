@@ -1056,18 +1056,12 @@ export function FinancialInvoicing() {
       return getDate(a).localeCompare(getDate(b));
     });
 
-    // Determine the issuing establishment for this fatura.
-    // Priority: dominant establishment_id among CT-es referenced; fallback to matriz.
+    // Financeiro unificado: a fatura sempre sai com os dados da empresa principal (matriz).
+    // A separação matriz/filial permanece exclusivamente na emissão fiscal (CT-e/MDF-e).
     const matriz = establishments.find(e => e.type === "matriz") || establishments[0];
-    const estCounts: Record<string, number> = {};
-    Object.values(ctesById).forEach((c: any) => {
-      if (c?.establishment_id) estCounts[c.establishment_id] = (estCounts[c.establishment_id] || 0) + 1;
-    });
-    const dominantEstId = Object.keys(estCounts).sort((a, b) => estCounts[b] - estCounts[a])[0];
-    const issuingEst =
-      (dominantEstId && establishments.find(e => e.id === dominantEstId)) || matriz;
+    const issuingEst = matriz;
 
-    // Company header: complete data from issuing establishment (matriz or filial).
+    // Company header: complete data from the unified company (matriz).
     const companyName = issuingEst?.razao_social || unifiedLabel || "";
     let companyCnpj = issuingEst ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}` : unifiedCnpjLines.join(" · ");
     let companyAddress = "";
