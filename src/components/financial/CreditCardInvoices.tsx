@@ -219,7 +219,7 @@ export function CreditCardInvoices() {
         emptyMessage='Nenhuma fatura registrada. Clique em "Nova Fatura" para começar.'
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{invoices.length} fatura(s)</span>
+            <span>{visibleInvoices.length} fatura(s)</span>
             <span className="font-mono">
               {selected.size > 0 && (
                 <span className="mr-4 text-primary">Selecionado: {formatCurrency(totalSelecionado)}</span>
