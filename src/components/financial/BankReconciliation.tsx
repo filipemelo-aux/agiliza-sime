@@ -195,7 +195,7 @@ function TransactionDetails({
         <span
           key={c.label}
           title={`${c.label}: ${c.value}`}
-          className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground max-w-[220px] truncate"
+          className="min-w-0 max-w-full truncate rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
         >
           <span className="text-muted-foreground/70">{c.label}:</span> {c.value}
         </span>

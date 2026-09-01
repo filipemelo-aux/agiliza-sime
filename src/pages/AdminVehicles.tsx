@@ -455,7 +455,7 @@ export default function AdminVehicles() {
                                   <td className="p-2 text-right">{f.km_atual ? fmtNum(Number(f.km_atual), 0) : "—"}</td>
                                   <td className="p-2 text-right">{fmtNum(Number(f.quantidade_litros), 1)}</td>
                                   <td className="p-2 text-right">{fmtBRL(Number(f.valor_total))}</td>
-                                  <td className="p-2 truncate max-w-[140px]">{f.posto_combustivel || "—"}</td>
+                                  <td className="p-2 truncate">{f.posto_combustivel || "—"}</td>
                                 </tr>
                               ))}
                             </tbody>

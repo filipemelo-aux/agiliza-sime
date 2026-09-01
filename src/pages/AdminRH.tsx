@@ -249,7 +249,7 @@ function RHWorkspace(props: any) {
       cell: (c) => (
         <div>
           <div className="font-medium text-foreground">{c.full_name}</div>
-          <div className="text-[11px] text-muted-foreground truncate max-w-[240px]">
+          <div className="text-[11px] text-muted-foreground truncate">
             {c.tipo === "motorista" ? "Motorista (Frota Própria)" : (c.cargo || "—")}
             {c.departamento ? ` · ${c.departamento}` : ""}
           </div>
