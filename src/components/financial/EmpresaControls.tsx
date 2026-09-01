@@ -103,7 +103,7 @@ export function EmpresaFilter({
   );
 }
 
-/** Badge compacto M/F para grids */
+/** Identificação compacta da empresa para grids */
 export function EmpresaBadge({ empresaId, className }: { empresaId?: string | null; className?: string }) {
   const { establishments } = useUnifiedCompany();
   const est = establishments.find((e) => e.id === empresaId);
@@ -113,14 +113,14 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
     <span
       title={est.razao_social}
       className={cn(
-        "inline-flex items-center justify-center rounded px-1.5 h-4 text-[10px] font-semibold border",
+        "inline-flex h-4 items-center justify-center rounded border px-1.5 text-[9px] font-medium leading-none",
         isMatriz
           ? "bg-primary/10 text-primary border-primary/30"
           : "bg-amber-500/10 text-amber-700 border-amber-500/30",
         className,
       )}
     >
-      {isMatriz ? "M" : "F"}
+      {isMatriz ? "Matriz" : "Filial"}
     </span>
   );
 }
