@@ -2007,6 +2007,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const workItems = itemsOverride ?? items;
     const workTotal = workItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
+    if (!(empresaId || matrizId)) { toast.error("Selecione a Empresa Titular do cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
     if (closeNow && workItems.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
     if (closeNow && workItems.some((i) => !i.plano_contas_id)) {
