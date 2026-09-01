@@ -1660,7 +1660,7 @@ ${hasRecebimentos ? `
     {
       key: "cliente", header: "Cliente",
       sortValue: (f) => f.cliente_nome || "",
-      cell: (f) => <span className="font-medium truncate block max-w-[320px]">{f.cliente_nome}</span>,
+      cell: (f) => <span className="font-medium truncate block">{f.cliente_nome}</span>,
     },
     {
       key: "vencimento", header: "Vencimento", width: "130px",
@@ -2527,7 +2527,7 @@ ${hasRecebimentos ? `
                         </TableCell>
                         <TableCell className="text-xs py-1.5">
                           <div className="font-medium">#{String(c.fatura_numero).padStart(4, "0")}</div>
-                          <div className="text-muted-foreground truncate max-w-[180px]">{c.cliente_nome}</div>
+                          <div className="text-muted-foreground truncate">{c.cliente_nome}</div>
                         </TableCell>
                         <TableCell className="text-xs py-1.5 tabular-nums">{formatDateBR(c.data_vencimento)}</TableCell>
                         <TableCell className="text-xs py-1.5 text-right font-mono">{formatCurrency(c.saldo)}</TableCell>

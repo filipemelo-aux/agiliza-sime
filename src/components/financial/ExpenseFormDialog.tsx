@@ -1630,7 +1630,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             <TableBody>
                               {nfseItens.map((item, idx) => (
                                 <TableRow key={idx}>
-                                  <TableCell className="text-[11px] max-w-[150px] truncate">{item.descricao}</TableCell>
+                                  <TableCell className="text-[11px] truncate">{item.descricao}</TableCell>
                                   <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
                                   <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
                                   <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
@@ -1985,7 +1985,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           <TableBody>
                             {itensNota.map((item, idx) => (
                               <TableRow key={idx}>
-                                <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
+                                <TableCell className="text-[11px] truncate">{item.descricao}</TableCell>
                                 <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
                                 <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
                                 <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
@@ -2074,7 +2074,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                               <TableCell className="text-[11px]">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
                               <TableCell className="text-[11px] font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                               <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
-                              <TableCell className="text-[11px] max-w-[80px] truncate">{p.observacoes || "—"}</TableCell>
+                              <TableCell className="text-[11px] truncate">{p.observacoes || "—"}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

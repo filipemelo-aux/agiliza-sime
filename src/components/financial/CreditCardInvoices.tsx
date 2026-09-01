@@ -128,7 +128,7 @@ export function CreditCardInvoices() {
       width: "230px",
       sortValue: (r) => r.card_name,
       cell: (r) => (
-        <span className="font-medium text-foreground block truncate max-w-[230px]" title={r.card_name}>
+        <span className="font-medium text-foreground block truncate" title={r.card_name}>
           {r.card_name}
         </span>
       ),
@@ -164,7 +164,7 @@ export function CreditCardInvoices() {
       width: "120px",
       sortValue: (r) => r.ofx_file_name || "",
       cell: (r) => (
-        <span className="truncate block max-w-[120px] text-muted-foreground" title={r.ofx_file_name || ""}>
+        <span className="truncate block text-muted-foreground" title={r.ofx_file_name || ""}>
           {r.ofx_file_name || "—"}
         </span>
       ),

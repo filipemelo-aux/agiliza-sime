@@ -207,17 +207,17 @@ export default function AdminQuotations() {
     {
       key: "cliente", header: "Cliente",
       sortValue: (q) => q.client?.razao_social || q.client?.full_name || "",
-      cell: (q) => <span className="truncate block max-w-[240px]">{q.client?.razao_social || q.client?.full_name || "—"}</span>,
+      cell: (q) => <span className="truncate block">{q.client?.razao_social || q.client?.full_name || "—"}</span>,
     },
     {
       key: "detalhe", header: "Detalhe",
       sortValue: (q) => q.type === "colheita" ? (q.previsao_inicio || "") : `${q.origem_cidade || ""}`,
       cell: (q) => q.type === "colheita" ? (
-        <span className="truncate block max-w-[240px] text-muted-foreground">
+        <span className="truncate block text-muted-foreground">
           {q.previsao_inicio ? format(new Date(q.previsao_inicio + "T12:00:00"), "dd/MM/yy") : "?"} — {q.previsao_termino ? format(new Date(q.previsao_termino + "T12:00:00"), "dd/MM/yy") : "?"} · {q.quantidade_caminhoes || 1} cam.
         </span>
       ) : (
-        <span className="truncate block max-w-[240px] text-muted-foreground">
+        <span className="truncate block text-muted-foreground">
           {q.origem_cidade}/{q.origem_uf} → {q.destino_cidade}/{q.destino_uf}
         </span>
       ),
@@ -234,7 +234,7 @@ export default function AdminQuotations() {
     {
       key: "responsavel", header: "Responsável", width: "160px",
       sortValue: (q) => q.creator?.full_name || "",
-      cell: (q) => <span className="truncate block max-w-[160px] text-muted-foreground">{q.creator?.full_name || "—"}</span>,
+      cell: (q) => <span className="truncate block text-muted-foreground">{q.creator?.full_name || "—"}</span>,
     },
     {
       key: "status", header: "Status", width: "120px", align: "center",

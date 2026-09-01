@@ -134,7 +134,7 @@ export default function AdminFuelings() {
     {
       key: "posto", header: "Posto",
       sortValue: (i) => i.posto_combustivel || "",
-      cell: (i) => <span className="truncate block max-w-[260px] text-muted-foreground">{i.posto_combustivel || "—"}</span>,
+      cell: (i) => <span className="truncate block text-muted-foreground">{i.posto_combustivel || "—"}</span>,
     },
     {
       key: "litros", header: "Litros", width: "100px", align: "right",

@@ -101,7 +101,7 @@ export function DataGrid<T>({
     a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card [&_td_.truncate]:max-w-full">
       <div className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
         <table className="w-full border-collapse text-xs" style={{ minWidth }}>
           <thead className="sticky top-0 z-10 bg-muted/60">
@@ -208,7 +208,7 @@ export function DataGrid<T>({
                             )}
                           />
                         )}
-                        <span className={cn(ci === 0 && "relative")}>{col.cell(row)}</span>
+                        <span className={cn("block min-w-0 w-full", ci === 0 && "relative")}>{col.cell(row)}</span>
                       </td>
                     ))}
                   </tr>

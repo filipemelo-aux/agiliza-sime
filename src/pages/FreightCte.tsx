@@ -479,7 +479,7 @@ export default function FreightCte() {
     {
       key: "cliente", header: "Cliente",
       sortValue: (c) => getClienteTomador(c) || "",
-      cell: (c) => <span className="truncate block max-w-[380px]">{getClienteTomador(c)}</span>,
+      cell: (c) => <span className="truncate block">{getClienteTomador(c)}</span>,
     },
     {
       key: "placa", header: "Placa", width: "90px",

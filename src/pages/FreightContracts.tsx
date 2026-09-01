@@ -288,7 +288,7 @@ export default function FreightContracts() {
       sortValue: (r) => r.contratado_nome,
       cell: (r) => (
         <div className="min-w-0">
-          <div className="font-medium truncate max-w-[260px]">{r.contratado_nome}</div>
+          <div className="font-medium truncate">{r.contratado_nome}</div>
           <div className="text-[10px] text-muted-foreground truncate">{r.contratado_documento || ""}</div>
         </div>
       ),
@@ -297,7 +297,7 @@ export default function FreightContracts() {
       key: "trecho", header: "Trecho",
       sortValue: (r) => `${r.municipio_origem || ""}${r.municipio_destino || ""}`,
       cell: (r) => (
-        <span className="text-muted-foreground truncate block max-w-[260px]">
+        <span className="text-muted-foreground truncate block">
           {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
         </span>
       ),
