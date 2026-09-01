@@ -1,0 +1,1 @@
+CREATE TRIGGER trg_cleanup_movimentacao_receivable_payments AFTER DELETE ON public.receivable_payments FOR EACH ROW EXECUTE FUNCTION public.fn_cleanup_movimentacao_on_origin_delete();
