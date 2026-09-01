@@ -238,8 +238,8 @@ export default function AdminVehicles() {
       sortValue: (v) => VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type || "",
       cell: (v) => <Badge variant="outline" className="text-[10px]">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>,
     },
-    { key: "driver", header: "Motorista", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block max-w-[160px]">{v.driver_name || "—"}</span> },
-    { key: "owner", header: "Proprietário", sortValue: (v) => v.owner_name || "", cell: (v) => <span className="text-muted-foreground truncate block max-w-[160px]">{v.owner_name || "—"}</span> },
+    { key: "driver", header: "Motorista", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.driver_name || "—"}</span> },
+    { key: "owner", header: "Proprietário", sortValue: (v) => v.owner_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.owner_name || "—"}</span> },
     {
       key: "avg",
       header: "Média",

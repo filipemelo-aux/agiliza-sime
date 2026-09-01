@@ -653,13 +653,13 @@ function ExpenseList({
       key: "descricao",
       header: "Descrição",
       sortValue: (e) => e.descricao || "",
-      cell: (e) => <span className="font-medium text-foreground block truncate max-w-[320px]">{e.descricao}</span>,
+      cell: (e) => <span className="font-medium text-foreground block truncate">{e.descricao}</span>,
     },
     {
       key: "favorecido",
       header: "Favorecido",
       sortValue: (e) => (enrichName ? enrichName(e) : e.favorecido_nome) || "",
-      cell: (e) => <span className="text-muted-foreground block truncate max-w-[220px]">{(enrichName ? enrichName(e) : e.favorecido_nome) || "—"}</span>,
+      cell: (e) => <span className="text-muted-foreground block truncate">{(enrichName ? enrichName(e) : e.favorecido_nome) || "—"}</span>,
     },
     {
       key: "emissao",

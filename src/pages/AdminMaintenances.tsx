@@ -260,12 +260,12 @@ export default function AdminMaintenances() {
     {
       key: "descricao", header: "Descrição",
       sortValue: (m) => m.descricao || "",
-      cell: (m) => <span className="truncate block max-w-[300px]">{m.descricao}</span>,
+      cell: (m) => <span className="truncate block">{m.descricao}</span>,
     },
     {
       key: "fornecedor", header: "Fornecedor", width: "180px",
       sortValue: (m) => m.fornecedor || "",
-      cell: (m) => <span className="truncate block max-w-[180px] text-muted-foreground">{m.fornecedor || "—"}</span>,
+      cell: (m) => <span className="truncate block text-muted-foreground">{m.fornecedor || "—"}</span>,
     },
     {
       key: "docs", header: "Docs", width: "100px", align: "center",

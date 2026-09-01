@@ -123,7 +123,7 @@ export default function AdminCargas() {
       cell: (c) => (
         <div>
           <div className="font-medium text-foreground">{c.produto_predominante}</div>
-          {c.sinonimos && <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{c.sinonimos}</div>}
+          {c.sinonimos && <div className="text-[11px] text-muted-foreground truncate">{c.sinonimos}</div>}
         </div>
       ),
     },

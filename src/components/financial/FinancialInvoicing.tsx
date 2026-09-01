@@ -1660,7 +1660,7 @@ ${hasRecebimentos ? `
     {
       key: "cliente", header: "Cliente",
       sortValue: (f) => f.cliente_nome || "",
-      cell: (f) => <span className="font-medium truncate block max-w-[320px]">{f.cliente_nome}</span>,
+      cell: (f) => <span className="font-medium truncate block">{f.cliente_nome}</span>,
     },
     {
       key: "vencimento", header: "Vencimento", width: "130px",

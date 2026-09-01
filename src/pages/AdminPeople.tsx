@@ -236,7 +236,7 @@ export default function AdminPeople() {
           <div>
             <div className="font-medium text-foreground">{d.full_name}</div>
             {d.person_type === "cnpj" && d.razao_social && (
-              <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{d.razao_social}</div>
+              <div className="text-[11px] text-muted-foreground truncate">{d.razao_social}</div>
             )}
             {driverVehicles.length > 0 && (
               <div className="flex flex-wrap gap-x-2 mt-0.5 text-[11px] text-muted-foreground">
@@ -279,7 +279,7 @@ export default function AdminPeople() {
       sortValue: (d) => d.email || d.phone || "",
       cell: (d) => (
         <div className="text-muted-foreground">
-          {d.email && <div className="truncate max-w-[220px]">{d.email}</div>}
+          {d.email && <div className="truncate">{d.email}</div>}
           {d.phone && <div>{maskPhone(d.phone)}</div>}
           {!d.email && !d.phone && <span>—</span>}
         </div>

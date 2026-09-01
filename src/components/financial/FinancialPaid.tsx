@@ -432,11 +432,11 @@ export function FinancialPaid() {
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
-          <span className="font-medium text-foreground truncate block max-w-[220px]">
+          <span className="font-medium text-foreground truncate block">
             {r.creditor_name || "Sem favorecido"}
           </span>
           {r.created_by_name && (
-            <span className="text-[10px] text-muted-foreground truncate block max-w-[220px]">
+            <span className="text-[10px] text-muted-foreground truncate block">
               por {r.created_by_name}
             </span>
           )}
@@ -448,7 +448,7 @@ export function FinancialPaid() {
       key: "description",
       header: "Descrição",
       sortValue: (r) => r.description,
-      cell: (r) => <span className="truncate block max-w-[280px]">{r.description}</span>,
+      cell: (r) => <span className="truncate block">{r.description}</span>,
     },
     {
       key: "due_date",

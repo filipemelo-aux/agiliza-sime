@@ -1083,9 +1083,9 @@ export function FinancialPayables() {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
         return (
           <span className="block min-w-0">
-            <span className="font-medium text-foreground truncate block max-w-[220px]">{r.favorecido}</span>
+            <span className="font-medium text-foreground truncate block">{r.favorecido}</span>
             {creator && (
-              <span className="text-[10px] text-muted-foreground truncate block max-w-[220px]">por {creator}</span>
+              <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}
           </span>
         );
@@ -1099,7 +1099,7 @@ export function FinancialPayables() {
       cell: (r) => (
         <span className="flex items-center gap-1 min-w-0">
           {r.item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-          <span className="truncate block max-w-[260px]">{r.descricao}</span>
+          <span className="truncate block">{r.descricao}</span>
           {r.isHarvest && <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>}
         </span>
       ),
@@ -1117,7 +1117,7 @@ export function FinancialPayables() {
       header: "Conta Contábil",
       width: "200px",
       sortValue: (r) => r.chartLabel,
-      cell: (r) => <span className="truncate block max-w-[200px] text-[11px]">{r.chartLabel}</span>,
+      cell: (r) => <span className="truncate block text-[11px]">{r.chartLabel}</span>,
     },
     {
       key: "vencimento",

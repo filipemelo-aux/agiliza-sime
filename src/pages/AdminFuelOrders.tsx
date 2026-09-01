@@ -174,9 +174,9 @@ export default function AdminFuelOrders() {
   const columns: DataGridColumn<any>[] = [
     { key: "numero", header: "Nº", width: "80px", sortValue: (o) => o.order_number, cell: (o) => <span className="font-semibold tabular-nums">#{o.order_number}</span> },
     { key: "data", header: "Data", width: "110px", sortValue: (o) => o.created_at, cell: (o) => <span className="tabular-nums">{format(new Date(o.created_at), "dd/MM/yyyy")}</span> },
-    { key: "fornecedor", header: "Fornecedor", sortValue: (o) => o.supplier_name || "", cell: (o) => <span className="truncate block max-w-[240px]">{o.supplier_name}</span> },
+    { key: "fornecedor", header: "Fornecedor", sortValue: (o) => o.supplier_name || "", cell: (o) => <span className="truncate block">{o.supplier_name}</span> },
     { key: "veiculo", header: "Veículo", width: "110px", sortValue: (o) => o.vehicle_plate || "", cell: (o) => <span className="font-medium">{o.vehicle_plate}</span> },
-    { key: "motorista", header: "Motorista", width: "180px", sortValue: (o) => (o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : ""), cell: (o) => <span className="truncate block max-w-[180px] text-muted-foreground">{(o.vehicle_id && driverMap.get(o.vehicle_id)) || "—"}</span> },
+    { key: "motorista", header: "Motorista", width: "180px", sortValue: (o) => (o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : ""), cell: (o) => <span className="truncate block text-muted-foreground">{(o.vehicle_id && driverMap.get(o.vehicle_id)) || "—"}</span> },
     { key: "combustivel", header: "Combustível", width: "120px", sortValue: (o) => o.fuel_type, cell: (o) => FUEL_LABELS[o.fuel_type] || o.fuel_type },
     { key: "qtd", header: "Quantidade", width: "110px", align: "right", sortValue: (o) => (o.fill_mode === "completar" ? -1 : Number(o.liters) || 0), cell: (o) => <span className="font-mono">{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span> },
     { key: "email", header: "E-mail", width: "130px", sortValue: (o) => o.email_sent_at || "", cell: (o) => <span className="text-[11px] text-muted-foreground">{o.email_sent_at ? format(new Date(o.email_sent_at), "dd/MM/yy HH:mm") : "—"}</span> },
