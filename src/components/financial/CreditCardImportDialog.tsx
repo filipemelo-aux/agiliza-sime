@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { personDisplayName } from "@/lib/personName";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
+import { EmpresaSelect } from "./EmpresaControls";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -165,6 +166,8 @@ import ManualItemsEditor, { type ManualItem, newManualUid, gruposInvalidosManual
 
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
+  /** Empresa beneficiária da despesa (pode diferir da empresa titular do cartão). */
+  empresa_id?: string | null;
   fitid: string;
   posted_date: string;
   description: string;
@@ -268,6 +271,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [cardName, setCardName] = useState("");
+  const [empresaId, setEmpresaId] = useState<string>("");
   const [bankPersonId, setBankPersonId] = useState<string | null>(null);
   const [referenceYM, setReferenceYM] = useState(() => {
     const d = new Date();
@@ -397,6 +401,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (!inv) return;
       const i: any = inv;
       setCardName(i.card_name || "");
+      setEmpresaId(i.empresa_id || "");
       setBankPersonId(i.bank_person_id || null);
       setReferenceYM(parseReferenceToYM(i.reference_label || ""));
       setDueDate(i.due_date || "");
@@ -432,6 +437,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_total: r.parcela_total ?? null,
         parcelas_expandidas: !!r.parcelas_expandidas,
         data_matriz_aplicada: true,
+        empresa_id: r.empresa_id ?? null,
         documento_fiscal_tipo: r.documento_fiscal_tipo ?? null,
         documento_fiscal_numero: r.documento_fiscal_numero ?? null,
         chave_nfe: r.chave_nfe ?? null,
@@ -708,6 +714,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     plano_contas_id: string | null;
     favorecido_id: string | null;
     favorecido_nome: string;
+    empresa_id: string;
   }
   const emptyManualForm = (): ManualForm => {
     const [y, m] = referenceYM.split("-").map(Number);
@@ -726,6 +733,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       plano_contas_id: null,
       favorecido_id: null,
       favorecido_nome: "",
+      empresa_id: empresaId || matrizId || "",
     };
   };
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -816,6 +824,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       plano_contas_id: item.plano_contas_id,
       favorecido_id: item.favorecido_id,
       favorecido_nome: item.favorecido_nome || "",
+      empresa_id: item.empresa_id || empresaId || matrizId || "",
     });
     setManualItens(
       itens.map((i: any): ManualItem => ({
@@ -842,6 +851,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const informado = Number(unmaskCurrency(manualForm.amount));
     if (!informado || informado <= 0) { toast.error("Informe um valor válido."); return; }
     if (!manualForm.posted_date) { toast.error("Informe a data do lançamento."); return; }
+    if (!manualForm.empresa_id) { toast.error("Selecione a empresa / unidade da despesa."); return; }
     const parcelaAtual = manualForm.parcela_atual ? Number(manualForm.parcela_atual) : null;
     const parcelaTotal = manualForm.parcela_total ? Number(manualForm.parcela_total) : null;
     if ((parcelaAtual && !parcelaTotal) || (!parcelaAtual && parcelaTotal)) {
@@ -899,6 +909,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         plano_contas_id: manualForm.plano_contas_id,
         favorecido_id: manualForm.favorecido_id,
         favorecido_nome: manualForm.favorecido_nome,
+        empresa_id: manualForm.empresa_id || null,
         parcela_atual: parcelaAtual,
         parcela_total: parcelaTotal,
         itens_nota: itensNota ?? it.itens_nota ?? null,
@@ -921,6 +932,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       centro_custo: "",
       favorecido_id: manualForm.favorecido_id,
       favorecido_nome: manualForm.favorecido_nome,
+      empresa_id: manualForm.empresa_id || null,
       veiculo_id: null,
       observacoes: "",
       parcela_atual: parcelaAtual,
@@ -1396,7 +1408,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (invoiceId) return invoiceId;
     if (createdInvoiceIdRef.current) return createdInvoiceIdRef.current;
     const payload: any = {
-      empresa_id: matrizId || null,
+      empresa_id: empresaId || matrizId || null,
       card_name: cardName.trim(),
       bank_person_id: bankPersonId,
       reference_label: formatReferenceLabel(referenceYM) || null,
@@ -1536,7 +1548,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         reusedCount++;
       } else {
         const payload: any = {
-          empresa_id: matrizId || null,
+          empresa_id: empresaId || matrizId || null,
           card_name: cardName.trim(),
           bank_person_id: bankPersonId,
           reference_label: targetRefLabel,
@@ -1605,6 +1617,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
       const itemPayload: any = {
         invoice_id: targetInvoice.id,
+        empresa_id: targetItem.empresa_id || empresaId || matrizId || null,
         posted_date: targetItem.posted_date,
         description: targetItem.description,
         amount: targetItem.amount,
@@ -1682,6 +1695,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_total: r.parcela_total ?? null,
       parcelas_expandidas: !!r.parcelas_expandidas,
       data_matriz_aplicada: true,
+      empresa_id: r.empresa_id ?? null,
       documento_fiscal_tipo: r.documento_fiscal_tipo ?? null,
       documento_fiscal_numero: r.documento_fiscal_numero ?? null,
       chave_nfe: r.chave_nfe ?? null,
@@ -2044,7 +2058,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         !closeNow && existingStatus === "fechada" ? "fechada" : (closeNow ? "fechada" : "aberta");
 
       const payload: any = {
-        empresa_id: matrizId || null,
+        empresa_id: empresaId || matrizId || null,
         card_name: cardName.trim(),
         bank_person_id: bankPersonId,
         reference_label: formatReferenceLabel(referenceYM) || null,
@@ -2089,6 +2103,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
       const rows = workItems.map((it) => ({
         invoice_id: id,
+        empresa_id: it.empresa_id || empresaId || matrizId || null,
         posted_date: it.posted_date,
         description: it.description,
         amount: it.amount,
@@ -2213,8 +2228,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           }
         } else {
           const expensePayload: any = {
-            empresa_id: matrizId || null,
-            unidade_id: matrizId || null,
+            empresa_id: empresaId || matrizId || null,
+            unidade_id: empresaId || matrizId || null,
             descricao: description,
             tipo_despesa: "outros",
             plano_contas_id: cartaoCreditoPlanoId,
@@ -2358,6 +2373,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
         <div className="space-y-2 uppercase [&_input]:uppercase [&_textarea]:uppercase [&_input]:placeholder:normal-case [&_textarea]:placeholder:normal-case">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-start">
+            <div className="space-y-1 flex flex-col normal-case">
+              <Label className="text-[11px]">Empresa Titular *</Label>
+              <EmpresaSelect
+                label={null}
+                value={empresaId || matrizId}
+                onChange={setEmpresaId}
+                disabled={isClosed}
+              />
+            </div>
             <div className="space-y-1 flex flex-col">
               <Label className="text-[11px]">Cartão (Banco) *</Label>
               <PersonSearchInput
@@ -2699,6 +2723,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 />
               </div>
             </div>
+            <EmpresaSelect
+              label="Empresa / Unidade da Despesa"
+              value={manualForm.empresa_id}
+              onChange={(v) => setManualForm((f) => ({ ...f, empresa_id: v }))}
+            />
             <div className="flex items-center gap-1 rounded-md border p-1 w-fit">
               {([
                 { key: "parcela", label: "Informar valor da parcela" },
