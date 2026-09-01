@@ -705,6 +705,7 @@ export type Database = {
           description: string
           documento_fiscal_numero: string | null
           documento_fiscal_tipo: string | null
+          empresa_id: string | null
           favorecido_id: string | null
           favorecido_nome: string | null
           fitid: string | null
@@ -735,6 +736,7 @@ export type Database = {
           description: string
           documento_fiscal_numero?: string | null
           documento_fiscal_tipo?: string | null
+          empresa_id?: string | null
           favorecido_id?: string | null
           favorecido_nome?: string | null
           fitid?: string | null
@@ -765,6 +767,7 @@ export type Database = {
           description?: string
           documento_fiscal_numero?: string | null
           documento_fiscal_tipo?: string | null
+          empresa_id?: string | null
           favorecido_id?: string | null
           favorecido_nome?: string | null
           fitid?: string | null
@@ -788,6 +791,13 @@ export type Database = {
           xml_original?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "credit_card_invoice_items_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credit_card_invoice_items_favorecido_id_fkey"
             columns: ["favorecido_id"]
