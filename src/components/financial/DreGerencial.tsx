@@ -772,7 +772,7 @@ export function DreGerencial() {
                 {(drill?.rows || []).map((r, i) => (
                   <tr key={i} className="border-b border-border/60">
                     <td className="px-2 py-1.5 tabular-nums">{formatDateBR(r.data)}</td>
-                    <td className="px-2 py-1.5 truncate max-w-[380px]" title={r.descricao}>{r.descricao}</td>
+                    <td className="px-2 py-1.5 truncate" title={r.descricao}>{r.descricao}</td>
                     <td className="px-2 py-1.5 text-center tabular-nums">{r.parcela}</td>
                     <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(r.valor)}</td>
                   </tr>
@@ -865,7 +865,7 @@ function AuditTable({ rows }: { rows: Array<{
           {rows.map((r) => (
             <tr key={r.id} className="border-t border-border/60">
               <td className="px-2 py-1.5 tabular-nums">{r.posted_date ? formatDateBR(r.posted_date) : "—"}</td>
-              <td className="px-2 py-1.5 truncate max-w-[260px]" title={r.description}>{r.description}</td>
+              <td className="px-2 py-1.5 truncate" title={r.description}>{r.description}</td>
               <td className="px-2 py-1.5 text-center tabular-nums">{r.parcela}</td>
               <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(r.amount)}</td>
               <td className="px-2 py-1.5 text-[11px] text-muted-foreground" title={r.invoice_label}>{r.reason}</td>

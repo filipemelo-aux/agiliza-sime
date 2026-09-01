@@ -544,8 +544,8 @@ export function FinancialCashFlow() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
-                      <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
-                      <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
+                      <TableCell className="text-xs truncate py-2">{m.pessoa_nome || "—"}</TableCell>
+                      <TableCell className="text-xs truncate py-2">{m.descricao || "—"}</TableCell>
                       <TableCell className="text-xs max-w-[200px] py-2">
                         {plano ? (
                           <button
