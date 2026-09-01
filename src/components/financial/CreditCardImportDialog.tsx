@@ -2150,6 +2150,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         }
       }
 
+      // Empresa do fato gerador: a despesa vinculada herda a empresa escolhida no item.
+      for (const it of workItems) {
+        const alvo = it.empresa_id || empresaId || matrizId || null;
+        if (it.origem_expense_id && alvo) {
+          await supabase
+            .from("expenses")
+            .update({ empresa_id: alvo, unidade_id: alvo })
+            .eq("id", it.origem_expense_id);
+        }
+      }
+
       // Replica a classificação editada para as demais parcelas do agrupamento.
       await propagateClassificationToInstallments(workItems);
 
