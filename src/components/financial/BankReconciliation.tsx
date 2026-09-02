@@ -3114,6 +3114,35 @@ function translateOrigem(origem: string | null): string {
 }
 
 
+function MatchDesc({ desc }: { desc: string | null }) {
+  const isMobile = useIsMobile();
+  const [expanded, setExpanded] = useState(false);
+  const text = desc || "Sem descrição";
+  const line = (
+    <p
+      className={cn("min-w-0 break-words", expanded ? "" : "line-clamp-2")}
+      onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
+      role={isMobile ? "button" : undefined}
+      tabIndex={isMobile ? 0 : undefined}
+    >
+      <span className="font-medium">Desc:</span> {text}
+    </p>
+  );
+  if (isMobile) {
+    return line;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {line}
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-sm text-[11px] leading-snug whitespace-normal text-left">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
   variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
