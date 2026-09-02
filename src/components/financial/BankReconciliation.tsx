@@ -151,15 +151,19 @@ function TransactionDetails({
   description,
   tipo,
   resolveName,
+  cadastroNome,
 }: {
   details?: Record<string, string | number | null> | null;
   description?: string | null;
   tipo?: "entrada" | "saida";
   resolveName?: (doc: string) => string | null;
+  /** Nome encontrado no cadastro (profiles) para a contraparte do lançamento. */
+  cadastroNome?: string | null;
 }) {
   const fromDesc = counterpartyFromDescription(description);
   const documento = fromDesc.documento || (details?.documentoContraparte as string) || null;
   const nome =
+    cadastroNome ||
     fromDesc.nome ||
     (details?.contraparte as string) ||
     (details?.estabelecimento as string) ||
@@ -169,6 +173,7 @@ function TransactionDetails({
     contraparte: nome,
     documentoContraparte: documento,
   };
+
 
   if (!details && !nome && !documento) return null;
   const partyLabel = fromDesc.papel
