@@ -543,9 +543,9 @@ export function BankReconciliation() {
         for (const p of payables) {
           if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
           const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
-          if (dist <= 5 || !p.referenceDate) {
-            payPairs.push({ idx, candId: p.id, dist });
-          }
+          // Mesma regra da importação: prioriza data próxima, mas aceita
+          // correspondência só por valor quando não há vencimento próximo.
+          payPairs.push({ idx, candId: p.id, dist });
         }
       });
       payPairs.sort((a, b) => a.dist - b.dist);
