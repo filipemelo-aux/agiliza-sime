@@ -1621,7 +1621,8 @@ export function BankReconciliation() {
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
-          .select("id, expense_id, valor, data_vencimento, status, numero_parcela, expenses(descricao, favorecido_nome, deleted_at)")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+
           .eq("status", "pendente"),
         // Movimentações já vinculadas a outras conciliações
         supabase
