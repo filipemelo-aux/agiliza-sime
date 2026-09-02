@@ -191,7 +191,15 @@ function TransactionDetails({
     })
 
     .filter((c): c is { label: string; value: string } => c !== null);
-  if (chips.length === 0) return null;
+  // Fallback: o banco não informou contraparte (ex.: transferência entre contas).
+  // Mostramos ao menos o tipo de operação/forma de pagamento para dar contexto.
+  if (chips.length === 0) {
+    const tipoOp = (details?.tipoOperacao as string) || (details?.formaPagamento as string) || (details?.categoria as string) || null;
+    if (!tipoOp) return null;
+    const legivel = String(tipoOp).replace(/_/g, " ").toLowerCase();
+    chips.push({ label: "Operação", value: legivel.charAt(0).toUpperCase() + legivel.slice(1) });
+  }
+
 
 
   return (
@@ -355,7 +363,8 @@ export function BankReconciliation() {
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
-          .select("id, expense_id, valor, data_vencimento, status, numero_parcela, expenses(descricao, favorecido_nome, deleted_at)")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+
           .eq("status", "pendente"),
         // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
         supabase
@@ -421,12 +430,22 @@ export function BankReconciliation() {
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
       const expWithInst = new Set(instRows.map((i: any) => i.expense_id));
+      // Despesas-mãe das parcelas que não estão na lista de pendentes (ex.: status parcial/pago)
+      const parentIds = Array.from(
+        new Set(instRows.map((i: any) => i.expense_id).filter((id: string) => id && !expRows.some((e: any) => e.id === id))),
+      );
+      const parentMap = new Map<string, any>();
+      if (parentIds.length > 0) {
+        const { data: parents } = await supabase
+          .from("expenses")
+          .select("id, descricao, favorecido_nome, deleted_at")
+          .in("id", parentIds);
+        (parents || []).forEach((p: any) => parentMap.set(p.id, p));
+      }
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows) {
-        // A despesa pode não estar na lista de pendentes (ex.: status parcial/pago),
-        // por isso usamos o embed da própria parcela como fonte do fornecedor.
-        const exp = expRows.find((e: any) => e.id === inst.expense_id) || inst.expenses || null;
-        if (inst.expenses?.deleted_at) continue;
+        const exp = expRows.find((e: any) => e.id === inst.expense_id) || parentMap.get(inst.expense_id) || null;
+        if (exp?.deleted_at) continue;
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
@@ -439,6 +458,7 @@ export function BankReconciliation() {
           numeroParcela: inst.numero_parcela,
         });
       }
+
       for (const exp of expRows) {
         if (expWithInst.has(exp.id)) continue;
         const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
@@ -1609,7 +1629,8 @@ export function BankReconciliation() {
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
-          .select("id, expense_id, valor, data_vencimento, status, numero_parcela, expenses(descricao, favorecido_nome, deleted_at)")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+
           .eq("status", "pendente"),
         // Movimentações já vinculadas a outras conciliações
         supabase
@@ -1629,10 +1650,22 @@ export function BankReconciliation() {
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
+      const parentIds2 = Array.from(
+        new Set(instRows2.map((i: any) => i.expense_id).filter((id: string) => id && !expRows2.some((e: any) => e.id === id))),
+      );
+      const parentMap2 = new Map<string, any>();
+      if (parentIds2.length > 0) {
+        const { data: parents2 } = await supabase
+          .from("expenses")
+          .select("id, descricao, favorecido_nome, deleted_at")
+          .in("id", parentIds2);
+        (parents2 || []).forEach((p: any) => parentMap2.set(p.id, p));
+      }
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows2) {
-        const exp = expRows2.find((e: any) => e.id === inst.expense_id) || inst.expenses || null;
-        if (inst.expenses?.deleted_at) continue;
+        const exp = expRows2.find((e: any) => e.id === inst.expense_id) || parentMap2.get(inst.expense_id) || null;
+        if (exp?.deleted_at) continue;
+
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
