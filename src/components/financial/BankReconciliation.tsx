@@ -927,7 +927,8 @@ export function BankReconciliation() {
             } as any)
             .select("id")
             .single();
-          if (paymentError || !payment?.id) throw paymentError || new Error("Pagamento não foi criado");
+          const paymentId = (payment as any)?.id as string | undefined;
+          if (paymentError || !paymentId) throw paymentError || new Error("Pagamento não foi criado");
 
           if (item.matchedPayableIsInstallment && item.matchedPayableInstallmentId) {
             const { error: installmentError } = await supabase
@@ -941,7 +942,7 @@ export function BankReconciliation() {
             .from("movimentacoes_bancarias")
             .select("id")
             .eq("origem", "pagamento_despesa")
-            .eq("origem_id", payment.id)
+            .eq("origem_id", paymentId)
             .maybeSingle();
           if (movementError) throw movementError;
           movIdToLink = movement?.id || await findCreatedMovId({
