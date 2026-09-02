@@ -1642,10 +1642,22 @@ export function BankReconciliation() {
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
+      const parentIds2 = Array.from(
+        new Set(instRows2.map((i: any) => i.expense_id).filter((id: string) => id && !expRows2.some((e: any) => e.id === id))),
+      );
+      const parentMap2 = new Map<string, any>();
+      if (parentIds2.length > 0) {
+        const { data: parents2 } = await supabase
+          .from("expenses")
+          .select("id, descricao, favorecido_nome, deleted_at")
+          .in("id", parentIds2);
+        (parents2 || []).forEach((p: any) => parentMap2.set(p.id, p));
+      }
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows2) {
-        const exp = expRows2.find((e: any) => e.id === inst.expense_id) || inst.expenses || null;
-        if (inst.expenses?.deleted_at) continue;
+        const exp = expRows2.find((e: any) => e.id === inst.expense_id) || parentMap2.get(inst.expense_id) || null;
+        if (exp?.deleted_at) continue;
+
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
