@@ -1414,7 +1414,8 @@ export function BankReconciliation() {
           const updateFilter = it.dbItemId
             ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
             : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-          await updateFilter;
+          const { error: linkUpdateError } = await updateFilter;
+          if (linkUpdateError) throw linkUpdateError;
         }
         const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
         setItems((prev) =>
@@ -1474,10 +1475,11 @@ export function BankReconciliation() {
 
 
         if (isInstallment) {
-          await supabase
+          const { error: installmentError } = await supabase
             .from("expense_installments")
             .update({ status: "pago" } as any)
             .eq("id", linkSelectedAccount.installment_id);
+          if (installmentError) throw installmentError;
 
           const { data: allInst } = await supabase
             .from("expense_installments")
@@ -1489,27 +1491,30 @@ export function BankReconciliation() {
             .reduce((s: number, i: any) => s + Number(i.valor), 0);
           const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
 
-          await supabase.from("expenses").update({
+          const { error: expenseUpdateError } = await supabase.from("expenses").update({
             valor_pago: totalPagoNow,
             status: allPaid ? "pago" : "parcial",
             forma_pagamento: "transferencia",
             data_pagamento: minDate,
           } as any).eq("id", expenseId);
+          if (expenseUpdateError) throw expenseUpdateError;
         } else {
-          const { data: expData } = await supabase
+          const { data: expData, error: expenseReadError } = await supabase
             .from("expenses")
             .select("valor_total, valor_pago")
             .eq("id", expenseId)
             .single();
+          if (expenseReadError) throw expenseReadError;
           const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
           const valorTotal = Number(expData?.valor_total || 0);
           const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-          await supabase.from("expenses").update({
+          const { error: expenseUpdateError } = await supabase.from("expenses").update({
             valor_pago: novoValorPago,
             status: novoStatus,
             forma_pagamento: "transferencia",
             data_pagamento: minDate,
           } as any).eq("id", expenseId);
+          if (expenseUpdateError) throw expenseUpdateError;
         }
       }
 
@@ -1521,11 +1526,15 @@ export function BankReconciliation() {
           tipo: it.tipo,
           referenceDate: it.date,
         });
+        if (!movIdToLink) {
+          throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. O lançamento continuará pendente.`);
+        }
         linkedMap.set(it.id, movIdToLink);
         const updateFilter = it.dbItemId
           ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
           : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-        await updateFilter;
+        const { error: linkUpdateError } = await updateFilter;
+        if (linkUpdateError) throw linkUpdateError;
       }
 
       const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
