@@ -1420,7 +1420,7 @@ export function BankReconciliation() {
 
       // If account/parcela is not fully paid yet, register a payment for the sum
       if (!isPaid) {
-        await supabase.from("expense_payments" as any).insert({
+        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: expenseId,
           valor: totalSel,
           forma_pagamento: "transferencia",
@@ -1432,6 +1432,9 @@ export function BankReconciliation() {
           juros: 0,
           installment_id: isInstallment ? (linkSelectedAccount.installment_id ?? null) : null,
         } as any);
+        // Sem pagamento gravado não existe movimentação: não marcar como conciliado.
+        if (payInsErr) throw payInsErr;
+
 
         if (isInstallment) {
           await supabase
