@@ -2626,8 +2626,12 @@ export function BankReconciliation() {
           <p className="text-xs text-muted-foreground">{fileName}</p>
         </div>
         <div className="flex w-full items-center justify-end gap-1.5 md:w-auto">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack}>
-            <History className="h-3.5 w-3.5" /> Histórico
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack} title="Voltar para a listagem de conciliações">
+            <ArrowLeft className="h-3.5 w-3.5" /> <span className="max-md:hidden">Voltar à lista</span>
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 w-8 gap-1 p-0 md:w-auto md:px-3" title="Atualizar conciliação" aria-label="Atualizar conciliação" disabled={loading || !reconciliationId} onClick={refreshReconciliation}>
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            <span className="max-md:hidden">Atualizar</span>
           </Button>
           {syncDaysSelect}
           <Button variant="default" size="sm" className="h-8 w-8 gap-1 p-0 md:w-auto md:px-3" title="Sincronizar Open Finance" aria-label="Sincronizar Open Finance" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
