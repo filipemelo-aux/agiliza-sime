@@ -1420,7 +1420,7 @@ export function BankReconciliation() {
 
       // If account/parcela is not fully paid yet, register a payment for the sum
       if (!isPaid) {
-        await supabase.from("expense_payments" as any).insert({
+        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: expenseId,
           valor: totalSel,
           forma_pagamento: "transferencia",
@@ -1432,6 +1432,9 @@ export function BankReconciliation() {
           juros: 0,
           installment_id: isInstallment ? (linkSelectedAccount.installment_id ?? null) : null,
         } as any);
+        // Sem pagamento gravado não existe movimentação: não marcar como conciliado.
+        if (payInsErr) throw payInsErr;
+
 
         if (isInstallment) {
           await supabase
@@ -2049,7 +2052,7 @@ export function BankReconciliation() {
         const valorPag = confirmMatch.valor;
 
         // Insert expense_payment record
-        await supabase.from("expense_payments" as any).insert({
+        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: confirmMatch.expenseId,
           valor: valorPag,
           forma_pagamento: "transferencia",
@@ -2059,6 +2062,9 @@ export function BankReconciliation() {
           juros: 0,
           installment_id: confirmMatch.isInstallment ? (confirmMatch.installmentId ?? null) : null,
         } as any);
+        // Sem pagamento gravado não existe movimentação: aborta antes de marcar conciliado.
+        if (payInsErr) throw payInsErr;
+
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
           await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", confirmMatch.installmentId);
@@ -2123,11 +2129,23 @@ export function BankReconciliation() {
         : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
       await updateFilter;
 
+      const cmDetails = movIdToLink ? (await fetchMovDetails([movIdToLink])).get(movIdToLink) : null;
       setItems((prev) =>
         prev.map((i) =>
-          i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
+          i.id === confirmItem.id
+            ? {
+                ...i,
+                status: "conciliado" as const,
+                matchedMovId: movIdToLink,
+                matchedMovDesc: cmDetails?.descricao ?? confirmMatch.descricao ?? i.matchedMovDesc,
+                matchedMovDate: cmDetails?.data_movimentacao ?? confirmItem.date ?? i.matchedMovDate,
+                matchedMovValor: cmDetails?.valor ?? Math.abs(confirmItem.amount),
+                matchedMovOrigem: cmDetails?.origem ?? i.matchedMovOrigem,
+              }
+            : i
         )
       );
+
       toast.success(
         confirmMatch.isPayable
           ? "Conta paga e conciliada com sucesso"
