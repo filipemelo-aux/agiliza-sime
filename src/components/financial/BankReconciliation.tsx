@@ -3137,14 +3137,12 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
         {fornecedor && (
-          <p className="flex gap-1 min-w-0">
-            <span className="font-medium shrink-0">Fornecedor:</span>
-            <span className="line-clamp-2 break-words min-w-0">{fornecedor}</span>
+          <p className="min-w-0 break-words">
+            <span className="font-medium">Fornecedor:</span> {fornecedor}
           </p>
         )}
-        <p className="flex gap-1 min-w-0">
-          <span className="font-medium shrink-0">Desc:</span>
-          <span className="line-clamp-2 break-words min-w-0">{desc || "Sem descrição"}</span>
+        <p className="min-w-0 break-words">
+          <span className="font-medium">Desc:</span> {desc || "Sem descrição"}
         </p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
