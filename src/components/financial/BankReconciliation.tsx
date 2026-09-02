@@ -2178,6 +2178,11 @@ export function BankReconciliation() {
         throw new Error("A baixa foi registrada, mas a movimentação bancária não foi localizada. O item não foi conciliado.");
       }
 
+      // Sem movimentação localizada não há o que conciliar: nunca marcar
+      // como "conciliado" com matched_movimentacao_id nulo.
+      if (!movIdToLink) {
+        throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(confirmItem.amount))}. A conciliação foi interrompida.`);
+      }
       const updateFilter = confirmItem.dbItemId
         ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", confirmItem.dbItemId)
         : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
