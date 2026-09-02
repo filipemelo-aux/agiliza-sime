@@ -668,7 +668,7 @@ export function BankReconciliation() {
             matchedReceivablePrecision = rm.referenceDate && rm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else if (matchedMovId) {
-          const mov = (existingMovs || []).find((m: any) => m.id === matchedMovId);
+          const mov = allMovs.find((m: any) => m.id === matchedMovId);
           if (mov) {
             matchedMovDesc = mov.descricao;
             matchedMovDate = mov.data_movimentacao;
