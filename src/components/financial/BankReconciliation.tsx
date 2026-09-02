@@ -151,15 +151,19 @@ function TransactionDetails({
   description,
   tipo,
   resolveName,
+  cadastroNome,
 }: {
   details?: Record<string, string | number | null> | null;
   description?: string | null;
   tipo?: "entrada" | "saida";
   resolveName?: (doc: string) => string | null;
+  /** Nome encontrado no cadastro (profiles) para a contraparte do lançamento. */
+  cadastroNome?: string | null;
 }) {
   const fromDesc = counterpartyFromDescription(description);
   const documento = fromDesc.documento || (details?.documentoContraparte as string) || null;
   const nome =
+    cadastroNome ||
     fromDesc.nome ||
     (details?.contraparte as string) ||
     (details?.estabelecimento as string) ||
@@ -169,6 +173,7 @@ function TransactionDetails({
     contraparte: nome,
     documentoContraparte: documento,
   };
+
 
   if (!details && !nome && !documento) return null;
   const partyLabel = fromDesc.papel
@@ -350,7 +355,7 @@ export function BankReconciliation() {
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
-          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela, expenses(descricao, favorecido_nome, deleted_at)")
           .eq("status", "pendente"),
         // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
         supabase
@@ -418,12 +423,15 @@ export function BankReconciliation() {
       const expWithInst = new Set(instRows.map((i: any) => i.expense_id));
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows) {
-        const exp = expRows.find((e: any) => e.id === inst.expense_id);
+        // A despesa pode não estar na lista de pendentes (ex.: status parcial/pago),
+        // por isso usamos o embed da própria parcela como fonte do fornecedor.
+        const exp = expRows.find((e: any) => e.id === inst.expense_id) || inst.expenses || null;
+        if (inst.expenses?.deleted_at) continue;
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
-          description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          description: exp?.descricao ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
           fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
@@ -1601,7 +1609,7 @@ export function BankReconciliation() {
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
-          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela, expenses(descricao, favorecido_nome, deleted_at)")
           .eq("status", "pendente"),
         // Movimentações já vinculadas a outras conciliações
         supabase
@@ -1623,12 +1631,13 @@ export function BankReconciliation() {
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows2) {
-        const exp = expRows2.find((e: any) => e.id === inst.expense_id);
+        const exp = expRows2.find((e: any) => e.id === inst.expense_id) || inst.expenses || null;
+        if (inst.expenses?.deleted_at) continue;
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
-          description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          description: exp?.descricao ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
           fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
@@ -2360,7 +2369,13 @@ export function BankReconciliation() {
       cell: (r) => (
         <div className="space-y-1 min-w-[240px]">
           <p className="text-xs text-foreground">{r.description}</p>
-          <TransactionDetails details={r.details} description={r.description} tipo={r.tipo} resolveName={resolveDocName} />
+          <TransactionDetails
+            details={r.details}
+            description={r.description}
+            tipo={r.tipo}
+            resolveName={resolveDocName}
+            cadastroNome={resolveCounterpartyProfile(r)?.favorecidoNome ?? null}
+          />
         </div>
       ),
     },
