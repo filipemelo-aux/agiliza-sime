@@ -22,6 +22,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { counterpartyFromDescription } from "@/lib/counterpartyFromDescription";
@@ -3113,6 +3114,35 @@ function translateOrigem(origem: string | null): string {
 }
 
 
+function MatchDesc({ desc }: { desc: string | null }) {
+  const isMobile = useIsMobile();
+  const [expanded, setExpanded] = useState(false);
+  const text = desc || "Sem descrição";
+  const line = (
+    <p
+      className={cn("min-w-0 break-words", expanded ? "" : "line-clamp-2")}
+      onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
+      role={isMobile ? "button" : undefined}
+      tabIndex={isMobile ? 0 : undefined}
+    >
+      <span className="font-medium">Desc:</span> {text}
+    </p>
+  );
+  if (isMobile) {
+    return line;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {line}
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-sm text-[11px] leading-snug whitespace-normal text-left">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
   variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
@@ -3132,13 +3162,11 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
         {fornecedor && (
-          <p className="min-w-0 break-words">
+          <p className="min-w-0 break-words line-clamp-2">
             <span className="font-medium">Fornecedor:</span> {fornecedor}
           </p>
         )}
-        <p className="min-w-0 break-words">
-          <span className="font-medium">Desc:</span> {desc || "Sem descrição"}
-        </p>
+        <MatchDesc desc={desc} />
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
     </div>
