@@ -3130,15 +3130,22 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
       ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-600"
       : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
   const finalLabel = isProximo ? `${label} (data próxima)` : label;
-  const truncDesc = desc && desc.length > 40 ? desc.slice(0, 40) + "…" : desc;
   return (
-    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "), isProximo && "border-dashed")}>
+    <div className={cn("border rounded px-2 py-1.5 space-y-0.5 min-w-0", colors.split(" ").slice(0, 4).join(" "), isProximo && "border-dashed")}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
         <Link2 className="h-3 w-3 shrink-0" /> {finalLabel}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-        {fornecedor && <p><span className="font-medium">Fornecedor:</span> {fornecedor}</p>}
-        <p><span className="font-medium">Desc:</span> {truncDesc || "Sem descrição"}</p>
+        {fornecedor && (
+          <p className="flex gap-1 min-w-0">
+            <span className="font-medium shrink-0">Fornecedor:</span>
+            <span className="line-clamp-2 break-words min-w-0">{fornecedor}</span>
+          </p>
+        )}
+        <p className="flex gap-1 min-w-0">
+          <span className="font-medium shrink-0">Desc:</span>
+          <span className="line-clamp-2 break-words min-w-0">{desc || "Sem descrição"}</span>
+        </p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
     </div>
