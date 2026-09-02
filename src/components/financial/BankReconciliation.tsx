@@ -2052,7 +2052,7 @@ export function BankReconciliation() {
         const valorPag = confirmMatch.valor;
 
         // Insert expense_payment record
-        await supabase.from("expense_payments" as any).insert({
+        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: confirmMatch.expenseId,
           valor: valorPag,
           forma_pagamento: "transferencia",
@@ -2062,6 +2062,9 @@ export function BankReconciliation() {
           juros: 0,
           installment_id: confirmMatch.isInstallment ? (confirmMatch.installmentId ?? null) : null,
         } as any);
+        // Sem pagamento gravado não existe movimentação: aborta antes de marcar conciliado.
+        if (payInsErr) throw payInsErr;
+
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
           await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", confirmMatch.installmentId);
