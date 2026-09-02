@@ -2435,7 +2435,8 @@ export function BankReconciliation() {
         tipo: activeItem.tipo,
         referenceDate: activeItem.date,
       });
-      markAsConciliated(activeItem.id, movIdToLink);
+      const details = await fetchLinkedMovDetails(movIdToLink);
+      markAsConciliated(activeItem.id, movIdToLink, details);
     }
     setManualMovDialogOpen(false);
     setActiveItem(null);
