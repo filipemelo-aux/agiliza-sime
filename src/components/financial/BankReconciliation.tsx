@@ -377,6 +377,24 @@ export function BankReconciliation() {
           .in("status", ["aberto", "atrasado"]),
       ]);
 
+      // Movimentações já vinculadas podem ter data fora da janela do extrato
+      // (ex.: baixa registrada em outro mês). Busca-as explicitamente pelo id
+      // para que os detalhes do vínculo apareçam nos itens já conciliados.
+      const linkedMovIds = Array.from(
+        new Set(dbItems.map((i: any) => i.matched_movimentacao_id).filter(Boolean)),
+      ) as string[];
+      const inWindow = new Set((existingMovs || []).map((m: any) => m.id));
+      const missingLinkedIds = linkedMovIds.filter((id) => !inWindow.has(id));
+      let extraMovs: any[] = [];
+      if (missingLinkedIds.length > 0) {
+        const { data: extra } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
+          .in("id", missingLinkedIds);
+        extraMovs = extra || [];
+      }
+      const allMovs = [...(existingMovs || []), ...extraMovs];
+
       // Exclude movements already linked to ANY reconciliation item (including
       // items inside the current reconciliation), so a single paid/reconciled
       // entry is never suggested as a close-date match for a different OFX line.
@@ -388,7 +406,7 @@ export function BankReconciliation() {
       const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
 
       // Fetch favorecido/conta for movements linked to expenses (for reconciled items display)
-      const expenseMovIds = (existingMovs || []).filter((m: any) =>
+      const expenseMovIds = allMovs.filter((m: any) =>
         ["contas_pagar", "pagamento_despesa", "despesas"].includes(m.origem)
       );
       const payableIdsToFetch = expenseMovIds.filter((m: any) => m.origem === "contas_pagar").map((m: any) => m.origem_id);
