@@ -418,12 +418,15 @@ export function BankReconciliation() {
       const expWithInst = new Set(instRows.map((i: any) => i.expense_id));
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows) {
-        const exp = expRows.find((e: any) => e.id === inst.expense_id);
+        // A despesa pode não estar na lista de pendentes (ex.: status parcial/pago),
+        // por isso usamos o embed da própria parcela como fonte do fornecedor.
+        const exp = expRows.find((e: any) => e.id === inst.expense_id) || inst.expenses || null;
+        if (inst.expenses?.deleted_at) continue;
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
-          description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          description: exp?.descricao ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
           fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
