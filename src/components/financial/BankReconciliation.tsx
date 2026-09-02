@@ -2346,6 +2346,7 @@ export function BankReconciliation() {
   );
 
   const onExpenseSaved = async (savedExpenseId?: string) => {
+    let createdPaymentId: string | null = null;
     // Auto-pay the expense so it flows into cash flow
     if (savedExpenseId && activeItem) {
       const valorPag = Math.abs(activeItem.amount);
