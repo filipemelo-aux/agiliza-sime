@@ -2279,8 +2279,49 @@ export function BankReconciliation() {
     setManualMovDialogOpen(true);
   };
 
+  // Busca os detalhes completos da movimentação recém-criada (descrição, data,
+  // valor, origem e favorecido) para que o vínculo nunca apareça "sem descrição".
+  const fetchMovDetails = useCallback(async (movId: string | null): Promise<Partial<OfxItem> | null> => {
+    if (!movId) return null;
+    const { data: mov } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
+      .eq("id", movId)
+      .maybeSingle();
+    if (!mov) return null;
+
+    let favorecido: string | null = null;
+    try {
+      if (mov.origem === "pagamento_despesa" && mov.origem_id) {
+        const { data: pay } = await supabase
+          .from("expense_payments" as any)
+          .select("expenses(favorecido_nome, descricao)")
+          .eq("id", mov.origem_id)
+          .maybeSingle();
+        favorecido = (pay as any)?.expenses?.favorecido_nome || null;
+      } else if (mov.origem === "despesas" && mov.origem_id) {
+        const { data: exp } = await supabase
+          .from("expenses")
+          .select("favorecido_nome")
+          .eq("id", mov.origem_id)
+          .maybeSingle();
+        favorecido = (exp as any)?.favorecido_nome || null;
+      }
+    } catch { /* favorecido é opcional */ }
+
+    return {
+      matchedMovId: mov.id,
+      matchedMovDesc: mov.descricao,
+      matchedMovDate: mov.data_movimentacao,
+      matchedMovValor: Math.abs(Number(mov.valor)),
+      matchedMovOrigem: mov.origem,
+      matchedMovFavorecido: favorecido,
+      matchedMovPrecision: "exato",
+    };
+  }, []);
+
   const markAsConciliated = useCallback(
-    (itemId: string, movId?: string | null) => {
+    (itemId: string, movId?: string | null, details?: Partial<OfxItem> | null) => {
       setItems((prev) =>
         prev.map((i) => {
           if (i.id !== itemId) return i;
@@ -2291,7 +2332,12 @@ export function BankReconciliation() {
           } else if (reconciliationId) {
             supabase.from("bank_reconciliation_items").update(payload).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
           }
-          return { ...i, status: "conciliado" as const, matchedMovId: movId !== undefined ? movId : i.matchedMovId };
+          return {
+            ...i,
+            status: "conciliado" as const,
+            matchedMovId: movId !== undefined ? movId : i.matchedMovId,
+            ...(details || {}),
+          };
         })
       );
       setTimeout(updateReconciliationCount, 500);
