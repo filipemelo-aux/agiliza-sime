@@ -2079,12 +2079,13 @@ export function BankReconciliation() {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
     try {
+      let createdOriginId: string | null = null;
       if (confirmMatch.isPayable && confirmMatch.expenseId) {
         const dataPagISO = confirmItem.date;
         const valorPag = confirmMatch.valor;
 
         // Insert expense_payment record
-        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
+        const { data: payment, error: payInsErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: confirmMatch.expenseId,
           valor: valorPag,
           forma_pagamento: "transferencia",
@@ -2093,9 +2094,11 @@ export function BankReconciliation() {
           created_by: user?.id,
           juros: 0,
           installment_id: confirmMatch.isInstallment ? (confirmMatch.installmentId ?? null) : null,
-        } as any);
+        } as any).select("id").single();
         // Sem pagamento gravado não existe movimentação: aborta antes de marcar conciliado.
         if (payInsErr) throw payInsErr;
+        createdOriginId = (payment as any)?.id || null;
+        if (!createdOriginId) throw new Error("Pagamento criado sem identificador");
 
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
@@ -2125,7 +2128,7 @@ export function BankReconciliation() {
         // Registrar recebimento na conta a receber com o valor REAL do extrato
         const valorExtrato = +Math.abs(confirmItem.amount).toFixed(2);
         const difR = +(valorExtrato - Number(confirmMatch.valor || 0)).toFixed(2);
-        const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+        const { data: receipt, error: rpErr } = await supabase.from("receivable_payments" as any).insert({
           conta_receber_id: confirmMatch.contaReceberId,
           valor: valorExtrato,
           forma_recebimento: "transferencia",
@@ -2134,32 +2137,47 @@ export function BankReconciliation() {
             "Recebimento via conciliação bancária (OFX)" +
             (difR !== 0 ? ` — ${difR > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(difR))} em relação ao título` : ""),
           created_by: user?.id,
-        });
+        }).select("id").single();
         if (rpErr) throw rpErr;
+        createdOriginId = (receipt as any)?.id || null;
+        if (!createdOriginId) throw new Error("Recebimento criado sem identificador");
 
       }
 
       // Resolver vínculo: buscar a movimentação criada pelo trigger
       let movIdToLink: string | null = (confirmMatch.isPayable || confirmMatch.isReceivable) ? null : confirmMatch.id;
-      if (confirmMatch.isPayable && confirmMatch.expenseId) {
+      if (createdOriginId) {
+        const { data: exactMovement, error: exactMovementError } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id")
+          .eq("origem_id", createdOriginId)
+          .maybeSingle();
+        if (exactMovementError) throw exactMovementError;
+        movIdToLink = exactMovement?.id || null;
+      }
+      if (!movIdToLink && confirmMatch.isPayable && confirmMatch.expenseId) {
         movIdToLink = await findCreatedMovId({
           expenseId: confirmMatch.expenseId,
           amount: Math.abs(confirmItem.amount),
           tipo: confirmItem.tipo,
           referenceDate: confirmItem.date,
         });
-      } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
+      } else if (!movIdToLink && confirmMatch.isReceivable && confirmMatch.contaReceberId) {
         movIdToLink = await findCreatedMovId({
           amount: Math.abs(confirmItem.amount),
           tipo: confirmItem.tipo,
           referenceDate: confirmItem.date,
         });
       }
+      if (!movIdToLink) {
+        throw new Error("A baixa foi registrada, mas a movimentação bancária não foi localizada. O item não foi conciliado.");
+      }
 
       const updateFilter = confirmItem.dbItemId
         ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", confirmItem.dbItemId)
         : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
-      await updateFilter;
+      const { error: updateError } = await updateFilter;
+      if (updateError) throw updateError;
 
       const cmDetails = movIdToLink ? (await fetchMovDetails([movIdToLink])).get(movIdToLink) : null;
       setItems((prev) =>
