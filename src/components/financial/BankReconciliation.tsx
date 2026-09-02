@@ -1405,6 +1405,11 @@ export function BankReconciliation() {
             tipo: it.tipo,
             referenceDate: it.date,
           });
+          // Sem movimentação localizada não há o que conciliar: nunca marcar
+          // como "conciliado" com matched_movimentacao_id nulo.
+          if (!movIdToLink) {
+            throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. A conciliação foi interrompida.`);
+          }
           linkedMap.set(it.id, movIdToLink);
           const updateFilter = it.dbItemId
             ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
