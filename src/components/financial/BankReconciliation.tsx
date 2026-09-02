@@ -911,15 +911,43 @@ export function BankReconciliation() {
       const selected = items.filter((i) => selectedIds.has(i.id));
       for (const item of selected) {
         let movIdToLink = item.matchedMovId || null;
-        if (item.matchedPayableId && !item.matchedMovId) {
-          await supabase
-            .from("accounts_payable")
-            .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
-            .eq("id", item.matchedPayableId);
-          movIdToLink = await findCreatedMovId({
-            accountsPayableId: item.matchedPayableId,
-            expenseId: item.matchedPayableExpenseId || undefined,
-            amount: Math.abs(item.amount),
+        if (item.matchedPayableId && item.matchedPayableExpenseId && !item.matchedMovId) {
+          const amount = Math.abs(item.amount);
+          const { data: payment, error: paymentError } = await supabase
+            .from("expense_payments" as any)
+            .insert({
+              expense_id: item.matchedPayableExpenseId,
+              valor: amount,
+              forma_pagamento: "transferencia",
+              data_pagamento: item.date,
+              observacoes: "Pagamento via conciliação bancária em lote (OFX)",
+              created_by: user?.id,
+              juros: 0,
+              installment_id: item.matchedPayableIsInstallment ? item.matchedPayableInstallmentId : null,
+            } as any)
+            .select("id")
+            .single();
+          const paymentId = (payment as any)?.id as string | undefined;
+          if (paymentError || !paymentId) throw paymentError || new Error("Pagamento não foi criado");
+
+          if (item.matchedPayableIsInstallment && item.matchedPayableInstallmentId) {
+            const { error: installmentError } = await supabase
+              .from("expense_installments")
+              .update({ status: "pago" } as any)
+              .eq("id", item.matchedPayableInstallmentId);
+            if (installmentError) throw installmentError;
+          }
+
+          const { data: movement, error: movementError } = await supabase
+            .from("movimentacoes_bancarias")
+            .select("id")
+            .eq("origem", "pagamento_despesa")
+            .eq("origem_id", paymentId)
+            .maybeSingle();
+          if (movementError) throw movementError;
+          movIdToLink = movement?.id || await findCreatedMovId({
+            expenseId: item.matchedPayableExpenseId,
+            amount,
             tipo: item.tipo,
             referenceDate: item.date,
           });
@@ -940,10 +968,14 @@ export function BankReconciliation() {
             referenceDate: item.date,
           });
         }
+        if (!movIdToLink) {
+          throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(item.amount))}. A conciliação foi interrompida.`);
+        }
         const updateFilter = item.dbItemId
           ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", item.dbItemId)
           : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "").eq("status", "pendente");
-        await updateFilter;
+        const { error: updateError } = await updateFilter;
+        if (updateError) throw updateError;
       }
       setItems((prev) =>
         prev.map((i) => selectedIds.has(i.id) ? { ...i, status: "conciliado" } : i)
@@ -1373,11 +1405,17 @@ export function BankReconciliation() {
             tipo: it.tipo,
             referenceDate: it.date,
           });
+          // Sem movimentação localizada não há o que conciliar: nunca marcar
+          // como "conciliado" com matched_movimentacao_id nulo.
+          if (!movIdToLink) {
+            throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. A conciliação foi interrompida.`);
+          }
           linkedMap.set(it.id, movIdToLink);
           const updateFilter = it.dbItemId
             ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
             : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-          await updateFilter;
+          const { error: linkUpdateError } = await updateFilter;
+          if (linkUpdateError) throw linkUpdateError;
         }
         const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
         setItems((prev) =>
@@ -1437,10 +1475,11 @@ export function BankReconciliation() {
 
 
         if (isInstallment) {
-          await supabase
+          const { error: installmentError } = await supabase
             .from("expense_installments")
             .update({ status: "pago" } as any)
             .eq("id", linkSelectedAccount.installment_id);
+          if (installmentError) throw installmentError;
 
           const { data: allInst } = await supabase
             .from("expense_installments")
@@ -1452,27 +1491,30 @@ export function BankReconciliation() {
             .reduce((s: number, i: any) => s + Number(i.valor), 0);
           const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
 
-          await supabase.from("expenses").update({
+          const { error: expenseUpdateError } = await supabase.from("expenses").update({
             valor_pago: totalPagoNow,
             status: allPaid ? "pago" : "parcial",
             forma_pagamento: "transferencia",
             data_pagamento: minDate,
           } as any).eq("id", expenseId);
+          if (expenseUpdateError) throw expenseUpdateError;
         } else {
-          const { data: expData } = await supabase
+          const { data: expData, error: expenseReadError } = await supabase
             .from("expenses")
             .select("valor_total, valor_pago")
             .eq("id", expenseId)
             .single();
+          if (expenseReadError) throw expenseReadError;
           const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
           const valorTotal = Number(expData?.valor_total || 0);
           const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-          await supabase.from("expenses").update({
+          const { error: expenseUpdateError } = await supabase.from("expenses").update({
             valor_pago: novoValorPago,
             status: novoStatus,
             forma_pagamento: "transferencia",
             data_pagamento: minDate,
           } as any).eq("id", expenseId);
+          if (expenseUpdateError) throw expenseUpdateError;
         }
       }
 
@@ -1484,11 +1526,15 @@ export function BankReconciliation() {
           tipo: it.tipo,
           referenceDate: it.date,
         });
+        if (!movIdToLink) {
+          throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. O lançamento continuará pendente.`);
+        }
         linkedMap.set(it.id, movIdToLink);
         const updateFilter = it.dbItemId
           ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
           : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-        await updateFilter;
+        const { error: linkUpdateError } = await updateFilter;
+        if (linkUpdateError) throw linkUpdateError;
       }
 
       const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
@@ -2047,12 +2093,13 @@ export function BankReconciliation() {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
     try {
+      let createdOriginId: string | null = null;
       if (confirmMatch.isPayable && confirmMatch.expenseId) {
         const dataPagISO = confirmItem.date;
         const valorPag = confirmMatch.valor;
 
         // Insert expense_payment record
-        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
+        const { data: payment, error: payInsErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: confirmMatch.expenseId,
           valor: valorPag,
           forma_pagamento: "transferencia",
@@ -2061,9 +2108,11 @@ export function BankReconciliation() {
           created_by: user?.id,
           juros: 0,
           installment_id: confirmMatch.isInstallment ? (confirmMatch.installmentId ?? null) : null,
-        } as any);
+        } as any).select("id").single();
         // Sem pagamento gravado não existe movimentação: aborta antes de marcar conciliado.
         if (payInsErr) throw payInsErr;
+        createdOriginId = (payment as any)?.id || null;
+        if (!createdOriginId) throw new Error("Pagamento criado sem identificador");
 
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
@@ -2093,7 +2142,7 @@ export function BankReconciliation() {
         // Registrar recebimento na conta a receber com o valor REAL do extrato
         const valorExtrato = +Math.abs(confirmItem.amount).toFixed(2);
         const difR = +(valorExtrato - Number(confirmMatch.valor || 0)).toFixed(2);
-        const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+        const { data: receipt, error: rpErr } = await supabase.from("receivable_payments" as any).insert({
           conta_receber_id: confirmMatch.contaReceberId,
           valor: valorExtrato,
           forma_recebimento: "transferencia",
@@ -2102,32 +2151,52 @@ export function BankReconciliation() {
             "Recebimento via conciliação bancária (OFX)" +
             (difR !== 0 ? ` — ${difR > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(difR))} em relação ao título` : ""),
           created_by: user?.id,
-        });
+        }).select("id").single();
         if (rpErr) throw rpErr;
+        createdOriginId = (receipt as any)?.id || null;
+        if (!createdOriginId) throw new Error("Recebimento criado sem identificador");
 
       }
 
       // Resolver vínculo: buscar a movimentação criada pelo trigger
       let movIdToLink: string | null = (confirmMatch.isPayable || confirmMatch.isReceivable) ? null : confirmMatch.id;
-      if (confirmMatch.isPayable && confirmMatch.expenseId) {
+      if (createdOriginId) {
+        const { data: exactMovement, error: exactMovementError } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id")
+          .eq("origem_id", createdOriginId)
+          .maybeSingle();
+        if (exactMovementError) throw exactMovementError;
+        movIdToLink = exactMovement?.id || null;
+      }
+      if (!movIdToLink && confirmMatch.isPayable && confirmMatch.expenseId) {
         movIdToLink = await findCreatedMovId({
           expenseId: confirmMatch.expenseId,
           amount: Math.abs(confirmItem.amount),
           tipo: confirmItem.tipo,
           referenceDate: confirmItem.date,
         });
-      } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
+      } else if (!movIdToLink && confirmMatch.isReceivable && confirmMatch.contaReceberId) {
         movIdToLink = await findCreatedMovId({
           amount: Math.abs(confirmItem.amount),
           tipo: confirmItem.tipo,
           referenceDate: confirmItem.date,
         });
       }
+      if (!movIdToLink) {
+        throw new Error("A baixa foi registrada, mas a movimentação bancária não foi localizada. O item não foi conciliado.");
+      }
 
+      // Sem movimentação localizada não há o que conciliar: nunca marcar
+      // como "conciliado" com matched_movimentacao_id nulo.
+      if (!movIdToLink) {
+        throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(confirmItem.amount))}. A conciliação foi interrompida.`);
+      }
       const updateFilter = confirmItem.dbItemId
         ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", confirmItem.dbItemId)
         : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
-      await updateFilter;
+      const { error: updateError } = await updateFilter;
+      if (updateError) throw updateError;
 
       const cmDetails = movIdToLink ? (await fetchMovDetails([movIdToLink])).get(movIdToLink) : null;
       setItems((prev) =>
@@ -2339,28 +2408,33 @@ export function BankReconciliation() {
   }, []);
 
   const markAsConciliated = useCallback(
-    (itemId: string, movId?: string | null, details?: Partial<OfxItem> | null) => {
+    async (itemId: string, movId: string, details?: Partial<OfxItem> | null) => {
+      const item = items.find((candidate) => candidate.id === itemId);
+      if (!item) throw new Error("Transação não encontrada na conciliação");
+      const payload = { status: "conciliado", matched_movimentacao_id: movId };
+      const updateRequest = item.dbItemId
+        ? supabase.from("bank_reconciliation_items").update(payload).eq("id", item.dbItemId)
+        : reconciliationId
+          ? supabase.from("bank_reconciliation_items").update(payload).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "").eq("status", "pendente")
+          : null;
+      if (!updateRequest) throw new Error("Conciliação não encontrada");
+      const { error } = await updateRequest;
+      if (error) throw error;
+
       setItems((prev) =>
         prev.map((i) => {
           if (i.id !== itemId) return i;
-          const payload: any = { status: "conciliado" };
-          if (movId !== undefined) payload.matched_movimentacao_id = movId;
-          if (i.dbItemId) {
-            supabase.from("bank_reconciliation_items").update(payload).eq("id", i.dbItemId).then();
-          } else if (reconciliationId) {
-            supabase.from("bank_reconciliation_items").update(payload).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
-          }
           return {
             ...i,
             status: "conciliado" as const,
-            matchedMovId: movId !== undefined ? movId : i.matchedMovId,
+            matchedMovId: movId,
             ...(details || {}),
           };
         })
       );
       setTimeout(updateReconciliationCount, 500);
     },
-    [reconciliationId, updateReconciliationCount]
+    [items, reconciliationId, updateReconciliationCount]
   );
 
   const onExpenseSaved = async (savedExpenseId?: string) => {
@@ -2438,7 +2512,13 @@ export function BankReconciliation() {
       }
     }
 
-    if (activeItem) markAsConciliated(activeItem.id, movIdToLink, details);
+    if (!movIdToLink) {
+      toast.error("A despesa foi salva, mas a movimentação bancária não foi gerada. O item continuará pendente.");
+      setExpenseDialogOpen(false);
+      setActiveItem(null);
+      return;
+    }
+    if (activeItem) await markAsConciliated(activeItem.id, movIdToLink, details);
     setExpenseDialogOpen(false);
     setActiveItem(null);
     toast.success("Despesa registrada, quitada e conciliada");
@@ -2454,7 +2534,11 @@ export function BankReconciliation() {
         referenceDate: activeItem.date,
       });
       const details = await fetchLinkedMovDetails(movIdToLink);
-      markAsConciliated(activeItem.id, movIdToLink, details);
+      if (!movIdToLink) {
+        toast.error("A movimentação não foi localizada. O item continuará pendente.");
+        return;
+      }
+      await markAsConciliated(activeItem.id, movIdToLink, details);
     }
     setManualMovDialogOpen(false);
     setActiveItem(null);
