@@ -2281,7 +2281,7 @@ export function BankReconciliation() {
 
   // Busca os detalhes completos da movimentação recém-criada (descrição, data,
   // valor, origem e favorecido) para que o vínculo nunca apareça "sem descrição".
-  const fetchMovDetails = useCallback(async (movId: string | null): Promise<Partial<OfxItem> | null> => {
+  const fetchLinkedMovDetails = useCallback(async (movId: string | null): Promise<Partial<OfxItem> | null> => {
     if (!movId) return null;
     const { data: mov } = await supabase
       .from("movimentacoes_bancarias")
