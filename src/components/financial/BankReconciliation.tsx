@@ -567,9 +567,7 @@ export function BankReconciliation() {
         for (const r of receivables) {
           if (Math.abs(r.amount - raw.absVal) >= 0.01) continue;
           const dist = r.referenceDate ? daysDiff(raw.txDate, r.referenceDate) : 9999;
-          if (dist <= 10 || !r.referenceDate) {
-            recPairs.push({ idx, candId: r.id, dist });
-          }
+          recPairs.push({ idx, candId: r.id, dist });
         }
       });
       recPairs.sort((a, b) => a.dist - b.dist);
