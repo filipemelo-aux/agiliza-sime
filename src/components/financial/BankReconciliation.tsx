@@ -2129,11 +2129,23 @@ export function BankReconciliation() {
         : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
       await updateFilter;
 
+      const cmDetails = movIdToLink ? (await fetchMovDetails([movIdToLink])).get(movIdToLink) : null;
       setItems((prev) =>
         prev.map((i) =>
-          i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
+          i.id === confirmItem.id
+            ? {
+                ...i,
+                status: "conciliado" as const,
+                matchedMovId: movIdToLink,
+                matchedMovDesc: cmDetails?.descricao ?? confirmMatch.descricao ?? i.matchedMovDesc,
+                matchedMovDate: cmDetails?.data_movimentacao ?? confirmItem.date ?? i.matchedMovDate,
+                matchedMovValor: cmDetails?.valor ?? Math.abs(confirmItem.amount),
+                matchedMovOrigem: cmDetails?.origem ?? i.matchedMovOrigem,
+              }
+            : i
         )
       );
+
       toast.success(
         confirmMatch.isPayable
           ? "Conta paga e conciliada com sucesso"
