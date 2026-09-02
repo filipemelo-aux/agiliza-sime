@@ -2352,7 +2352,7 @@ export function BankReconciliation() {
       const dataPag = activeItem.date;
 
       // Insert payment record (triggers bank movement via DB trigger)
-      const { error: payErr } = await supabase.from("expense_payments" as any).insert({
+      const { data: payRow, error: payErr } = await supabase.from("expense_payments" as any).insert({
         expense_id: savedExpenseId,
         valor: valorPag,
         forma_pagamento: "transferencia",
@@ -2360,7 +2360,8 @@ export function BankReconciliation() {
         observacoes: "Quitação automática via conciliação bancária",
         created_by: user?.id,
         juros: 0,
-      } as any);
+      } as any).select("id").maybeSingle();
+      createdPaymentId = (payRow as any)?.id || null;
 
       if (!payErr) {
         // Update expense status to paid
@@ -2377,18 +2378,53 @@ export function BankReconciliation() {
 
     let movIdToLink: string | null = null;
     if (savedExpenseId && activeItem) {
-      movIdToLink = await findCreatedMovId({
-        expenseId: savedExpenseId,
-        amount: Math.abs(activeItem.amount),
-        tipo: activeItem.tipo,
-        referenceDate: activeItem.date,
-      });
+      // 1) Vínculo determinístico: movimentação gerada pelo pagamento recém-criado
+      if (createdPaymentId) {
+        const { data: movByPay } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id")
+          .eq("origem", "pagamento_despesa")
+          .eq("origem_id", createdPaymentId)
+          .maybeSingle();
+        movIdToLink = (movByPay as any)?.id || null;
+      }
+      // 2) Fallback por valor/data
+      if (!movIdToLink) {
+        movIdToLink = await findCreatedMovId({
+          expenseId: savedExpenseId,
+          amount: Math.abs(activeItem.amount),
+          tipo: activeItem.tipo,
+          referenceDate: activeItem.date,
+        });
+      }
     }
-    if (activeItem) markAsConciliated(activeItem.id, movIdToLink);
+
+    // Detalhes do vínculo para exibir imediatamente (fornecedor, descrição, data, valor)
+    let details = await fetchLinkedMovDetails(movIdToLink);
+    if (!details && savedExpenseId && activeItem) {
+      const { data: exp } = await supabase
+        .from("expenses")
+        .select("descricao, favorecido_nome, data_vencimento, data_emissao")
+        .eq("id", savedExpenseId)
+        .maybeSingle();
+      if (exp) {
+        details = {
+          matchedMovDesc: (exp as any).descricao || activeItem.description,
+          matchedMovDate: (exp as any).data_vencimento || (exp as any).data_emissao || activeItem.date,
+          matchedMovValor: Math.abs(activeItem.amount),
+          matchedMovOrigem: "despesas",
+          matchedMovFavorecido: (exp as any).favorecido_nome || null,
+          matchedMovPrecision: "exato",
+        };
+      }
+    }
+
+    if (activeItem) markAsConciliated(activeItem.id, movIdToLink, details);
     setExpenseDialogOpen(false);
     setActiveItem(null);
     toast.success("Despesa registrada, quitada e conciliada");
   };
+
 
   const onMovementSaved = async () => {
     let movIdToLink: string | null = null;
