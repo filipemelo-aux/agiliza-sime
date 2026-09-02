@@ -2633,11 +2633,6 @@ export function BankReconciliation() {
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             <span className="max-md:hidden">Atualizar</span>
           </Button>
-          {syncDaysSelect}
-          <Button variant="default" size="sm" className="h-8 w-8 gap-1 p-0 md:w-auto md:px-3" title="Sincronizar Open Finance" aria-label="Sincronizar Open Finance" disabled={loading || syncing} onClick={handleOpenFinanceSync}>
-            {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            <span className="max-md:hidden">{syncing ? "Sincronizando..." : "Sincronizar Open Finance"}</span>
-          </Button>
           <label>
             <input
               type="file"
