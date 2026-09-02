@@ -2572,19 +2572,19 @@ export function BankReconciliation() {
             />
           )}
 
-          {r.status === "conciliado" && r.matchedMovId && (
+          {r.status === "conciliado" && (r.matchedMovId || r.matchedMovDesc) && (
             <MatchBox
-              desc={r.matchedMovDesc}
-              date={r.matchedMovDate}
-              valor={r.matchedMovValor}
-              origem={translateOrigem(r.matchedMovOrigem)}
+              desc={r.matchedMovDesc || r.description || null}
+              date={r.matchedMovDate || r.date}
+              valor={r.matchedMovValor ?? Math.abs(r.amount)}
+              origem={r.matchedMovOrigem ? translateOrigem(r.matchedMovOrigem) : "Lançamento conciliado"}
               variant="green"
               label="Vinculado a"
               precision={r.matchedMovPrecision}
-              fornecedor={r.matchedMovFavorecido}
+              fornecedor={r.matchedMovFavorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
             />
           )}
-          {r.status === "conciliado" && !r.matchedMovId && (
+          {r.status === "conciliado" && !r.matchedMovId && !r.matchedMovDesc && (
             <span className="text-[10px] text-muted-foreground">Conciliado sem vínculo</span>
           )}
           {r.status === "pendente" && !r.matchedMovId && !r.matchedPayableId && !r.matchedReceivableId && (
