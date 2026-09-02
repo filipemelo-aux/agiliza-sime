@@ -2369,7 +2369,13 @@ export function BankReconciliation() {
       cell: (r) => (
         <div className="space-y-1 min-w-[240px]">
           <p className="text-xs text-foreground">{r.description}</p>
-          <TransactionDetails details={r.details} description={r.description} tipo={r.tipo} resolveName={resolveDocName} />
+          <TransactionDetails
+            details={r.details}
+            description={r.description}
+            tipo={r.tipo}
+            resolveName={resolveDocName}
+            cadastroNome={resolveCounterpartyProfile(r)?.favorecidoNome ?? null}
+          />
         </div>
       ),
     },
