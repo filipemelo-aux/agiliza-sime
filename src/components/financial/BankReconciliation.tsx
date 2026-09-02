@@ -191,7 +191,15 @@ function TransactionDetails({
     })
 
     .filter((c): c is { label: string; value: string } => c !== null);
-  if (chips.length === 0) return null;
+  // Fallback: o banco não informou contraparte (ex.: transferência entre contas).
+  // Mostramos ao menos o tipo de operação/forma de pagamento para dar contexto.
+  if (chips.length === 0) {
+    const tipoOp = (details?.tipoOperacao as string) || (details?.formaPagamento as string) || (details?.categoria as string) || null;
+    if (!tipoOp) return null;
+    const legivel = String(tipoOp).replace(/_/g, " ").toLowerCase();
+    chips.push({ label: "Operação", value: legivel.charAt(0).toUpperCase() + legivel.slice(1) });
+  }
+
 
 
   return (
