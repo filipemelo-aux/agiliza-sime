@@ -2366,6 +2366,24 @@ export function BankReconciliation() {
     loadHistory();
   };
 
+  // Recarrega a conciliação atual (reexecuta matching) sem sair da tela
+  const refreshReconciliation = useCallback(async () => {
+    if (!reconciliationId) return;
+    setLoading(true);
+    const { data: rec } = await supabase
+      .from("bank_reconciliations")
+      .select("id, file_name, bank_name, created_at, total_items, reconciled_items")
+      .eq("id", reconciliationId)
+      .maybeSingle();
+    if (rec) {
+      await loadHistory();
+      await resumeReconciliation(rec as ReconciliationSummary);
+    } else {
+      setLoading(false);
+      toast.error("Conciliação não encontrada");
+    }
+  }, [reconciliationId, resumeReconciliation, loadHistory]);
+
   const gridSelected = items.filter((i) => selectedIds.has(i.id));
   // seleção mista (crédito + débito): só permite excluir
   const mixedSelection = gridSelected.some((i) => i.tipo === "entrada") && gridSelected.some((i) => i.tipo === "saida");
