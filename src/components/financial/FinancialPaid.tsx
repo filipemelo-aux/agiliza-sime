@@ -811,10 +811,10 @@ export function FinancialPaid() {
           </div>
           <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
             <SelectTrigger className="w-[150px] h-8 text-xs">
-              <SelectValue placeholder="Origem" />
+              <SelectValue placeholder="Tipo Pgto" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todas origens</SelectItem>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
               <SelectItem value="expense_payment">Despesas</SelectItem>
               <SelectItem value="legacy">Legado</SelectItem>
             </SelectContent>
