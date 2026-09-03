@@ -481,6 +481,7 @@ export function BankReconciliation() {
       for (const exp of expRows) {
         if (expWithInst.has(exp.id)) continue;
         const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
+        if (saldo <= 0.005) continue;
         payables.push({
           id: `exp_${exp.id}`,
           expenseId: exp.id,
