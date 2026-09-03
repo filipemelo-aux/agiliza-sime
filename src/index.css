@@ -241,12 +241,12 @@
 
     .data-grid-table th[data-column-key="forma"],
     .data-grid-table td[data-column-key="forma"] {
-      width: 76px !important;
+      width: 88px !important;
     }
 
     .data-grid-table th[data-column-key="origem"],
     .data-grid-table td[data-column-key="origem"] {
-      width: 72px !important;
+      width: 68px !important;
     }
 
     .data-grid-table th[data-column-key="amount"],
