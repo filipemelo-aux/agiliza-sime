@@ -555,18 +555,19 @@ export function BankReconciliation() {
         usedItemForMov.add(p.idx);
       }
 
-      // ── Assign payable matches (saída only) ──
-      const payPairs: Pair[] = [];
-      rawItems.forEach((raw, idx) => {
-        if (raw.status !== "pendente" || raw.tipo !== "saida") return;
-        for (const p of payables) {
-          if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
-          const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
-          // Mesma regra da importação: prioriza data próxima, mas aceita
-          // correspondência só por valor quando não há vencimento próximo.
-          payPairs.push({ idx, candId: p.id, dist });
-        }
-      });
+       // ── Assign payable matches (saída only) ──
+       const payPairs: Pair[] = [];
+       rawItems.forEach((raw, idx) => {
+         if (raw.status !== "pendente" || raw.tipo !== "saida") return;
+         // Se já existe pagamento no caixa para o mesmo valor/data, ele é a
+         // correspondência efetiva; não crie uma segunda sugestão de título.
+         if (assignedMovByIdx.has(idx)) return;
+         for (const p of payables) {
+           if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
+           const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
+           payPairs.push({ idx, candId: p.id, dist });
+         }
+       });
       payPairs.sort((a, b) => a.dist - b.dist);
 
       const assignedPayByIdx = new Map<number, string>();
