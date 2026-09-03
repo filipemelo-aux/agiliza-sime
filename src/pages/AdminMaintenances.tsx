@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
+import { limitDisplayText } from "@/lib/displayText";
 import { toast } from "sonner";
 import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -265,7 +266,7 @@ export default function AdminMaintenances() {
     {
       key: "fornecedor", header: "Fornecedor", width: "180px",
       sortValue: (m) => m.fornecedor || "",
-      cell: (m) => <span className="truncate block text-muted-foreground">{m.fornecedor || "—"}</span>,
+      cell: (m) => <span className="block text-muted-foreground" title={m.fornecedor || ""}>{limitDisplayText(m.fornecedor || "—")}</span>,
     },
     {
       key: "docs", header: "Docs", width: "100px", align: "center",

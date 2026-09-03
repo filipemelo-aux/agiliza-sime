@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -659,7 +660,7 @@ function ExpenseList({
       key: "favorecido",
       header: "Favorecido",
       sortValue: (e) => (enrichName ? enrichName(e) : e.favorecido_nome) || "",
-      cell: (e) => <span className="text-muted-foreground block truncate">{(enrichName ? enrichName(e) : e.favorecido_nome) || "—"}</span>,
+      cell: (e) => { const name = (enrichName ? enrichName(e) : e.favorecido_nome) || "—"; return <span className="text-muted-foreground block" title={name}>{limitDisplayText(name)}</span>; },
     },
     {
       key: "emissao",
