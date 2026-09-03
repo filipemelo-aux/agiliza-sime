@@ -43,7 +43,11 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const [pickerOpen, setPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const selectedExpense = useMemo(() => expenses.find((item) => item.id === expenseId), [expenses, expenseId]);
+  const selectedExpenses = useMemo(() => expenseIds.map((id) => expenses.find((item) => item.id === id)).filter(Boolean) as ExpenseOption[], [expenses, expenseIds]);
+  const selectedTotal = useMemo(
+    () => selectedExpenses.reduce((sum, e) => sum + Math.max(0, Number(e.valor_total) - Number(e.valor_pago || 0)), 0),
+    [selectedExpenses],
+  );
   const parsedValue = Number(unmaskCurrency(value)) || 0;
 
   useEffect(() => {
