@@ -1729,6 +1729,9 @@ export function BankReconciliation() {
           .select("matched_movimentacao_id")
           .not("matched_movimentacao_id", "is", null),
         supabase
+          .from("bank_reconciliation_item_links")
+          .select("movimentacao_id"),
+        supabase
           .from("contas_receber")
           .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(full_name, razao_social))")
           .in("status", ["aberto", "atrasado"]),
