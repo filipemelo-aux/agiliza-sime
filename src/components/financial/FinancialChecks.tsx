@@ -197,7 +197,6 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     } },
     { key: "empresa", header: "Empresa", width: "90px", cell: (row) => <EmpresaBadge empresaId={row.empresa_id} /> },
     { key: "valor", header: "Valor", width: "110px", align: "right", cell: (row) => <span className="font-mono text-xs font-medium">{formatCurrency(Number(row.valor))}</span>, sortValue: (row) => Number(row.valor) },
-    { key: "status", header: "Situação", width: "110px", cell: (row) => <Badge variant={row.status === "cancelado" ? "destructive" : row.status === "compensado" ? "default" : "outline"} className="text-[10px]">{statusLabel[row.status] || row.status}</Badge>, sortValue: (row) => row.status },
   ];
 
 
