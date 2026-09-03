@@ -33,7 +33,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   payables: PayableOption[];
   loading?: boolean;
-  onSelect: (option: PayableOption) => void;
+  /** Contas já vinculadas ao cheque */
+  selectedIds?: string[];
+  /** Confirmação da seleção múltipla */
+  onConfirm: (options: PayableOption[]) => void;
 }
 
 const statusLabel: Record<string, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Vencido", parcial: "Parcial" };
