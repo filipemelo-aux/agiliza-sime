@@ -40,6 +40,7 @@ interface CheckLinkInfo {
   pago: boolean;
   parcial: boolean;
   conciliado: boolean;
+  vencido: boolean;
 }
 
 export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }) {
