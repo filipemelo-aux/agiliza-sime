@@ -17,6 +17,10 @@ import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
 export interface CheckIssueData {
   expenseId?: string | null;
+  freightContractId?: string | null;
+  empresaId?: string | null;
+  contaBancariaId?: string | null;
+  vinculoTipo?: "conta_pagar" | "contrato_frete" | "movimentacao" | "avulso";
   valor: number;
   nominal: string;
   data?: string | null;
@@ -114,10 +118,52 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
           .update(updates as any)
           .eq("id", data.expenseId);
         if (error) toast.error("Cheque gerado, mas falhou ao salvar o número", { description: error.message });
-        else toast.success("Cheque gerado e número salvo na despesa");
-      } else {
-        toast.success("Cheque gerado");
       }
+
+      const chequePayload = {
+        empresa_id: data.empresaId || null,
+        numero_cheque: numeroCheque.trim() || null,
+        valor: Number(data.valor) || 0,
+        favorecido_nome: data.nominal?.trim() || "",
+        data_emissao: dataCheque,
+        data_vencimento: predatado ? dataVencimento : null,
+        predatado,
+        cruzado,
+        cidade: cidade.trim() || null,
+        historico: data.historico?.trim() || null,
+        vinculo_tipo: data.vinculoTipo || (data.expenseId ? "conta_pagar" : "avulso"),
+        expense_id: data.expenseId || null,
+        freight_contract_id: data.freightContractId || null,
+        conta_bancaria_id: data.contaBancariaId || null,
+        status: "emitido",
+      };
+      const chequeQuery = supabase.from("cheques" as any) as any;
+      let existingQuery = chequeQuery.select("id").limit(1);
+      if (data.expenseId) existingQuery = existingQuery.eq("expense_id", data.expenseId);
+      else if (data.freightContractId) existingQuery = existingQuery.eq("freight_contract_id", data.freightContractId);
+      else existingQuery = existingQuery.eq("numero_cheque", numeroCheque.trim() || "__sem_numero__");
+      const { data: existingCheque } = await existingQuery.maybeSingle();
+      const { data: savedCheque, error: chequeError } = existingCheque
+        ? await chequeQuery.update(chequePayload).eq("id", existingCheque.id).select("id").single()
+        : await chequeQuery.insert(chequePayload).select("id").single();
+      if (chequeError) throw chequeError;
+
+      if (data.vinculoTipo === "movimentacao" && data.contaBancariaId && savedCheque?.id) {
+        const movementQuery = supabase.from("movimentacoes_bancarias" as any) as any;
+        const { data: movement, error: movementError } = await movementQuery.insert({
+          empresa_id: data.empresaId || null,
+          conta_bancaria_id: data.contaBancariaId,
+          origem: "cheque",
+          origem_id: savedCheque.id,
+          tipo: "saida",
+          valor: Number(data.valor) || 0,
+          data_movimentacao: dataCheque,
+          descricao: data.historico?.trim() || `Cheque ${numeroCheque.trim() || "sem número"} - ${data.nominal?.trim() || "Sem favorecido"}`,
+        }).select("id").single();
+        if (movementError) throw movementError;
+        await chequeQuery.update({ movimentacao_id: movement.id }).eq("id", savedCheque.id);
+      }
+      toast.success("Cheque gerado e registrado");
       onSaved?.(numeroCheque.trim(), { predatado, dataVencimento: predatado ? dataVencimento : null });
       localStorage.setItem("cheque_cidade", cidade.trim());
     } catch (e: any) {

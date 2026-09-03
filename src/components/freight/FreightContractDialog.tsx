@@ -838,6 +838,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         onOpenChange={setCheckDialogOpen}
         data={{
           expenseId: checkExpenseId,
+          freightContractId: savedContract?.id || contractId || null,
+          empresaId: cte?.establishment_id || null,
+          vinculoTipo: "contrato_frete",
           valor: valorTotal,
           nominal: form.motorista_nome?.trim() || form.contratado_nome?.trim() || "",
           data: new Date().toISOString().slice(0, 10),
