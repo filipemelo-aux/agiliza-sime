@@ -31,7 +31,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const { matrizId } = useUnifiedCompany();
   const [linkType, setLinkType] = useState<LinkType>("conta_pagar");
   const [empresaId, setEmpresaId] = useState("");
-  const [expenseId, setExpenseId] = useState("");
+  const [expenseIds, setExpenseIds] = useState<string[]>([]);
   const [accountId, setAccountId] = useState("");
   const [value, setValue] = useState("");
   const [beneficiary, setBeneficiary] = useState("");
