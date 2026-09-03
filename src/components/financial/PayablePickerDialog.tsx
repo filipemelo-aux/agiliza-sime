@@ -71,11 +71,12 @@ function daysOverdue(vencimento: string | null, balance: number): number {
   return diff > 0 ? diff : 0;
 }
 
-export function PayablePickerDialog({ open, onOpenChange, payables, loading, onSelect }: Props) {
+export function PayablePickerDialog({ open, onOpenChange, payables, loading, selectedIds, onConfirm }: Props) {
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState("abertas");
   const [empresa, setEmpresa] = useState("");
   const [vencidas, setVencidas] = useState("todas");
+  const [picked, setPicked] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,7 +84,18 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
     setStatus("abertas");
     setEmpresa("");
     setVencidas("todas");
+    setPicked(selectedIds ?? []);
   }, [open]);
+
+  const toggle = (id: string) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const pickedRows = useMemo(() => payables.filter((p) => picked.includes(p.id)), [payables, picked]);
+  const pickedTotal = pickedRows.reduce((sum, p) => sum + Math.max(0, Number(p.valor_total) - Number(p.valor_pago || 0)), 0);
+
+  const confirm = () => {
+    onConfirm(pickedRows);
+    onOpenChange(false);
+  };
 
   const filtered = useMemo(() => {
     const today = getLocalDateISO();
