@@ -1324,20 +1324,55 @@ export function BankReconciliation() {
 
       const paidByInstallment = new Map<string, number>();
       const paidByExpense = new Map<string, number>();
+      const paymentsByInstallment = new Map<string, any[]>();
+      const paymentsByExpense = new Map<string, any[]>();
+      const allPayments: any[] = [];
       if (expIds.length > 0) {
         const { data: payData } = await supabase
           .from("expense_payments")
-          .select("expense_id, installment_id, valor")
+          .select("id, expense_id, installment_id, valor")
           .in("expense_id", expIds);
         for (const p of ((payData as any[]) || [])) {
+          allPayments.push(p);
           const v = Number(p.valor) || 0;
           if (p.installment_id) {
             paidByInstallment.set(p.installment_id, (paidByInstallment.get(p.installment_id) || 0) + v);
+            paymentsByInstallment.set(p.installment_id, [...(paymentsByInstallment.get(p.installment_id) || []), p]);
           } else {
             paidByExpense.set(p.expense_id, (paidByExpense.get(p.expense_id) || 0) + v);
+            paymentsByExpense.set(p.expense_id, [...(paymentsByExpense.get(p.expense_id) || []), p]);
           }
         }
       }
+
+      // Movimentações de caixa dos pagamentos + vínculos já existentes de conciliação
+      const movsByPaymentId = new Map<string, any>();
+      const linkedMovIds = new Set<string>();
+      if (allPayments.length > 0) {
+        const paymentIds = allPayments.map((p) => p.id);
+        const { data: movData } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id, origem_id, valor")
+          .eq("origem", "pagamento_despesa")
+          .in("origem_id", paymentIds);
+        for (const m of ((movData as any[]) || [])) movsByPaymentId.set(m.origem_id, m);
+        const movIds = ((movData as any[]) || []).map((m) => m.id);
+        if (movIds.length > 0) {
+          const { data: linkData } = await supabase
+            .from("bank_reconciliation_item_links")
+            .select("movimentacao_id")
+            .in("movimentacao_id", movIds);
+          for (const l of ((linkData as any[]) || [])) linkedMovIds.add(l.movimentacao_id);
+        }
+      }
+
+      // Uma conta/parcela paga está disponível para conciliação se tiver ao menos
+      // uma movimentação de pagamento ainda não vinculada a nenhuma conciliação
+      const hasUnlinkedPaidMovement = (payments: any[] | undefined) =>
+        (payments || []).some((p) => {
+          const mov = movsByPaymentId.get(p.id);
+          return mov && !linkedMovIds.has(mov.id);
+        });
 
       const results: any[] = [];
       for (const exp of expenses) {
@@ -1348,7 +1383,9 @@ export function BankReconciliation() {
             const totalParcelas = inst.total_parcelas ?? fallbackTotal;
             const paidReal = paidByInstallment.get(inst.id) || 0;
             const saldo = Math.max(0, Number(inst.valor) - paidReal);
-            if (saldo <= 0.005) continue;
+            const jaPaga = saldo <= 0.005 && paidReal > 0;
+            if (saldo <= 0.005 && !jaPaga) continue;
+            if (jaPaga && !hasUnlinkedPaidMovement(paymentsByInstallment.get(inst.id))) continue;
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
@@ -1361,7 +1398,8 @@ export function BankReconciliation() {
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
               valor_pago: paidReal,
-              status: exp.status === "atrasado" ? "atrasado" : "pendente",
+              ja_paga: jaPaga,
+              status: jaPaga ? "pago" : exp.status === "atrasado" ? "atrasado" : "pendente",
               data_vencimento: inst.data_vencimento,
               data_emissao: exp.data_emissao,
             });
@@ -1370,11 +1408,15 @@ export function BankReconciliation() {
           const paidReal = paidByExpense.get(exp.id);
           const valorPago = paidReal != null ? paidReal : Number(exp.valor_pago || 0);
           const saldo = Math.max(0, Number(exp.valor_total || 0) - valorPago);
-          if (saldo <= 0.005) continue;
+          const jaPaga = saldo <= 0.005 && valorPago > 0;
+          if (saldo <= 0.005 && !jaPaga) continue;
+          if (jaPaga && !hasUnlinkedPaidMovement(paymentsByExpense.get(exp.id))) continue;
           results.push({
             ...exp,
             valor_pago: valorPago,
             is_installment: false,
+            ja_paga: jaPaga,
+            status: jaPaga ? "pago" : exp.status,
           });
         }
       }
