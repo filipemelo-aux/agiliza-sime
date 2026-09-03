@@ -97,6 +97,14 @@ interface OfxItem extends OfxTransaction {
   matchedReceivablePrecision: MatchPrecision | null;
   matchedReceivableContaId: string | null;
   matchedReceivableFaturaNumero: number | null;
+  linkedMovs?: {
+    id: string;
+    desc: string | null;
+    date: string | null;
+    valor: number | null;
+    origem: string | null;
+    favorecido: string | null;
+  }[];
 }
 
 interface MatchCandidate {
@@ -382,8 +390,23 @@ export function BankReconciliation() {
       // Movimentações já vinculadas podem ter data fora da janela do extrato
       // (ex.: baixa registrada em outro mês). Busca-as explicitamente pelo id
       // para que os detalhes do vínculo apareçam nos itens já conciliados.
+      // Vínculos múltiplos (uma transação quitando várias contas)
+      const { data: itemLinks } = await supabase
+        .from("bank_reconciliation_item_links")
+        .select("reconciliation_item_id, movimentacao_id")
+        .in("reconciliation_item_id", dbItems.map((i: any) => i.id));
+      const linksByItem = new Map<string, string[]>();
+      (itemLinks || []).forEach((l: any) => {
+        const arr = linksByItem.get(l.reconciliation_item_id) || [];
+        arr.push(l.movimentacao_id);
+        linksByItem.set(l.reconciliation_item_id, arr);
+      });
+
       const linkedMovIds = Array.from(
-        new Set(dbItems.map((i: any) => i.matched_movimentacao_id).filter(Boolean)),
+        new Set([
+          ...dbItems.map((i: any) => i.matched_movimentacao_id),
+          ...(itemLinks || []).map((l: any) => l.movimentacao_id),
+        ].filter(Boolean)),
       ) as string[];
       const inWindow = new Set((existingMovs || []).map((m: any) => m.id));
       const missingLinkedIds = linkedMovIds.filter((id) => !inWindow.has(id));
@@ -682,7 +705,25 @@ export function BankReconciliation() {
           }
         }
 
+        const linkIds = linksByItem.get(dbItem.id) || [];
+        const allLinkIds = Array.from(new Set([...linkIds, ...(matchedMovId ? [matchedMovId] : [])]));
+        const linkedMovs = allLinkIds
+          .map((mid) => {
+            const mov = allMovs.find((m: any) => m.id === mid);
+            if (!mov) return null;
+            return {
+              id: mov.id,
+              desc: mov.descricao as string | null,
+              date: mov.data_movimentacao as string | null,
+              valor: Math.abs(Number(mov.valor)),
+              origem: mov.origem as string | null,
+              favorecido: movFavorecidoMap.get(mov.id) || null,
+            };
+          })
+          .filter(Boolean) as OfxItem["linkedMovs"];
+
         return {
+          linkedMovs,
           fitid: dbItem.fitid || "",
           date: txDate,
           amount: tipo === "saida" ? -absVal : absVal,
@@ -2688,19 +2729,35 @@ export function BankReconciliation() {
             />
           )}
 
-          {r.status === "conciliado" && (r.matchedMovId || r.matchedMovDesc) && (
+          {r.status === "conciliado" && (r.linkedMovs?.length || 0) > 1 && (
+            <div className="space-y-1">
+              {r.linkedMovs!.map((lm, i) => (
+                <MatchBox
+                  key={lm.id}
+                  desc={lm.desc}
+                  date={lm.date}
+                  valor={lm.valor}
+                  origem={lm.origem ? translateOrigem(lm.origem) : "Lançamento conciliado"}
+                  variant="green"
+                  label={`Vinculado a (${i + 1}/${r.linkedMovs!.length})`}
+                  fornecedor={lm.favorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
+                />
+              ))}
+            </div>
+          )}
+          {r.status === "conciliado" && (r.linkedMovs?.length || 0) <= 1 && (r.matchedMovId || r.matchedMovDesc) && (
             <MatchBox
-              desc={r.matchedMovDesc || r.description || null}
-              date={r.matchedMovDate || r.date}
-              valor={r.matchedMovValor ?? Math.abs(r.amount)}
-              origem={r.matchedMovOrigem ? translateOrigem(r.matchedMovOrigem) : "Lançamento conciliado"}
+              desc={r.matchedMovDesc || r.linkedMovs?.[0]?.desc || r.description || null}
+              date={r.matchedMovDate || r.linkedMovs?.[0]?.date || r.date}
+              valor={r.matchedMovValor ?? r.linkedMovs?.[0]?.valor ?? Math.abs(r.amount)}
+              origem={translateOrigem(r.matchedMovOrigem || r.linkedMovs?.[0]?.origem || "") || "Lançamento conciliado"}
               variant="green"
               label="Vinculado a"
               precision={r.matchedMovPrecision}
-              fornecedor={r.matchedMovFavorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
+              fornecedor={r.matchedMovFavorecido || r.linkedMovs?.[0]?.favorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
             />
           )}
-          {r.status === "conciliado" && !r.matchedMovId && !r.matchedMovDesc && (
+          {r.status === "conciliado" && !r.matchedMovId && !r.matchedMovDesc && !(r.linkedMovs?.length) && (
             <span className="text-[10px] text-muted-foreground">Conciliado sem vínculo</span>
           )}
           {r.status === "pendente" && !r.matchedMovId && !r.matchedPayableId && !r.matchedReceivableId && (
