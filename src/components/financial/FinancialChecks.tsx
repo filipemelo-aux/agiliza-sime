@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
-import { CalendarDays, CheckCircle2, Plus, RefreshCw, Search, WalletCards, XCircle } from "lucide-react";
+import { Banknote, CalendarDays, CheckCircle2, Plus, RefreshCw, Search, WalletCards, XCircle } from "lucide-react";
 
 interface CheckRow {
   id: string;
@@ -177,11 +177,12 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   };
 
   const actions: ToolbarAction[] = [
+    ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: Banknote, mode: "single" as const, priority: true, className: "bg-success text-success-foreground hover:bg-success/90 border-transparent", onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione um cheque em aberto (emitido)"); if (alvo.length > 1) return toast.info("Pague um cheque por vez"); setPayOpen(true); } }] : []),
     ...(!reportMode ? [{ key: "new", label: "Novo cheque", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setDialogOpen(true) }] : []),
-    { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", onClick: () => { void load(); } },
-    ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: CheckCircle2, mode: "single" as const, variant: "default" as const, onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione um cheque em aberto (emitido)"); if (alvo.length > 1) return toast.info("Pague um cheque por vez"); setPayOpen(true); } }] : []),
+    { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", className: "border-border text-muted-foreground hover:bg-muted", onClick: () => { void load(); } },
     ...(!reportMode ? [{ key: "cancel", label: "Cancelar cheque", icon: XCircle, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void cancelSelected(); } }] : []),
   ];
+
 
   const columns: DataGridColumn<CheckRow>[] = [
     { key: "numero", header: "Cheque", width: "100px", cell: (row) => <span className="font-mono text-xs font-medium">{row.numero_cheque || "Sem número"}</span>, sortValue: (row) => row.numero_cheque || "" },
