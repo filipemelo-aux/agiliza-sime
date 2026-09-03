@@ -548,6 +548,7 @@ export type Database = {
           created_by: string | null
           cruzado: boolean
           data_emissao: string
+          data_pagamento: string | null
           data_vencimento: string | null
           empresa_id: string | null
           expense_id: string | null
@@ -560,6 +561,7 @@ export type Database = {
           movimentacao_id: string | null
           numero_cheque: string | null
           observacoes: string | null
+          plano_contas_id: string | null
           predatado: boolean
           status: string
           updated_at: string
@@ -574,6 +576,7 @@ export type Database = {
           created_by?: string | null
           cruzado?: boolean
           data_emissao?: string
+          data_pagamento?: string | null
           data_vencimento?: string | null
           empresa_id?: string | null
           expense_id?: string | null
@@ -586,6 +589,7 @@ export type Database = {
           movimentacao_id?: string | null
           numero_cheque?: string | null
           observacoes?: string | null
+          plano_contas_id?: string | null
           predatado?: boolean
           status?: string
           updated_at?: string
@@ -600,6 +604,7 @@ export type Database = {
           created_by?: string | null
           cruzado?: boolean
           data_emissao?: string
+          data_pagamento?: string | null
           data_vencimento?: string | null
           empresa_id?: string | null
           expense_id?: string | null
@@ -612,6 +617,7 @@ export type Database = {
           movimentacao_id?: string | null
           numero_cheque?: string | null
           observacoes?: string | null
+          plano_contas_id?: string | null
           predatado?: boolean
           status?: string
           updated_at?: string
@@ -666,6 +672,13 @@ export type Database = {
             columns: ["movimentacao_id"]
             isOneToOne: false
             referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]

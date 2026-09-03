@@ -144,6 +144,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         expense_id: linkedExpenseIds[0] || null,
         freight_contract_id: data.freightContractId || null,
         conta_bancaria_id: data.contaBancariaId || null,
+        plano_contas_id: data.planoContasId || null,
         status: "emitido",
       };
       const chequeQuery = supabase.from("cheques" as any) as any;
@@ -172,22 +173,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       }
 
 
-      if (data.vinculoTipo === "movimentacao" && data.contaBancariaId && savedCheque?.id) {
-        const movementQuery = supabase.from("movimentacoes_bancarias" as any) as any;
-        const { data: movement, error: movementError } = await movementQuery.insert({
-          empresa_id: data.empresaId || null,
-          conta_bancaria_id: data.contaBancariaId,
-          origem: "cheque",
-          plano_contas_id: data.planoContasId || null,
-          origem_id: savedCheque.id,
-          tipo: "saida",
-          valor: Number(data.valor) || 0,
-          data_movimentacao: dataCheque,
-          descricao: data.historico?.trim() || `Cheque ${numeroCheque.trim() || "sem número"} - ${data.nominal?.trim() || "Sem favorecido"}`,
-        }).select("id").single();
-        if (movementError) throw movementError;
-        await chequeQuery.update({ movimentacao_id: movement.id }).eq("id", savedCheque.id);
-      }
+      // A movimentação bancária do cheque só é efetivada no pagamento (seção Cheques > Pagar)
       toast.success("Cheque gerado e registrado");
       onSaved?.(numeroCheque.trim(), { predatado, dataVencimento: predatado ? dataVencimento : null });
       localStorage.setItem("cheque_cidade", cidade.trim());
