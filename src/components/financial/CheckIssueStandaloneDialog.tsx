@@ -181,7 +181,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
                     {loading ? "Carregando contas..." : "Buscar e selecionar conta a pagar..."}
                   </Button>
                 )}
-                <p className="mt-1 text-[10px] text-muted-foreground">O cheque será registrado e o número ficará vinculado à conta selecionada.</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">O cheque será registrado e o número ficará vinculado a todas as contas selecionadas.</p>
               </div>
             ) : (
               <div>
