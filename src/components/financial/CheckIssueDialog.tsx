@@ -17,6 +17,8 @@ import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
 export interface CheckIssueData {
   expenseId?: string | null;
+  /** Múltiplas contas a pagar vinculadas ao mesmo cheque */
+  expenseIds?: string[];
   freightContractId?: string | null;
   empresaId?: string | null;
   contaBancariaId?: string | null;
