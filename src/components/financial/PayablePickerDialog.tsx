@@ -17,9 +17,15 @@ export interface PayableOption {
   valor_pago: number;
   status: string;
   data_vencimento: string | null;
+  data_emissao: string | null;
   favorecido_nome: string | null;
   favorecido_id: string | null;
   empresa_id: string;
+  forma_pagamento: string | null;
+  plano_contas_id?: string | null;
+  plano_contas_nome: string | null;
+  veiculo_placa: string | null;
+  fornecedor_cnpj: string | null;
 }
 
 interface Props {
@@ -31,6 +37,36 @@ interface Props {
 }
 
 const statusLabel: Record<string, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Vencido", parcial: "Parcial" };
+
+const formaPagamentoLabel: Record<string, string> = {
+  cheque: "Cheque",
+  pix: "Pix",
+  transferencia: "Transf.",
+  transferência: "Transf.",
+  dinheiro: "Dinheiro",
+  cartao: "Cartão",
+  cartão: "Cartão",
+  boleto: "Boleto",
+  debito: "Déb.",
+  débito: "Déb.",
+  credito: "Créd.",
+  crédito: "Créd.",
+};
+
+function formaLabel(v: string | null): string {
+  if (!v) return "—";
+  const key = v.trim().toLowerCase();
+  return formaPagamentoLabel[key] ?? key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function daysOverdue(vencimento: string | null, balance: number): number {
+  if (!vencimento || balance <= 0) return 0;
+  const today = getLocalDateISO();
+  const v = new Date(vencimento + "T12:00:00");
+  const t = new Date(today + "T12:00:00");
+  const diff = Math.floor((t.getTime() - v.getTime()) / 86400000);
+  return diff > 0 ? diff : 0;
+}
 
 export function PayablePickerDialog({ open, onOpenChange, payables, loading, onSelect }: Props) {
   const [term, setTerm] = useState("");
@@ -58,7 +94,7 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
         if (vencidas === "vencidas" && !(p.data_vencimento && p.data_vencimento < today && balance > 0)) return false;
         if (vencidas === "a_vencer" && !(p.data_vencimento && p.data_vencimento >= today)) return false;
         if (!t) return true;
-        return [p.descricao, p.favorecido_nome].some((v) => String(v || "").toLowerCase().includes(t));
+        return [p.descricao, p.favorecido_nome, p.plano_contas_nome, p.veiculo_placa, p.fornecedor_cnpj].some((v) => String(v || "").toLowerCase().includes(t));
       })
       .sort((a, b) => String(a.data_vencimento || "9999").localeCompare(String(b.data_vencimento || "9999")))
       .slice(0, 300);
@@ -66,7 +102,7 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle className="text-base">Selecionar conta a pagar</DialogTitle>
         </DialogHeader>
@@ -75,8 +111,8 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              className="h-8 w-[220px] pl-7 text-xs"
-              placeholder="Buscar descrição ou favorecido..."
+              className="h-8 w-[260px] pl-7 text-xs"
+              placeholder="Buscar descrição, favorecido, plano, placa, CNPJ..."
               value={term}
               onChange={(e) => setTerm(e.target.value)}
               autoFocus
@@ -103,43 +139,59 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
           <EmpresaFilter value={empresa} onChange={setEmpresa} />
         </div>
 
-        <div className="border rounded max-h-[400px] overflow-y-auto">
-          <Table>
+        <div className="border rounded max-h-[460px] overflow-y-auto">
+          <Table className="text-[10px]">
             <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead className="text-[11px]">Descrição</TableHead>
-                <TableHead className="text-[11px]">Favorecido</TableHead>
-                <TableHead className="text-[11px] w-[95px]">Vencimento</TableHead>
-                <TableHead className="text-[11px] w-[80px]">Situação</TableHead>
-                <TableHead className="text-[11px] w-[105px] text-right">Saldo</TableHead>
-                <TableHead className="text-[11px] w-[80px]" />
+              <TableRow className="h-7">
+                <TableHead className="text-[10px] py-1 px-2">Descrição / Favorecido</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[150px]">Plano de contas</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[64px]">Forma</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[72px]">Vencimento</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[70px]">Situação</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[78px] text-right">Vlr. Total</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[70px] text-right">Pago</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[80px] text-right">Saldo</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[44px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={6} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
               )}
               {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
               )}
               {!loading && filtered.map((p) => {
-                const balance = Math.max(0, Number(p.valor_total) - Number(p.valor_pago || 0));
-                const overdue = p.data_vencimento && p.data_vencimento < getLocalDateISO() && balance > 0;
+                const total = Number(p.valor_total) || 0;
+                const pago = Number(p.valor_pago) || 0;
+                const balance = Math.max(0, total - pago);
+                const overdueDays = daysOverdue(p.data_vencimento, balance);
                 return (
                   <TableRow
                     key={p.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer h-7 hover:bg-muted/40"
                     onClick={() => { onSelect(p); onOpenChange(false); }}
                   >
-                    <TableCell className="max-w-[240px] truncate text-[11px]" title={p.descricao}>{p.descricao || "—"}</TableCell>
-                    <TableCell className="max-w-[160px] truncate text-[11px]">{p.favorecido_nome || "—"}</TableCell>
-                    <TableCell className={cn("text-[11px] whitespace-nowrap", overdue && "text-destructive font-medium")}>
-                      {p.data_vencimento ? formatDateBR(p.data_vencimento) : "—"}
+                    <TableCell className="py-1 px-2 max-w-[260px]">
+                      <div className="truncate font-medium text-[11px]" title={p.descricao}>{p.descricao || "—"}</div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span className="truncate max-w-[150px]" title={p.favorecido_nome ?? undefined}>{p.favorecido_nome || "Sem favorecido"}</span>
+                        {p.fornecedor_cnpj && <span className="shrink-0">· {p.fornecedor_cnpj}</span>}
+                        {p.veiculo_placa && <span className="shrink-0 font-mono">· {p.veiculo_placa}</span>}
+                      </div>
                     </TableCell>
-                    <TableCell className="text-[11px]">{statusLabel[p.status] || p.status}</TableCell>
-                    <TableCell className="text-right font-mono text-[11px] font-medium">{formatCurrency(balance)}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]">
+                    <TableCell className="py-1 px-2 text-[10px] truncate max-w-[150px]" title={p.plano_contas_nome ?? undefined}>{p.plano_contas_nome || "—"}</TableCell>
+                    <TableCell className="py-1 px-2 text-[10px] whitespace-nowrap">{formaLabel(p.forma_pagamento)}</TableCell>
+                    <TableCell className={cn("py-1 px-2 text-[10px] whitespace-nowrap", overdueDays > 0 && "text-destructive font-medium")}>
+                      <div>{p.data_vencimento ? formatDateBR(p.data_vencimento) : "—"}</div>
+                      {overdueDays > 0 && <div className="text-[9px] leading-none">há {overdueDays}d</div>}
+                    </TableCell>
+                    <TableCell className="py-1 px-2 text-[10px] whitespace-nowrap">{statusLabel[p.status] || p.status}</TableCell>
+                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap">{formatCurrency(total)}</TableCell>
+                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap text-muted-foreground">{pago > 0 ? formatCurrency(pago) : "—"}</TableCell>
+                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] font-semibold whitespace-nowrap">{formatCurrency(balance)}</TableCell>
+                    <TableCell className="py-1 px-2">
+                      <Button size="sm" variant="outline" className="h-6 gap-1 px-1.5 text-[10px]" onClick={(e) => { e.stopPropagation(); onSelect(p); onOpenChange(false); }}>
                         <CheckCircle2 className="h-3 w-3" /> Incluir
                       </Button>
                     </TableCell>
