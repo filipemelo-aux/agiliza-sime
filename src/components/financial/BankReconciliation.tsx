@@ -775,7 +775,10 @@ export function BankReconciliation() {
   const [linkSearching, setLinkSearching] = useState(false);
   const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
   const [linkSelectedAccounts, setLinkSelectedAccounts] = useState<any[]>([]);
-  const [linkAllocations, setLinkAllocations] = useState<Record<string, string>>({});
+  const linkSelectedTotal = useMemo(
+    () => linkSelectedAccounts.reduce((sum, a) => sum + Math.max(Number(a.valor_total || 0) - Number(a.valor_pago || 0), 0), 0),
+    [linkSelectedAccounts]
+  );
   const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
@@ -1089,7 +1092,6 @@ export function BankReconciliation() {
     setLinkSearchResults([]);
     setLinkSelectedAccount(null);
     setLinkSelectedAccounts([]);
-    setLinkAllocations({});
     setLinkAccountDialogOpen(true);
   }, []);
 
@@ -1395,27 +1397,31 @@ export function BankReconciliation() {
     try {
       const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
       const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
-      const allocations = linkSelectedAccounts.map((account) => ({
-        expense_id: account.expense_id || account.id,
-        installment_id: account.installment_id || null,
-        amount: +(Number(linkAllocations[account.id]) || 0).toFixed(2),
-      })).filter((allocation) => allocation.amount > 0);
+      // Cada conta selecionada entra com seu saldo em aberto (sem rateio manual)
+      const allocations = linkSelectedAccounts.map((account) => {
+        const saldo = +(Number(account.valor_total || 0) - Number(account.valor_pago || 0)).toFixed(2);
+        return {
+          expense_id: account.expense_id || account.id,
+          installment_id: account.installment_id || null,
+          amount: saldo,
+        };
+      }).filter((allocation) => allocation.amount > 0);
       const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
 
       if (targetItems.length !== 1 || targetItems[0]?.tipo !== "saida") {
         throw new Error("A vinculação múltipla exige exatamente um débito do extrato.");
       }
+      if (allocations.length === 0) throw new Error("Selecione ao menos uma conta com saldo em aberto.");
       if (Math.abs(allocatedTotal - targetTotal) > 0.005) {
-        throw new Error(`O rateio deve totalizar ${formatCurrency(targetTotal)}.`);
+        throw new Error(`A soma dos saldos das contas selecionadas (${formatCurrency(allocatedTotal)}) precisa ser igual ao débito do extrato (${formatCurrency(targetTotal)}). Ajuste a seleção.`);
       }
-      if (allocations.length === 0) throw new Error("Informe valores positivos para as contas selecionadas.");
 
       const dbItemId = targetItems[0].dbItemId;
       if (!dbItemId) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
 
       const confirmed = await confirm({
-        title: "Confirmar vinculação múltipla",
-        description: `O débito de ${formatCurrency(targetTotal)} será rateado entre ${allocations.length} conta(s), com quitação dos saldos informados. Deseja finalizar?`,
+        title: "Confirmar vinculação",
+        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s), quitando o saldo de cada uma. Deseja finalizar?`,
         confirmLabel: "Finalizar vinculação",
         cancelLabel: "Revisar",
       });
@@ -1445,7 +1451,6 @@ export function BankReconciliation() {
       setLinkAccountDialogOpen(false);
       setLinkSelectedAccount(null);
       setLinkSelectedAccounts([]);
-      setLinkAllocations({});
       setLinkTargetItemIds([]);
       setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
@@ -1453,7 +1458,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccounts, linkAllocations, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
+  }, [linkSelectedAccounts, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
 
   const totals = useMemo(() => {
     const total = items.length;
@@ -3076,7 +3081,7 @@ export function BankReconciliation() {
       />
 
       {/* Link to existing account dialog */}
-      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkAllocations({}); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
+      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-base">Vincular lançamento(s) a contas</DialogTitle>
@@ -3089,10 +3094,29 @@ export function BankReconciliation() {
                   {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
                 </span>
               </p>
-              <p className="text-muted-foreground">
-                Rateado: <span className="font-mono font-semibold">{formatCurrency(Object.values(linkAllocations).reduce((sum, value) => sum + (Number(value) || 0), 0))}</span>
-              </p>
+              {linkSelectedAccounts.length > 0 && (
+                <p className="text-muted-foreground">
+                  Selecionado ({linkSelectedAccounts.length} conta(s)): <span className="font-mono font-semibold">{formatCurrency(linkSelectedTotal)}</span>
+                </p>
+              )}
             </div>
+
+            {linkSelectedAccounts.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {linkSelectedAccounts.map((acc) => (
+                  <Badge
+                    key={acc.id}
+                    variant="secondary"
+                    className="text-[10px] gap-1 cursor-pointer"
+                    title="Clique para remover"
+                    onClick={() => setLinkSelectedAccounts((current) => current.filter((s) => s.id !== acc.id))}
+                  >
+                    {acc.descricao} · <span className="font-mono">{formatCurrency(Math.max(Number(acc.valor_total || 0) - Number(acc.valor_pago || 0), 0))}</span>
+                    <span aria-hidden>×</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -3136,12 +3160,6 @@ export function BankReconciliation() {
                     const exists = current.some((selected) => selected.id === acc.id);
                     const next = exists ? current.filter((selected) => selected.id !== acc.id) : [...current, acc];
                     setLinkSelectedAccount(next[0] || null);
-                    setLinkAllocations((allocations) => {
-                      const updated = { ...allocations };
-                      if (exists) delete updated[acc.id];
-                      else updated[acc.id] = String(Math.min(Math.max(saldo, 0), 0));
-                      return updated;
-                    });
                     return next;
                   });
                 };
@@ -3164,17 +3182,6 @@ export function BankReconciliation() {
                           {acc.status !== "pago" && <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>}
                         </p>
                       </button>
-                      {isSelected && (
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={linkAllocations[acc.id] || ""}
-                          onChange={(event) => setLinkAllocations((current) => ({ ...current, [acc.id]: event.target.value }))}
-                          className="h-7 w-28 text-right text-xs"
-                          aria-label={`Valor para ${acc.descricao}`}
-                        />
-                      )}
                     </div>
                   </div>
                 );
@@ -3183,7 +3190,7 @@ export function BankReconciliation() {
 
             {linkSelectedAccounts.length > 0 && (
               <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
-                Revise os valores rateados. A soma precisa ser igual ao débito do extrato; contas já quitadas não são exibidas para nova vinculação.
+                Cada conta selecionada será quitada pelo seu saldo em aberto. A soma dos saldos precisa ser igual ao débito do extrato. Contas já quitadas ou conciliadas não são exibidas.
               </p>
             )}
           </div>
