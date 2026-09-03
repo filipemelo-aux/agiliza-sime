@@ -461,14 +461,14 @@ export function FinancialPaid() {
     {
       key: "due_date",
       header: "Vencimento",
-      width: "100px",
+      width: "86px",
       sortValue: (r) => r.due_date || "",
       cell: (r) => (r.due_date ? formatDateBR(r.due_date) : "—"),
     },
     {
       key: "forma",
       header: "Forma",
-      width: "110px",
+      width: "92px",
       sortValue: (r) => r.forma_pagamento || "",
       cell: (r) => (
         <span className="capitalize">
@@ -494,7 +494,7 @@ export function FinancialPaid() {
     {
       key: "amount",
       header: "Valor Pago",
-      width: "120px",
+      width: "108px",
       align: "right",
       sortValue: (r) => r.amount,
       cell: (r) => <span className="font-mono font-semibold text-success">{formatCurrency(r.amount)}</span>,
@@ -873,7 +873,7 @@ export function FinancialPaid() {
         isSelectable={(r) => r.source === "expense_payment" || r.source === "group"}
         rowClassName={() => rowToneClass("resolved")}
         loading={loading}
-        minWidth={1060}
+        minWidth={960}
         emptyMessage="Nenhuma conta paga encontrada."
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
