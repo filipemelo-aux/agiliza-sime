@@ -179,7 +179,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const actions: ToolbarAction[] = [
     ...(!reportMode ? [{ key: "new", label: "Novo cheque", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setDialogOpen(true) }] : []),
     { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", onClick: () => { void load(); } },
-    ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: CheckCircle2, mode: "single+batch" as const, variant: "default" as const, onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione cheques em aberto (emitidos)"); setPayOpen(true); } }] : []),
+    ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: CheckCircle2, mode: "single" as const, variant: "default" as const, onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione um cheque em aberto (emitido)"); if (alvo.length > 1) return toast.info("Pague um cheque por vez"); setPayOpen(true); } }] : []),
     ...(!reportMode ? [{ key: "cancel", label: "Cancelar cheque", icon: XCircle, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void cancelSelected(); } }] : []),
   ];
 
