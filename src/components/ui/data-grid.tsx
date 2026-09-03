@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export interface DataGridColumn<T> {
@@ -14,6 +15,33 @@ export interface DataGridColumn<T> {
   headerClassName?: string;
   width?: string;
   align?: "left" | "right" | "center";
+}
+
+function DescriptionCell({ children, fullText }: { children: React.ReactNode; fullText: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const read = () => setTruncated(element.scrollWidth > element.clientWidth);
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [children]);
+
+  const content = <div ref={ref} className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{children}</div>;
+  if (!truncated || !fullText) return content;
+
+  return (
+    <Tooltip delayDuration={0}>
+      <TooltipTrigger asChild>{content}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-lg whitespace-normal text-xs leading-relaxed">
+        {fullText}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 interface DataGridProps<T> {
@@ -101,9 +129,9 @@ export function DataGrid<T>({
     a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
 
   return (
-    <div className="rounded-lg border border-border bg-card [&_td_.truncate]:max-w-full">
-      <div className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
-        <table className="w-full border-collapse text-xs" style={{ minWidth }}>
+    <div className="min-w-0 rounded-lg border border-border bg-card [&_td_.truncate]:max-w-full">
+      <div className="overflow-x-auto xl:overflow-x-hidden" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
+        <table className="w-full table-auto border-collapse text-xs xl:table-fixed" style={{ minWidth: `min(${minWidth}px, 100%)` }}>
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr className="border-b border-border">
               <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 bg-muted">
@@ -192,7 +220,7 @@ export function DataGrid<T>({
                       <td
                         key={col.key}
                         className={cn(
-                          "px-2 py-2.5 md:py-1 align-middle",
+                          "overflow-hidden px-2 py-2.5 md:py-1 align-middle",
                           alignCls(col.align),
                           ci === 0 && "relative",
                           col.className
@@ -208,7 +236,11 @@ export function DataGrid<T>({
                             )}
                           />
                         )}
-                        <span className={cn("block min-w-0 w-full", ci === 0 && "relative")}>{col.cell(row)}</span>
+                        <span className={cn("block min-w-0 w-full", ci === 0 && "relative")}>
+                          {col.key === "descricao" || col.key === "description" ? (
+                            <DescriptionCell fullText={String(col.sortValue?.(row) ?? "")}>{col.cell(row)}</DescriptionCell>
+                          ) : col.cell(row)}
+                        </span>
                       </td>
                     ))}
                   </tr>
