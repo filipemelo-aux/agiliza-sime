@@ -189,19 +189,14 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   ];
 
   const chequeRowTone = (row: CheckRow): RowTone => {
-    if (row.status === "cancelado") return "overdue";
+    if (row.status === "cancelado") return "overdue"; // Cancelado
     const info = links[row.id];
     const hasLink = !!(info && info.expenseIds.length);
     if (hasLink) {
-      if (info.conciliado) return "resolved";           // Pago e conciliado
-      if (info.pago || info.parcial) return "pending";  // Pago não conciliado
-      // Conta a pagar em aberto → A vencer / Vencido pela data do cheque
-      if (row.predatado && row.data_vencimento) {
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const venc = new Date(row.data_vencimento + "T12:00:00");
-        return venc < today ? "overdue" : "neutral";
-      }
-      return "neutral"; // A vencer (à vista, em aberto)
+      if (info.conciliado) return "resolved";            // Pago e conciliado
+      if (info.pago || info.parcial) return "pending";   // Pago não conciliado
+      if (info.vencido) return "overdue";                 // Vencido (conta atrasada)
+      return "neutral";                                  // A vencer (conta em aberto)
     }
     return "neutral"; // Sem conta a pagar vinculada
   };
