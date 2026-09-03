@@ -145,7 +145,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       };
       const chequeQuery = supabase.from("cheques" as any) as any;
       let existingQuery = chequeQuery.select("id").limit(1);
-      if (data.expenseId) existingQuery = existingQuery.eq("expense_id", data.expenseId);
+      if (linkedExpenseIds.length) existingQuery = existingQuery.eq("expense_id", linkedExpenseIds[0]);
       else if (data.freightContractId) existingQuery = existingQuery.eq("freight_contract_id", data.freightContractId);
       else existingQuery = existingQuery.eq("numero_cheque", numeroCheque.trim() || "__sem_numero__");
       const { data: existingCheque } = await existingQuery.maybeSingle();
