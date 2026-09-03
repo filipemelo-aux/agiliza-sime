@@ -436,7 +436,7 @@ export function FinancialPaid() {
     {
       key: "creditor",
       header: "Favorecido",
-      width: "220px",
+      width: "250px",
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
@@ -478,8 +478,8 @@ export function FinancialPaid() {
     },
     {
       key: "origem",
-      header: "Origem",
-      width: "110px",
+      header: "Tipo Pgto",
+      width: "84px",
       align: "center",
       sortValue: (r) => r.source,
       cell: (r) => (
@@ -487,7 +487,7 @@ export function FinancialPaid() {
           variant={r.source === "legacy" ? "secondary" : "default"}
           className={`text-[10px] ${r.source === "group" ? "bg-primary/80" : ""}`}
         >
-          {r.source === "legacy" ? "Legado" : r.source === "group" ? `Agrupado · ${r.group_count}` : "Pago"}
+          {r.source === "legacy" ? "Legado" : r.source === "group" ? `Grupo · ${r.group_count}` : "Individual"}
         </Badge>
       ),
     },
@@ -811,10 +811,10 @@ export function FinancialPaid() {
           </div>
           <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
             <SelectTrigger className="w-[150px] h-8 text-xs">
-              <SelectValue placeholder="Origem" />
+              <SelectValue placeholder="Tipo Pgto" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todas origens</SelectItem>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
               <SelectItem value="expense_payment">Despesas</SelectItem>
               <SelectItem value="legacy">Legado</SelectItem>
             </SelectContent>
