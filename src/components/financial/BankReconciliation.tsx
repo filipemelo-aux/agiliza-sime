@@ -776,7 +776,9 @@ export function BankReconciliation() {
   const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
   const [linkSelectedAccounts, setLinkSelectedAccounts] = useState<any[]>([]);
   const linkSelectedTotal = useMemo(
-    () => linkSelectedAccounts.reduce((sum, a) => sum + Math.max(Number(a.valor_total || 0) - Number(a.valor_pago || 0), 0), 0),
+    () => linkSelectedAccounts.reduce((sum, a) => sum + (a.ja_paga
+      ? Number(a.valor_pago || a.valor_total || 0)
+      : Math.max(Number(a.valor_total || 0) - Number(a.valor_pago || 0), 0)), 0),
     [linkSelectedAccounts]
   );
   const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
