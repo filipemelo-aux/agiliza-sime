@@ -3160,12 +3160,6 @@ export function BankReconciliation() {
                     const exists = current.some((selected) => selected.id === acc.id);
                     const next = exists ? current.filter((selected) => selected.id !== acc.id) : [...current, acc];
                     setLinkSelectedAccount(next[0] || null);
-                    setLinkAllocations((allocations) => {
-                      const updated = { ...allocations };
-                      if (exists) delete updated[acc.id];
-                      else updated[acc.id] = String(Math.min(Math.max(saldo, 0), 0));
-                      return updated;
-                    });
                     return next;
                   });
                 };
@@ -3188,17 +3182,6 @@ export function BankReconciliation() {
                           {acc.status !== "pago" && <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>}
                         </p>
                       </button>
-                      {isSelected && (
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={linkAllocations[acc.id] || ""}
-                          onChange={(event) => setLinkAllocations((current) => ({ ...current, [acc.id]: event.target.value }))}
-                          className="h-7 w-28 text-right text-xs"
-                          aria-label={`Valor para ${acc.descricao}`}
-                        />
-                      )}
                     </div>
                   </div>
                 );
