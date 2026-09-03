@@ -154,6 +154,21 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         : await chequeQuery.insert(chequePayload).select("id").single();
       if (chequeError) throw chequeError;
 
+      // Vínculos múltiplos cheque <-> contas a pagar
+      if (savedCheque?.id) {
+        const linksQuery = supabase.from("cheque_expense_links" as any) as any;
+        await linksQuery.delete().eq("cheque_id", savedCheque.id);
+        if (linkedExpenseIds.length) {
+          const { error: linkError } = await linksQuery.insert(
+            linkedExpenseIds.map((id) => ({ cheque_id: savedCheque.id, expense_id: id })),
+          );
+          if (linkError) {
+            toast.error("Cheque gerado, mas falhou ao vincular todas as contas", { description: linkError.message });
+          }
+        }
+      }
+
+
       if (data.vinculoTipo === "movimentacao" && data.contaBancariaId && savedCheque?.id) {
         const movementQuery = supabase.from("movimentacoes_bancarias" as any) as any;
         const { data: movement, error: movementError } = await movementQuery.insert({
