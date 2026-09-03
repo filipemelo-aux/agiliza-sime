@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.fn_sync_cheque_favorecido_from_expense() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_sync_cheque_favorecido_from_contract() FROM PUBLIC, anon, authenticated;
