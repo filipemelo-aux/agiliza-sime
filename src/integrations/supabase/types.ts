@@ -1819,6 +1819,7 @@ export type Database = {
           created_at: string
           created_by: string
           data_pagamento: string
+          desconto: number
           expense_id: string
           forma_pagamento: string
           id: string
@@ -1834,6 +1835,7 @@ export type Database = {
           created_at?: string
           created_by: string
           data_pagamento?: string
+          desconto?: number
           expense_id: string
           forma_pagamento?: string
           id?: string
@@ -1849,6 +1851,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           data_pagamento?: string
+          desconto?: number
           expense_id?: string
           forma_pagamento?: string
           id?: string
