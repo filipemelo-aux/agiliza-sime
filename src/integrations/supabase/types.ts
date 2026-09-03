@@ -500,6 +500,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cheque_expense_links: {
+        Row: {
+          cheque_id: string
+          created_at: string
+          expense_id: string
+          id: string
+          valor: number
+        }
+        Insert: {
+          cheque_id: string
+          created_at?: string
+          expense_id: string
+          id?: string
+          valor?: number
+        }
+        Update: {
+          cheque_id?: string
+          created_at?: string
+          expense_id?: string
+          id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cheque_expense_links_cheque_id_fkey"
+            columns: ["cheque_id"]
+            isOneToOne: false
+            referencedRelation: "cheques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheque_expense_links_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cheques: {
         Row: {
           banco_nome: string | null
