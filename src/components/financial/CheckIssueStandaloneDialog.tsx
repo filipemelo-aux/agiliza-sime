@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { EmpresaSelect } from "./EmpresaControls";
 import { CheckIssueDialog } from "./CheckIssueDialog";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { toast } from "sonner";
 import { Plus, WalletCards } from "lucide-react";
@@ -52,7 +52,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const [loading, setLoading] = useState(false);
 
   const selectedExpense = useMemo(() => expenses.find((item) => item.id === expenseId), [expenses, expenseId]);
-  const parsedValue = Number(value.replace(/\./g, "").replace(",", ".")) || 0;
+  const parsedValue = Number(unmaskCurrency(value)) || 0;
 
   useEffect(() => {
     if (!open) return;
