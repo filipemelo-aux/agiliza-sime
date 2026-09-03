@@ -3181,12 +3181,9 @@ export function BankReconciliation() {
               })}
             </div>
 
-            {linkSelectedAccount && linkSelectedAccount.status !== "pago" && (
-              <p className="text-[11px] text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
-                Esta conta ainda não foi quitada. Ao confirmar, será registrado um pagamento de{" "}
-                <span className="font-mono font-semibold">
-                  {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
-                </span>{" "}para esta conta.
+            {linkSelectedAccounts.length > 0 && (
+              <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
+                Revise os valores rateados. A soma precisa ser igual ao débito do extrato; contas já quitadas não são exibidas para nova vinculação.
               </p>
             )}
           </div>
