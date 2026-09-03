@@ -141,23 +141,39 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
             <Separator />
             {linkType === "conta_pagar" ? (
               <div>
-                <Label className="text-xs">Conta a pagar <span className="text-destructive">*</span></Label>
-                {selectedExpense ? (
-                  <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5">
-                    <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-medium" title={selectedExpense.descricao}>
-                        {selectedExpense.favorecido_nome || "Sem favorecido"} — {selectedExpense.descricao}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        Saldo {formatCurrency(Math.max(0, Number(selectedExpense.valor_total) - Number(selectedExpense.valor_pago || 0)))}
-                        {selectedExpense.data_vencimento ? ` · Venc. ${formatDateBR(selectedExpense.data_vencimento)}` : ""}
-                      </div>
+                <Label className="text-xs">Contas a pagar <span className="text-destructive">*</span></Label>
+                {selectedExpenses.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-primary/30 bg-primary/5 p-1.5">
+                      {selectedExpenses.map((exp) => (
+                        <div key={exp.id} className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-background/60">
+                          <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-xs font-medium" title={exp.descricao}>
+                              {exp.favorecido_nome || "Sem favorecido"} — {exp.descricao}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Saldo {formatCurrency(Math.max(0, Number(exp.valor_total) - Number(exp.valor_pago || 0)))}
+                              {exp.data_vencimento ? ` · Venc. ${formatDateBR(exp.data_vencimento)}` : ""}
+                            </div>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Remover conta" onClick={() => setExpenseIds((prev) => prev.filter((id) => id !== exp.id))}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setPickerOpen(true)}>Trocar</Button>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Remover vínculo" onClick={() => setExpenseId("")}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {selectedExpenses.length} conta(s) · saldo total <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong>
+                      </span>
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]" onClick={() => setPickerOpen(true)}>
+                        <Search className="h-3.5 w-3.5" /> Adicionar / alterar contas
+                      </Button>
+                    </div>
+                    {multiplosFavorecidos && (
+                      <p className="text-[10px] text-destructive">Atenção: as contas selecionadas têm favorecidos diferentes. Confira o favorecido do cheque.</p>
+                    )}
                   </div>
                 ) : (
                   <Button type="button" variant="outline" className="h-9 w-full justify-start gap-2 text-xs text-muted-foreground" onClick={() => setPickerOpen(true)}>
