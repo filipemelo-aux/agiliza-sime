@@ -186,10 +186,10 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={11} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
               )}
               {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={11} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
               )}
               {!loading && filtered.map((p) => {
                 const total = Number(p.valor_total) || 0;
