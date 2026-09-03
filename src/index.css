@@ -189,8 +189,14 @@
 
     .data-grid-table th,
     .data-grid-table td {
+      width: auto !important;
       min-width: 0 !important;
       max-width: none !important;
+    }
+
+    .data-grid-table th[data-column-key="descricao"],
+    .data-grid-table th[data-column-key="description"] {
+      width: 28% !important;
     }
   }
 

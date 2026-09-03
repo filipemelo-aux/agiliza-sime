@@ -147,6 +147,7 @@ export function DataGrid<T>({
               {columns.map((col, ci) => (
                 <th
                   key={col.key}
+                  data-column-key={col.key}
                   style={col.width ? { width: col.width } : undefined}
                   onClick={() => toggleSort(col)}
                   className={cn(
@@ -222,6 +223,7 @@ export function DataGrid<T>({
                     {columns.map((col, ci) => (
                       <td
                         key={col.key}
+                        data-column-key={col.key}
                         className={cn(
                           "overflow-hidden px-2 py-2.5 md:py-1 align-middle",
                           alignCls(col.align),
