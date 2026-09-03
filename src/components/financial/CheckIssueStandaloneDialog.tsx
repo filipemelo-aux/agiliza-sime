@@ -109,7 +109,6 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const handleContinue = () => {
     if (!empresaId) return toast.error("Selecione a empresa / unidade");
     if (linkType === "conta_pagar" && expenseIds.length === 0) return toast.error("Selecione ao menos uma conta a pagar");
-    if (linkType === "movimentacao" && !accountId) return toast.error("Selecione a conta bancária");
     if (parsedValue <= 0) return toast.error("Informe um valor válido");
     if (!beneficiary.trim()) return toast.error("Informe o favorecido");
     setIssueOpen(true);
@@ -184,15 +183,9 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
                 <p className="mt-1 text-[10px] text-muted-foreground">O cheque será registrado e o número ficará vinculado a todas as contas selecionadas.</p>
               </div>
             ) : (
-              <div>
-                <Label className="text-xs">Conta bancária de saída <span className="text-destructive">*</span></Label>
-                <Select value={accountId} onValueChange={setAccountId}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione a conta bancária..." /></SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => <SelectItem key={account.id} value={account.id} className="text-xs">{account.nome}{account.banco ? ` — ${account.banco}` : ""}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Será registrada apenas uma movimentação bancária de saída na empresa / unidade selecionada, sem vínculo com contas a pagar.
+              </p>
             )}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div><Label className="text-xs">Favorecido <span className="text-destructive">*</span></Label><Input className="h-9 text-xs" value={beneficiary} onChange={(event) => setBeneficiary(event.target.value)} /></div>
