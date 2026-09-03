@@ -30,6 +30,9 @@ export interface ToolbarAction {
   /** desabilita mesmo quando a seleção permitiria */
   disabled?: boolean;
   hidden?: boolean;
+  /** quando habilitada, a ação é deslocada para o início da toolbar (ex.: Pagar) */
+  priority?: boolean;
+
 }
 
 export function isActionEnabled(mode: ToolbarActionMode, count: number) {
