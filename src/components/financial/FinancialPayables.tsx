@@ -1089,7 +1089,7 @@ export function FinancialPayables() {
     {
       key: "favorecido",
       header: "Favorecido",
-      width: "220px",
+      width: "22%",
       sortValue: (r) => r.favorecido,
       cell: (r) => {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
@@ -1107,6 +1107,7 @@ export function FinancialPayables() {
     {
       key: "descricao",
       header: "Descrição",
+      width: "30%",
       sortValue: (r) => r.descricao,
       cell: (r) => (
         <span className="flex items-center gap-1 min-w-0">
@@ -1683,7 +1684,7 @@ tfoot{display:table-row-group}
         selected={selectedIds}
         onSelectedChange={setSelectedIds}
         loading={loading}
-        minWidth={1270}
+        minWidth={1180}
         emptyMessage="Nenhuma despesa encontrada"
         rowClassName={(r) =>
           rowToneClass(
