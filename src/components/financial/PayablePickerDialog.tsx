@@ -221,8 +221,13 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                     <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap text-muted-foreground">{pago > 0 ? formatCurrency(pago) : "—"}</TableCell>
                     <TableCell className="py-1 px-2 text-right font-mono text-[10px] font-semibold whitespace-nowrap">{formatCurrency(balance)}</TableCell>
                     <TableCell className="py-1 px-2">
-                      <Button size="sm" variant="outline" className="h-6 gap-1 px-1.5 text-[10px]" onClick={(e) => { e.stopPropagation(); onSelect(p); onOpenChange(false); }}>
-                        <CheckCircle2 className="h-3 w-3" /> Incluir
+                      <Button
+                        size="sm"
+                        variant={isPicked ? "default" : "outline"}
+                        className="h-6 gap-1 px-1.5 text-[10px]"
+                        onClick={(e) => { e.stopPropagation(); toggle(p.id); }}
+                      >
+                        <CheckCircle2 className="h-3 w-3" /> {isPicked ? "Incluída" : "Incluir"}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -231,7 +236,17 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
             </TableBody>
           </Table>
         </div>
-        <p className="text-[10px] text-muted-foreground">{filtered.length} conta(s) encontrada(s). Clique na linha ou em "Incluir" para vincular ao cheque.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] text-muted-foreground">
+            {filtered.length} conta(s) encontrada(s) · <strong className="text-foreground">{pickedRows.length}</strong> selecionada(s) — saldo total {formatCurrency(pickedTotal)}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setPicked([])} disabled={picked.length === 0}>Limpar</Button>
+            <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={confirm} disabled={pickedRows.length === 0}>
+              <CheckCircle2 className="h-3.5 w-3.5" /> Incluir {pickedRows.length || ""} conta(s)
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
