@@ -3165,7 +3165,8 @@ export function BankReconciliation() {
                     title="Clique para remover"
                     onClick={() => setLinkSelectedAccounts((current) => current.filter((s) => s.id !== acc.id))}
                   >
-                    {acc.descricao} · <span className="font-mono">{formatCurrency(Math.max(Number(acc.valor_total || 0) - Number(acc.valor_pago || 0), 0))}</span>
+                    {acc.descricao} · <span className="font-mono">{formatCurrency(acc.ja_paga ? Number(acc.valor_pago || acc.valor_total || 0) : Math.max(Number(acc.valor_total || 0) - Number(acc.valor_pago || 0), 0))}</span>
+                    {acc.ja_paga && <span className="text-green-600">(já pago)</span>}
                     <span aria-hidden>×</span>
                   </Badge>
                 ))}
