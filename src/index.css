@@ -181,8 +181,16 @@
 
   @media (min-width: 1024px) {
     .data-grid-table {
+      width: 100% !important;
       min-width: 100%;
+      max-width: 100%;
       table-layout: fixed;
+    }
+
+    .data-grid-table th,
+    .data-grid-table td {
+      min-width: 0 !important;
+      max-width: none !important;
     }
   }
 
