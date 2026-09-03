@@ -3190,7 +3190,7 @@ export function BankReconciliation() {
 
             {linkSelectedAccounts.length > 0 && (
               <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
-                Revise os valores rateados. A soma precisa ser igual ao débito do extrato; contas já quitadas não são exibidas para nova vinculação.
+                Cada conta selecionada será quitada pelo seu saldo em aberto. A soma dos saldos precisa ser igual ao débito do extrato. Contas já quitadas ou conciliadas não são exibidas.
               </p>
             )}
           </div>
