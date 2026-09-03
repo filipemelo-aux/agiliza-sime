@@ -1429,12 +1429,16 @@ export function BankReconciliation() {
       if (error) throw error;
 
       const matchedMovId = (reconciliationResult as any)?.matched_movimentacao_id as string | undefined;
-      const details = await fetchLinkedMovDetails(matchedMovId || null);
+      const movementDetails = matchedMovId ? await fetchMovDetails([matchedMovId]) : new Map();
+      const movement = matchedMovId ? movementDetails.get(matchedMovId) : null;
       setItems((prev) => prev.map((item) => item.id === targetItems[0].id ? {
         ...item,
         status: "conciliado" as const,
         matchedMovId: matchedMovId || item.matchedMovId,
-        ...details,
+        matchedMovDesc: movement?.descricao ?? item.matchedMovDesc,
+        matchedMovDate: movement?.data_movimentacao ?? item.matchedMovDate,
+        matchedMovValor: movement?.valor ?? item.matchedMovValor,
+        matchedMovOrigem: movement?.origem ?? item.matchedMovOrigem,
       } : item));
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(targetItems[0].id); return next; });
       toast.success(`Débito conciliado e rateado em ${allocations.length} conta(s).`);
