@@ -21,6 +21,7 @@ interface CheckRow {
   favorecido_nome: string;
   data_emissao: string;
   data_vencimento: string | null;
+  predatado: boolean | null;
   historico: string | null;
   vinculo_tipo: string;
   status: string;
@@ -33,8 +34,16 @@ interface CheckRow {
 const typeLabel: Record<string, string> = { conta_pagar: "Conta a pagar", contrato_frete: "Contrato de frete", movimentacao: "Movimentação", avulso: "Avulso" };
 const statusLabel: Record<string, string> = { emitido: "Emitido", compensado: "Compensado", cancelado: "Cancelado" };
 
+interface CheckLinkInfo {
+  expenseIds: string[];
+  pago: boolean;
+  parcial: boolean;
+  conciliado: boolean;
+}
+
 export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }) {
   const [rows, setRows] = useState<CheckRow[]>([]);
+  const [links, setLinks] = useState<Record<string, CheckLinkInfo>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("todos");
@@ -47,12 +56,97 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     setLoading(true);
     const { data, error } = await supabase.from("cheques" as any).select("*").order("data_emissao", { ascending: false }).order("created_at", { ascending: false }).limit(5000);
     if (error) toast.error("Não foi possível carregar os cheques", { description: error.message });
-    setRows(((data as unknown) as CheckRow[]) || []);
+    const list = ((data as unknown) as CheckRow[]) || [];
+    setRows(list);
     setSelected(new Set());
     setLoading(false);
+    void loadLinks(list);
   }, []);
 
+  const loadLinks = async (list: CheckRow[]) => {
+    if (!list.length) return setLinks({});
+    try {
+      const chequeIds = list.map((r) => r.id);
+      const { data: linkRows } = await supabase
+        .from("cheque_expense_links" as any)
+        .select("cheque_id, expense_id")
+        .in("cheque_id", chequeIds);
+
+      const byCheque = new Map<string, string[]>();
+      for (const row of ((linkRows as any[]) || [])) {
+        const arr = byCheque.get(row.cheque_id) || [];
+        arr.push(row.expense_id);
+        byCheque.set(row.cheque_id, arr);
+      }
+      for (const r of list) {
+        if (r.expense_id) {
+          const arr = byCheque.get(r.id) || [];
+          if (!arr.includes(r.expense_id)) arr.push(r.expense_id);
+          byCheque.set(r.id, arr);
+        }
+      }
+
+      const expenseIds = Array.from(new Set(Array.from(byCheque.values()).flat()));
+      if (!expenseIds.length) return setLinks({});
+
+      const [{ data: expenseRows }, { data: paymentRows }] = await Promise.all([
+        supabase.from("expenses").select("id, status").in("id", expenseIds),
+        supabase.from("expense_payments").select("id, expense_id").in("expense_id", expenseIds),
+      ]);
+
+      const statusByExpense = new Map<string, string>(((expenseRows as any[]) || []).map((e) => [e.id, e.status]));
+      const payments = ((paymentRows as any[]) || []);
+      const paymentIds = payments.map((p) => p.id);
+
+      let movsByExpense = new Map<string, string[]>();
+      let reconciledMovs = new Set<string>();
+      if (paymentIds.length) {
+        const { data: movRows } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id, origem_id")
+          .eq("origem", "pagamento_despesa")
+          .in("origem_id", paymentIds);
+        const expenseByPayment = new Map<string, string>(payments.map((p) => [p.id, p.expense_id]));
+        const movIds: string[] = [];
+        for (const m of ((movRows as any[]) || [])) {
+          const expId = expenseByPayment.get(m.origem_id);
+          if (!expId) continue;
+          movIds.push(m.id);
+          const arr = movsByExpense.get(expId) || [];
+          arr.push(m.id);
+          movsByExpense.set(expId, arr);
+        }
+        if (movIds.length) {
+          const [{ data: recLinks }, { data: recItems }] = await Promise.all([
+            supabase.from("bank_reconciliation_item_links").select("movimentacao_id").in("movimentacao_id", movIds),
+            supabase.from("bank_reconciliation_items").select("matched_movimentacao_id").in("matched_movimentacao_id", movIds),
+          ]);
+          reconciledMovs = new Set([
+            ...((recLinks as any[]) || []).map((l) => l.movimentacao_id),
+            ...((recItems as any[]) || []).map((l) => l.matched_movimentacao_id),
+          ].filter(Boolean));
+        }
+      }
+
+      const result: Record<string, CheckLinkInfo> = {};
+      for (const [chequeId, ids] of byCheque.entries()) {
+        const statuses = ids.map((id) => statusByExpense.get(id)).filter(Boolean) as string[];
+        result[chequeId] = {
+          expenseIds: ids,
+          pago: statuses.length > 0 && statuses.every((s) => s === "pago"),
+          parcial: statuses.some((s) => s === "parcial") || (statuses.some((s) => s === "pago") && statuses.some((s) => s !== "pago")),
+          conciliado: ids.some((id) => (movsByExpense.get(id) || []).some((m) => reconciledMovs.has(m))),
+        };
+      }
+      setLinks(result);
+    } catch {
+      setLinks({});
+    }
+  };
+
   useEffect(() => { void load(); }, [load]);
+
+
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -84,12 +178,28 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const columns: DataGridColumn<CheckRow>[] = [
     { key: "numero", header: "Cheque", width: "100px", cell: (row) => <span className="font-mono text-xs font-medium">{row.numero_cheque || "Sem número"}</span>, sortValue: (row) => row.numero_cheque || "" },
     { key: "data", header: "Emissão", width: "100px", cell: (row) => <span className="whitespace-nowrap text-xs">{formatDateBR(row.data_emissao)}</span>, sortValue: (row) => row.data_emissao },
+    { key: "bomPara", header: "Bom para", width: "110px", cell: (row) => (row.predatado && row.data_vencimento ? <span className="whitespace-nowrap text-xs font-medium text-warning">{formatDateBR(row.data_vencimento)}</span> : <span className="text-[10px] text-muted-foreground">À vista</span>), sortValue: (row) => (row.predatado ? row.data_vencimento || "" : "") },
     { key: "favorecido", header: "Favorecido / Origem", cell: (row) => <div className="min-w-0"><div className="truncate text-xs font-medium" title={row.favorecido_nome}>{row.favorecido_nome || "—"}</div><div className="truncate text-[10px] text-muted-foreground" title={row.historico || ""}>{row.historico || "Sem descrição"}</div></div>, sortValue: (row) => row.favorecido_nome },
     { key: "tipo", header: "Vínculo", width: "130px", cell: (row) => <span className="text-xs">{typeLabel[row.vinculo_tipo] || row.vinculo_tipo}</span>, sortValue: (row) => typeLabel[row.vinculo_tipo] || row.vinculo_tipo },
+    { key: "conciliacao", header: "Conta a pagar / Conciliação", width: "185px", cell: (row) => {
+      const info = links[row.id];
+      if (!info || !info.expenseIds.length) return <span className="text-[10px] text-muted-foreground">Sem conta vinculada</span>;
+      return (
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge variant={info.pago ? "default" : info.parcial ? "secondary" : "outline"} className="text-[10px]">
+            {info.expenseIds.length > 1 ? `${info.expenseIds.length} contas · ` : ""}{info.pago ? "Pago" : info.parcial ? "Parcial" : "Em aberto"}
+          </Badge>
+          <Badge variant={info.conciliado ? "default" : "outline"} className="text-[10px]">
+            {info.conciliado ? "Conciliado" : "Não conciliado"}
+          </Badge>
+        </div>
+      );
+    } },
     { key: "empresa", header: "Empresa", width: "90px", cell: (row) => <EmpresaBadge empresaId={row.empresa_id} /> },
     { key: "valor", header: "Valor", width: "110px", align: "right", cell: (row) => <span className="font-mono text-xs font-medium">{formatCurrency(Number(row.valor))}</span>, sortValue: (row) => Number(row.valor) },
     { key: "status", header: "Situação", width: "110px", cell: (row) => <Badge variant={row.status === "cancelado" ? "destructive" : row.status === "compensado" ? "default" : "outline"} className="text-[10px]">{statusLabel[row.status] || row.status}</Badge>, sortValue: (row) => row.status },
   ];
+
 
   return (
     <div className="space-y-3">
@@ -101,7 +211,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <EmpresaFilter value={empresa} onChange={setEmpresa} />
         <span className="hidden items-center gap-1 text-[10px] text-muted-foreground xl:inline-flex"><CalendarDays className="h-3 w-3" /> Ordenado por emissão</span>
       </GlobalToolbar>
-      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={900} />
+      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={1120} />
       <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { setDialogOpen(false); void load(); }} />
     </div>
   );
