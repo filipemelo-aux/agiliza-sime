@@ -158,6 +158,16 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
           <Table className="text-[10px]">
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow className="h-7">
+                <TableHead className="text-[10px] py-1 px-2 w-[32px]">
+                  <Checkbox
+                    checked={filtered.length > 0 && filtered.every((p) => picked.includes(p.id))}
+                    onCheckedChange={(checked) => {
+                      const ids = filtered.map((p) => p.id);
+                      setPicked((prev) => (checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))));
+                    }}
+                    aria-label="Selecionar todas"
+                  />
+                </TableHead>
                 <TableHead className="text-[10px] py-1 px-2">Descrição / Favorecido</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[150px]">Plano de contas</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[64px]">Forma</TableHead>
