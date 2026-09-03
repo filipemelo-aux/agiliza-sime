@@ -390,8 +390,23 @@ export function BankReconciliation() {
       // Movimentações já vinculadas podem ter data fora da janela do extrato
       // (ex.: baixa registrada em outro mês). Busca-as explicitamente pelo id
       // para que os detalhes do vínculo apareçam nos itens já conciliados.
+      // Vínculos múltiplos (uma transação quitando várias contas)
+      const { data: itemLinks } = await supabase
+        .from("bank_reconciliation_item_links")
+        .select("reconciliation_item_id, movimentacao_id")
+        .in("reconciliation_item_id", dbItems.map((i: any) => i.id));
+      const linksByItem = new Map<string, string[]>();
+      (itemLinks || []).forEach((l: any) => {
+        const arr = linksByItem.get(l.reconciliation_item_id) || [];
+        arr.push(l.movimentacao_id);
+        linksByItem.set(l.reconciliation_item_id, arr);
+      });
+
       const linkedMovIds = Array.from(
-        new Set(dbItems.map((i: any) => i.matched_movimentacao_id).filter(Boolean)),
+        new Set([
+          ...dbItems.map((i: any) => i.matched_movimentacao_id),
+          ...(itemLinks || []).map((l: any) => l.movimentacao_id),
+        ].filter(Boolean)),
       ) as string[];
       const inWindow = new Set((existingMovs || []).map((m: any) => m.id));
       const missingLinkedIds = linkedMovIds.filter((id) => !inWindow.has(id));
