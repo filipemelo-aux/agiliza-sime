@@ -87,18 +87,28 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   }, [open, matrizId]);
 
   useEffect(() => {
-    if (!selectedExpense) return;
-    const remaining = Math.max(0, Number(selectedExpense.valor_total) - Number(selectedExpense.valor_pago || 0));
-    setEmpresaId(selectedExpense.empresa_id || matrizId);
-    setValue(remaining.toFixed(2).replace(".", ","));
-    setBeneficiary(selectedExpense.favorecido_nome || "");
-    setHistory(selectedExpense.descricao || "");
-    setDate(selectedExpense.data_vencimento || getLocalDateISO());
-  }, [selectedExpense, matrizId]);
+    if (selectedExpenses.length === 0) return;
+    const first = selectedExpenses[0];
+    setEmpresaId(first.empresa_id || matrizId);
+    setValue(selectedTotal.toFixed(2).replace(".", ","));
+    const favorecidos = Array.from(new Set(selectedExpenses.map((e) => e.favorecido_nome || "").filter(Boolean)));
+    setBeneficiary(favorecidos.length === 1 ? favorecidos[0] : favorecidos[0] || "");
+    setHistory(
+      selectedExpenses.length === 1
+        ? first.descricao || ""
+        : `Pagamento de ${selectedExpenses.length} contas: ${selectedExpenses.map((e) => e.descricao).filter(Boolean).join(" | ").slice(0, 180)}`,
+    );
+    setDate(first.data_vencimento || getLocalDateISO());
+  }, [selectedExpenses, selectedTotal, matrizId]);
+
+  const multiplosFavorecidos = useMemo(
+    () => new Set(selectedExpenses.map((e) => (e.favorecido_nome || "").trim().toLowerCase()).filter(Boolean)).size > 1,
+    [selectedExpenses],
+  );
 
   const handleContinue = () => {
     if (!empresaId) return toast.error("Selecione a empresa / unidade");
-    if (linkType === "conta_pagar" && !expenseId) return toast.error("Selecione a conta a pagar vinculada");
+    if (linkType === "conta_pagar" && expenseIds.length === 0) return toast.error("Selecione ao menos uma conta a pagar");
     if (linkType === "movimentacao" && !accountId) return toast.error("Selecione a conta bancária");
     if (parsedValue <= 0) return toast.error("Informe um valor válido");
     if (!beneficiary.trim()) return toast.error("Informe o favorecido");
