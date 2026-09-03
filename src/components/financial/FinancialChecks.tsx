@@ -10,6 +10,7 @@ import { CheckIssueStandaloneDialog } from "./CheckIssueStandaloneDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
+import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
 import { CalendarDays, CheckCircle2, Plus, RefreshCw, Search, WalletCards, XCircle } from "lucide-react";
 
