@@ -241,17 +241,17 @@
 
     .data-grid-table th[data-column-key="forma"],
     .data-grid-table td[data-column-key="forma"] {
-      width: 80px !important;
+      width: 76px !important;
     }
 
     .data-grid-table th[data-column-key="origem"],
     .data-grid-table td[data-column-key="origem"] {
-      width: 74px !important;
+      width: 72px !important;
     }
 
     .data-grid-table th[data-column-key="amount"],
     .data-grid-table td[data-column-key="amount"] {
-      width: 94px !important;
+      width: 102px !important;
     }
 
     .data-grid-table th[data-column-key="descricao"],
