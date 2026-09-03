@@ -19,18 +19,6 @@ type LinkType = "conta_pagar" | "movimentacao";
 
 type ExpenseOption = PayableOption;
 
-interface _ExpenseOption {
-  id: string;
-  descricao: string;
-  valor_total: number;
-  valor_pago: number;
-  status: string;
-  data_vencimento: string | null;
-  favorecido_nome: string | null;
-  favorecido_id: string | null;
-  empresa_id: string;
-}
-
 interface BankAccount { id: string; nome: string; banco: string | null; empresa_id: string; }
 
 interface Props {
