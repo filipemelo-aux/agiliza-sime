@@ -1329,7 +1329,6 @@ export function BankReconciliation() {
             const paidReal = paidByInstallment.get(inst.id) || 0;
             const saldo = Math.max(0, Number(inst.valor) - paidReal);
             if (saldo <= 0.005) continue;
-            const isPaid = false;
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
@@ -1342,7 +1341,7 @@ export function BankReconciliation() {
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
               valor_pago: paidReal,
-              status: isPaid ? "pago" : (exp.status === "atrasado" ? "atrasado" : "pendente"),
+              status: exp.status === "atrasado" ? "atrasado" : "pendente",
               data_vencimento: inst.data_vencimento,
               data_emissao: exp.data_emissao,
             });
