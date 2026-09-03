@@ -179,7 +179,7 @@
     min-width: var(--data-grid-min-width, 900px);
   }
 
-  @media (min-width: 1280px) {
+  @media (min-width: 1024px) {
     .data-grid-table {
       min-width: 100%;
       table-layout: fixed;
