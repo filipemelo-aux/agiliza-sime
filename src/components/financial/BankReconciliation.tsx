@@ -1348,9 +1348,12 @@ export function BankReconciliation() {
           }
         } else {
           const paidReal = paidByExpense.get(exp.id);
+          const valorPago = paidReal != null ? paidReal : Number(exp.valor_pago || 0);
+          const saldo = Math.max(0, Number(exp.valor_total || 0) - valorPago);
+          if (saldo <= 0.005) continue;
           results.push({
             ...exp,
-            valor_pago: paidReal != null ? paidReal : Number(exp.valor_pago || 0),
+            valor_pago: valorPago,
             is_installment: false,
           });
         }
