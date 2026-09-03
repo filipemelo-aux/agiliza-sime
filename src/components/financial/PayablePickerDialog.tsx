@@ -180,18 +180,16 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                 <TableHead className="text-[10px] py-1 px-2 w-[64px]">Forma</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[72px]">Vencimento</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[70px]">Situação</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[78px] text-right">Valor</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[70px] text-right">Pago</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[80px] text-right">Saldo</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[90px] text-right">Em aberto</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[44px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={11} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
               )}
               {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={11} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
               )}
               {!loading && filtered.map((p) => {
                 const total = Number(p.valor_total) || 0;
@@ -224,8 +222,6 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                       {overdueDays > 0 && <div className="text-[9px] leading-none">há {overdueDays}d</div>}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-[10px] whitespace-nowrap">{statusLabel[p.status] || p.status}</TableCell>
-                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap">{formatCurrency(total)}</TableCell>
-                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap text-muted-foreground">{pago > 0 ? formatCurrency(pago) : "—"}</TableCell>
                     <TableCell className="py-1 px-2 text-right font-mono text-[10px] font-semibold whitespace-nowrap">{formatCurrency(balance)}</TableCell>
                     <TableCell className="py-1 px-2">
                       <Button
