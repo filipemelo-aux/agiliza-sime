@@ -1441,11 +1441,21 @@ export function BankReconciliation() {
       const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
       // Cada conta selecionada entra com seu saldo em aberto (sem rateio manual)
       const allocations = linkSelectedAccounts.map((account) => {
+        if (account.ja_paga) {
+          // Conta já paga: entra na conciliação pelo valor pago, apenas vinculando a movimentação existente
+          return {
+            expense_id: account.expense_id || account.id,
+            installment_id: account.installment_id || null,
+            amount: +Number(account.valor_pago || account.valor_total || 0).toFixed(2),
+            apenas_conciliar: true,
+          };
+        }
         const saldo = +(Number(account.valor_total || 0) - Number(account.valor_pago || 0)).toFixed(2);
         return {
           expense_id: account.expense_id || account.id,
           installment_id: account.installment_id || null,
           amount: saldo,
+          apenas_conciliar: false,
         };
       }).filter((allocation) => allocation.amount > 0);
       const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
