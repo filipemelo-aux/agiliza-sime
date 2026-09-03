@@ -203,13 +203,14 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
 
 
 
-  // Ordena: ações habilitadas primeiro (preservando ordem original dentro de cada grupo)
-  const orderedActions = [...actions].filter((a) => !a.hidden).sort((a, b) => {
-    const aEn = isActionEnabled(a.mode, selectedCount) && !a.disabled;
-    const bEn = isActionEnabled(b.mode, selectedCount) && !b.disabled;
-    if (aEn === bEn) return 0;
-    return aEn ? -1 : 1;
-  });
+  // Ordena: ações prioritárias habilitadas primeiro, depois habilitadas, depois desabilitadas
+  const rank = (a: ToolbarAction) => {
+    const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
+    if (enabled && a.priority) return 0;
+    return enabled ? 1 : 2;
+  };
+  const orderedActions = [...actions].filter((a) => !a.hidden).sort((a, b) => rank(a) - rank(b));
+
 
   if (filtersFirstOnMobile) {
     // Mobile/Tablet (até lg): duas linhas (filtros em cima, ações embaixo).
