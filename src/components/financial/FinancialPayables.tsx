@@ -1680,6 +1680,12 @@ tfoot{display:table-row-group}
           { tone: "overdue", label: "Vencido / atrasado" },
         ]}
       />
+      <p className="px-1 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-sm bg-amber-400" />
+          Linhas com pagamento parcial exibem o valor já pago e o saldo a pagar na coluna "Pagto. Parcial".
+        </span>
+      </p>
 
       <ExpenseFormDialog
         open={formOpen}
