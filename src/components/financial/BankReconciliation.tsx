@@ -1326,9 +1326,11 @@ export function BankReconciliation() {
         if (insts && insts.length > 0) {
           const fallbackTotal = insts.length;
           for (const inst of insts) {
-            const isPaid = inst.status === "pago";
             const totalParcelas = inst.total_parcelas ?? fallbackTotal;
             const paidReal = paidByInstallment.get(inst.id) || 0;
+            const saldo = Math.max(0, Number(inst.valor) - paidReal);
+            if (saldo <= 0.005) continue;
+            const isPaid = false;
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
