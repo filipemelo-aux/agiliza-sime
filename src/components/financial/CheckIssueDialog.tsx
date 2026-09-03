@@ -23,6 +23,8 @@ export interface CheckIssueData {
   empresaId?: string | null;
   contaBancariaId?: string | null;
   vinculoTipo?: "conta_pagar" | "contrato_frete" | "movimentacao" | "avulso";
+  planoContasId?: string | null;
+  favorecidoId?: string | null;
   valor: number;
   nominal: string;
   data?: string | null;
@@ -131,6 +133,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         numero_cheque: numeroCheque.trim() || null,
         valor: Number(data.valor) || 0,
         favorecido_nome: data.nominal?.trim() || "",
+        favorecido_id: data.favorecidoId || null,
         data_emissao: dataCheque,
         data_vencimento: predatado ? dataVencimento : null,
         predatado,
@@ -175,6 +178,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
           empresa_id: data.empresaId || null,
           conta_bancaria_id: data.contaBancariaId,
           origem: "cheque",
+          plano_contas_id: data.planoContasId || null,
           origem_id: savedCheque.id,
           tipo: "saida",
           valor: Number(data.valor) || 0,

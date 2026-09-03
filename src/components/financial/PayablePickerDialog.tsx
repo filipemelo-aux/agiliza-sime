@@ -12,7 +12,12 @@ import { EmpresaFilter } from "./EmpresaControls";
 import { cn } from "@/lib/utils";
 
 export interface PayableOption {
+  /** Chave única da linha (id da parcela quando parcelado) */
   id: string;
+  /** Conta a pagar de origem */
+  expense_id: string;
+  /** Ex.: "2/6" — nulo quando a conta não é parcelada */
+  parcela_label?: string | null;
   descricao: string;
   valor_total: number;
   valor_pago: number;
@@ -170,11 +175,12 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                   />
                 </TableHead>
                 <TableHead className="text-[10px] py-1 px-2">Descrição / Favorecido</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[56px]">Parcela</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[150px]">Plano de contas</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[64px]">Forma</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[72px]">Vencimento</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[70px]">Situação</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[78px] text-right">Vlr. Total</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[78px] text-right">Valor</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[70px] text-right">Pago</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[80px] text-right">Saldo</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[44px]" />
@@ -182,10 +188,10 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={10} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
               )}
               {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={10} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
               )}
               {!loading && filtered.map((p) => {
                 const total = Number(p.valor_total) || 0;
@@ -210,6 +216,7 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                         {p.veiculo_placa && <span className="shrink-0 font-mono">· {p.veiculo_placa}</span>}
                       </div>
                     </TableCell>
+                    <TableCell className="py-1 px-2 text-[10px] whitespace-nowrap font-mono">{p.parcela_label || "única"}</TableCell>
                     <TableCell className="py-1 px-2 text-[10px] truncate max-w-[150px]" title={p.plano_contas_nome ?? undefined}>{p.plano_contas_nome || "—"}</TableCell>
                     <TableCell className="py-1 px-2 text-[10px] whitespace-nowrap">{formaLabel(p.forma_pagamento)}</TableCell>
                     <TableCell className={cn("py-1 px-2 text-[10px] whitespace-nowrap", overdueDays > 0 && "text-destructive font-medium")}>
