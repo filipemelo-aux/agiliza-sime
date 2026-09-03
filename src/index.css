@@ -187,11 +187,32 @@
       table-layout: fixed;
     }
 
-    .data-grid-table th,
-    .data-grid-table td {
+    .data-grid-table th[data-column-key],
+    .data-grid-table td[data-column-key] {
       width: auto !important;
       min-width: 0 !important;
       max-width: none !important;
+    }
+
+    .data-grid-table th:first-child,
+    .data-grid-table td:first-child {
+      width: 32px !important;
+      min-width: 32px !important;
+      max-width: 32px !important;
+    }
+
+    .data-grid-table th[data-column-key="empresa"],
+    .data-grid-table td[data-column-key="empresa"] {
+      width: 58px !important;
+    }
+
+    .data-grid-table th[data-column-key="favorecido"],
+    .data-grid-table th[data-column-key="favorecido_nome"],
+    .data-grid-table th[data-column-key="fornecedor"],
+    .data-grid-table th[data-column-key="cliente"],
+    .data-grid-table th[data-column-key="credor"],
+    .data-grid-table th[data-column-key="beneficiario"] {
+      width: 20% !important;
     }
 
     .data-grid-table th[data-column-key="descricao"],
@@ -203,6 +224,13 @@
     .data-grid-table td > span > * {
       min-width: 0 !important;
       max-width: 100% !important;
+    }
+
+    .data-grid-table .data-grid-party-cell [title]:first-child {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

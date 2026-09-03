@@ -28,3 +28,4 @@
 
 ## Fase 5 — Padronização das listas densas (03/09)
 - [x] Remover rolagem horizontal no desktop, truncar descrições com tooltip e limitar favorecidos a 50 caracteres
+- [x] Eliminar espaços artificiais entre colunas e manter favorecidos em uma única linha com reticências
