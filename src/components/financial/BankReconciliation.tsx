@@ -1449,7 +1449,6 @@ export function BankReconciliation() {
       setLinkAccountDialogOpen(false);
       setLinkSelectedAccount(null);
       setLinkSelectedAccounts([]);
-      setLinkAllocations({});
       setLinkTargetItemIds([]);
       setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
@@ -1457,7 +1456,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccounts, linkAllocations, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
+  }, [linkSelectedAccounts, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
 
   const totals = useMemo(() => {
     const total = items.length;
