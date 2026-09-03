@@ -198,7 +198,7 @@ export function FinancialReceivables() {
       ) : (
         <div className="border border-border rounded-md overflow-hidden bg-card">
           <div className="overflow-x-auto xl:overflow-x-hidden">
-            <table className="w-full table-fixed text-xs">
+            <table className="w-full min-w-[900px] xl:min-w-full table-fixed text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
                   <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>

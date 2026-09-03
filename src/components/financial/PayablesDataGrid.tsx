@@ -542,14 +542,14 @@ tfoot{display:table-row-group}
           </div>
         )}
         <div className="flex-1 min-h-0 overflow-auto xl:overflow-x-hidden">
-          <table className="w-full text-[11px] table-fixed">
+          <table className="w-full min-w-[980px] xl:min-w-full text-[11px] table-fixed">
             <colgroup>
               <col className="w-[26px]" />
               <col className="w-[80px]" />
-              <col className="w-[18%]" />
+              <col className="w-[20%]" />
               <col />
               <col className="w-[56px]" />
-              <col className="w-[18%]" />
+              <col className="w-[15%]" />
               <col className="w-[76px]" />
               <col className="w-[96px]" />
             </colgroup>

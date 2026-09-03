@@ -2662,14 +2662,14 @@ export function BankReconciliation() {
     {
       key: "date",
       header: "Data",
-      width: "90px",
+      width: "86px",
       sortValue: (r) => r.date,
       cell: (r) => <span className="whitespace-nowrap">{formatDateBR(r.date)}</span>,
     },
     {
       key: "tipo",
       header: "Tipo",
-      width: "84px",
+      width: "72px",
       align: "center",
       sortValue: (r) => r.tipo,
       cell: (r) => (
@@ -2684,7 +2684,7 @@ export function BankReconciliation() {
     {
       key: "valor",
       header: "Valor",
-      width: "110px",
+      width: "104px",
       align: "right",
       sortValue: (r) => Math.abs(r.amount),
       cell: (r) => (
@@ -2698,7 +2698,7 @@ export function BankReconciliation() {
       header: "Descrição",
       sortValue: (r) => r.description,
       cell: (r) => (
-        <div className="space-y-1 min-w-[240px]">
+        <div className="min-w-0 space-y-1">
           <p className="text-xs text-foreground">{r.description}</p>
           <TransactionDetails
             details={r.details}
@@ -2713,7 +2713,7 @@ export function BankReconciliation() {
     {
       key: "vinculo",
       header: "Correspondência",
-      width: "300px",
+      width: "32%",
       sortValue: (r) => r.matchedMovDesc || r.matchedPayableDesc || r.matchedReceivableDesc || "",
       cell: (r) => (
         <div className="space-y-1">
@@ -2791,7 +2791,7 @@ export function BankReconciliation() {
     {
       key: "status",
       header: "Situação",
-      width: "100px",
+      width: "90px",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => <StatusBadge status={r.status} />,

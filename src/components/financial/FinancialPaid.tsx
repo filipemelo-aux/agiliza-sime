@@ -436,7 +436,7 @@ export function FinancialPaid() {
     {
       key: "creditor",
       header: "Favorecido",
-      width: "250px",
+      width: "22%",
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
@@ -455,6 +455,7 @@ export function FinancialPaid() {
     {
       key: "description",
       header: "Descrição",
+      width: "30%",
       sortValue: (r) => r.description,
       cell: (r) => <span className="truncate block">{r.description}</span>,
     },
