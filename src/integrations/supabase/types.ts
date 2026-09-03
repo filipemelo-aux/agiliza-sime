@@ -4421,6 +4421,10 @@ export type Database = {
         Args: { _plano_contas_id: string }
         Returns: boolean
       }
+      fn_recalculate_expense_payment_state: {
+        Args: { _expense_id: string }
+        Returns: undefined
+      }
       fn_resolve_profile_for_cte_previsao: {
         Args: { _cte: Database["public"]["Tables"]["ctes"]["Row"] }
         Returns: string
