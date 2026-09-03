@@ -1745,17 +1745,6 @@ export function BankReconciliation() {
         ...(linkedMovements2 || []).map((r: any) => r.movimentacao_id),
       ].filter(Boolean));
       const movs = ((existingMovs || []) as MatchCandidate[]).filter((m) => !alreadyMatchedIds2.has(m.id));
-      const linkedPayableExpenseIds = new Set<string>();
-      const paymentCandidates = ((pendingExpenses2 || []) as any[]).map((e) => e.id).filter(Boolean);
-      if (paymentCandidates.length > 0) {
-        const { data: paymentsForMatching } = await supabase
-          .from("expense_payments")
-          .select("expense_id, valor")
-          .in("expense_id", paymentCandidates);
-        for (const payment of (paymentsForMatching || []) as any[]) {
-          if (Number(payment.valor) > 0) linkedPayableExpenseIds.add(payment.expense_id);
-        }
-      }
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
