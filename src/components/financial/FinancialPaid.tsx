@@ -419,6 +419,13 @@ export function FinancialPaid() {
 
   const paidColumns: DataGridColumn<PaidItem>[] = useMemo(() => [
     {
+      key: "paid_at",
+      header: "Data Pgto",
+      width: "86px",
+      sortValue: (r) => r.paid_at || "",
+      cell: (r) => <span className="whitespace-nowrap">{formatDateBR(r.paid_at)}</span>,
+    },
+    {
       key: "empresa",
       header: "Emp.",
       width: "52px",
@@ -433,7 +440,7 @@ export function FinancialPaid() {
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
-          <span className="font-medium text-foreground block" title={r.creditor_name || "Sem favorecido"}>
+          <span className="block truncate whitespace-nowrap font-medium text-foreground" title={r.creditor_name || "Sem favorecido"}>
             {limitDisplayText(r.creditor_name || "Sem favorecido")}
           </span>
           {r.created_by_name && (
@@ -457,13 +464,6 @@ export function FinancialPaid() {
       width: "100px",
       sortValue: (r) => r.due_date || "",
       cell: (r) => (r.due_date ? formatDateBR(r.due_date) : "—"),
-    },
-    {
-      key: "paid_at",
-      header: "Data Pgto",
-      width: "100px",
-      sortValue: (r) => r.paid_at || "",
-      cell: (r) => formatDateBR(r.paid_at),
     },
     {
       key: "forma",

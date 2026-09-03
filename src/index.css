@@ -203,7 +203,23 @@
 
     .data-grid-table th[data-column-key="empresa"],
     .data-grid-table td[data-column-key="empresa"] {
-      width: 58px !important;
+      width: 52px !important;
+    }
+
+    .data-grid-table th[data-column-key="numero"],
+    .data-grid-table td[data-column-key="numero"] {
+      width: 76px !important;
+    }
+
+    .data-grid-table th[data-column-key="data"],
+    .data-grid-table td[data-column-key="data"],
+    .data-grid-table th[data-column-key="bomPara"],
+    .data-grid-table td[data-column-key="bomPara"],
+    .data-grid-table th[data-column-key="paid_at"],
+    .data-grid-table td[data-column-key="paid_at"],
+    .data-grid-table th[data-column-key="due_date"],
+    .data-grid-table td[data-column-key="due_date"] {
+      width: 86px !important;
     }
 
     .data-grid-table th[data-column-key="favorecido"],
@@ -228,6 +244,7 @@
 
     .data-grid-table .data-grid-party-cell [title]:first-child {
       display: block;
+      width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
