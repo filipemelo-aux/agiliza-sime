@@ -368,7 +368,7 @@ export function BankReconciliation() {
         supabase
           .from("expenses")
           .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
-          .in("status", ["pendente", "atrasado"])
+          .in("status", ["pendente", "atrasado", "parcial"])
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
@@ -1721,7 +1721,7 @@ export function BankReconciliation() {
         supabase
           .from("expenses")
           .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
-          .in("status", ["pendente", "atrasado"])
+          .in("status", ["pendente", "atrasado", "parcial"])
           .is("deleted_at", null),
         supabase
           .from("expense_installments")
@@ -1795,7 +1795,6 @@ export function BankReconciliation() {
       }
       for (const exp of expRows2) {
         if (expWithInst2.has(exp.id)) continue;
-        if (linkedPayableExpenseIds.has(exp.id)) continue;
         const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
         if (saldo <= 0.005) continue;
         payables.push({
