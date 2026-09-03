@@ -3278,35 +3278,52 @@ export function BankReconciliation() {
                   atrasado: { label: "Atrasado", cls: "border-red-500 text-red-600" },
                 };
                 const st = statusLabel[acc.status] || { label: acc.status, cls: "" };
+                const toggleAccount = () => {
+                  setLinkSelectedAccounts((current) => {
+                    const exists = current.some((selected) => selected.id === acc.id);
+                    const next = exists ? current.filter((selected) => selected.id !== acc.id) : [...current, acc];
+                    setLinkSelectedAccount(next[0] || null);
+                    setLinkAllocations((allocations) => {
+                      const updated = { ...allocations };
+                      if (exists) delete updated[acc.id];
+                      else updated[acc.id] = String(Math.min(Math.max(saldo, 0), 0));
+                      return updated;
+                    });
+                    return next;
+                  });
+                };
                 return (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => setLinkSelectedAccount(acc)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 hover:bg-accent/50 transition-colors flex items-start gap-2",
-                      isSelected && "bg-accent"
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-medium truncate">{acc.descricao}</span>
-                        <Badge variant="outline" className={cn("text-[10px]", st.cls)}>{st.label}</Badge>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
-                        {acc.documento_fiscal_numero && <> · NF: <span className="font-mono">{acc.documento_fiscal_numero}</span></>}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
-                        {" · "}Pago: <span className="font-mono">{formatCurrency(Number(acc.valor_pago || 0))}</span>
-                        {acc.status !== "pago" && (
-                          <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>
-                        )}
-                      </p>
+                  <div key={acc.id} className={cn("px-3 py-2 hover:bg-accent/50 transition-colors", isSelected && "bg-accent")}>
+                    <div className="flex items-start gap-2">
+                      <Checkbox checked={isSelected} onCheckedChange={toggleAccount} className="mt-0.5" />
+                      <button type="button" onClick={toggleAccount} className="min-w-0 flex-1 text-left">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-medium truncate">{acc.descricao}</span>
+                          <Badge variant="outline" className={cn("text-[10px]", st.cls)}>{st.label}</Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
+                          {acc.documento_fiscal_numero && <> · NF: <span className="font-mono">{acc.documento_fiscal_numero}</span></>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
+                          {" · "}Pago: <span className="font-mono">{formatCurrency(Number(acc.valor_pago || 0))}</span>
+                          {acc.status !== "pago" && <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>}
+                        </p>
+                      </button>
+                      {isSelected && (
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={linkAllocations[acc.id] || ""}
+                          onChange={(event) => setLinkAllocations((current) => ({ ...current, [acc.id]: event.target.value }))}
+                          className="h-7 w-28 text-right text-xs"
+                          aria-label={`Valor para ${acc.descricao}`}
+                        />
+                      )}
                     </div>
-                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                  </button>
+                  </div>
                 );
               })}
             </div>
