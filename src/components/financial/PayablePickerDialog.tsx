@@ -12,7 +12,12 @@ import { EmpresaFilter } from "./EmpresaControls";
 import { cn } from "@/lib/utils";
 
 export interface PayableOption {
+  /** Chave única da linha (id da parcela quando parcelado) */
   id: string;
+  /** Conta a pagar de origem */
+  expense_id: string;
+  /** Ex.: "2/6" — nulo quando a conta não é parcelada */
+  parcela_label?: string | null;
   descricao: string;
   valor_total: number;
   valor_pago: number;
