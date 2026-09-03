@@ -1152,6 +1152,36 @@ export function FinancialPayables() {
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
     },
+    {
+      key: "parcial",
+      header: "Pagto. Parcial",
+      width: "150px",
+      align: "right",
+      sortValue: (r) => {
+        if (r.inst) return 0;
+        const paid = Number(r.item.valor_pago) || 0;
+        const total = Number(r.item.valor_total) || 0;
+        return paid > 0 && paid < total ? total - paid : 0;
+      },
+      cell: (r) => {
+        // Parcelas individuais são binárias (paga/aberta) — sem quitação parcial.
+        if (r.inst) return <span className="text-muted-foreground">—</span>;
+        const paid = Number(r.item.valor_pago) || 0;
+        const total = Number(r.item.valor_total) || 0;
+        const remaining = total - paid;
+        if (paid > 0 && remaining > 0 && paid < total) {
+          return (
+            <span className="inline-flex flex-col items-end leading-tight">
+              <span className="text-[10px] text-muted-foreground font-mono">Pago {formatCurrency(paid)}</span>
+              <span className="text-[11px] font-mono font-semibold text-amber-600 dark:text-amber-400">
+                Saldo {formatCurrency(remaining)}
+              </span>
+            </span>
+          );
+        }
+        return <span className="text-muted-foreground">—</span>;
+      },
+    },
   ], [profilesMap]);
 
 
@@ -1619,10 +1649,18 @@ tfoot{display:table-row-group}
         selected={selectedIds}
         onSelectedChange={setSelectedIds}
         loading={loading}
-        minWidth={1120}
+        minWidth={1270}
         emptyMessage="Nenhuma despesa encontrada"
         rowClassName={(r) =>
-          rowToneClass(r.status === "pago" ? "resolved" : r.isOverdue || r.status === "atrasado" ? "overdue" : "pending")
+          rowToneClass(
+            r.status === "pago"
+              ? "resolved"
+              : r.status === "parcial"
+              ? "pending"
+              : r.isOverdue || r.status === "atrasado"
+              ? "overdue"
+              : "pending"
+          )
         }
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
@@ -1642,6 +1680,12 @@ tfoot{display:table-row-group}
           { tone: "overdue", label: "Vencido / atrasado" },
         ]}
       />
+      <p className="px-1 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-sm bg-amber-400" />
+          Linhas com pagamento parcial exibem o valor já pago e o saldo a pagar na coluna "Pagto. Parcial".
+        </span>
+      </p>
 
       <ExpenseFormDialog
         open={formOpen}
