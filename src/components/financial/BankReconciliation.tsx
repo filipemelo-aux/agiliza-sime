@@ -1421,18 +1421,20 @@ export function BankReconciliation() {
       });
       if (!confirmed) return;
 
-      const { error } = await supabase.rpc("reconcile_bank_item_with_expenses", {
+      const { data: reconciliationResult, error } = await supabase.rpc("reconcile_bank_item_with_expenses", {
         _reconciliation_item_id: dbItemId,
         _allocations: allocations,
         _user_id: user?.id || null,
       } as any);
       if (error) throw error;
 
-      const fresh = await fetchLinkedMovDetails(null);
+      const matchedMovId = (reconciliationResult as any)?.matched_movimentacao_id as string | undefined;
+      const details = await fetchLinkedMovDetails(matchedMovId || null);
       setItems((prev) => prev.map((item) => item.id === targetItems[0].id ? {
         ...item,
         status: "conciliado" as const,
-        matchedMovId: fresh?.matchedMovId || item.matchedMovId,
+        matchedMovId: matchedMovId || item.matchedMovId,
+        ...details,
       } : item));
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(targetItems[0].id); return next; });
       toast.success(`Débito conciliado e rateado em ${allocations.length} conta(s).`);
