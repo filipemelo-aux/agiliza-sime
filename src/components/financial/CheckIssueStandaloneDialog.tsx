@@ -219,7 +219,8 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
         open={issueOpen}
         onOpenChange={setIssueOpen}
         data={{
-          expenseId: linkType === "conta_pagar" ? expenseId : null,
+          expenseId: linkType === "conta_pagar" ? (expenseIds[0] ?? null) : null,
+          expenseIds: linkType === "conta_pagar" ? expenseIds : [],
           valor: parsedValue,
           nominal: beneficiary,
           data: date,
