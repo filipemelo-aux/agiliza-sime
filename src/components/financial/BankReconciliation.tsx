@@ -1707,7 +1707,8 @@ export function BankReconciliation() {
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
 
           .eq("status", "pendente"),
-        // Movimentações já vinculadas a outras conciliações
+        // Movimentações já vinculadas a outras conciliações, incluindo a tabela
+        // de múltiplos vínculos usada por operações rateadas.
         supabase
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id")
