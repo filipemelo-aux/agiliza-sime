@@ -40,6 +40,7 @@ interface CheckLinkInfo {
   pago: boolean;
   parcial: boolean;
   conciliado: boolean;
+  vencido: boolean;
 }
 
 export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }) {
@@ -137,6 +138,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
           pago: statuses.length > 0 && statuses.every((s) => s === "pago"),
           parcial: statuses.some((s) => s === "parcial") || (statuses.some((s) => s === "pago") && statuses.some((s) => s !== "pago")),
           conciliado: ids.some((id) => (movsByExpense.get(id) || []).some((m) => reconciledMovs.has(m))),
+          vencido: statuses.some((s) => s === "atrasado"),
         };
       }
       setLinks(result);
@@ -179,7 +181,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const columns: DataGridColumn<CheckRow>[] = [
     { key: "numero", header: "Cheque", width: "100px", cell: (row) => <span className="font-mono text-xs font-medium">{row.numero_cheque || "Sem número"}</span>, sortValue: (row) => row.numero_cheque || "" },
     { key: "data", header: "Emissão", width: "100px", cell: (row) => <span className="whitespace-nowrap text-xs">{formatDateBR(row.data_emissao)}</span>, sortValue: (row) => row.data_emissao },
-    { key: "bomPara", header: "Bom para", width: "110px", cell: (row) => (row.predatado && row.data_vencimento ? <span className="whitespace-nowrap text-xs font-medium text-warning">{formatDateBR(row.data_vencimento)}</span> : <span className="text-[10px] text-muted-foreground">À vista</span>), sortValue: (row) => (row.predatado ? row.data_vencimento || "" : "") },
+    { key: "bomPara", header: "Bom para", width: "110px", cell: (row) => { const isPre = row.predatado || (!!row.data_vencimento && !!row.data_emissao && row.data_vencimento !== row.data_emissao); return isPre ? <span className="whitespace-nowrap text-xs font-medium text-warning">{formatDateBR(row.data_vencimento)}</span> : <span className="text-[10px] text-muted-foreground">À vista</span>; }, sortValue: (row) => { const isPre = row.predatado || (!!row.data_vencimento && !!row.data_emissao && row.data_vencimento !== row.data_emissao); return isPre ? row.data_vencimento || "" : ""; } },
     { key: "favorecido", header: "Favorecido / Origem", cell: (row) => <div className="min-w-0"><div className="truncate text-xs font-medium" title={row.favorecido_nome}>{row.favorecido_nome || "—"}</div><div className="truncate text-[10px] text-muted-foreground" title={row.historico || ""}>{row.historico || "Sem descrição"}</div></div>, sortValue: (row) => row.favorecido_nome },
     { key: "tipo", header: "Vínculo", width: "130px", cell: (row) => <span className="text-xs">{typeLabel[row.vinculo_tipo] || row.vinculo_tipo}</span>, sortValue: (row) => typeLabel[row.vinculo_tipo] || row.vinculo_tipo },
     { key: "empresa", header: "Empresa", width: "90px", cell: (row) => <EmpresaBadge empresaId={row.empresa_id} /> },
@@ -187,19 +189,14 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   ];
 
   const chequeRowTone = (row: CheckRow): RowTone => {
-    if (row.status === "cancelado") return "overdue";
+    if (row.status === "cancelado") return "overdue"; // Cancelado
     const info = links[row.id];
     const hasLink = !!(info && info.expenseIds.length);
     if (hasLink) {
-      if (info.conciliado) return "resolved";           // Pago e conciliado
-      if (info.pago || info.parcial) return "pending";  // Pago não conciliado
-      // Conta a pagar em aberto → A vencer / Vencido pela data do cheque
-      if (row.predatado && row.data_vencimento) {
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const venc = new Date(row.data_vencimento + "T12:00:00");
-        return venc < today ? "overdue" : "neutral";
-      }
-      return "neutral"; // A vencer (à vista, em aberto)
+      if (info.conciliado) return "resolved";            // Pago e conciliado
+      if (info.pago || info.parcial) return "pending";   // Pago não conciliado
+      if (info.vencido) return "overdue";                 // Vencido (conta atrasada)
+      return "neutral";                                  // A vencer (conta em aberto)
     }
     return "neutral"; // Sem conta a pagar vinculada
   };
