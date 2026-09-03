@@ -182,22 +182,26 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
               )}
               {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
               )}
               {!loading && filtered.map((p) => {
                 const total = Number(p.valor_total) || 0;
                 const pago = Number(p.valor_pago) || 0;
                 const balance = Math.max(0, total - pago);
                 const overdueDays = daysOverdue(p.data_vencimento, balance);
+                const isPicked = picked.includes(p.id);
                 return (
                   <TableRow
                     key={p.id}
-                    className="cursor-pointer h-7 hover:bg-muted/40"
-                    onClick={() => { onSelect(p); onOpenChange(false); }}
+                    className={cn("cursor-pointer h-7 hover:bg-muted/40", isPicked && "bg-primary/5")}
+                    onClick={() => toggle(p.id)}
                   >
+                    <TableCell className="py-1 px-2" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={isPicked} onCheckedChange={() => toggle(p.id)} aria-label="Selecionar conta" />
+                    </TableCell>
                     <TableCell className="py-1 px-2 max-w-[260px]">
                       <div className="truncate font-medium text-[11px]" title={p.descricao}>{p.descricao || "—"}</div>
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
