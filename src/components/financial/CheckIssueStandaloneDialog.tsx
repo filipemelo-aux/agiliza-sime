@@ -96,42 +96,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
     setIssueOpen(true);
   };
 
-  const handleSaved = async (numeroCheque: string) => {
-    if (linkType === "conta_pagar") {
-      onSaved();
-      return;
-    }
-    const { data: cheque, error: chequeError } = await supabase.from("cheques" as any).insert({
-      empresa_id: empresaId,
-      numero_cheque: numeroCheque.trim() || null,
-      valor: parsedValue,
-      favorecido_nome: beneficiary.trim(),
-      data_emissao: date,
-      historico: history.trim() || null,
-      vinculo_tipo: "movimentacao",
-      conta_bancaria_id: accountId,
-      status: "emitido",
-    } as any).select("id").single();
-    if (chequeError) return toast.error("Cheque impresso, mas não foi registrado", { description: chequeError.message });
-
-    const { data: movement, error: movementError } = await supabase.from("movimentacoes_bancarias").insert({
-      empresa_id: empresaId,
-      conta_bancaria_id: accountId,
-      origem: "cheque",
-      origem_id: (cheque as any).id,
-      tipo: "saida",
-      valor: parsedValue,
-      data_movimentacao: date,
-      descricao: history.trim() || `Cheque ${numeroCheque || "sem número"} - ${beneficiary.trim()}`,
-    } as any).select("id").single();
-    if (movementError) {
-      await supabase.from("cheques" as any).delete().eq("id", (cheque as any).id);
-      return toast.error("Cheque impresso, mas a movimentação não foi registrada", { description: movementError.message });
-    }
-    await supabase.from("cheques" as any).update({ movimentacao_id: (movement as any).id }).eq("id", (cheque as any).id);
-    toast.success("Cheque e movimentação registrados");
-    onSaved();
-  };
+  const handleSaved = () => onSaved();
 
   return (
     <>
