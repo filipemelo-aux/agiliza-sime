@@ -3188,7 +3188,7 @@ export function BankReconciliation() {
       />
 
       {/* Link to existing account dialog */}
-      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
+      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkAllocations({}); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-base">Vincular lançamento(s) a uma conta</DialogTitle>
