@@ -212,7 +212,8 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
         onOpenChange={setPickerOpen}
         payables={expenses}
         loading={loading}
-        onSelect={(option) => setExpenseId(option.id)}
+        selectedIds={expenseIds}
+        onConfirm={(options) => setExpenseIds(options.map((o) => o.id))}
       />
       <CheckIssueDialog
         open={issueOpen}
