@@ -25,3 +25,6 @@
 ## Fase 4 — Conciliação (03/09)
 - [x] Vinculação de 1 lançamento do extrato a VÁRIAS contas (rateio + confirmação final; ocultar contas já conciliadas)
 - [x] Corrigir definitivamente despesa que recebe pagamento mas continua "em aberto" (duplicidade de correspondência paga + a pagar)
+
+## Fase 5 — Padronização das listas densas (03/09)
+- [x] Remover rolagem horizontal no desktop, truncar descrições com tooltip e limitar favorecidos a 50 caracteres

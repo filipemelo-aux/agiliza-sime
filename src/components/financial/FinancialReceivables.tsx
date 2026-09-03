@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { limitDisplayText } from "@/lib/displayText";
 
 interface ContaReceber {
   id: string;
@@ -196,8 +197,8 @@ export function FinancialReceivables() {
         </div>
       ) : (
         <div className="border border-border rounded-md overflow-hidden bg-card">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="overflow-x-auto xl:overflow-x-hidden">
+            <table className="w-full table-fixed text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
                   <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
@@ -218,7 +219,7 @@ export function FinancialReceivables() {
                   const isParcial = c.status !== "recebido" && recebido > 0;
                   return (
                     <tr key={c.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openPayment(c)}>
-                      <td className="px-3 py-2 font-medium truncate max-w-[420px]">{c.cliente_nome}</td>
+                      <td className="px-3 py-2 font-medium" title={c.cliente_nome || ""}>{limitDisplayText(c.cliente_nome)}</td>
                       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{c.origem_label || "—"}</td>
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(c.data_vencimento)}</td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(Number(c.valor))}</td>

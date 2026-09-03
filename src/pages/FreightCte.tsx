@@ -18,6 +18,7 @@ import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
+import { limitDisplayText } from "@/lib/displayText";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -479,7 +480,7 @@ export default function FreightCte() {
     {
       key: "cliente", header: "Cliente",
       sortValue: (c) => getClienteTomador(c) || "",
-      cell: (c) => <span className="truncate block">{getClienteTomador(c)}</span>,
+      cell: (c) => <span className="block" title={getClienteTomador(c) || ""}>{limitDisplayText(getClienteTomador(c))}</span>,
     },
     {
       key: "placa", header: "Placa", width: "90px",

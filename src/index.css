@@ -175,6 +175,37 @@
 }
 
 @layer utilities {
+  .data-grid-table {
+    min-width: var(--data-grid-min-width, 900px);
+  }
+
+  @media (min-width: 1024px) {
+    .data-grid-table {
+      width: 100% !important;
+      min-width: 100%;
+      max-width: 100%;
+      table-layout: fixed;
+    }
+
+    .data-grid-table th,
+    .data-grid-table td {
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
+
+    .data-grid-table th[data-column-key="descricao"],
+    .data-grid-table th[data-column-key="description"] {
+      width: 28% !important;
+    }
+
+    .data-grid-table td > span,
+    .data-grid-table td > span > * {
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }

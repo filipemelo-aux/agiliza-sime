@@ -14,6 +14,7 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { format } from "date-fns";
+import { limitDisplayText } from "@/lib/displayText";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
 import { FuelOrderEmailDialog } from "@/components/fuel/FuelOrderEmailDialog";
 import { printFuelOrderPDF } from "@/components/fuel/exportFuelOrderPdf";
@@ -174,7 +175,7 @@ export default function AdminFuelOrders() {
   const columns: DataGridColumn<any>[] = [
     { key: "numero", header: "Nº", width: "80px", sortValue: (o) => o.order_number, cell: (o) => <span className="font-semibold tabular-nums">#{o.order_number}</span> },
     { key: "data", header: "Data", width: "110px", sortValue: (o) => o.created_at, cell: (o) => <span className="tabular-nums">{format(new Date(o.created_at), "dd/MM/yyyy")}</span> },
-    { key: "fornecedor", header: "Fornecedor", sortValue: (o) => o.supplier_name || "", cell: (o) => <span className="truncate block">{o.supplier_name}</span> },
+    { key: "fornecedor", header: "Fornecedor", sortValue: (o) => o.supplier_name || "", cell: (o) => <span className="block" title={o.supplier_name || ""}>{limitDisplayText(o.supplier_name)}</span> },
     { key: "veiculo", header: "Veículo", width: "110px", sortValue: (o) => o.vehicle_plate || "", cell: (o) => <span className="font-medium">{o.vehicle_plate}</span> },
     { key: "motorista", header: "Motorista", width: "180px", sortValue: (o) => (o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : ""), cell: (o) => <span className="truncate block text-muted-foreground">{(o.vehicle_id && driverMap.get(o.vehicle_id)) || "—"}</span> },
     { key: "combustivel", header: "Combustível", width: "120px", sortValue: (o) => o.fuel_type, cell: (o) => FUEL_LABELS[o.fuel_type] || o.fuel_type },

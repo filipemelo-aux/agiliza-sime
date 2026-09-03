@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Search, Printer, Filter, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -540,7 +541,7 @@ tfoot{display:table-row-group}
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <div className="flex-1 min-h-0 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto xl:overflow-x-hidden">
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
               <col className="w-[26px]" />
@@ -582,7 +583,7 @@ tfoot{display:table-row-group}
                   <td className={cn("px-1 py-0 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
-                  <td className="px-1 py-0 truncate" title={`${r.fornecedor}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${r.razaoSocial}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${r.nomeFantasia}` : ""}`}>{r.fornecedor}</td>
+                  <td className="px-1 py-0" title={`${r.fornecedor}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${r.razaoSocial}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${r.nomeFantasia}` : ""}`}>{limitDisplayText(r.fornecedor)}</td>
                   <td className="px-1 py-0 truncate" title={r.descricao}>
                     {r.descricao}
                     {r.status === "parcial" && r.vencido && (

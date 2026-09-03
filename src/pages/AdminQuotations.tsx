@@ -21,6 +21,7 @@ import { QuotationFormDialog } from "@/components/quotation/QuotationFormDialog"
 import { QuotationDetailDialog } from "@/components/quotation/QuotationDetailDialog";
 import { exportQuotationPDF } from "@/components/quotation/exportQuotationPdf";
 import { getLocalDateISO } from "@/lib/date";
+import { limitDisplayText } from "@/lib/displayText";
 
 interface Quotation {
   id: string;
@@ -207,7 +208,7 @@ export default function AdminQuotations() {
     {
       key: "cliente", header: "Cliente",
       sortValue: (q) => q.client?.razao_social || q.client?.full_name || "",
-      cell: (q) => <span className="truncate block">{q.client?.razao_social || q.client?.full_name || "—"}</span>,
+      cell: (q) => { const name = q.client?.razao_social || q.client?.full_name || "—"; return <span className="block" title={name}>{limitDisplayText(name)}</span>; },
     },
     {
       key: "detalhe", header: "Detalhe",

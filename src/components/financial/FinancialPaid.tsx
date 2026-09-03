@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -432,8 +433,8 @@ export function FinancialPaid() {
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
-          <span className="font-medium text-foreground truncate block">
-            {r.creditor_name || "Sem favorecido"}
+          <span className="font-medium text-foreground block" title={r.creditor_name || "Sem favorecido"}>
+            {limitDisplayText(r.creditor_name || "Sem favorecido")}
           </span>
           {r.created_by_name && (
             <span className="text-[10px] text-muted-foreground truncate block">
