@@ -771,7 +771,8 @@ export function BankReconciliation() {
   const [linkSearchText, setLinkSearchText] = useState("");
   const [linkSearchResults, setLinkSearchResults] = useState<any[]>([]);
   const [linkSearching, setLinkSearching] = useState(false);
-  const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
+  const [linkSelectedAccounts, setLinkSelectedAccounts] = useState<any[]>([]);
+  const [linkAllocations, setLinkAllocations] = useState<Record<string, string>>({});
   const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
