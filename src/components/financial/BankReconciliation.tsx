@@ -3377,7 +3377,7 @@ export function BankReconciliation() {
 
             {linkSelectedAccounts.length > 0 && (
               <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
-                Cada conta em aberto será quitada pelo seu saldo; contas já pagas entram apenas para conciliação (sem novo pagamento). A soma precisa ser igual ao débito do extrato. Contas já conciliadas não são exibidas.
+                Cada conta em aberto será quitada pelo seu saldo; contas já pagas entram apenas para conciliação (sem novo pagamento). Se a soma não bater com o extrato, o valor do extrato prevalece: diferença a maior vira juros e a menor vira desconto. Contas já conciliadas não são exibidas.
               </p>
             )}
           </div>
