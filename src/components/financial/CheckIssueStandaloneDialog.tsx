@@ -31,7 +31,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const { matrizId } = useUnifiedCompany();
   const [linkType, setLinkType] = useState<LinkType>("conta_pagar");
   const [empresaId, setEmpresaId] = useState("");
-  const [expenseId, setExpenseId] = useState("");
+  const [expenseIds, setExpenseIds] = useState<string[]>([]);
   const [accountId, setAccountId] = useState("");
   const [value, setValue] = useState("");
   const [beneficiary, setBeneficiary] = useState("");
@@ -43,7 +43,11 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const [pickerOpen, setPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const selectedExpense = useMemo(() => expenses.find((item) => item.id === expenseId), [expenses, expenseId]);
+  const selectedExpenses = useMemo(() => expenseIds.map((id) => expenses.find((item) => item.id === id)).filter(Boolean) as ExpenseOption[], [expenses, expenseIds]);
+  const selectedTotal = useMemo(
+    () => selectedExpenses.reduce((sum, e) => sum + Math.max(0, Number(e.valor_total) - Number(e.valor_pago || 0)), 0),
+    [selectedExpenses],
+  );
   const parsedValue = Number(unmaskCurrency(value)) || 0;
 
   useEffect(() => {
@@ -51,7 +55,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
     setEmpresaId((current) => current || matrizId);
     setDate(getLocalDateISO());
     setLinkType("conta_pagar");
-    setExpenseId("");
+    setExpenseIds([]);
     setAccountId("");
     setValue("");
     setBeneficiary("");
@@ -83,18 +87,28 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   }, [open, matrizId]);
 
   useEffect(() => {
-    if (!selectedExpense) return;
-    const remaining = Math.max(0, Number(selectedExpense.valor_total) - Number(selectedExpense.valor_pago || 0));
-    setEmpresaId(selectedExpense.empresa_id || matrizId);
-    setValue(remaining.toFixed(2).replace(".", ","));
-    setBeneficiary(selectedExpense.favorecido_nome || "");
-    setHistory(selectedExpense.descricao || "");
-    setDate(selectedExpense.data_vencimento || getLocalDateISO());
-  }, [selectedExpense, matrizId]);
+    if (selectedExpenses.length === 0) return;
+    const first = selectedExpenses[0];
+    setEmpresaId(first.empresa_id || matrizId);
+    setValue(selectedTotal.toFixed(2).replace(".", ","));
+    const favorecidos = Array.from(new Set(selectedExpenses.map((e) => e.favorecido_nome || "").filter(Boolean)));
+    setBeneficiary(favorecidos.length === 1 ? favorecidos[0] : favorecidos[0] || "");
+    setHistory(
+      selectedExpenses.length === 1
+        ? first.descricao || ""
+        : `Pagamento de ${selectedExpenses.length} contas: ${selectedExpenses.map((e) => e.descricao).filter(Boolean).join(" | ").slice(0, 180)}`,
+    );
+    setDate(first.data_vencimento || getLocalDateISO());
+  }, [selectedExpenses, selectedTotal, matrizId]);
+
+  const multiplosFavorecidos = useMemo(
+    () => new Set(selectedExpenses.map((e) => (e.favorecido_nome || "").trim().toLowerCase()).filter(Boolean)).size > 1,
+    [selectedExpenses],
+  );
 
   const handleContinue = () => {
     if (!empresaId) return toast.error("Selecione a empresa / unidade");
-    if (linkType === "conta_pagar" && !expenseId) return toast.error("Selecione a conta a pagar vinculada");
+    if (linkType === "conta_pagar" && expenseIds.length === 0) return toast.error("Selecione ao menos uma conta a pagar");
     if (linkType === "movimentacao" && !accountId) return toast.error("Selecione a conta bancária");
     if (parsedValue <= 0) return toast.error("Informe um valor válido");
     if (!beneficiary.trim()) return toast.error("Informe o favorecido");
@@ -127,23 +141,39 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
             <Separator />
             {linkType === "conta_pagar" ? (
               <div>
-                <Label className="text-xs">Conta a pagar <span className="text-destructive">*</span></Label>
-                {selectedExpense ? (
-                  <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5">
-                    <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-medium" title={selectedExpense.descricao}>
-                        {selectedExpense.favorecido_nome || "Sem favorecido"} — {selectedExpense.descricao}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        Saldo {formatCurrency(Math.max(0, Number(selectedExpense.valor_total) - Number(selectedExpense.valor_pago || 0)))}
-                        {selectedExpense.data_vencimento ? ` · Venc. ${formatDateBR(selectedExpense.data_vencimento)}` : ""}
-                      </div>
+                <Label className="text-xs">Contas a pagar <span className="text-destructive">*</span></Label>
+                {selectedExpenses.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-primary/30 bg-primary/5 p-1.5">
+                      {selectedExpenses.map((exp) => (
+                        <div key={exp.id} className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-background/60">
+                          <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-xs font-medium" title={exp.descricao}>
+                              {exp.favorecido_nome || "Sem favorecido"} — {exp.descricao}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Saldo {formatCurrency(Math.max(0, Number(exp.valor_total) - Number(exp.valor_pago || 0)))}
+                              {exp.data_vencimento ? ` · Venc. ${formatDateBR(exp.data_vencimento)}` : ""}
+                            </div>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Remover conta" onClick={() => setExpenseIds((prev) => prev.filter((id) => id !== exp.id))}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setPickerOpen(true)}>Trocar</Button>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Remover vínculo" onClick={() => setExpenseId("")}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {selectedExpenses.length} conta(s) · saldo total <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong>
+                      </span>
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]" onClick={() => setPickerOpen(true)}>
+                        <Search className="h-3.5 w-3.5" /> Adicionar / alterar contas
+                      </Button>
+                    </div>
+                    {multiplosFavorecidos && (
+                      <p className="text-[10px] text-destructive">Atenção: as contas selecionadas têm favorecidos diferentes. Confira o favorecido do cheque.</p>
+                    )}
                   </div>
                 ) : (
                   <Button type="button" variant="outline" className="h-9 w-full justify-start gap-2 text-xs text-muted-foreground" onClick={() => setPickerOpen(true)}>
@@ -151,7 +181,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
                     {loading ? "Carregando contas..." : "Buscar e selecionar conta a pagar..."}
                   </Button>
                 )}
-                <p className="mt-1 text-[10px] text-muted-foreground">O cheque será registrado e o número ficará vinculado à conta selecionada.</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">O cheque será registrado e o número ficará vinculado a todas as contas selecionadas.</p>
               </div>
             ) : (
               <div>
@@ -182,13 +212,15 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
         onOpenChange={setPickerOpen}
         payables={expenses}
         loading={loading}
-        onSelect={(option) => setExpenseId(option.id)}
+        selectedIds={expenseIds}
+        onConfirm={(options) => setExpenseIds(options.map((o) => o.id))}
       />
       <CheckIssueDialog
         open={issueOpen}
         onOpenChange={setIssueOpen}
         data={{
-          expenseId: linkType === "conta_pagar" ? expenseId : null,
+          expenseId: linkType === "conta_pagar" ? (expenseIds[0] ?? null) : null,
+          expenseIds: linkType === "conta_pagar" ? expenseIds : [],
           valor: parsedValue,
           nominal: beneficiary,
           data: date,

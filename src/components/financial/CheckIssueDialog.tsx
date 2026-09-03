@@ -17,6 +17,8 @@ import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
 export interface CheckIssueData {
   expenseId?: string | null;
+  /** Múltiplas contas a pagar vinculadas ao mesmo cheque */
+  expenseIds?: string[];
   freightContractId?: string | null;
   empresaId?: string | null;
   contaBancariaId?: string | null;
@@ -112,11 +114,15 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       // Pré-datado: a data do cheque passa a ser o vencimento no contas a pagar
       if (predatado && dataVencimento) updates.data_vencimento = dataVencimento;
 
-      if (Object.keys(updates).length && data.expenseId) {
+      const linkedExpenseIds = Array.from(
+        new Set([...(data.expenseIds || []), ...(data.expenseId ? [data.expenseId] : [])].filter(Boolean) as string[]),
+      );
+
+      if (Object.keys(updates).length && linkedExpenseIds.length) {
         const { error } = await supabase
           .from("expenses")
           .update(updates as any)
-          .eq("id", data.expenseId);
+          .in("id", linkedExpenseIds);
         if (error) toast.error("Cheque gerado, mas falhou ao salvar o número", { description: error.message });
       }
 
@@ -131,15 +137,15 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         cruzado,
         cidade: cidade.trim() || null,
         historico: data.historico?.trim() || null,
-        vinculo_tipo: data.vinculoTipo || (data.expenseId ? "conta_pagar" : "avulso"),
-        expense_id: data.expenseId || null,
+        vinculo_tipo: data.vinculoTipo || (linkedExpenseIds.length ? "conta_pagar" : "avulso"),
+        expense_id: linkedExpenseIds[0] || null,
         freight_contract_id: data.freightContractId || null,
         conta_bancaria_id: data.contaBancariaId || null,
         status: "emitido",
       };
       const chequeQuery = supabase.from("cheques" as any) as any;
       let existingQuery = chequeQuery.select("id").limit(1);
-      if (data.expenseId) existingQuery = existingQuery.eq("expense_id", data.expenseId);
+      if (linkedExpenseIds.length) existingQuery = existingQuery.eq("expense_id", linkedExpenseIds[0]);
       else if (data.freightContractId) existingQuery = existingQuery.eq("freight_contract_id", data.freightContractId);
       else existingQuery = existingQuery.eq("numero_cheque", numeroCheque.trim() || "__sem_numero__");
       const { data: existingCheque } = await existingQuery.maybeSingle();
@@ -147,6 +153,21 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         ? await chequeQuery.update(chequePayload).eq("id", existingCheque.id).select("id").single()
         : await chequeQuery.insert(chequePayload).select("id").single();
       if (chequeError) throw chequeError;
+
+      // Vínculos múltiplos cheque <-> contas a pagar
+      if (savedCheque?.id) {
+        const linksQuery = supabase.from("cheque_expense_links" as any) as any;
+        await linksQuery.delete().eq("cheque_id", savedCheque.id);
+        if (linkedExpenseIds.length) {
+          const { error: linkError } = await linksQuery.insert(
+            linkedExpenseIds.map((id) => ({ cheque_id: savedCheque.id, expense_id: id })),
+          );
+          if (linkError) {
+            toast.error("Cheque gerado, mas falhou ao vincular todas as contas", { description: linkError.message });
+          }
+        }
+      }
+
 
       if (data.vinculoTipo === "movimentacao" && data.contaBancariaId && savedCheque?.id) {
         const movementQuery = supabase.from("movimentacoes_bancarias" as any) as any;

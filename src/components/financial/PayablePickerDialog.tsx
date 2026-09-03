@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, CheckCircle2 } from "lucide-react";
@@ -33,7 +34,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   payables: PayableOption[];
   loading?: boolean;
-  onSelect: (option: PayableOption) => void;
+  /** Contas já vinculadas ao cheque */
+  selectedIds?: string[];
+  /** Confirmação da seleção múltipla */
+  onConfirm: (options: PayableOption[]) => void;
 }
 
 const statusLabel: Record<string, string> = { pendente: "Pendente", pago: "Pago", atrasado: "Vencido", parcial: "Parcial" };
@@ -68,11 +72,12 @@ function daysOverdue(vencimento: string | null, balance: number): number {
   return diff > 0 ? diff : 0;
 }
 
-export function PayablePickerDialog({ open, onOpenChange, payables, loading, onSelect }: Props) {
+export function PayablePickerDialog({ open, onOpenChange, payables, loading, selectedIds, onConfirm }: Props) {
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState("abertas");
   const [empresa, setEmpresa] = useState("");
   const [vencidas, setVencidas] = useState("todas");
+  const [picked, setPicked] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -80,7 +85,18 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
     setStatus("abertas");
     setEmpresa("");
     setVencidas("todas");
+    setPicked(selectedIds ?? []);
   }, [open]);
+
+  const toggle = (id: string) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const pickedRows = useMemo(() => payables.filter((p) => picked.includes(p.id)), [payables, picked]);
+  const pickedTotal = pickedRows.reduce((sum, p) => sum + Math.max(0, Number(p.valor_total) - Number(p.valor_pago || 0)), 0);
+
+  const confirm = () => {
+    onConfirm(pickedRows);
+    onOpenChange(false);
+  };
 
   const filtered = useMemo(() => {
     const today = getLocalDateISO();
@@ -143,6 +159,16 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
           <Table className="text-[10px]">
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow className="h-7">
+                <TableHead className="text-[10px] py-1 px-2 w-[32px]">
+                  <Checkbox
+                    checked={filtered.length > 0 && filtered.every((p) => picked.includes(p.id))}
+                    onCheckedChange={(checked) => {
+                      const ids = filtered.map((p) => p.id);
+                      setPicked((prev) => (checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))));
+                    }}
+                    aria-label="Selecionar todas"
+                  />
+                </TableHead>
                 <TableHead className="text-[10px] py-1 px-2">Descrição / Favorecido</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[150px]">Plano de contas</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[64px]">Forma</TableHead>
@@ -156,22 +182,26 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="py-4 text-center text-xs text-muted-foreground">Carregando contas...</TableCell></TableRow>
               )}
               {!loading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="py-4 text-center text-xs text-muted-foreground">Nenhuma conta encontrada para os filtros.</TableCell></TableRow>
               )}
               {!loading && filtered.map((p) => {
                 const total = Number(p.valor_total) || 0;
                 const pago = Number(p.valor_pago) || 0;
                 const balance = Math.max(0, total - pago);
                 const overdueDays = daysOverdue(p.data_vencimento, balance);
+                const isPicked = picked.includes(p.id);
                 return (
                   <TableRow
                     key={p.id}
-                    className="cursor-pointer h-7 hover:bg-muted/40"
-                    onClick={() => { onSelect(p); onOpenChange(false); }}
+                    className={cn("cursor-pointer h-7 hover:bg-muted/40", isPicked && "bg-primary/5")}
+                    onClick={() => toggle(p.id)}
                   >
+                    <TableCell className="py-1 px-2" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={isPicked} onCheckedChange={() => toggle(p.id)} aria-label="Selecionar conta" />
+                    </TableCell>
                     <TableCell className="py-1 px-2 max-w-[260px]">
                       <div className="truncate font-medium text-[11px]" title={p.descricao}>{p.descricao || "—"}</div>
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -191,8 +221,13 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
                     <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap text-muted-foreground">{pago > 0 ? formatCurrency(pago) : "—"}</TableCell>
                     <TableCell className="py-1 px-2 text-right font-mono text-[10px] font-semibold whitespace-nowrap">{formatCurrency(balance)}</TableCell>
                     <TableCell className="py-1 px-2">
-                      <Button size="sm" variant="outline" className="h-6 gap-1 px-1.5 text-[10px]" onClick={(e) => { e.stopPropagation(); onSelect(p); onOpenChange(false); }}>
-                        <CheckCircle2 className="h-3 w-3" /> Incluir
+                      <Button
+                        size="sm"
+                        variant={isPicked ? "default" : "outline"}
+                        className="h-6 gap-1 px-1.5 text-[10px]"
+                        onClick={(e) => { e.stopPropagation(); toggle(p.id); }}
+                      >
+                        <CheckCircle2 className="h-3 w-3" /> {isPicked ? "Incluída" : "Incluir"}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -201,7 +236,17 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, onS
             </TableBody>
           </Table>
         </div>
-        <p className="text-[10px] text-muted-foreground">{filtered.length} conta(s) encontrada(s). Clique na linha ou em "Incluir" para vincular ao cheque.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] text-muted-foreground">
+            {filtered.length} conta(s) encontrada(s) · <strong className="text-foreground">{pickedRows.length}</strong> selecionada(s) — saldo total {formatCurrency(pickedTotal)}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setPicked([])} disabled={picked.length === 0}>Limpar</Button>
+            <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={confirm} disabled={pickedRows.length === 0}>
+              <CheckCircle2 className="h-3.5 w-3.5" /> Incluir {pickedRows.length || ""} conta(s)
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
