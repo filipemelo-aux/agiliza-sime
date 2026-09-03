@@ -3226,15 +3226,18 @@ export function BankReconciliation() {
       <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkAllocations({}); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-base">Vincular lançamento(s) a uma conta</DialogTitle>
+            <DialogTitle className="text-base">Vincular lançamento(s) a contas</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
               <p className="font-medium">{linkTargetItemIds.length} lançamento(s) selecionado(s)</p>
               <p className="text-muted-foreground">
-                Total: <span className="font-mono font-semibold">
+                Total do extrato: <span className="font-mono font-semibold">
                   {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
                 </span>
+              </p>
+              <p className="text-muted-foreground">
+                Rateado: <span className="font-mono font-semibold">{formatCurrency(Object.values(linkAllocations).reduce((sum, value) => sum + (Number(value) || 0), 0))}</span>
               </p>
             </div>
 
