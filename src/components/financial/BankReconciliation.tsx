@@ -1737,9 +1737,10 @@ export function BankReconciliation() {
           .in("status", ["aberto", "atrasado"]),
       ]);
 
-      const alreadyMatchedIds2 = new Set(
-        (alreadyMatched2 || []).map((r: any) => r.matched_movimentacao_id).filter(Boolean)
-      );
+      const alreadyMatchedIds2 = new Set([
+        ...(alreadyMatched2 || []).map((r: any) => r.matched_movimentacao_id),
+        ...(linkedMovements2 || []).map((r: any) => r.movimentacao_id),
+      ].filter(Boolean));
       const movs = ((existingMovs || []) as MatchCandidate[]).filter((m) => !alreadyMatchedIds2.has(m.id));
       const linkedPayableExpenseIds = new Set<string>();
       const paymentCandidates = ((pendingExpenses2 || []) as any[]).map((e) => e.id).filter(Boolean);
