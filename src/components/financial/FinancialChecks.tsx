@@ -7,6 +7,7 @@ import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolba
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 import { CheckIssueStandaloneDialog } from "./CheckIssueStandaloneDialog";
+import { CheckPayDialog } from "./CheckPayDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
@@ -30,6 +31,8 @@ interface CheckRow {
   freight_contract_id: string | null;
   movimentacao_id: string | null;
   conta_bancaria_id: string | null;
+  plano_contas_id: string | null;
+  data_pagamento: string | null;
 }
 
 const typeLabel: Record<string, string> = { conta_pagar: "Conta a pagar", contrato_frete: "Contrato de frete", movimentacao: "Movimentação", avulso: "Avulso" };
@@ -53,6 +56,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const [empresa, setEmpresa] = useState("");
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,6 +179,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const actions: ToolbarAction[] = [
     ...(!reportMode ? [{ key: "new", label: "Novo cheque", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setDialogOpen(true) }] : []),
     { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", onClick: () => { void load(); } },
+    ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: CheckCircle2, mode: "single+batch" as const, variant: "default" as const, onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione cheques em aberto (emitidos)"); setPayOpen(true); } }] : []),
     ...(!reportMode ? [{ key: "cancel", label: "Cancelar cheque", icon: XCircle, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void cancelSelected(); } }] : []),
   ];
 
@@ -190,6 +195,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
 
   const chequeRowTone = (row: CheckRow): RowTone => {
     if (row.status === "cancelado") return "overdue"; // Cancelado
+    if (row.status === "compensado") return "resolved"; // Cheque pago / compensado
     const info = links[row.id];
     const hasLink = !!(info && info.expenseIds.length);
     if (hasLink) {
@@ -213,6 +219,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <span className="hidden items-center gap-1 text-[10px] text-muted-foreground xl:inline-flex"><CalendarDays className="h-3 w-3" /> Ordenado por emissão</span>
       </GlobalToolbar>
       <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={980} rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Pago e conciliado" }, { tone: "pending", label: "Pago não conciliado" }, { tone: "neutral", label: "A vencer" }, { tone: "overdue", label: "Vencido" }, { tone: "overdue", label: "Cancelado" }]} />} />
+      <CheckPayDialog open={payOpen} onOpenChange={setPayOpen} cheques={selectedRows.filter((r) => r.status === "emitido")} onPaid={() => { void load(); }} />
       <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { setDialogOpen(false); void load(); }} />
     </div>
   );
