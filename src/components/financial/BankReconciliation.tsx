@@ -776,7 +776,9 @@ export function BankReconciliation() {
   const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
   const [linkSelectedAccounts, setLinkSelectedAccounts] = useState<any[]>([]);
   const linkSelectedTotal = useMemo(
-    () => linkSelectedAccounts.reduce((sum, a) => sum + Math.max(Number(a.valor_total || 0) - Number(a.valor_pago || 0), 0), 0),
+    () => linkSelectedAccounts.reduce((sum, a) => sum + (a.ja_paga
+      ? Number(a.valor_pago || a.valor_total || 0)
+      : Math.max(Number(a.valor_total || 0) - Number(a.valor_pago || 0), 0)), 0),
     [linkSelectedAccounts]
   );
   const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
@@ -1324,20 +1326,55 @@ export function BankReconciliation() {
 
       const paidByInstallment = new Map<string, number>();
       const paidByExpense = new Map<string, number>();
+      const paymentsByInstallment = new Map<string, any[]>();
+      const paymentsByExpense = new Map<string, any[]>();
+      const allPayments: any[] = [];
       if (expIds.length > 0) {
         const { data: payData } = await supabase
           .from("expense_payments")
-          .select("expense_id, installment_id, valor")
+          .select("id, expense_id, installment_id, valor")
           .in("expense_id", expIds);
         for (const p of ((payData as any[]) || [])) {
+          allPayments.push(p);
           const v = Number(p.valor) || 0;
           if (p.installment_id) {
             paidByInstallment.set(p.installment_id, (paidByInstallment.get(p.installment_id) || 0) + v);
+            paymentsByInstallment.set(p.installment_id, [...(paymentsByInstallment.get(p.installment_id) || []), p]);
           } else {
             paidByExpense.set(p.expense_id, (paidByExpense.get(p.expense_id) || 0) + v);
+            paymentsByExpense.set(p.expense_id, [...(paymentsByExpense.get(p.expense_id) || []), p]);
           }
         }
       }
+
+      // Movimentações de caixa dos pagamentos + vínculos já existentes de conciliação
+      const movsByPaymentId = new Map<string, any>();
+      const linkedMovIds = new Set<string>();
+      if (allPayments.length > 0) {
+        const paymentIds = allPayments.map((p) => p.id);
+        const { data: movData } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id, origem_id, valor")
+          .eq("origem", "pagamento_despesa")
+          .in("origem_id", paymentIds);
+        for (const m of ((movData as any[]) || [])) movsByPaymentId.set(m.origem_id, m);
+        const movIds = ((movData as any[]) || []).map((m) => m.id);
+        if (movIds.length > 0) {
+          const { data: linkData } = await supabase
+            .from("bank_reconciliation_item_links")
+            .select("movimentacao_id")
+            .in("movimentacao_id", movIds);
+          for (const l of ((linkData as any[]) || [])) linkedMovIds.add(l.movimentacao_id);
+        }
+      }
+
+      // Uma conta/parcela paga está disponível para conciliação se tiver ao menos
+      // uma movimentação de pagamento ainda não vinculada a nenhuma conciliação
+      const hasUnlinkedPaidMovement = (payments: any[] | undefined) =>
+        (payments || []).some((p) => {
+          const mov = movsByPaymentId.get(p.id);
+          return mov && !linkedMovIds.has(mov.id);
+        });
 
       const results: any[] = [];
       for (const exp of expenses) {
@@ -1348,7 +1385,9 @@ export function BankReconciliation() {
             const totalParcelas = inst.total_parcelas ?? fallbackTotal;
             const paidReal = paidByInstallment.get(inst.id) || 0;
             const saldo = Math.max(0, Number(inst.valor) - paidReal);
-            if (saldo <= 0.005) continue;
+            const jaPaga = saldo <= 0.005 && paidReal > 0;
+            if (saldo <= 0.005 && !jaPaga) continue;
+            if (jaPaga && !hasUnlinkedPaidMovement(paymentsByInstallment.get(inst.id))) continue;
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
@@ -1361,7 +1400,8 @@ export function BankReconciliation() {
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
               valor_pago: paidReal,
-              status: exp.status === "atrasado" ? "atrasado" : "pendente",
+              ja_paga: jaPaga,
+              status: jaPaga ? "pago" : exp.status === "atrasado" ? "atrasado" : "pendente",
               data_vencimento: inst.data_vencimento,
               data_emissao: exp.data_emissao,
             });
@@ -1370,11 +1410,15 @@ export function BankReconciliation() {
           const paidReal = paidByExpense.get(exp.id);
           const valorPago = paidReal != null ? paidReal : Number(exp.valor_pago || 0);
           const saldo = Math.max(0, Number(exp.valor_total || 0) - valorPago);
-          if (saldo <= 0.005) continue;
+          const jaPaga = saldo <= 0.005 && valorPago > 0;
+          if (saldo <= 0.005 && !jaPaga) continue;
+          if (jaPaga && !hasUnlinkedPaidMovement(paymentsByExpense.get(exp.id))) continue;
           results.push({
             ...exp,
             valor_pago: valorPago,
             is_installment: false,
+            ja_paga: jaPaga,
+            status: jaPaga ? "pago" : exp.status,
           });
         }
       }
@@ -1399,11 +1443,21 @@ export function BankReconciliation() {
       const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
       // Cada conta selecionada entra com seu saldo em aberto (sem rateio manual)
       const allocations = linkSelectedAccounts.map((account) => {
+        if (account.ja_paga) {
+          // Conta já paga: entra na conciliação pelo valor pago, apenas vinculando a movimentação existente
+          return {
+            expense_id: account.expense_id || account.id,
+            installment_id: account.installment_id || null,
+            amount: +Number(account.valor_pago || account.valor_total || 0).toFixed(2),
+            apenas_conciliar: true,
+          };
+        }
         const saldo = +(Number(account.valor_total || 0) - Number(account.valor_pago || 0)).toFixed(2);
         return {
           expense_id: account.expense_id || account.id,
           installment_id: account.installment_id || null,
           amount: saldo,
+          apenas_conciliar: false,
         };
       }).filter((allocation) => allocation.amount > 0);
       const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
@@ -1421,7 +1475,7 @@ export function BankReconciliation() {
 
       const confirmed = await confirm({
         title: "Confirmar vinculação",
-        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s), quitando o saldo de cada uma. Deseja finalizar?`,
+        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s). Contas em aberto serão quitadas pelo saldo; contas já pagas serão apenas conciliadas (sem novo pagamento). Deseja finalizar?`,
         confirmLabel: "Finalizar vinculação",
         cancelLabel: "Revisar",
       });
@@ -3111,7 +3165,8 @@ export function BankReconciliation() {
                     title="Clique para remover"
                     onClick={() => setLinkSelectedAccounts((current) => current.filter((s) => s.id !== acc.id))}
                   >
-                    {acc.descricao} · <span className="font-mono">{formatCurrency(Math.max(Number(acc.valor_total || 0) - Number(acc.valor_pago || 0), 0))}</span>
+                    {acc.descricao} · <span className="font-mono">{formatCurrency(acc.ja_paga ? Number(acc.valor_pago || acc.valor_total || 0) : Math.max(Number(acc.valor_total || 0) - Number(acc.valor_pago || 0), 0))}</span>
+                    {acc.ja_paga && <span className="text-green-600">(já pago)</span>}
                     <span aria-hidden>×</span>
                   </Badge>
                 ))}
@@ -3190,7 +3245,7 @@ export function BankReconciliation() {
 
             {linkSelectedAccounts.length > 0 && (
               <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
-                Cada conta selecionada será quitada pelo seu saldo em aberto. A soma dos saldos precisa ser igual ao débito do extrato. Contas já quitadas ou conciliadas não são exibidas.
+                Cada conta em aberto será quitada pelo seu saldo; contas já pagas entram apenas para conciliação (sem novo pagamento). A soma precisa ser igual ao débito do extrato. Contas já conciliadas não são exibidas.
               </p>
             )}
           </div>
