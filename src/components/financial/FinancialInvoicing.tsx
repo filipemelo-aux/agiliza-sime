@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2, ChevronDown } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCNPJ, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { limitDisplayText } from "@/lib/displayText";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -1660,7 +1661,7 @@ ${hasRecebimentos ? `
     {
       key: "cliente", header: "Cliente",
       sortValue: (f) => f.cliente_nome || "",
-      cell: (f) => <span className="font-medium truncate block">{f.cliente_nome}</span>,
+      cell: (f) => <span className="font-medium block" title={f.cliente_nome || ""}>{limitDisplayText(f.cliente_nome)}</span>,
     },
     {
       key: "vencimento", header: "Vencimento", width: "130px",

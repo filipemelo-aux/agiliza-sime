@@ -24,6 +24,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { limitDisplayText } from "@/lib/displayText";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -1083,7 +1084,7 @@ export function FinancialPayables() {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
         return (
           <span className="block min-w-0">
-            <span className="font-medium text-foreground truncate block">{r.favorecido}</span>
+            <span className="font-medium text-foreground block" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
             {creator && (
               <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}
