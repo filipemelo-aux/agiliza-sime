@@ -3270,7 +3270,7 @@ export function BankReconciliation() {
               )}
               {linkSearchResults.map((acc) => {
                 const saldo = Number(acc.valor_total || 0) - Number(acc.valor_pago || 0);
-                const isSelected = linkSelectedAccount?.id === acc.id;
+                const isSelected = linkSelectedAccounts.some((selected) => selected.id === acc.id);
                 const statusLabel: Record<string, { label: string; cls: string }> = {
                   pago: { label: "Pago", cls: "border-green-500 text-green-600" },
                   parcial: { label: "Parcial", cls: "border-amber-500 text-amber-600" },
