@@ -2729,19 +2729,35 @@ export function BankReconciliation() {
             />
           )}
 
-          {r.status === "conciliado" && (r.matchedMovId || r.matchedMovDesc) && (
+          {r.status === "conciliado" && (r.linkedMovs?.length || 0) > 1 && (
+            <div className="space-y-1">
+              {r.linkedMovs!.map((lm, i) => (
+                <MatchBox
+                  key={lm.id}
+                  desc={lm.desc}
+                  date={lm.date}
+                  valor={lm.valor}
+                  origem={lm.origem ? translateOrigem(lm.origem) : "Lançamento conciliado"}
+                  variant="green"
+                  label={i === 0 ? `Vinculado a ${r.linkedMovs!.length} lançamentos` : ""}
+                  fornecedor={lm.favorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
+                />
+              ))}
+            </div>
+          )}
+          {r.status === "conciliado" && (r.linkedMovs?.length || 0) <= 1 && (r.matchedMovId || r.matchedMovDesc) && (
             <MatchBox
-              desc={r.matchedMovDesc || r.description || null}
-              date={r.matchedMovDate || r.date}
-              valor={r.matchedMovValor ?? Math.abs(r.amount)}
-              origem={r.matchedMovOrigem ? translateOrigem(r.matchedMovOrigem) : "Lançamento conciliado"}
+              desc={r.matchedMovDesc || r.linkedMovs?.[0]?.desc || r.description || null}
+              date={r.matchedMovDate || r.linkedMovs?.[0]?.date || r.date}
+              valor={r.matchedMovValor ?? r.linkedMovs?.[0]?.valor ?? Math.abs(r.amount)}
+              origem={translateOrigem(r.matchedMovOrigem || r.linkedMovs?.[0]?.origem || "") || "Lançamento conciliado"}
               variant="green"
               label="Vinculado a"
               precision={r.matchedMovPrecision}
-              fornecedor={r.matchedMovFavorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
+              fornecedor={r.matchedMovFavorecido || r.linkedMovs?.[0]?.favorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
             />
           )}
-          {r.status === "conciliado" && !r.matchedMovId && !r.matchedMovDesc && (
+          {r.status === "conciliado" && !r.matchedMovId && !r.matchedMovDesc && !(r.linkedMovs?.length) && (
             <span className="text-[10px] text-muted-foreground">Conciliado sem vínculo</span>
           )}
           {r.status === "pendente" && !r.matchedMovId && !r.matchedPayableId && !r.matchedReceivableId && (
