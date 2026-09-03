@@ -833,7 +833,7 @@ export function BankReconciliation() {
   const [linkSelectedAccounts, setLinkSelectedAccounts] = useState<any[]>([]);
   const linkSelectedTotal = useMemo(
     () => linkSelectedAccounts.reduce((sum, a) => sum + (a.ja_paga
-      ? Number(a.valor_pago || a.valor_total || 0)
+      ? Number(a.unlinked_paid_amount ?? a.valor_pago ?? a.valor_total ?? 0)
       : Math.max(Number(a.valor_total || 0) - Number(a.valor_pago || 0), 0)), 0),
     [linkSelectedAccounts]
   );
@@ -1360,19 +1360,6 @@ export function BankReconciliation() {
 
       const expenses = Array.from(expensesMap.values());
       const expIds = expenses.map((e) => e.id);
-      const linkedPayableExpenseIds = new Set<string>();
-      if (expIds.length > 0) {
-        const { data: paymentRows } = await supabase
-          .from("expense_payments")
-          .select("expense_id, valor, data_pagamento")
-          .in("expense_id", expIds);
-        for (const payment of (paymentRows || []) as any[]) {
-          const paymentAmount = Number(payment.valor) || 0;
-          if (Math.abs(paymentAmount - targetTotal) < 0.01) {
-            linkedPayableExpenseIds.add(payment.expense_id);
-          }
-        }
-      }
 
       let installments: any[] = [];
       if (expIds.length > 0) {
