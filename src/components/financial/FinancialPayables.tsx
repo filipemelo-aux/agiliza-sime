@@ -1591,39 +1591,67 @@ tfoot{display:table-row-group}
       {/* Global Toolbar */}
       <GlobalToolbar
         actions={[
+          {
+            key: "pay",
+            label: batchPaying ? "Processando..." : "Pagar conta",
+            icon: Banknote,
+            mode: "single+batch",
+            priority: true,
+            className: "bg-success text-success-foreground hover:bg-success/90 border-transparent",
+            hidden: selectedUnpaidCount >= 2,
+            disabled: batchPaying || !hasSelectedUnpaid,
+            onClick: () => handleBatchPay(false),
+          },
+          {
+            key: "pay-grouped",
+            label: batchPaying ? "Processando..." : "Pagar em grupo (1 movimentação)",
+            icon: HandCoins,
+            mode: "batch",
+            priority: true,
+            className: "bg-success text-success-foreground hover:bg-success/90 border-transparent",
+            hidden: selectedUnpaidCount < 2,
+            disabled: batchPaying,
+            onClick: () => handleBatchPay(true),
+          },
+          {
+            key: "pay-individual",
+            label: batchPaying ? "Processando..." : "Pagar separadamente",
+            icon: Banknote,
+            mode: "batch",
+            priority: true,
+            className: "border-success/60 text-success hover:bg-success/10",
+            hidden: selectedUnpaidCount < 2,
+            disabled: batchPaying,
+            onClick: () => handleBatchPay(false),
+          },
           { key: "new", label: "Nova Despesa", icon: Plus, mode: "create", variant: "default", onClick: handleNew },
           {
             key: "edit", label: "Editar", icon: Pencil, mode: "single",
+            className: "border-primary/50 text-primary hover:bg-primary/10",
             disabled: !selectedRows[0] || selectedRows[0].isHarvest,
             onClick: () => { const r = selectedRows[0]; if (r) handleEdit(r.item); },
           },
           {
-            key: "detail", label: "Detalhes", icon: FileText, mode: "single",
+            key: "detail", label: "Detalhes", icon: Eye, mode: "single",
+            className: "border-border text-muted-foreground hover:bg-muted",
             disabled: !selectedRows[0],
             onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
           },
           {
             key: "maintenance", label: "Manutenção", icon: Wrench, mode: "single",
+            className: "border-primary/40 text-primary hover:bg-primary/10",
             disabled: !selectedRows[0]?.isMaintenance,
             onClick: () => { const r = selectedRows[0]; if (r) openMaintenanceDetail(r.item.id); },
           },
           {
             key: "boleto", label: "Boleto", icon: Download, mode: "single",
+            className: "border-accent/60 text-accent-foreground hover:bg-accent/20",
             disabled: !selectedRows[0]?.inst?.boleto_url,
             onClick: () => { const r = selectedRows[0]; if (r?.inst) handleDownloadBoleto(r.inst); },
           },
           {
-            key: "pay", label: batchPaying ? "Processando..." : "Pagar", icon: Check, mode: "single+batch",
-            disabled: batchPaying || !hasSelectedUnpaid,
-            onClick: () => handleBatchPay(false),
-          },
-          {
-            key: "pay-grouped", label: "Pagar Agrupado", icon: Check, mode: "batch",
-            disabled: batchPaying || selectedUnpaidCount < 2,
-            onClick: () => handleBatchPay(true),
-          },
-          {
             key: "reverse", label: "Estornar", icon: Undo2, mode: "single+batch",
+            className: "border-warning/60 text-warning hover:bg-warning/10",
             disabled: batchPaying || !hasSelectedPaid,
             onClick: handleBatchReverse,
           },
@@ -1632,8 +1660,13 @@ tfoot{display:table-row-group}
             disabled: batchPaying || !hasSelectedUnpaid,
             onClick: handleBatchDelete,
           },
-          { key: "print", label: "Imprimir", icon: FileText, mode: "single+batch", onClick: handlePrintSelected },
+          {
+            key: "print", label: "Imprimir", icon: Printer, mode: "single+batch",
+            className: "border-border text-muted-foreground hover:bg-muted",
+            onClick: handlePrintSelected,
+          },
         ]}
+
         selectedCount={selectedIds.size}
       >
         {selectedIds.size > 0 && (
