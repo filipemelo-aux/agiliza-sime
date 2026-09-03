@@ -1809,13 +1809,17 @@ export function BankReconciliation() {
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // E também em contas a pagar pendentes — valor idêntico + data referência ±5 dias ou só valor
-          let pCandidates = payables.filter(
-            (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5
-          );
-          if (pCandidates.length === 0) {
+          // A movimentação de pagamento é a fonte principal. Só oferece a conta
+          // em aberto quando ainda existe saldo e não há movimento equivalente;
+          // assim a mesma despesa não aparece como "paga" e "a pagar" ao mesmo tempo.
+          let pCandidates = matchedMov
+            ? []
+            : payables.filter(
+                (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5,
+              );
+          if (!matchedMov && pCandidates.length === 0) {
             pCandidates = payables.filter(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01
+              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01,
             );
           }
           const pExact = pCandidates.find((p) => p.referenceDate === txDate);
