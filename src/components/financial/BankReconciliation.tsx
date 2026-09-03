@@ -1755,6 +1755,12 @@ export function BankReconciliation() {
       for (const inst of instRows2) {
         const exp = expRows2.find((e: any) => e.id === inst.expense_id) || parentMap2.get(inst.expense_id) || null;
         if (exp?.deleted_at) continue;
+        const installmentPaid = await supabase
+          .from("expense_payments")
+          .select("valor")
+          .eq("installment_id", inst.id);
+        const paidAmount = ((installmentPaid.data || []) as any[]).reduce((sum, payment) => sum + (Number(payment.valor) || 0), 0);
+        if (Number(inst.valor) - paidAmount <= 0.005) continue;
 
         payables.push({
           id: `inst_${inst.id}`,
