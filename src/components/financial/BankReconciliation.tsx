@@ -1087,6 +1087,8 @@ export function BankReconciliation() {
     setLinkSearchText("");
     setLinkSearchResults([]);
     setLinkSelectedAccount(null);
+    setLinkSelectedAccounts([]);
+    setLinkAllocations({});
     setLinkAccountDialogOpen(true);
   }, []);
 
