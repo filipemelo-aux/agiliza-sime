@@ -114,11 +114,15 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       // Pré-datado: a data do cheque passa a ser o vencimento no contas a pagar
       if (predatado && dataVencimento) updates.data_vencimento = dataVencimento;
 
-      if (Object.keys(updates).length && data.expenseId) {
+      const linkedExpenseIds = Array.from(
+        new Set([...(data.expenseIds || []), ...(data.expenseId ? [data.expenseId] : [])].filter(Boolean) as string[]),
+      );
+
+      if (Object.keys(updates).length && linkedExpenseIds.length) {
         const { error } = await supabase
           .from("expenses")
           .update(updates as any)
-          .eq("id", data.expenseId);
+          .in("id", linkedExpenseIds);
         if (error) toast.error("Cheque gerado, mas falhou ao salvar o número", { description: error.message });
       }
 
