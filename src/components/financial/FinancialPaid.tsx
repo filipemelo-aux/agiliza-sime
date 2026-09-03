@@ -493,7 +493,7 @@ export function FinancialPaid() {
                 : "bg-primary/10 text-primary border-primary/30")
           }
         >
-          {r.source === "legacy" ? "Legado" : r.source === "group" ? `Grupo · ${r.group_count}` : "Individual"}
+          {r.source === "legacy" ? "Legado" : r.source === "group" ? `${r.group_count} Contas` : "Única"}
         </span>
       ),
     },
