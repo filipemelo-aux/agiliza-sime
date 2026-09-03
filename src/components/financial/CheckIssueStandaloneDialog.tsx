@@ -32,7 +32,6 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const [linkType, setLinkType] = useState<LinkType>("conta_pagar");
   const [empresaId, setEmpresaId] = useState("");
   const [expenseIds, setExpenseIds] = useState<string[]>([]);
-  const [accountId, setAccountId] = useState("");
   const [value, setValue] = useState("");
   const [beneficiary, setBeneficiary] = useState("");
   const [history, setHistory] = useState("");
@@ -220,7 +219,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
           historico: history,
           numeroCheque: null,
           empresaId,
-          contaBancariaId: linkType === "movimentacao" ? accountId : null,
+          contaBancariaId: linkType === "movimentacao" ? (accounts.find((a) => a.empresa_id === empresaId)?.id ?? accounts[0]?.id ?? null) : null,
           vinculoTipo: linkType,
         }}
         onSaved={() => { setIssueOpen(false); handleSaved(); }}
