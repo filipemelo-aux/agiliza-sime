@@ -351,26 +351,15 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }, { data: pendingReceivables }] = await Promise.all([
-        supabase
-          .from("movimentacoes_bancarias")
-          .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
-          .gte("data_movimentacao", minDate)
-          .lte("data_movimentacao", maxDate),
-        supabase
-          .from("expenses")
-          .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
-          .in("status", ["pendente", "atrasado"])
-          .is("deleted_at", null),
-        supabase
-          .from("expense_installments")
-          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
-          .in("status", ["pendente", "atrasado"]),
-        // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
+      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }, { data: linkedMovements }, { data: pendingReceivables }] = await Promise.all([
+...
         supabase
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id, reconciliation_id")
           .not("matched_movimentacao_id", "is", null),
+        supabase
+          .from("bank_reconciliation_item_links")
+          .select("movimentacao_id"),
         supabase
           .from("contas_receber")
           .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(full_name, razao_social))")
