@@ -175,6 +175,17 @@
 }
 
 @layer utilities {
+  .data-grid-table {
+    min-width: var(--data-grid-min-width, 900px);
+  }
+
+  @media (min-width: 1280px) {
+    .data-grid-table {
+      min-width: 100%;
+      table-layout: fixed;
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }

@@ -88,8 +88,8 @@ export function DataGrid<T>({
     if (!col?.sortValue) return rows;
     const dir = sortDir === "asc" ? 1 : -1;
     return [...rows].sort((a, b) => {
-      const av = col.sortValue!(a);
-      const bv = col.sortValue!(b);
+      const av = col.sortValue?.(a);
+      const bv = col.sortValue?.(b);
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
@@ -131,7 +131,10 @@ export function DataGrid<T>({
   return (
     <div className="min-w-0 rounded-lg border border-border bg-card [&_td_.truncate]:max-w-full">
       <div className="overflow-x-auto xl:overflow-x-hidden" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
-        <table className="w-full table-auto border-collapse text-xs xl:table-fixed" style={{ minWidth: `min(${minWidth}px, 100%)` }}>
+        <table
+          className="data-grid-table w-full table-auto border-collapse text-xs"
+          style={{ "--data-grid-min-width": `${minWidth}px` } as React.CSSProperties}
+        >
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr className="border-b border-border">
               <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 bg-muted">
