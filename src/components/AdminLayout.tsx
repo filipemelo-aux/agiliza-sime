@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +32,7 @@ const menuItems = [
     icon: DollarSign,
     children: [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
-      
+      { title: "Cheques", url: "/admin/financial/checks", icon: WalletCards },
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
       { title: "Faturas e Contas a Receber", url: "/admin/financial/invoicing", icon: Receipt },
       
@@ -53,6 +53,7 @@ const menuItems = [
           { title: "Contas a Pagar", url: "/admin/financial/reports/payables", icon: DollarSign },
           { title: "Contas a Receber", url: "/admin/financial/reports/receivables", icon: Receipt },
           { title: "Fluxo de Caixa", url: "/admin/financial/reports/cashflow", icon: Wallet },
+          { title: "Cheques", url: "/admin/financial/reports/checks", icon: WalletCards },
           { title: "Previsões", url: "/admin/financial/reports/forecasts", icon: TrendingUp },
           { title: "DRE Gerencial", url: "/admin/financial/reports/dre", icon: BarChart3 },
         ],

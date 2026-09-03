@@ -12,7 +12,7 @@ import { CheckIssueDialog } from "./CheckIssueDialog";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { toast } from "sonner";
-import { Link2, Plus, WalletCards } from "lucide-react";
+import { Plus, WalletCards } from "lucide-react";
 
 type LinkType = "conta_pagar" | "movimentacao";
 
