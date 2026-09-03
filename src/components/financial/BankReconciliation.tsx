@@ -2739,7 +2739,7 @@ export function BankReconciliation() {
                   valor={lm.valor}
                   origem={lm.origem ? translateOrigem(lm.origem) : "Lançamento conciliado"}
                   variant="green"
-                  label={i === 0 ? `Vinculado a ${r.linkedMovs!.length} lançamentos` : ""}
+                  label={`Vinculado a (${i + 1}/${r.linkedMovs!.length})`}
                   fornecedor={lm.favorecido || resolveCounterpartyProfile(r)?.favorecidoNome || null}
                 />
               ))}
