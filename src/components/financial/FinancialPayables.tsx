@@ -1649,10 +1649,18 @@ tfoot{display:table-row-group}
         selected={selectedIds}
         onSelectedChange={setSelectedIds}
         loading={loading}
-        minWidth={1120}
+        minWidth={1270}
         emptyMessage="Nenhuma despesa encontrada"
         rowClassName={(r) =>
-          rowToneClass(r.status === "pago" ? "resolved" : r.isOverdue || r.status === "atrasado" ? "overdue" : "pending")
+          rowToneClass(
+            r.status === "pago"
+              ? "resolved"
+              : r.status === "parcial"
+              ? "pending"
+              : r.isOverdue || r.status === "atrasado"
+              ? "overdue"
+              : "pending"
+          )
         }
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
