@@ -180,9 +180,7 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                 <TableHead className="text-[10px] py-1 px-2 w-[64px]">Forma</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[72px]">Vencimento</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[70px]">Situação</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[78px] text-right">Valor</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[70px] text-right">Pago</TableHead>
-                <TableHead className="text-[10px] py-1 px-2 w-[80px] text-right">Saldo</TableHead>
+                <TableHead className="text-[10px] py-1 px-2 w-[90px] text-right">Em aberto</TableHead>
                 <TableHead className="text-[10px] py-1 px-2 w-[44px]" />
               </TableRow>
             </TableHeader>
