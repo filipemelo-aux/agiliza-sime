@@ -365,8 +365,7 @@ export function BankReconciliation() {
         supabase
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
-
-          .eq("status", "pendente"),
+          .in("status", ["pendente", "atrasado"]),
         // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
         supabase
           .from("bank_reconciliation_items")
