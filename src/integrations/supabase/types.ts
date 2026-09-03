@@ -4466,6 +4466,14 @@ export type Database = {
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
       recalculate_fatura: { Args: { _fatura_id: string }; Returns: undefined }
+      reconcile_bank_item_with_expenses: {
+        Args: {
+          _allocations: Json
+          _reconciliation_item_id: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }
         Returns: number
