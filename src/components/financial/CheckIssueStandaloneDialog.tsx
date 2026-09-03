@@ -9,24 +9,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { EmpresaSelect } from "./EmpresaControls";
 import { CheckIssueDialog } from "./CheckIssueDialog";
+import { PayablePickerDialog, type PayableOption } from "./PayablePickerDialog";
 import { formatCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO } from "@/lib/date";
+import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { toast } from "sonner";
-import { Plus, WalletCards } from "lucide-react";
+import { Link2, Plus, Search, WalletCards, X } from "lucide-react";
 
 type LinkType = "conta_pagar" | "movimentacao";
 
-interface ExpenseOption {
-  id: string;
-  descricao: string;
-  valor_total: number;
-  valor_pago: number;
-  status: string;
-  data_vencimento: string | null;
-  favorecido_nome: string | null;
-  favorecido_id: string | null;
-  empresa_id: string;
-}
+type ExpenseOption = PayableOption;
 
 interface BankAccount { id: string; nome: string; banco: string | null; empresa_id: string; }
 
@@ -49,6 +40,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
   const [expenses, setExpenses] = useState<ExpenseOption[]>([]);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [issueOpen, setIssueOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const selectedExpense = useMemo(() => expenses.find((item) => item.id === expenseId), [expenses, expenseId]);
@@ -123,15 +115,29 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
             {linkType === "conta_pagar" ? (
               <div>
                 <Label className="text-xs">Conta a pagar <span className="text-destructive">*</span></Label>
-                <Select value={expenseId} onValueChange={setExpenseId}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={loading ? "Carregando..." : "Selecione a conta..."} /></SelectTrigger>
-                  <SelectContent className="max-w-[620px]">
-                    {expenses.map((expense) => {
-                      const balance = Math.max(0, Number(expense.valor_total) - Number(expense.valor_pago || 0));
-                      return <SelectItem key={expense.id} value={expense.id} className="text-xs">{expense.favorecido_nome || "Sem favorecido"} — {expense.descricao} — {formatCurrency(balance)} ({expense.status})</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+                {selectedExpense ? (
+                  <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5">
+                    <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-medium" title={selectedExpense.descricao}>
+                        {selectedExpense.favorecido_nome || "Sem favorecido"} — {selectedExpense.descricao}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Saldo {formatCurrency(Math.max(0, Number(selectedExpense.valor_total) - Number(selectedExpense.valor_pago || 0)))}
+                        {selectedExpense.data_vencimento ? ` · Venc. ${formatDateBR(selectedExpense.data_vencimento)}` : ""}
+                      </div>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setPickerOpen(true)}>Trocar</Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Remover vínculo" onClick={() => setExpenseId("")}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button type="button" variant="outline" className="h-9 w-full justify-start gap-2 text-xs text-muted-foreground" onClick={() => setPickerOpen(true)}>
+                    <Search className="h-3.5 w-3.5" />
+                    {loading ? "Carregando contas..." : "Buscar e selecionar conta a pagar..."}
+                  </Button>
+                )}
                 <p className="mt-1 text-[10px] text-muted-foreground">O cheque será registrado e o número ficará vinculado à conta selecionada.</p>
               </div>
             ) : (
@@ -158,6 +164,13 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PayablePickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        payables={expenses}
+        loading={loading}
+        onSelect={(option) => setExpenseId(option.id)}
+      />
       <CheckIssueDialog
         open={issueOpen}
         onOpenChange={setIssueOpen}
