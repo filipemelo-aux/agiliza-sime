@@ -494,7 +494,7 @@ export function FinancialPaid() {
     {
       key: "amount",
       header: "Valor Pago",
-      width: "120px",
+      width: "108px",
       align: "right",
       sortValue: (r) => r.amount,
       cell: (r) => <span className="font-mono font-semibold text-success">{formatCurrency(r.amount)}</span>,
