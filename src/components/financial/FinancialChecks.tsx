@@ -138,6 +138,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
           pago: statuses.length > 0 && statuses.every((s) => s === "pago"),
           parcial: statuses.some((s) => s === "parcial") || (statuses.some((s) => s === "pago") && statuses.some((s) => s !== "pago")),
           conciliado: ids.some((id) => (movsByExpense.get(id) || []).some((m) => reconciledMovs.has(m))),
+          vencido: statuses.some((s) => s === "atrasado"),
         };
       }
       setLinks(result);
