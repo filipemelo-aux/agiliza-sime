@@ -1376,6 +1376,14 @@ export function BankReconciliation() {
           return mov && !linkedMovIds.has(mov.id);
         });
 
+      // Soma dos pagamentos já realizados que ainda não foram conciliados
+      const unlinkedPaidAmount = (payments: any[] | undefined) =>
+        +((payments || []).reduce((sum, p) => {
+          const mov = movsByPaymentId.get(p.id);
+          if (!mov || linkedMovIds.has(mov.id)) return sum;
+          return sum + Math.abs(Number(mov.valor) || Number(p.valor) || 0);
+        }, 0)).toFixed(2);
+
       const results: any[] = [];
       for (const exp of expenses) {
         const insts = instByExp.get(exp.id);
@@ -1388,6 +1396,31 @@ export function BankReconciliation() {
             const jaPaga = saldo <= 0.005 && paidReal > 0;
             if (saldo <= 0.005 && !jaPaga) continue;
             if (jaPaga && !hasUnlinkedPaidMovement(paymentsByInstallment.get(inst.id))) continue;
+            const baseLabel = `${exp.descricao} (parcela ${inst.numero_parcela}/${totalParcelas})`;
+            // Pagamento parcial já realizado e ainda não conciliado → linha própria
+            if (!jaPaga) {
+              const parcialPago = unlinkedPaidAmount(paymentsByInstallment.get(inst.id));
+              if (parcialPago > 0.005) {
+                results.push({
+                  id: `paid_inst_${inst.id}`,
+                  expense_id: exp.id,
+                  installment_id: inst.id,
+                  is_installment: true,
+                  numero_parcela: inst.numero_parcela,
+                  total_parcelas: totalParcelas,
+                  descricao: `${baseLabel} — pagamento parcial já realizado`,
+                  favorecido_nome: exp.favorecido_nome,
+                  documento_fiscal_numero: exp.documento_fiscal_numero,
+                  valor_total: parcialPago,
+                  valor_pago: parcialPago,
+                  ja_paga: true,
+                  is_parcial_pago: true,
+                  status: "pago",
+                  data_vencimento: inst.data_vencimento,
+                  data_emissao: exp.data_emissao,
+                });
+              }
+            }
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
@@ -1395,13 +1428,13 @@ export function BankReconciliation() {
               is_installment: true,
               numero_parcela: inst.numero_parcela,
               total_parcelas: totalParcelas,
-              descricao: `${exp.descricao} (parcela ${inst.numero_parcela}/${totalParcelas})`,
+              descricao: baseLabel,
               favorecido_nome: exp.favorecido_nome,
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
               valor_pago: paidReal,
               ja_paga: jaPaga,
-              status: jaPaga ? "pago" : exp.status === "atrasado" ? "atrasado" : "pendente",
+              status: jaPaga ? "pago" : paidReal > 0.005 ? "parcial" : exp.status === "atrasado" ? "atrasado" : "pendente",
               data_vencimento: inst.data_vencimento,
               data_emissao: exp.data_emissao,
             });
@@ -1413,15 +1446,35 @@ export function BankReconciliation() {
           const jaPaga = saldo <= 0.005 && valorPago > 0;
           if (saldo <= 0.005 && !jaPaga) continue;
           if (jaPaga && !hasUnlinkedPaidMovement(paymentsByExpense.get(exp.id))) continue;
+          if (!jaPaga) {
+            const parcialPago = unlinkedPaidAmount(paymentsByExpense.get(exp.id));
+            if (parcialPago > 0.005) {
+              results.push({
+                ...exp,
+                id: `paid_exp_${exp.id}`,
+                expense_id: exp.id,
+                installment_id: null,
+                descricao: `${exp.descricao} — pagamento parcial já realizado`,
+                valor_total: parcialPago,
+                valor_pago: parcialPago,
+                is_installment: false,
+                ja_paga: true,
+                is_parcial_pago: true,
+                status: "pago",
+              });
+            }
+          }
           results.push({
             ...exp,
+            expense_id: exp.id,
             valor_pago: valorPago,
             is_installment: false,
             ja_paga: jaPaga,
-            status: jaPaga ? "pago" : exp.status,
+            status: jaPaga ? "pago" : valorPago > 0.005 ? "parcial" : exp.status,
           });
         }
       }
+
 
       results.sort((a, b) =>
         String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""))
