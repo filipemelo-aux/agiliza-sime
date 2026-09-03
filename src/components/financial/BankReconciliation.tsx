@@ -705,7 +705,25 @@ export function BankReconciliation() {
           }
         }
 
+        const linkIds = linksByItem.get(dbItem.id) || [];
+        const allLinkIds = Array.from(new Set([...linkIds, ...(matchedMovId ? [matchedMovId] : [])]));
+        const linkedMovs = allLinkIds
+          .map((mid) => {
+            const mov = allMovs.find((m: any) => m.id === mid);
+            if (!mov) return null;
+            return {
+              id: mov.id,
+              desc: mov.descricao as string | null,
+              date: mov.data_movimentacao as string | null,
+              valor: Math.abs(Number(mov.valor)),
+              origem: mov.origem as string | null,
+              favorecido: movFavorecidoMap.get(mov.id) || null,
+            };
+          })
+          .filter(Boolean) as OfxItem["linkedMovs"];
+
         return {
+          linkedMovs,
           fitid: dbItem.fitid || "",
           date: txDate,
           amount: tipo === "saida" ? -absVal : absVal,
