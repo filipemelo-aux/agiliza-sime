@@ -166,7 +166,7 @@ export function DataGrid<T>({
                   style={col.width ? { width: col.width } : undefined}
                   onClick={() => toggleSort(col)}
                   className={cn(
-                    "px-2 py-2 md:py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
+                    "px-1.5 py-2 md:py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
                     
                     alignCls(col.align),
                     col.sortValue && "cursor-pointer select-none hover:text-foreground",
@@ -240,7 +240,7 @@ export function DataGrid<T>({
                         key={col.key}
                         data-column-key={col.key}
                         className={cn(
-                          "overflow-hidden px-2 py-2.5 md:py-1 align-middle",
+                          "overflow-hidden px-1.5 py-2.5 md:py-1 align-middle",
                           partyColumnKeys.has(col.key.toLocaleLowerCase("pt-BR")) && "data-grid-party-cell",
                           alignCls(col.align),
                           ci === 0 && "relative",
