@@ -58,12 +58,25 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
     setHistory("");
     const load = async () => {
       setLoading(true);
-      const [{ data: expenseRows }, { data: accountRows }] = await Promise.all([
-        supabase.from("expenses").select("id, descricao, valor_total, valor_pago, status, data_vencimento, favorecido_nome, favorecido_id, empresa_id").is("deleted_at", null).order("data_vencimento", { ascending: true }).limit(1000),
+      const [expensesReq, accountsReq, coaReq] = await Promise.all([
+        supabase.from("expenses")
+          .select("id, descricao, valor_total, valor_pago, status, data_vencimento, data_emissao, favorecido_nome, favorecido_id, empresa_id, forma_pagamento, plano_contas_id, veiculo_placa, fornecedor_cnpj")
+          .is("deleted_at", null)
+          .order("data_vencimento", { ascending: true })
+          .limit(1000),
         supabase.from("contas_bancarias").select("id, nome, banco, empresa_id").eq("ativo", true).order("nome"),
+        supabase.from("chart_of_accounts").select("id, codigo, nome").order("codigo"),
       ]);
-      setExpenses((expenseRows as ExpenseOption[]) || []);
-      setAccounts((accountRows as BankAccount[]) || []);
+      const coaMap = new Map<string, string>();
+      (coaReq.data || []).forEach((c: { id: string; codigo: string; nome: string }) => {
+        coaMap.set(c.id, `${c.codigo} · ${c.nome}`);
+      });
+      const rows = ((expensesReq.data as ExpenseOption[]) || []).map((e) => ({
+        ...e,
+        plano_contas_nome: e.plano_contas_id ? (coaMap.get(e.plano_contas_id) ?? null) : null,
+      }));
+      setExpenses(rows);
+      setAccounts((accountsReq.data as BankAccount[]) || []);
       setLoading(false);
     };
     void load();
