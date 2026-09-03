@@ -21,3 +21,7 @@
 - [x] Triggers AFTER DELETE de limpeza de `movimentacoes_bancarias` (expenses, contas_receber, expense_payments)
 - [x] Rateio fonte única: migrar JSONB → `despesa_rateio_veiculos`, refatorar RPCs, DROP coluna `credit_card_invoice_items.rateio_veiculos`, ajustar UI
 - [x] Unificar contas a pagar: migrar `accounts_payable` → `expenses`, drop triggers legadas, atestar leitura exclusiva de `expenses`
+
+## Fase 4 — Conciliação (03/09)
+- [ ] Vinculação de 1 lançamento do extrato a VÁRIAS contas (rateio + confirmação final; ocultar contas já conciliadas)
+- [ ] Corrigir definitivamente despesa que recebe pagamento mas continua "em aberto" (duplicidade de correspondência paga + a pagar)
