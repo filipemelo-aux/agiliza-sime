@@ -189,9 +189,19 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const chequeRowTone = (row: CheckRow): RowTone => {
     if (row.status === "cancelado") return "overdue";
     const info = links[row.id];
-    if (!info || !info.expenseIds.length) return "neutral";
-    if (info.conciliado) return "resolved";
-    return "pending";
+    const hasLink = !!(info && info.expenseIds.length);
+    if (hasLink) {
+      if (info.conciliado) return "resolved";           // Pago e conciliado
+      if (info.pago || info.parcial) return "pending";  // Pago não conciliado
+      // Conta a pagar em aberto → A vencer / Vencido pela data do cheque
+      if (row.predatado && row.data_vencimento) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const venc = new Date(row.data_vencimento + "T12:00:00");
+        return venc < today ? "overdue" : "neutral";
+      }
+      return "neutral"; // A vencer (à vista, em aberto)
+    }
+    return "neutral"; // Sem conta a pagar vinculada
   };
 
 
@@ -205,7 +215,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <EmpresaFilter value={empresa} onChange={setEmpresa} />
         <span className="hidden items-center gap-1 text-[10px] text-muted-foreground xl:inline-flex"><CalendarDays className="h-3 w-3" /> Ordenado por emissão</span>
       </GlobalToolbar>
-      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={980} rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Conciliado" }, { tone: "pending", label: "Pago / parcial (não conciliado)" }, { tone: "neutral", label: "Sem conta vinculada" }, { tone: "overdue", label: "Cancelado" }]} />} />
+      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={980} rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Pago e conciliado" }, { tone: "pending", label: "Pago não conciliado" }, { tone: "neutral", label: "A vencer" }, { tone: "overdue", label: "Vencido" }, { tone: "overdue", label: "Cancelado" }]} />} />
       <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { setDialogOpen(false); void load(); }} />
     </div>
   );
