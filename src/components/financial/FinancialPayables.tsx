@@ -1084,7 +1084,7 @@ export function FinancialPayables() {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
         return (
           <span className="block min-w-0">
-            <span className="font-medium text-foreground block" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
+            <span className="block truncate font-medium text-foreground" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
             {creator && (
               <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}

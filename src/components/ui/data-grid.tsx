@@ -44,6 +44,21 @@ function DescriptionCell({ children, fullText }: { children: React.ReactNode; fu
   );
 }
 
+const partyColumnKeys = new Set([
+  "favorecido",
+  "favorecido_nome",
+  "fornecedor",
+  "fornecedor_nome",
+  "cliente",
+  "cliente_nome",
+  "credor",
+  "beneficiario",
+  "beneficiário",
+  "recipient",
+  "supplier",
+  "customer",
+]);
+
 interface DataGridProps<T> {
   rows: T[];
   columns: DataGridColumn<T>[];
@@ -226,6 +241,7 @@ export function DataGrid<T>({
                         data-column-key={col.key}
                         className={cn(
                           "overflow-hidden px-2 py-2.5 md:py-1 align-middle",
+                          partyColumnKeys.has(col.key.toLocaleLowerCase("pt-BR")) && "data-grid-party-cell",
                           alignCls(col.align),
                           ci === 0 && "relative",
                           col.className
