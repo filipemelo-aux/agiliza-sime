@@ -97,6 +97,14 @@ interface OfxItem extends OfxTransaction {
   matchedReceivablePrecision: MatchPrecision | null;
   matchedReceivableContaId: string | null;
   matchedReceivableFaturaNumero: number | null;
+  linkedMovs?: {
+    id: string;
+    desc: string | null;
+    date: string | null;
+    valor: number | null;
+    origem: string | null;
+    favorecido: string | null;
+  }[];
 }
 
 interface MatchCandidate {
