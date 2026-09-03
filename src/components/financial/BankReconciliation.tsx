@@ -1580,20 +1580,27 @@ export function BankReconciliation() {
         throw new Error("A vinculação múltipla exige exatamente um débito do extrato.");
       }
       if (allocations.length === 0) throw new Error("Selecione ao menos uma conta com saldo em aberto.");
-      if (Math.abs(allocatedTotal - targetTotal) > 0.005) {
-        throw new Error(`A soma dos saldos das contas selecionadas (${formatCurrency(allocatedTotal)}) precisa ser igual ao débito do extrato (${formatCurrency(targetTotal)}). Ajuste a seleção.`);
-      }
+
+      // O extrato é a fonte da verdade: diferença positiva = juros, negativa = desconto.
+      const diff = +(targetTotal - allocatedTotal).toFixed(2);
+      const diffLabel =
+        Math.abs(diff) <= 0.005
+          ? ""
+          : diff > 0
+            ? ` O débito é ${formatCurrency(diff)} maior que a soma das contas — a diferença será registrada como JUROS.`
+            : ` O débito é ${formatCurrency(-diff)} menor que a soma das contas — a diferença será registrada como DESCONTO e as contas serão quitadas.`;
 
       const dbItemId = targetItems[0].dbItemId;
       if (!dbItemId) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
 
       const confirmed = await confirm({
         title: "Confirmar vinculação",
-        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s). Contas em aberto serão quitadas pelo saldo; contas já pagas serão apenas conciliadas (sem novo pagamento). Deseja finalizar?`,
+        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s) (saldo total ${formatCurrency(allocatedTotal)}).${diffLabel} Contas em aberto serão quitadas; contas já pagas serão apenas conciliadas. Deseja finalizar?`,
         confirmLabel: "Finalizar vinculação",
         cancelLabel: "Revisar",
       });
       if (!confirmed) return;
+
 
       const { data: reconciliationResult, error } = await supabase.rpc("reconcile_bank_item_with_expenses", {
         _reconciliation_item_id: dbItemId,
@@ -3370,7 +3377,7 @@ export function BankReconciliation() {
 
             {linkSelectedAccounts.length > 0 && (
               <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
-                Cada conta em aberto será quitada pelo seu saldo; contas já pagas entram apenas para conciliação (sem novo pagamento). A soma precisa ser igual ao débito do extrato. Contas já conciliadas não são exibidas.
+                Cada conta em aberto será quitada pelo seu saldo; contas já pagas entram apenas para conciliação (sem novo pagamento). Se a soma não bater com o extrato, o valor do extrato prevalece: diferença a maior vira juros e a menor vira desconto. Contas já conciliadas não são exibidas.
               </p>
             )}
           </div>
