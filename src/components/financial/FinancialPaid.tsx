@@ -436,7 +436,7 @@ export function FinancialPaid() {
     {
       key: "creditor",
       header: "Favorecido",
-      width: "220px",
+      width: "250px",
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
