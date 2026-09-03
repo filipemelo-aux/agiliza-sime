@@ -215,7 +215,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <EmpresaFilter value={empresa} onChange={setEmpresa} />
         <span className="hidden items-center gap-1 text-[10px] text-muted-foreground xl:inline-flex"><CalendarDays className="h-3 w-3" /> Ordenado por emissão</span>
       </GlobalToolbar>
-      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={980} rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Conciliado" }, { tone: "pending", label: "Pago / parcial (não conciliado)" }, { tone: "neutral", label: "Sem conta vinculada" }, { tone: "overdue", label: "Cancelado" }]} />} />
+      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={980} rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Pago e conciliado" }, { tone: "pending", label: "Pago não conciliado" }, { tone: "neutral", label: "A vencer" }, { tone: "overdue", label: "Vencido" }, { tone: "overdue", label: "Cancelado" }]} />} />
       <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { setDialogOpen(false); void load(); }} />
     </div>
   );
