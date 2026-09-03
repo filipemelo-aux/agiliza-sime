@@ -483,12 +483,18 @@ export function FinancialPaid() {
       align: "center",
       sortValue: (r) => r.source,
       cell: (r) => (
-        <Badge
-          variant={r.source === "legacy" ? "secondary" : "default"}
-          className={`text-[10px] ${r.source === "group" ? "bg-primary/80" : ""}`}
+        <span
+          className={
+            "inline-flex h-4 items-center justify-center rounded border px-1.5 text-[9px] font-medium leading-none whitespace-nowrap " +
+            (r.source === "legacy"
+              ? "bg-muted text-muted-foreground border-border"
+              : r.source === "group"
+                ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
+                : "bg-primary/10 text-primary border-primary/30")
+          }
         >
           {r.source === "legacy" ? "Legado" : r.source === "group" ? `Grupo · ${r.group_count}` : "Individual"}
-        </Badge>
+        </span>
       ),
     },
     {
