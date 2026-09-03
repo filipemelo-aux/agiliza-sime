@@ -33,8 +33,16 @@ interface CheckRow {
 const typeLabel: Record<string, string> = { conta_pagar: "Conta a pagar", contrato_frete: "Contrato de frete", movimentacao: "Movimentação", avulso: "Avulso" };
 const statusLabel: Record<string, string> = { emitido: "Emitido", compensado: "Compensado", cancelado: "Cancelado" };
 
+interface CheckLinkInfo {
+  expenseIds: string[];
+  pago: boolean;
+  parcial: boolean;
+  conciliado: boolean;
+}
+
 export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }) {
   const [rows, setRows] = useState<CheckRow[]>([]);
+  const [links, setLinks] = useState<Record<string, CheckLinkInfo>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("todos");
@@ -47,12 +55,97 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     setLoading(true);
     const { data, error } = await supabase.from("cheques" as any).select("*").order("data_emissao", { ascending: false }).order("created_at", { ascending: false }).limit(5000);
     if (error) toast.error("Não foi possível carregar os cheques", { description: error.message });
-    setRows(((data as unknown) as CheckRow[]) || []);
+    const list = ((data as unknown) as CheckRow[]) || [];
+    setRows(list);
     setSelected(new Set());
     setLoading(false);
+    void loadLinks(list);
   }, []);
 
+  const loadLinks = async (list: CheckRow[]) => {
+    if (!list.length) return setLinks({});
+    try {
+      const chequeIds = list.map((r) => r.id);
+      const { data: linkRows } = await supabase
+        .from("cheque_expense_links" as any)
+        .select("cheque_id, expense_id")
+        .in("cheque_id", chequeIds);
+
+      const byCheque = new Map<string, string[]>();
+      for (const row of ((linkRows as any[]) || [])) {
+        const arr = byCheque.get(row.cheque_id) || [];
+        arr.push(row.expense_id);
+        byCheque.set(row.cheque_id, arr);
+      }
+      for (const r of list) {
+        if (r.expense_id) {
+          const arr = byCheque.get(r.id) || [];
+          if (!arr.includes(r.expense_id)) arr.push(r.expense_id);
+          byCheque.set(r.id, arr);
+        }
+      }
+
+      const expenseIds = Array.from(new Set(Array.from(byCheque.values()).flat()));
+      if (!expenseIds.length) return setLinks({});
+
+      const [{ data: expenseRows }, { data: paymentRows }] = await Promise.all([
+        supabase.from("expenses").select("id, status").in("id", expenseIds),
+        supabase.from("expense_payments").select("id, expense_id").in("expense_id", expenseIds),
+      ]);
+
+      const statusByExpense = new Map<string, string>(((expenseRows as any[]) || []).map((e) => [e.id, e.status]));
+      const payments = ((paymentRows as any[]) || []);
+      const paymentIds = payments.map((p) => p.id);
+
+      let movsByExpense = new Map<string, string[]>();
+      let reconciledMovs = new Set<string>();
+      if (paymentIds.length) {
+        const { data: movRows } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id, origem_id")
+          .eq("origem", "pagamento_despesa")
+          .in("origem_id", paymentIds);
+        const expenseByPayment = new Map<string, string>(payments.map((p) => [p.id, p.expense_id]));
+        const movIds: string[] = [];
+        for (const m of ((movRows as any[]) || [])) {
+          const expId = expenseByPayment.get(m.origem_id);
+          if (!expId) continue;
+          movIds.push(m.id);
+          const arr = movsByExpense.get(expId) || [];
+          arr.push(m.id);
+          movsByExpense.set(expId, arr);
+        }
+        if (movIds.length) {
+          const [{ data: recLinks }, { data: recItems }] = await Promise.all([
+            supabase.from("bank_reconciliation_item_links").select("movimentacao_id").in("movimentacao_id", movIds),
+            supabase.from("bank_reconciliation_items").select("matched_movimentacao_id").in("matched_movimentacao_id", movIds),
+          ]);
+          reconciledMovs = new Set([
+            ...((recLinks as any[]) || []).map((l) => l.movimentacao_id),
+            ...((recItems as any[]) || []).map((l) => l.matched_movimentacao_id),
+          ].filter(Boolean));
+        }
+      }
+
+      const result: Record<string, CheckLinkInfo> = {};
+      for (const [chequeId, ids] of byCheque.entries()) {
+        const statuses = ids.map((id) => statusByExpense.get(id)).filter(Boolean) as string[];
+        result[chequeId] = {
+          expenseIds: ids,
+          pago: statuses.length > 0 && statuses.every((s) => s === "pago"),
+          parcial: statuses.some((s) => s === "parcial") || (statuses.some((s) => s === "pago") && statuses.some((s) => s !== "pago")),
+          conciliado: ids.some((id) => (movsByExpense.get(id) || []).some((m) => reconciledMovs.has(m))),
+        };
+      }
+      setLinks(result);
+    } catch {
+      setLinks({});
+    }
+  };
+
   useEffect(() => { void load(); }, [load]);
+
+
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
