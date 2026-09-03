@@ -83,6 +83,42 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliation_item_links: {
+        Row: {
+          created_at: string
+          id: string
+          movimentacao_id: string
+          reconciliation_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movimentacao_id: string
+          reconciliation_item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movimentacao_id?: string
+          reconciliation_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_item_links_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_item_links_reconciliation_item_id_fkey"
+            columns: ["reconciliation_item_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliation_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_reconciliation_items: {
         Row: {
           amount: number
@@ -4385,6 +4421,10 @@ export type Database = {
         Args: { _plano_contas_id: string }
         Returns: boolean
       }
+      fn_recalculate_expense_payment_state: {
+        Args: { _expense_id: string }
+        Returns: undefined
+      }
       fn_resolve_profile_for_cte_previsao: {
         Args: { _cte: Database["public"]["Tables"]["ctes"]["Row"] }
         Returns: string
@@ -4426,6 +4466,14 @@ export type Database = {
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
       recalculate_fatura: { Args: { _fatura_id: string }; Returns: undefined }
+      reconcile_bank_item_with_expenses: {
+        Args: {
+          _allocations: Json
+          _reconciliation_item_id: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }
         Returns: number

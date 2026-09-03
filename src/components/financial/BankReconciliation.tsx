@@ -351,7 +351,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }, { data: pendingReceivables }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }, { data: linkedMovements }, { data: pendingReceivables }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
@@ -365,13 +365,14 @@ export function BankReconciliation() {
         supabase
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
-
-          .eq("status", "pendente"),
-        // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
+          .in("status", ["pendente", "atrasado"]),
         supabase
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id, reconciliation_id")
           .not("matched_movimentacao_id", "is", null),
+        supabase
+          .from("bank_reconciliation_item_links")
+          .select("movimentacao_id"),
         supabase
           .from("contas_receber")
           .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(full_name, razao_social))")
@@ -399,11 +400,10 @@ export function BankReconciliation() {
       // Exclude movements already linked to ANY reconciliation item (including
       // items inside the current reconciliation), so a single paid/reconciled
       // entry is never suggested as a close-date match for a different OFX line.
-      const alreadyMatchedIds = new Set(
-        (alreadyMatched || [])
-          .map((r: any) => r.matched_movimentacao_id)
-          .filter(Boolean)
-      );
+      const alreadyMatchedIds = new Set([
+        ...(alreadyMatched || []).map((r: any) => r.matched_movimentacao_id),
+        ...(linkedMovements || []).map((r: any) => r.movimentacao_id),
+      ].filter(Boolean));
       const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
 
       // Fetch favorecido/conta for movements linked to expenses (for reconciled items display)
@@ -481,6 +481,7 @@ export function BankReconciliation() {
       for (const exp of expRows) {
         if (expWithInst.has(exp.id)) continue;
         const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
+        if (saldo <= 0.005) continue;
         payables.push({
           id: `exp_${exp.id}`,
           expenseId: exp.id,
@@ -555,18 +556,19 @@ export function BankReconciliation() {
         usedItemForMov.add(p.idx);
       }
 
-      // ── Assign payable matches (saída only) ──
-      const payPairs: Pair[] = [];
-      rawItems.forEach((raw, idx) => {
-        if (raw.status !== "pendente" || raw.tipo !== "saida") return;
-        for (const p of payables) {
-          if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
-          const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
-          // Mesma regra da importação: prioriza data próxima, mas aceita
-          // correspondência só por valor quando não há vencimento próximo.
-          payPairs.push({ idx, candId: p.id, dist });
-        }
-      });
+       // ── Assign payable matches (saída only) ──
+       const payPairs: Pair[] = [];
+       rawItems.forEach((raw, idx) => {
+         if (raw.status !== "pendente" || raw.tipo !== "saida") return;
+         // Se já existe pagamento no caixa para o mesmo valor/data, ele é a
+         // correspondência efetiva; não crie uma segunda sugestão de título.
+         if (assignedMovByIdx.has(idx)) return;
+         for (const p of payables) {
+           if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
+           const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
+           payPairs.push({ idx, candId: p.id, dist });
+         }
+       });
       payPairs.sort((a, b) => a.dist - b.dist);
 
       const assignedPayByIdx = new Map<number, string>();
@@ -772,6 +774,8 @@ export function BankReconciliation() {
   const [linkSearchResults, setLinkSearchResults] = useState<any[]>([]);
   const [linkSearching, setLinkSearching] = useState(false);
   const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
+  const [linkSelectedAccounts, setLinkSelectedAccounts] = useState<any[]>([]);
+  const [linkAllocations, setLinkAllocations] = useState<Record<string, string>>({});
   const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
@@ -1084,6 +1088,8 @@ export function BankReconciliation() {
     setLinkSearchText("");
     setLinkSearchResults([]);
     setLinkSelectedAccount(null);
+    setLinkSelectedAccounts([]);
+    setLinkAllocations({});
     setLinkAccountDialogOpen(true);
   }, []);
 
@@ -1098,6 +1104,7 @@ export function BankReconciliation() {
     const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
     const allEntradas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "entrada");
     const allSaidas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "saida");
+    const targetTotal = targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
     // Para entradas: permite busca sem texto (carrega recebíveis em aberto compatíveis com o valor)
     // Para saídas: exige ao menos 2 caracteres
@@ -1283,6 +1290,19 @@ export function BankReconciliation() {
 
       const expenses = Array.from(expensesMap.values());
       const expIds = expenses.map((e) => e.id);
+      const linkedPayableExpenseIds = new Set<string>();
+      if (expIds.length > 0) {
+        const { data: paymentRows } = await supabase
+          .from("expense_payments")
+          .select("expense_id, valor, data_pagamento")
+          .in("expense_id", expIds);
+        for (const payment of (paymentRows || []) as any[]) {
+          const paymentAmount = Number(payment.valor) || 0;
+          if (Math.abs(paymentAmount - targetTotal) < 0.01) {
+            linkedPayableExpenseIds.add(payment.expense_id);
+          }
+        }
+      }
 
       let installments: any[] = [];
       if (expIds.length > 0) {
@@ -1323,9 +1343,10 @@ export function BankReconciliation() {
         if (insts && insts.length > 0) {
           const fallbackTotal = insts.length;
           for (const inst of insts) {
-            const isPaid = inst.status === "pago";
             const totalParcelas = inst.total_parcelas ?? fallbackTotal;
             const paidReal = paidByInstallment.get(inst.id) || 0;
+            const saldo = Math.max(0, Number(inst.valor) - paidReal);
+            if (saldo <= 0.005) continue;
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
@@ -1338,16 +1359,19 @@ export function BankReconciliation() {
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
               valor_pago: paidReal,
-              status: isPaid ? "pago" : (exp.status === "atrasado" ? "atrasado" : "pendente"),
+              status: exp.status === "atrasado" ? "atrasado" : "pendente",
               data_vencimento: inst.data_vencimento,
               data_emissao: exp.data_emissao,
             });
           }
         } else {
           const paidReal = paidByExpense.get(exp.id);
+          const valorPago = paidReal != null ? paidReal : Number(exp.valor_pago || 0);
+          const saldo = Math.max(0, Number(exp.valor_total || 0) - valorPago);
+          if (saldo <= 0.005) continue;
           results.push({
             ...exp,
-            valor_pago: paidReal != null ? paidReal : Number(exp.valor_pago || 0),
+            valor_pago: valorPago,
             is_installment: false,
           });
         }
@@ -1366,209 +1390,62 @@ export function BankReconciliation() {
   }, [linkSearchText, linkAccountDialogOpen, linkTargetItemIds, items]);
 
   const handleLinkConfirm = useCallback(async () => {
-    if (!linkSelectedAccount || !reconciliationId || linkTargetItemIds.length === 0) return;
+    if (linkSelectedAccounts.length === 0 || !reconciliationId || linkTargetItemIds.length === 0) return;
     setLinkSubmitting(true);
     try {
       const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
-      const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
-      const minDate = targetItems.map((i) => i.date).sort()[0];
+      const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
+      const allocations = linkSelectedAccounts.map((account) => ({
+        expense_id: account.expense_id || account.id,
+        installment_id: account.installment_id || null,
+        amount: +(Number(linkAllocations[account.id]) || 0).toFixed(2),
+      })).filter((allocation) => allocation.amount > 0);
+      const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
 
-      const isReceivable = !!linkSelectedAccount.is_receivable;
-
-      if (isReceivable) {
-        const contaReceberId = linkSelectedAccount.conta_receber_id;
-        const valorTotalConta = Number(linkSelectedAccount.valor_total || 0);
-        const jaRecebido = Number(linkSelectedAccount.valor_pago || 0);
-        const saldo = Math.max(0, valorTotalConta - jaRecebido);
-        // Sempre registra o valor real do extrato (não o valor do título),
-        // para que fatura, recebimento e fluxo de caixa fiquem idênticos.
-        const valorPag = +totalSel.toFixed(2);
-        const dif = +(valorPag - saldo).toFixed(2);
-        if (linkSelectedAccount.status !== "pago" && valorPag > 0) {
-          const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
-            conta_receber_id: contaReceberId,
-            valor: valorPag,
-            forma_recebimento: "transferencia",
-            data_recebimento: minDate,
-            observacoes:
-              `Recebimento via conciliação bancária (${targetItems.length} lançamento(s) OFX)` +
-              (dif !== 0 ? ` — ${dif > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(dif))} em relação ao título` : ""),
-            created_by: user?.id,
-          });
-          if (rpErr) throw rpErr;
-        }
-
-        const linkedMap = new Map<string, string | null>();
-        for (const it of targetItems) {
-          const movIdToLink = await findCreatedMovId({
-            amount: Math.abs(it.amount),
-            tipo: it.tipo,
-            referenceDate: it.date,
-          });
-          // Sem movimentação localizada não há o que conciliar: nunca marcar
-          // como "conciliado" com matched_movimentacao_id nulo.
-          if (!movIdToLink) {
-            throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. A conciliação foi interrompida.`);
-          }
-          linkedMap.set(it.id, movIdToLink);
-          const updateFilter = it.dbItemId
-            ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
-            : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-          const { error: linkUpdateError } = await updateFilter;
-          if (linkUpdateError) throw linkUpdateError;
-        }
-        const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
-        setItems((prev) =>
-          prev.map((i) => {
-            if (!linkTargetItemIds.includes(i.id)) return i;
-            const mid = linkedMap.get(i.id) || null;
-            const d = mid ? movDetails.get(mid) : null;
-            return {
-              ...i,
-              status: "conciliado" as const,
-              matchedMovId: mid,
-              matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
-              matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
-              matchedMovValor: d?.valor ?? i.matchedMovValor,
-              matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
-            };
-          })
-        );
-
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          linkTargetItemIds.forEach((id) => next.delete(id));
-          return next;
-        });
-        toast.success(
-          linkSelectedAccount.status === "pago"
-            ? `${targetItems.length} lançamento(s) vinculado(s) à conta recebida`
-            : `Recebimento registrado e ${targetItems.length} lançamento(s) conciliado(s)`
-        );
-        setLinkAccountDialogOpen(false);
-        setLinkSelectedAccount(null);
-        setLinkTargetItemIds([]);
-        setTimeout(updateReconciliationCount, 500);
-        return;
+      if (targetItems.length !== 1 || targetItems[0]?.tipo !== "saida") {
+        throw new Error("A vinculação múltipla exige exatamente um débito do extrato.");
       }
-
-      const isInstallment = !!linkSelectedAccount.is_installment;
-      const expenseId = isInstallment ? linkSelectedAccount.expense_id : linkSelectedAccount.id;
-      const isPaid = linkSelectedAccount.status === "pago";
-
-      // If account/parcela is not fully paid yet, register a payment for the sum
-      if (!isPaid) {
-        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
-          expense_id: expenseId,
-          valor: totalSel,
-          forma_pagamento: "transferencia",
-          data_pagamento: minDate,
-          observacoes: isInstallment
-            ? `Quitação parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} via conciliação bancária (${targetItems.length} lançamento(s) OFX)`
-            : `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
-          created_by: user?.id,
-          juros: 0,
-          installment_id: isInstallment ? (linkSelectedAccount.installment_id ?? null) : null,
-        } as any);
-        // Sem pagamento gravado não existe movimentação: não marcar como conciliado.
-        if (payInsErr) throw payInsErr;
-
-
-        if (isInstallment) {
-          const { error: installmentError } = await supabase
-            .from("expense_installments")
-            .update({ status: "pago" } as any)
-            .eq("id", linkSelectedAccount.installment_id);
-          if (installmentError) throw installmentError;
-
-          const { data: allInst } = await supabase
-            .from("expense_installments")
-            .select("valor, status")
-            .eq("expense_id", expenseId);
-
-          const totalPagoNow = ((allInst as any) || [])
-            .filter((i: any) => i.status === "pago")
-            .reduce((s: number, i: any) => s + Number(i.valor), 0);
-          const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
-
-          const { error: expenseUpdateError } = await supabase.from("expenses").update({
-            valor_pago: totalPagoNow,
-            status: allPaid ? "pago" : "parcial",
-            forma_pagamento: "transferencia",
-            data_pagamento: minDate,
-          } as any).eq("id", expenseId);
-          if (expenseUpdateError) throw expenseUpdateError;
-        } else {
-          const { data: expData, error: expenseReadError } = await supabase
-            .from("expenses")
-            .select("valor_total, valor_pago")
-            .eq("id", expenseId)
-            .single();
-          if (expenseReadError) throw expenseReadError;
-          const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
-          const valorTotal = Number(expData?.valor_total || 0);
-          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-          const { error: expenseUpdateError } = await supabase.from("expenses").update({
-            valor_pago: novoValorPago,
-            status: novoStatus,
-            forma_pagamento: "transferencia",
-            data_pagamento: minDate,
-          } as any).eq("id", expenseId);
-          if (expenseUpdateError) throw expenseUpdateError;
-        }
+      if (Math.abs(allocatedTotal - targetTotal) > 0.005) {
+        throw new Error(`O rateio deve totalizar ${formatCurrency(targetTotal)}.`);
       }
+      if (allocations.length === 0) throw new Error("Informe valores positivos para as contas selecionadas.");
 
-      const linkedMap = new Map<string, string | null>();
-      for (const it of targetItems) {
-        const movIdToLink = await findCreatedMovId({
-          expenseId: expenseId,
-          amount: Math.abs(it.amount),
-          tipo: it.tipo,
-          referenceDate: it.date,
-        });
-        if (!movIdToLink) {
-          throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. O lançamento continuará pendente.`);
-        }
-        linkedMap.set(it.id, movIdToLink);
-        const updateFilter = it.dbItemId
-          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
-          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-        const { error: linkUpdateError } = await updateFilter;
-        if (linkUpdateError) throw linkUpdateError;
-      }
+      const dbItemId = targetItems[0].dbItemId;
+      if (!dbItemId) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
 
-      const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
-      setItems((prev) =>
-        prev.map((i) => {
-          if (!linkTargetItemIds.includes(i.id)) return i;
-          const mid = linkedMap.get(i.id) || null;
-          const d = mid ? movDetails.get(mid) : null;
-          return {
-            ...i,
-            status: "conciliado" as const,
-            matchedMovId: mid,
-            matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
-            matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
-            matchedMovValor: d?.valor ?? i.matchedMovValor,
-            matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
-          };
-        })
-      );
-
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        linkTargetItemIds.forEach((id) => next.delete(id));
-        return next;
+      const confirmed = await confirm({
+        title: "Confirmar vinculação múltipla",
+        description: `O débito de ${formatCurrency(targetTotal)} será rateado entre ${allocations.length} conta(s), com quitação dos saldos informados. Deseja finalizar?`,
+        confirmLabel: "Finalizar vinculação",
+        cancelLabel: "Revisar",
       });
-      toast.success(
-        isPaid
-          ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
-          : isInstallment
-            ? `Parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} quitada e ${targetItems.length} lançamento(s) conciliado(s)`
-            : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
-      );
+      if (!confirmed) return;
+
+      const { data: reconciliationResult, error } = await supabase.rpc("reconcile_bank_item_with_expenses", {
+        _reconciliation_item_id: dbItemId,
+        _allocations: allocations,
+        _user_id: user?.id || null,
+      } as any);
+      if (error) throw error;
+
+      const matchedMovId = (reconciliationResult as any)?.matched_movimentacao_id as string | undefined;
+      const movementDetails = matchedMovId ? await fetchMovDetails([matchedMovId]) : new Map();
+      const movement = matchedMovId ? movementDetails.get(matchedMovId) : null;
+      setItems((prev) => prev.map((item) => item.id === targetItems[0].id ? {
+        ...item,
+        status: "conciliado" as const,
+        matchedMovId: matchedMovId || item.matchedMovId,
+        matchedMovDesc: movement?.descricao ?? item.matchedMovDesc,
+        matchedMovDate: movement?.data_movimentacao ?? item.matchedMovDate,
+        matchedMovValor: movement?.valor ?? item.matchedMovValor,
+        matchedMovOrigem: movement?.origem ?? item.matchedMovOrigem,
+      } : item));
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(targetItems[0].id); return next; });
+      toast.success(`Débito conciliado e rateado em ${allocations.length} conta(s).`);
       setLinkAccountDialogOpen(false);
       setLinkSelectedAccount(null);
+      setLinkSelectedAccounts([]);
+      setLinkAllocations({});
       setLinkTargetItemIds([]);
       setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
@@ -1576,7 +1453,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount, findCreatedMovId]);
+  }, [linkSelectedAccounts, linkAllocations, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
 
   const totals = useMemo(() => {
     const total = items.length;
@@ -1682,7 +1559,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }, { data: pendingReceivables2 }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }, { data: linkedMovements2 }, { data: pendingReceivables2 }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
@@ -1696,23 +1573,36 @@ export function BankReconciliation() {
         supabase
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
-
-          .eq("status", "pendente"),
-        // Movimentações já vinculadas a outras conciliações
+          .in("status", ["pendente", "atrasado"]),
         supabase
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id")
           .not("matched_movimentacao_id", "is", null),
+        supabase
+          .from("bank_reconciliation_item_links")
+          .select("movimentacao_id"),
         supabase
           .from("contas_receber")
           .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(full_name, razao_social))")
           .in("status", ["aberto", "atrasado"]),
       ]);
 
-      const alreadyMatchedIds2 = new Set(
-        (alreadyMatched2 || []).map((r: any) => r.matched_movimentacao_id).filter(Boolean)
-      );
+      const alreadyMatchedIds2 = new Set([
+        ...(alreadyMatched2 || []).map((r: any) => r.matched_movimentacao_id),
+        ...(linkedMovements2 || []).map((r: any) => r.movimentacao_id),
+      ].filter(Boolean));
       const movs = ((existingMovs || []) as MatchCandidate[]).filter((m) => !alreadyMatchedIds2.has(m.id));
+      const linkedPayableExpenseIds = new Set<string>();
+      const paymentCandidates = ((pendingExpenses2 || []) as any[]).map((e) => e.id).filter(Boolean);
+      if (paymentCandidates.length > 0) {
+        const { data: paymentsForMatching } = await supabase
+          .from("expense_payments")
+          .select("expense_id, valor")
+          .in("expense_id", paymentCandidates);
+        for (const payment of (paymentsForMatching || []) as any[]) {
+          if (Number(payment.valor) > 0) linkedPayableExpenseIds.add(payment.expense_id);
+        }
+      }
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
@@ -1731,6 +1621,12 @@ export function BankReconciliation() {
       for (const inst of instRows2) {
         const exp = expRows2.find((e: any) => e.id === inst.expense_id) || parentMap2.get(inst.expense_id) || null;
         if (exp?.deleted_at) continue;
+        const installmentPaid = await supabase
+          .from("expense_payments")
+          .select("valor")
+          .eq("installment_id", inst.id);
+        const paidAmount = ((installmentPaid.data || []) as any[]).reduce((sum, payment) => sum + (Number(payment.valor) || 0), 0);
+        if (Number(inst.valor) - paidAmount <= 0.005) continue;
 
         payables.push({
           id: `inst_${inst.id}`,
@@ -1746,7 +1642,9 @@ export function BankReconciliation() {
       }
       for (const exp of expRows2) {
         if (expWithInst2.has(exp.id)) continue;
+        if (linkedPayableExpenseIds.has(exp.id)) continue;
         const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
+        if (saldo <= 0.005) continue;
         payables.push({
           id: `exp_${exp.id}`,
           expenseId: exp.id,
@@ -1802,13 +1700,17 @@ export function BankReconciliation() {
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // E também em contas a pagar pendentes — valor idêntico + data referência ±5 dias ou só valor
-          let pCandidates = payables.filter(
-            (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5
-          );
-          if (pCandidates.length === 0) {
+          // A movimentação de pagamento é a fonte principal. Só oferece a conta
+          // em aberto quando ainda existe saldo e não há movimento equivalente;
+          // assim a mesma despesa não aparece como "paga" e "a pagar" ao mesmo tempo.
+          let pCandidates = matchedMov
+            ? []
+            : payables.filter(
+                (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5,
+              );
+          if (!matchedMov && pCandidates.length === 0) {
             pCandidates = payables.filter(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01
+              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01,
             );
           }
           const pExact = pCandidates.find((p) => p.referenceDate === txDate);
@@ -3174,18 +3076,21 @@ export function BankReconciliation() {
       />
 
       {/* Link to existing account dialog */}
-      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
+      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkAllocations({}); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-base">Vincular lançamento(s) a uma conta</DialogTitle>
+            <DialogTitle className="text-base">Vincular lançamento(s) a contas</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
               <p className="font-medium">{linkTargetItemIds.length} lançamento(s) selecionado(s)</p>
               <p className="text-muted-foreground">
-                Total: <span className="font-mono font-semibold">
+                Total do extrato: <span className="font-mono font-semibold">
                   {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
                 </span>
+              </p>
+              <p className="text-muted-foreground">
+                Rateado: <span className="font-mono font-semibold">{formatCurrency(Object.values(linkAllocations).reduce((sum, value) => sum + (Number(value) || 0), 0))}</span>
               </p>
             </div>
 
@@ -3218,7 +3123,7 @@ export function BankReconciliation() {
               )}
               {linkSearchResults.map((acc) => {
                 const saldo = Number(acc.valor_total || 0) - Number(acc.valor_pago || 0);
-                const isSelected = linkSelectedAccount?.id === acc.id;
+                const isSelected = linkSelectedAccounts.some((selected) => selected.id === acc.id);
                 const statusLabel: Record<string, { label: string; cls: string }> = {
                   pago: { label: "Pago", cls: "border-green-500 text-green-600" },
                   parcial: { label: "Parcial", cls: "border-amber-500 text-amber-600" },
@@ -3226,53 +3131,67 @@ export function BankReconciliation() {
                   atrasado: { label: "Atrasado", cls: "border-red-500 text-red-600" },
                 };
                 const st = statusLabel[acc.status] || { label: acc.status, cls: "" };
+                const toggleAccount = () => {
+                  setLinkSelectedAccounts((current) => {
+                    const exists = current.some((selected) => selected.id === acc.id);
+                    const next = exists ? current.filter((selected) => selected.id !== acc.id) : [...current, acc];
+                    setLinkSelectedAccount(next[0] || null);
+                    setLinkAllocations((allocations) => {
+                      const updated = { ...allocations };
+                      if (exists) delete updated[acc.id];
+                      else updated[acc.id] = String(Math.min(Math.max(saldo, 0), 0));
+                      return updated;
+                    });
+                    return next;
+                  });
+                };
                 return (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => setLinkSelectedAccount(acc)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 hover:bg-accent/50 transition-colors flex items-start gap-2",
-                      isSelected && "bg-accent"
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-medium truncate">{acc.descricao}</span>
-                        <Badge variant="outline" className={cn("text-[10px]", st.cls)}>{st.label}</Badge>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
-                        {acc.documento_fiscal_numero && <> · NF: <span className="font-mono">{acc.documento_fiscal_numero}</span></>}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
-                        {" · "}Pago: <span className="font-mono">{formatCurrency(Number(acc.valor_pago || 0))}</span>
-                        {acc.status !== "pago" && (
-                          <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>
-                        )}
-                      </p>
+                  <div key={acc.id} className={cn("px-3 py-2 hover:bg-accent/50 transition-colors", isSelected && "bg-accent")}>
+                    <div className="flex items-start gap-2">
+                      <Checkbox checked={isSelected} onCheckedChange={toggleAccount} className="mt-0.5" />
+                      <button type="button" onClick={toggleAccount} className="min-w-0 flex-1 text-left">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-medium truncate">{acc.descricao}</span>
+                          <Badge variant="outline" className={cn("text-[10px]", st.cls)}>{st.label}</Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
+                          {acc.documento_fiscal_numero && <> · NF: <span className="font-mono">{acc.documento_fiscal_numero}</span></>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
+                          {" · "}Pago: <span className="font-mono">{formatCurrency(Number(acc.valor_pago || 0))}</span>
+                          {acc.status !== "pago" && <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>}
+                        </p>
+                      </button>
+                      {isSelected && (
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={linkAllocations[acc.id] || ""}
+                          onChange={(event) => setLinkAllocations((current) => ({ ...current, [acc.id]: event.target.value }))}
+                          className="h-7 w-28 text-right text-xs"
+                          aria-label={`Valor para ${acc.descricao}`}
+                        />
+                      )}
                     </div>
-                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                  </button>
+                  </div>
                 );
               })}
             </div>
 
-            {linkSelectedAccount && linkSelectedAccount.status !== "pago" && (
-              <p className="text-[11px] text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
-                Esta conta ainda não foi quitada. Ao confirmar, será registrado um pagamento de{" "}
-                <span className="font-mono font-semibold">
-                  {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
-                </span>{" "}para esta conta.
+            {linkSelectedAccounts.length > 0 && (
+              <p className="text-[11px] text-muted-foreground bg-muted/30 border border-border rounded px-2 py-1.5">
+                Revise os valores rateados. A soma precisa ser igual ao débito do extrato; contas já quitadas não são exibidas para nova vinculação.
               </p>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setLinkAccountDialogOpen(false)} disabled={linkSubmitting}>Cancelar</Button>
-            <Button size="sm" onClick={handleLinkConfirm} disabled={!linkSelectedAccount || linkSubmitting}>
+            <Button size="sm" onClick={handleLinkConfirm} disabled={linkSelectedAccounts.length === 0 || linkSubmitting}>
               {linkSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Link2 className="h-3.5 w-3.5 mr-1" />}
-              Vincular
+              Finalizar vinculação
             </Button>
           </DialogFooter>
         </DialogContent>
