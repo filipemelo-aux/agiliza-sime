@@ -1416,11 +1416,14 @@ export function BankReconciliation() {
         for (const m of ((movData as any[]) || [])) movsByPaymentId.set(m.origem_id, m);
         const movIds = ((movData as any[]) || []).map((m) => m.id);
         if (movIds.length > 0) {
-          const { data: linkData } = await supabase
-            .from("bank_reconciliation_item_links")
-            .select("movimentacao_id")
-            .in("movimentacao_id", movIds);
+          const [{ data: linkData }, { data: principalData }] = await Promise.all([
+            supabase.from("bank_reconciliation_item_links").select("movimentacao_id").in("movimentacao_id", movIds),
+            supabase.from("bank_reconciliation_items").select("matched_movimentacao_id").in("matched_movimentacao_id", movIds),
+          ]);
           for (const l of ((linkData as any[]) || [])) linkedMovIds.add(l.movimentacao_id);
+          for (const i of ((principalData as any[]) || [])) {
+            if (i.matched_movimentacao_id) linkedMovIds.add(i.matched_movimentacao_id);
+          }
         }
       }
 
