@@ -1475,7 +1475,7 @@ export function BankReconciliation() {
 
       const confirmed = await confirm({
         title: "Confirmar vinculação",
-        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s), quitando o saldo de cada uma. Deseja finalizar?`,
+        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s). Contas em aberto serão quitadas pelo saldo; contas já pagas serão apenas conciliadas (sem novo pagamento). Deseja finalizar?`,
         confirmLabel: "Finalizar vinculação",
         cancelLabel: "Revisar",
       });
