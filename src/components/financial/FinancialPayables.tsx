@@ -1152,6 +1152,36 @@ export function FinancialPayables() {
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
     },
+    {
+      key: "parcial",
+      header: "Pagto. Parcial",
+      width: "150px",
+      align: "right",
+      sortValue: (r) => {
+        if (r.inst) return 0;
+        const paid = Number(r.item.valor_pago) || 0;
+        const total = Number(r.item.valor_total) || 0;
+        return paid > 0 && paid < total ? total - paid : 0;
+      },
+      cell: (r) => {
+        // Parcelas individuais são binárias (paga/aberta) — sem quitação parcial.
+        if (r.inst) return <span className="text-muted-foreground">—</span>;
+        const paid = Number(r.item.valor_pago) || 0;
+        const total = Number(r.item.valor_total) || 0;
+        const remaining = total - paid;
+        if (paid > 0 && remaining > 0 && paid < total) {
+          return (
+            <span className="inline-flex flex-col items-end leading-tight">
+              <span className="text-[10px] text-muted-foreground font-mono">Pago {formatCurrency(paid)}</span>
+              <span className="text-[11px] font-mono font-semibold text-amber-600 dark:text-amber-400">
+                Saldo {formatCurrency(remaining)}
+              </span>
+            </span>
+          );
+        }
+        return <span className="text-muted-foreground">—</span>;
+      },
+    },
   ], [profilesMap]);
 
 
