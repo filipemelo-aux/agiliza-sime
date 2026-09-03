@@ -178,7 +178,6 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   const columns: DataGridColumn<CheckRow>[] = [
     { key: "numero", header: "Cheque", width: "100px", cell: (row) => <span className="font-mono text-xs font-medium">{row.numero_cheque || "Sem número"}</span>, sortValue: (row) => row.numero_cheque || "" },
     { key: "data", header: "Emissão", width: "100px", cell: (row) => <span className="whitespace-nowrap text-xs">{formatDateBR(row.data_emissao)}</span>, sortValue: (row) => row.data_emissao },
-    { key: "data", header: "Emissão", width: "100px", cell: (row) => <span className="whitespace-nowrap text-xs">{formatDateBR(row.data_emissao)}</span>, sortValue: (row) => row.data_emissao },
     { key: "bomPara", header: "Bom para", width: "110px", cell: (row) => (row.predatado && row.data_vencimento ? <span className="whitespace-nowrap text-xs font-medium text-warning">{formatDateBR(row.data_vencimento)}</span> : <span className="text-[10px] text-muted-foreground">À vista</span>), sortValue: (row) => (row.predatado ? row.data_vencimento || "" : "") },
     { key: "favorecido", header: "Favorecido / Origem", cell: (row) => <div className="min-w-0"><div className="truncate text-xs font-medium" title={row.favorecido_nome}>{row.favorecido_nome || "—"}</div><div className="truncate text-[10px] text-muted-foreground" title={row.historico || ""}>{row.historico || "Sem descrição"}</div></div>, sortValue: (row) => row.favorecido_nome },
     { key: "tipo", header: "Vínculo", width: "130px", cell: (row) => <span className="text-xs">{typeLabel[row.vinculo_tipo] || row.vinculo_tipo}</span>, sortValue: (row) => typeLabel[row.vinculo_tipo] || row.vinculo_tipo },
@@ -212,7 +211,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <EmpresaFilter value={empresa} onChange={setEmpresa} />
         <span className="hidden items-center gap-1 text-[10px] text-muted-foreground xl:inline-flex"><CalendarDays className="h-3 w-3" /> Ordenado por emissão</span>
       </GlobalToolbar>
-      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={900} />
+      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={1120} />
       <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { setDialogOpen(false); void load(); }} />
     </div>
   );
