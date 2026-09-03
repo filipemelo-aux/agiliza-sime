@@ -1390,209 +1390,56 @@ export function BankReconciliation() {
   }, [linkSearchText, linkAccountDialogOpen, linkTargetItemIds, items]);
 
   const handleLinkConfirm = useCallback(async () => {
-    if (!linkSelectedAccount || !reconciliationId || linkTargetItemIds.length === 0) return;
+    if (linkSelectedAccounts.length === 0 || !reconciliationId || linkTargetItemIds.length === 0) return;
     setLinkSubmitting(true);
     try {
       const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
-      const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
-      const minDate = targetItems.map((i) => i.date).sort()[0];
+      const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
+      const allocations = linkSelectedAccounts.map((account) => ({
+        expense_id: account.expense_id || account.id,
+        installment_id: account.installment_id || null,
+        amount: +(Number(linkAllocations[account.id]) || 0).toFixed(2),
+      })).filter((allocation) => allocation.amount > 0);
+      const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
 
-      const isReceivable = !!linkSelectedAccount.is_receivable;
-
-      if (isReceivable) {
-        const contaReceberId = linkSelectedAccount.conta_receber_id;
-        const valorTotalConta = Number(linkSelectedAccount.valor_total || 0);
-        const jaRecebido = Number(linkSelectedAccount.valor_pago || 0);
-        const saldo = Math.max(0, valorTotalConta - jaRecebido);
-        // Sempre registra o valor real do extrato (não o valor do título),
-        // para que fatura, recebimento e fluxo de caixa fiquem idênticos.
-        const valorPag = +totalSel.toFixed(2);
-        const dif = +(valorPag - saldo).toFixed(2);
-        if (linkSelectedAccount.status !== "pago" && valorPag > 0) {
-          const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
-            conta_receber_id: contaReceberId,
-            valor: valorPag,
-            forma_recebimento: "transferencia",
-            data_recebimento: minDate,
-            observacoes:
-              `Recebimento via conciliação bancária (${targetItems.length} lançamento(s) OFX)` +
-              (dif !== 0 ? ` — ${dif > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(dif))} em relação ao título` : ""),
-            created_by: user?.id,
-          });
-          if (rpErr) throw rpErr;
-        }
-
-        const linkedMap = new Map<string, string | null>();
-        for (const it of targetItems) {
-          const movIdToLink = await findCreatedMovId({
-            amount: Math.abs(it.amount),
-            tipo: it.tipo,
-            referenceDate: it.date,
-          });
-          // Sem movimentação localizada não há o que conciliar: nunca marcar
-          // como "conciliado" com matched_movimentacao_id nulo.
-          if (!movIdToLink) {
-            throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. A conciliação foi interrompida.`);
-          }
-          linkedMap.set(it.id, movIdToLink);
-          const updateFilter = it.dbItemId
-            ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
-            : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-          const { error: linkUpdateError } = await updateFilter;
-          if (linkUpdateError) throw linkUpdateError;
-        }
-        const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
-        setItems((prev) =>
-          prev.map((i) => {
-            if (!linkTargetItemIds.includes(i.id)) return i;
-            const mid = linkedMap.get(i.id) || null;
-            const d = mid ? movDetails.get(mid) : null;
-            return {
-              ...i,
-              status: "conciliado" as const,
-              matchedMovId: mid,
-              matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
-              matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
-              matchedMovValor: d?.valor ?? i.matchedMovValor,
-              matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
-            };
-          })
-        );
-
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          linkTargetItemIds.forEach((id) => next.delete(id));
-          return next;
-        });
-        toast.success(
-          linkSelectedAccount.status === "pago"
-            ? `${targetItems.length} lançamento(s) vinculado(s) à conta recebida`
-            : `Recebimento registrado e ${targetItems.length} lançamento(s) conciliado(s)`
-        );
-        setLinkAccountDialogOpen(false);
-        setLinkSelectedAccount(null);
-        setLinkTargetItemIds([]);
-        setTimeout(updateReconciliationCount, 500);
-        return;
+      if (targetItems.length !== 1 || targetItems[0]?.tipo !== "saida") {
+        throw new Error("A vinculação múltipla exige exatamente um débito do extrato.");
       }
-
-      const isInstallment = !!linkSelectedAccount.is_installment;
-      const expenseId = isInstallment ? linkSelectedAccount.expense_id : linkSelectedAccount.id;
-      const isPaid = linkSelectedAccount.status === "pago";
-
-      // If account/parcela is not fully paid yet, register a payment for the sum
-      if (!isPaid) {
-        const { error: payInsErr } = await supabase.from("expense_payments" as any).insert({
-          expense_id: expenseId,
-          valor: totalSel,
-          forma_pagamento: "transferencia",
-          data_pagamento: minDate,
-          observacoes: isInstallment
-            ? `Quitação parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} via conciliação bancária (${targetItems.length} lançamento(s) OFX)`
-            : `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
-          created_by: user?.id,
-          juros: 0,
-          installment_id: isInstallment ? (linkSelectedAccount.installment_id ?? null) : null,
-        } as any);
-        // Sem pagamento gravado não existe movimentação: não marcar como conciliado.
-        if (payInsErr) throw payInsErr;
-
-
-        if (isInstallment) {
-          const { error: installmentError } = await supabase
-            .from("expense_installments")
-            .update({ status: "pago" } as any)
-            .eq("id", linkSelectedAccount.installment_id);
-          if (installmentError) throw installmentError;
-
-          const { data: allInst } = await supabase
-            .from("expense_installments")
-            .select("valor, status")
-            .eq("expense_id", expenseId);
-
-          const totalPagoNow = ((allInst as any) || [])
-            .filter((i: any) => i.status === "pago")
-            .reduce((s: number, i: any) => s + Number(i.valor), 0);
-          const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
-
-          const { error: expenseUpdateError } = await supabase.from("expenses").update({
-            valor_pago: totalPagoNow,
-            status: allPaid ? "pago" : "parcial",
-            forma_pagamento: "transferencia",
-            data_pagamento: minDate,
-          } as any).eq("id", expenseId);
-          if (expenseUpdateError) throw expenseUpdateError;
-        } else {
-          const { data: expData, error: expenseReadError } = await supabase
-            .from("expenses")
-            .select("valor_total, valor_pago")
-            .eq("id", expenseId)
-            .single();
-          if (expenseReadError) throw expenseReadError;
-          const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
-          const valorTotal = Number(expData?.valor_total || 0);
-          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-          const { error: expenseUpdateError } = await supabase.from("expenses").update({
-            valor_pago: novoValorPago,
-            status: novoStatus,
-            forma_pagamento: "transferencia",
-            data_pagamento: minDate,
-          } as any).eq("id", expenseId);
-          if (expenseUpdateError) throw expenseUpdateError;
-        }
+      if (Math.abs(allocatedTotal - targetTotal) > 0.005) {
+        throw new Error(`O rateio deve totalizar ${formatCurrency(targetTotal)}.`);
       }
+      if (allocations.length === 0) throw new Error("Informe valores positivos para as contas selecionadas.");
 
-      const linkedMap = new Map<string, string | null>();
-      for (const it of targetItems) {
-        const movIdToLink = await findCreatedMovId({
-          expenseId: expenseId,
-          amount: Math.abs(it.amount),
-          tipo: it.tipo,
-          referenceDate: it.date,
-        });
-        if (!movIdToLink) {
-          throw new Error(`Não foi possível localizar a movimentação de ${formatCurrency(Math.abs(it.amount))}. O lançamento continuará pendente.`);
-        }
-        linkedMap.set(it.id, movIdToLink);
-        const updateFilter = it.dbItemId
-          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
-          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-        const { error: linkUpdateError } = await updateFilter;
-        if (linkUpdateError) throw linkUpdateError;
-      }
+      const dbItemId = targetItems[0].dbItemId;
+      if (!dbItemId) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
 
-      const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
-      setItems((prev) =>
-        prev.map((i) => {
-          if (!linkTargetItemIds.includes(i.id)) return i;
-          const mid = linkedMap.get(i.id) || null;
-          const d = mid ? movDetails.get(mid) : null;
-          return {
-            ...i,
-            status: "conciliado" as const,
-            matchedMovId: mid,
-            matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
-            matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
-            matchedMovValor: d?.valor ?? i.matchedMovValor,
-            matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
-          };
-        })
-      );
-
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        linkTargetItemIds.forEach((id) => next.delete(id));
-        return next;
+      const confirmed = await confirm({
+        title: "Confirmar vinculação múltipla",
+        description: `O débito de ${formatCurrency(targetTotal)} será rateado entre ${allocations.length} conta(s), com quitação dos saldos informados. Deseja finalizar?`,
+        confirmLabel: "Finalizar vinculação",
+        cancelLabel: "Revisar",
       });
-      toast.success(
-        isPaid
-          ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
-          : isInstallment
-            ? `Parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} quitada e ${targetItems.length} lançamento(s) conciliado(s)`
-            : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
-      );
+      if (!confirmed) return;
+
+      const { error } = await supabase.rpc("reconcile_bank_item_with_expenses", {
+        _reconciliation_item_id: dbItemId,
+        _allocations: allocations,
+        _user_id: user?.id || null,
+      } as any);
+      if (error) throw error;
+
+      const fresh = await fetchLinkedMovDetails(null);
+      setItems((prev) => prev.map((item) => item.id === targetItems[0].id ? {
+        ...item,
+        status: "conciliado" as const,
+        matchedMovId: fresh?.matchedMovId || item.matchedMovId,
+      } : item));
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(targetItems[0].id); return next; });
+      toast.success(`Débito conciliado e rateado em ${allocations.length} conta(s).`);
       setLinkAccountDialogOpen(false);
       setLinkSelectedAccount(null);
+      setLinkSelectedAccounts([]);
+      setLinkAllocations({});
       setLinkTargetItemIds([]);
       setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
@@ -1600,7 +1447,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount, findCreatedMovId]);
+  }, [linkSelectedAccounts, linkAllocations, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchLinkedMovDetails]);
 
   const totals = useMemo(() => {
     const total = items.length;
