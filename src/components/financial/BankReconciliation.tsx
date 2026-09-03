@@ -373,7 +373,7 @@ export function BankReconciliation() {
         supabase
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
-          .in("status", ["pendente", "atrasado"]),
+          .in("status", ["pendente", "atrasado", "parcial"]),
         supabase
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id, reconciliation_id")
@@ -484,14 +484,29 @@ export function BankReconciliation() {
           .in("id", parentIds);
         (parents || []).forEach((p: any) => parentMap.set(p.id, p));
       }
+      // Saldo real de cada parcela (descontando pagamentos parciais já feitos),
+      // para que parcelas parciais sejam tratadas igual às demais contas.
+      const paidByInstMatch = new Map<string, number>();
+      if (instRows.length > 0) {
+        const { data: instPayments } = await supabase
+          .from("expense_payments")
+          .select("installment_id, valor")
+          .in("installment_id", instRows.map((i: any) => i.id));
+        (instPayments || []).forEach((p: any) => {
+          if (!p.installment_id) return;
+          paidByInstMatch.set(p.installment_id, (paidByInstMatch.get(p.installment_id) || 0) + (Number(p.valor) || 0));
+        });
+      }
       const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows) {
         const exp = expRows.find((e: any) => e.id === inst.expense_id) || parentMap.get(inst.expense_id) || null;
         if (exp?.deleted_at) continue;
+        const saldoInst = Number(inst.valor) - (paidByInstMatch.get(inst.id) || 0);
+        if (saldoInst <= 0.005) continue;
         payables.push({
           id: `inst_${inst.id}`,
           expenseId: inst.expense_id,
-          amount: Number(inst.valor),
+          amount: saldoInst,
           description: exp?.descricao ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
           fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
