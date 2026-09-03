@@ -55,7 +55,6 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
     setDate(getLocalDateISO());
     setLinkType("conta_pagar");
     setExpenseIds([]);
-    setAccountId("");
     setValue("");
     setBeneficiary("");
     setHistory("");
