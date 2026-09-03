@@ -873,7 +873,7 @@ export function FinancialPaid() {
         isSelectable={(r) => r.source === "expense_payment" || r.source === "group"}
         rowClassName={() => rowToneClass("resolved")}
         loading={loading}
-        minWidth={1060}
+        minWidth={960}
         emptyMessage="Nenhuma conta paga encontrada."
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
