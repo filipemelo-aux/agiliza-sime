@@ -1068,6 +1068,17 @@ export function FinancialPayables() {
 
   const payableColumns: DataGridColumn<PayableRow>[] = useMemo(() => [
     {
+      key: "vencimento",
+      header: "Vencimento",
+      width: "86px",
+      sortValue: (r) => r.vencimento,
+      cell: (r) => (
+        <span className={`whitespace-nowrap ${r.isOverdue ? "text-destructive font-medium" : ""}`}>
+          {r.vencimento ? formatDateBR(r.vencimento) : "—"}
+        </span>
+      ),
+    },
+    {
       key: "empresa",
       header: "Emp.",
       width: "52px",
@@ -1084,7 +1095,7 @@ export function FinancialPayables() {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
         return (
           <span className="block min-w-0">
-            <span className="block truncate font-medium text-foreground" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
+            <span className="block truncate whitespace-nowrap font-medium text-foreground" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
             {creator && (
               <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}
@@ -1119,17 +1130,6 @@ export function FinancialPayables() {
       width: "200px",
       sortValue: (r) => r.chartLabel,
       cell: (r) => <span className="truncate block text-[11px]">{r.chartLabel}</span>,
-    },
-    {
-      key: "vencimento",
-      header: "Vencimento",
-      width: "110px",
-      sortValue: (r) => r.vencimento,
-      cell: (r) => (
-        <span className={r.isOverdue ? "text-destructive font-medium" : ""}>
-          {r.vencimento ? formatDateBR(r.vencimento) : "—"}
-        </span>
-      ),
     },
     {
       key: "status",
