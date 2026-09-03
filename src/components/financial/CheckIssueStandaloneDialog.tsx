@@ -9,14 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { EmpresaSelect } from "./EmpresaControls";
 import { CheckIssueDialog } from "./CheckIssueDialog";
-import { formatCurrency, unmaskCurrency } from "@/lib/masks";
+import { PayablePickerDialog, type PayableOption } from "./PayablePickerDialog";
+import { formatCurrency, unmaskCurrency, formatDateBR } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { toast } from "sonner";
-import { Plus, WalletCards } from "lucide-react";
+import { Link2, Plus, Search, WalletCards, X } from "lucide-react";
 
 type LinkType = "conta_pagar" | "movimentacao";
 
-interface ExpenseOption {
+type ExpenseOption = PayableOption;
+
+interface _ExpenseOption {
   id: string;
   descricao: string;
   valor_total: number;
