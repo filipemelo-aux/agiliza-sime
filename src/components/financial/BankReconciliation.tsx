@@ -400,11 +400,10 @@ export function BankReconciliation() {
       // Exclude movements already linked to ANY reconciliation item (including
       // items inside the current reconciliation), so a single paid/reconciled
       // entry is never suggested as a close-date match for a different OFX line.
-      const alreadyMatchedIds = new Set(
-        (alreadyMatched || [])
-          .map((r: any) => r.matched_movimentacao_id)
-          .filter(Boolean)
-      );
+      const alreadyMatchedIds = new Set([
+        ...(alreadyMatched || []).map((r: any) => r.matched_movimentacao_id),
+        ...(linkedMovements || []).map((r: any) => r.movimentacao_id),
+      ].filter(Boolean));
       const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
 
       // Fetch favorecido/conta for movements linked to expenses (for reconciled items display)
