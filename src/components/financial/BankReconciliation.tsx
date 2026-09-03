@@ -1092,7 +1092,6 @@ export function BankReconciliation() {
     setLinkSearchResults([]);
     setLinkSelectedAccount(null);
     setLinkSelectedAccounts([]);
-    setLinkAllocations({});
     setLinkAccountDialogOpen(true);
   }, []);
 
@@ -3082,7 +3081,7 @@ export function BankReconciliation() {
       />
 
       {/* Link to existing account dialog */}
-      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkAllocations({}); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
+      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkSelectedAccounts([]); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-base">Vincular lançamento(s) a contas</DialogTitle>
@@ -3095,10 +3094,29 @@ export function BankReconciliation() {
                   {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
                 </span>
               </p>
-              <p className="text-muted-foreground">
-                Rateado: <span className="font-mono font-semibold">{formatCurrency(Object.values(linkAllocations).reduce((sum, value) => sum + (Number(value) || 0), 0))}</span>
-              </p>
+              {linkSelectedAccounts.length > 0 && (
+                <p className="text-muted-foreground">
+                  Selecionado ({linkSelectedAccounts.length} conta(s)): <span className="font-mono font-semibold">{formatCurrency(linkSelectedTotal)}</span>
+                </p>
+              )}
             </div>
+
+            {linkSelectedAccounts.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {linkSelectedAccounts.map((acc) => (
+                  <Badge
+                    key={acc.id}
+                    variant="secondary"
+                    className="text-[10px] gap-1 cursor-pointer"
+                    title="Clique para remover"
+                    onClick={() => setLinkSelectedAccounts((current) => current.filter((s) => s.id !== acc.id))}
+                  >
+                    {acc.descricao} · <span className="font-mono">{formatCurrency(Math.max(Number(acc.valor_total || 0) - Number(acc.valor_pago || 0), 0))}</span>
+                    <span aria-hidden>×</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
