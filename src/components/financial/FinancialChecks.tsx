@@ -181,23 +181,17 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     { key: "bomPara", header: "Bom para", width: "110px", cell: (row) => (row.predatado && row.data_vencimento ? <span className="whitespace-nowrap text-xs font-medium text-warning">{formatDateBR(row.data_vencimento)}</span> : <span className="text-[10px] text-muted-foreground">À vista</span>), sortValue: (row) => (row.predatado ? row.data_vencimento || "" : "") },
     { key: "favorecido", header: "Favorecido / Origem", cell: (row) => <div className="min-w-0"><div className="truncate text-xs font-medium" title={row.favorecido_nome}>{row.favorecido_nome || "—"}</div><div className="truncate text-[10px] text-muted-foreground" title={row.historico || ""}>{row.historico || "Sem descrição"}</div></div>, sortValue: (row) => row.favorecido_nome },
     { key: "tipo", header: "Vínculo", width: "130px", cell: (row) => <span className="text-xs">{typeLabel[row.vinculo_tipo] || row.vinculo_tipo}</span>, sortValue: (row) => typeLabel[row.vinculo_tipo] || row.vinculo_tipo },
-    { key: "conciliacao", header: "Conta a pagar / Conciliação", width: "185px", cell: (row) => {
-      const info = links[row.id];
-      if (!info || !info.expenseIds.length) return <span className="text-[10px] text-muted-foreground">Sem conta vinculada</span>;
-      return (
-        <div className="flex flex-wrap items-center gap-1">
-          <Badge variant={info.pago ? "default" : info.parcial ? "secondary" : "outline"} className="text-[10px]">
-            {info.expenseIds.length > 1 ? `${info.expenseIds.length} contas · ` : ""}{info.pago ? "Pago" : info.parcial ? "Parcial" : "Em aberto"}
-          </Badge>
-          <Badge variant={info.conciliado ? "default" : "outline"} className="text-[10px]">
-            {info.conciliado ? "Conciliado" : "Não conciliado"}
-          </Badge>
-        </div>
-      );
-    } },
     { key: "empresa", header: "Empresa", width: "90px", cell: (row) => <EmpresaBadge empresaId={row.empresa_id} /> },
     { key: "valor", header: "Valor", width: "110px", align: "right", cell: (row) => <span className="font-mono text-xs font-medium">{formatCurrency(Number(row.valor))}</span>, sortValue: (row) => Number(row.valor) },
   ];
+
+  const chequeRowTone = (row: CheckRow): RowTone => {
+    if (row.status === "cancelado") return "overdue";
+    const info = links[row.id];
+    if (!info || !info.expenseIds.length) return "neutral";
+    if (info.conciliado) return "resolved";
+    return "pending";
+  };
 
 
   return (
