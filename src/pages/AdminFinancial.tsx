@@ -11,6 +11,7 @@ import { FinancialPaid } from "@/components/financial/FinancialPaid";
 import { BankReconciliation } from "@/components/financial/BankReconciliation";
 import { CreditCardInvoices } from "@/components/financial/CreditCardInvoices";
 import { FinancialReports } from "@/components/financial/FinancialReports";
+import { FinancialChecks } from "@/components/financial/FinancialChecks";
 
 export default function AdminFinancial({ section = "payables" }: { section?: string }) {
   return (
