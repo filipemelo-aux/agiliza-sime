@@ -1103,6 +1103,7 @@ export function BankReconciliation() {
     const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
     const allEntradas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "entrada");
     const allSaidas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "saida");
+    const targetTotal = targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0);
 
     // Para entradas: permite busca sem texto (carrega recebíveis em aberto compatíveis com o valor)
     // Para saídas: exige ao menos 2 caracteres
