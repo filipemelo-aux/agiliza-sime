@@ -958,15 +958,25 @@ export function BankReconciliation() {
       Math.abs(new Date(a.data_movimentacao).getTime() - new Date(referenceDate).getTime()) -
       Math.abs(new Date(b.data_movimentacao).getTime() - new Date(referenceDate).getTime())
     );
-    // Verifica se já está vinculado a outro item
+    // Uma movimentação só pode ser usada uma vez: considera vínculo principal
+    // e também os vínculos auxiliares de uma conciliação múltipla.
     const ids = cand.map((c: any) => c.id);
-    const { data: used } = await supabase
-      .from("bank_reconciliation_items")
-      .select("matched_movimentacao_id")
-      .in("matched_movimentacao_id", ids);
-    const usedSet = new Set((used || []).map((u: any) => u.matched_movimentacao_id));
+    const [{ data: used }, { data: usedByLinks }] = await Promise.all([
+      supabase
+        .from("bank_reconciliation_items")
+        .select("matched_movimentacao_id")
+        .in("matched_movimentacao_id", ids),
+      supabase
+        .from("bank_reconciliation_item_links")
+        .select("movimentacao_id")
+        .in("movimentacao_id", ids),
+    ]);
+    const usedSet = new Set([
+      ...((used || []) as any[]).map((u) => u.matched_movimentacao_id),
+      ...((usedByLinks || []) as any[]).map((u) => u.movimentacao_id),
+    ].filter(Boolean));
     const free = cand.find((c: any) => !usedSet.has(c.id));
-    return free?.id || cand[0].id;
+    return free?.id || null;
   }, []);
 
   const handleBatchConciliate = useCallback(async () => {
@@ -1472,6 +1482,7 @@ export function BankReconciliation() {
                   documento_fiscal_numero: exp.documento_fiscal_numero,
                   valor_total: parcialPago,
                   valor_pago: parcialPago,
+                  unlinked_paid_amount: parcialPago,
                   ja_paga: true,
                   is_parcial_pago: true,
                   status: "pago",
@@ -1491,7 +1502,8 @@ export function BankReconciliation() {
               favorecido_nome: exp.favorecido_nome,
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
-              valor_pago: paidReal,
+              valor_pago: jaPaga ? unlinkedPaidAmount(paymentsByInstallment.get(inst.id)) : paidReal,
+              unlinked_paid_amount: jaPaga ? unlinkedPaidAmount(paymentsByInstallment.get(inst.id)) : 0,
               ja_paga: jaPaga,
               status: jaPaga ? "pago" : paidReal > 0.005 ? "parcial" : exp.status === "atrasado" ? "atrasado" : "pendente",
               data_vencimento: inst.data_vencimento,
@@ -1503,8 +1515,9 @@ export function BankReconciliation() {
           const valorPago = paidReal != null ? paidReal : Number(exp.valor_pago || 0);
           const saldo = Math.max(0, Number(exp.valor_total || 0) - valorPago);
           const jaPaga = saldo <= 0.005 && valorPago > 0;
+          const unlinkedPaid = unlinkedPaidAmount(paymentsByExpense.get(exp.id));
           if (saldo <= 0.005 && !jaPaga) continue;
-          if (jaPaga && !hasUnlinkedPaidMovement(paymentsByExpense.get(exp.id))) continue;
+          if (jaPaga && unlinkedPaid <= 0.005) continue;
           if (!jaPaga) {
             const parcialPago = unlinkedPaidAmount(paymentsByExpense.get(exp.id));
             if (parcialPago > 0.005) {
@@ -1516,6 +1529,7 @@ export function BankReconciliation() {
                 descricao: `${exp.descricao} — pagamento parcial já realizado`,
                 valor_total: parcialPago,
                 valor_pago: parcialPago,
+                unlinked_paid_amount: parcialPago,
                 is_installment: false,
                 ja_paga: true,
                 is_parcial_pago: true,
@@ -1526,7 +1540,8 @@ export function BankReconciliation() {
           results.push({
             ...exp,
             expense_id: exp.id,
-            valor_pago: valorPago,
+            valor_pago: jaPaga ? unlinkedPaid : valorPago,
+            unlinked_paid_amount: jaPaga ? unlinkedPaid : 0,
             is_installment: false,
             ja_paga: jaPaga,
             status: jaPaga ? "pago" : valorPago > 0.005 ? "parcial" : exp.status,
@@ -1560,7 +1575,7 @@ export function BankReconciliation() {
           return {
             expense_id: account.expense_id || account.id,
             installment_id: account.installment_id || null,
-            amount: +Number(account.valor_pago || account.valor_total || 0).toFixed(2),
+            amount: +Number(account.unlinked_paid_amount ?? account.valor_pago ?? account.valor_total ?? 0).toFixed(2),
             apenas_conciliar: true,
           };
         }
