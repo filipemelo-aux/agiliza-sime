@@ -500,6 +500,137 @@ export type Database = {
         }
         Relationships: []
       }
+      cheques: {
+        Row: {
+          banco_nome: string | null
+          cidade: string | null
+          conta_bancaria_id: string | null
+          created_at: string
+          created_by: string | null
+          cruzado: boolean
+          data_emissao: string
+          data_vencimento: string | null
+          empresa_id: string | null
+          expense_id: string | null
+          favorecido_id: string | null
+          favorecido_nome: string
+          freight_contract_id: string | null
+          historico: string | null
+          id: string
+          layout_id: string | null
+          movimentacao_id: string | null
+          numero_cheque: string | null
+          observacoes: string | null
+          predatado: boolean
+          status: string
+          updated_at: string
+          valor: number
+          vinculo_tipo: string
+        }
+        Insert: {
+          banco_nome?: string | null
+          cidade?: string | null
+          conta_bancaria_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          cruzado?: boolean
+          data_emissao?: string
+          data_vencimento?: string | null
+          empresa_id?: string | null
+          expense_id?: string | null
+          favorecido_id?: string | null
+          favorecido_nome?: string
+          freight_contract_id?: string | null
+          historico?: string | null
+          id?: string
+          layout_id?: string | null
+          movimentacao_id?: string | null
+          numero_cheque?: string | null
+          observacoes?: string | null
+          predatado?: boolean
+          status?: string
+          updated_at?: string
+          valor?: number
+          vinculo_tipo?: string
+        }
+        Update: {
+          banco_nome?: string | null
+          cidade?: string | null
+          conta_bancaria_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          cruzado?: boolean
+          data_emissao?: string
+          data_vencimento?: string | null
+          empresa_id?: string | null
+          expense_id?: string | null
+          favorecido_id?: string | null
+          favorecido_nome?: string
+          freight_contract_id?: string | null
+          historico?: string | null
+          id?: string
+          layout_id?: string | null
+          movimentacao_id?: string | null
+          numero_cheque?: string | null
+          observacoes?: string | null
+          predatado?: boolean
+          status?: string
+          updated_at?: string
+          valor?: number
+          vinculo_tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cheques_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_favorecido_id_fkey"
+            columns: ["favorecido_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_freight_contract_id_fkey"
+            columns: ["freight_contract_id"]
+            isOneToOne: false
+            referencedRelation: "freight_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "check_layouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comissoes: {
         Row: {
           colaborador_id: string
