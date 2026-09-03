@@ -1395,27 +1395,31 @@ export function BankReconciliation() {
     try {
       const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
       const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
-      const allocations = linkSelectedAccounts.map((account) => ({
-        expense_id: account.expense_id || account.id,
-        installment_id: account.installment_id || null,
-        amount: +(Number(linkAllocations[account.id]) || 0).toFixed(2),
-      })).filter((allocation) => allocation.amount > 0);
+      // Cada conta selecionada entra com seu saldo em aberto (sem rateio manual)
+      const allocations = linkSelectedAccounts.map((account) => {
+        const saldo = +(Number(account.valor_total || 0) - Number(account.valor_pago || 0)).toFixed(2);
+        return {
+          expense_id: account.expense_id || account.id,
+          installment_id: account.installment_id || null,
+          amount: saldo,
+        };
+      }).filter((allocation) => allocation.amount > 0);
       const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
 
       if (targetItems.length !== 1 || targetItems[0]?.tipo !== "saida") {
         throw new Error("A vinculação múltipla exige exatamente um débito do extrato.");
       }
+      if (allocations.length === 0) throw new Error("Selecione ao menos uma conta com saldo em aberto.");
       if (Math.abs(allocatedTotal - targetTotal) > 0.005) {
-        throw new Error(`O rateio deve totalizar ${formatCurrency(targetTotal)}.`);
+        throw new Error(`A soma dos saldos das contas selecionadas (${formatCurrency(allocatedTotal)}) precisa ser igual ao débito do extrato (${formatCurrency(targetTotal)}). Ajuste a seleção.`);
       }
-      if (allocations.length === 0) throw new Error("Informe valores positivos para as contas selecionadas.");
 
       const dbItemId = targetItems[0].dbItemId;
       if (!dbItemId) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
 
       const confirmed = await confirm({
-        title: "Confirmar vinculação múltipla",
-        description: `O débito de ${formatCurrency(targetTotal)} será rateado entre ${allocations.length} conta(s), com quitação dos saldos informados. Deseja finalizar?`,
+        title: "Confirmar vinculação",
+        description: `O débito de ${formatCurrency(targetTotal)} será vinculado a ${allocations.length} conta(s), quitando o saldo de cada uma. Deseja finalizar?`,
         confirmLabel: "Finalizar vinculação",
         cancelLabel: "Revisar",
       });
