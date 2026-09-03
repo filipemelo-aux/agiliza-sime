@@ -3189,9 +3189,9 @@ export function BankReconciliation() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setLinkAccountDialogOpen(false)} disabled={linkSubmitting}>Cancelar</Button>
-            <Button size="sm" onClick={handleLinkConfirm} disabled={!linkSelectedAccount || linkSubmitting}>
+            <Button size="sm" onClick={handleLinkConfirm} disabled={linkSelectedAccounts.length === 0 || linkSubmitting}>
               {linkSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Link2 className="h-3.5 w-3.5 mr-1" />}
-              Vincular
+              Finalizar vinculação
             </Button>
           </DialogFooter>
         </DialogContent>
