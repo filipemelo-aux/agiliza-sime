@@ -23,5 +23,5 @@
 - [x] Unificar contas a pagar: migrar `accounts_payable` → `expenses`, drop triggers legadas, atestar leitura exclusiva de `expenses`
 
 ## Fase 4 — Conciliação (03/09)
-- [ ] Vinculação de 1 lançamento do extrato a VÁRIAS contas (rateio + confirmação final; ocultar contas já conciliadas)
-- [ ] Corrigir definitivamente despesa que recebe pagamento mas continua "em aberto" (duplicidade de correspondência paga + a pagar)
+- [x] Vinculação de 1 lançamento do extrato a VÁRIAS contas (rateio + confirmação final; ocultar contas já conciliadas)
+- [x] Corrigir definitivamente despesa que recebe pagamento mas continua "em aberto" (duplicidade de correspondência paga + a pagar)
