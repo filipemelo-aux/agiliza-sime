@@ -38,10 +38,12 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "cashflow" && <FinancialCashFlow />}
         {section === "reconciliation" && <BankReconciliation />}
         {section === "credit-card" && <CreditCardInvoices />}
+        {section === "checks" && <FinancialChecks />}
         {section === "reports" && <FinancialReports />}
         {section === "reports-payables" && <FinancialReports fixedReportType="payables" />}
         {section === "reports-receivables" && <FinancialReports fixedReportType="receivables" />}
         {section === "reports-cashflow" && <FinancialReports fixedReportType="cashflow" />}
+        {section === "reports-checks" && <FinancialChecks reportMode />}
         {section === "reports-forecasts" && <FinancialReports fixedReportType="forecasts" />}
         {section === "reports-dre" && <FinancialReports fixedReportType="dre" />}
       </div>

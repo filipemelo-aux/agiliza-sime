@@ -47,7 +47,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     setLoading(true);
     const { data, error } = await supabase.from("cheques" as any).select("*").order("data_emissao", { ascending: false }).order("created_at", { ascending: false }).limit(5000);
     if (error) toast.error("Não foi possível carregar os cheques", { description: error.message });
-    setRows((data as CheckRow[]) || []);
+    setRows(((data as unknown) as CheckRow[]) || []);
     setSelected(new Set());
     setLoading(false);
   }, []);

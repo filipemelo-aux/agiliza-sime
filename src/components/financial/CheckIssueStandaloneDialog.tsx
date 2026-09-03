@@ -172,7 +172,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
           contaBancariaId: linkType === "movimentacao" ? accountId : null,
           vinculoTipo: linkType,
         }}
-        onSaved={(number) => { setIssueOpen(false); void handleSaved(number); }}
+        onSaved={() => { setIssueOpen(false); handleSaved(); }}
       />
     </>
   );

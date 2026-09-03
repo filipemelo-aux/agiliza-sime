@@ -95,20 +95,22 @@ const App = () => (
             <Route path="/admin/financial/payables" element={<AdminFinancial section="payables" />} />
             <Route path="/admin/financial/paid" element={<AdminFinancial section="paid" />} />
             
-            <Route path="/admin/financial/cashflow" element={<AdminFinancial section="cashflow" />} />
-            <Route path="/admin/financial/credit-card" element={<AdminFinancial section="credit-card" />} />
-            <Route path="/admin/financial/reconciliation" element={<AdminFinancial section="reconciliation" />} />
-            <Route path="/admin/financial/receipts" element={<AdminFinancial section="receipts" />} />
-            <Route path="/admin/financial/chart" element={<AdminFinancial section="chart" />} />
-            <Route path="/admin/financial/invoices" element={<Navigate to="/admin/financial/invoicing" replace />} />
-            <Route path="/admin/financial/bank-accounts" element={<Navigate to="/admin/financial/cashflow" replace />} />
-            <Route path="/admin/financial/transactions" element={<Navigate to="/admin/financial/cashflow" replace />} />
-            <Route path="/admin/financial/reports" element={<AdminFinancial section="reports" />} />
-            <Route path="/admin/financial/reports/payables" element={<AdminFinancial section="reports-payables" />} />
-            <Route path="/admin/financial/reports/receivables" element={<AdminFinancial section="reports-receivables" />} />
-            <Route path="/admin/financial/reports/cashflow" element={<AdminFinancial section="reports-cashflow" />} />
-            <Route path="/admin/financial/reports/forecasts" element={<AdminFinancial section="reports-forecasts" />} />
-            <Route path="/admin/financial/reports/dre" element={<AdminFinancial section="reports-dre" />} />
+             <Route path="/admin/financial/cashflow" element={<AdminFinancial section="cashflow" />} />
+             <Route path="/admin/financial/credit-card" element={<AdminFinancial section="credit-card" />} />
+             <Route path="/admin/financial/reconciliation" element={<AdminFinancial section="reconciliation" />} />
+             <Route path="/admin/financial/checks" element={<AdminFinancial section="checks" />} />
+             <Route path="/admin/financial/receipts" element={<AdminFinancial section="receipts" />} />
+             <Route path="/admin/financial/chart" element={<AdminFinancial section="chart" />} />
+             <Route path="/admin/financial/invoices" element={<Navigate to="/admin/financial/invoicing" replace />} />
+             <Route path="/admin/financial/bank-accounts" element={<Navigate to="/admin/financial/cashflow" replace />} />
+             <Route path="/admin/financial/transactions" element={<Navigate to="/admin/financial/cashflow" replace />} />
+             <Route path="/admin/financial/reports" element={<AdminFinancial section="reports" />} />
+             <Route path="/admin/financial/reports/payables" element={<AdminFinancial section="reports-payables" />} />
+             <Route path="/admin/financial/reports/receivables" element={<AdminFinancial section="reports-receivables" />} />
+             <Route path="/admin/financial/reports/cashflow" element={<AdminFinancial section="reports-cashflow" />} />
+             <Route path="/admin/financial/reports/checks" element={<AdminFinancial section="reports-checks" />} />
+             <Route path="/admin/financial/reports/forecasts" element={<AdminFinancial section="reports-forecasts" />} />
+             <Route path="/admin/financial/reports/dre" element={<AdminFinancial section="reports-dre" />} />
             <Route path="/freights" element={<Index />} />
             <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}
