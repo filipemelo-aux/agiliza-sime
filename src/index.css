@@ -198,6 +198,12 @@
     .data-grid-table th[data-column-key="description"] {
       width: 28% !important;
     }
+
+    .data-grid-table td > span,
+    .data-grid-table td > span > * {
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
   }
 
   .animate-fade-in {
