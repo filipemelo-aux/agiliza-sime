@@ -236,29 +236,29 @@
     .data-grid-table td[data-column-key="credor"],
     .data-grid-table td[data-column-key="creditor"],
     .data-grid-table td[data-column-key="beneficiario"] {
-      width: 22% !important;
+      width: 28% !important;
     }
 
     .data-grid-table th[data-column-key="forma"],
     .data-grid-table td[data-column-key="forma"] {
-      width: 96px !important;
+      width: 80px !important;
     }
 
     .data-grid-table th[data-column-key="origem"],
     .data-grid-table td[data-column-key="origem"] {
-      width: 88px !important;
+      width: 74px !important;
     }
 
     .data-grid-table th[data-column-key="amount"],
     .data-grid-table td[data-column-key="amount"] {
-      width: 108px !important;
+      width: 94px !important;
     }
 
     .data-grid-table th[data-column-key="descricao"],
     .data-grid-table th[data-column-key="description"],
     .data-grid-table td[data-column-key="descricao"],
     .data-grid-table td[data-column-key="description"] {
-      width: 24% !important;
+      width: 26% !important;
     }
 
     .data-grid-table td > span,
