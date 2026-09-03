@@ -21,6 +21,7 @@ interface CheckRow {
   favorecido_nome: string;
   data_emissao: string;
   data_vencimento: string | null;
+  predatado: boolean | null;
   historico: string | null;
   vinculo_tipo: string;
   status: string;
