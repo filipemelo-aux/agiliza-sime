@@ -222,8 +222,6 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
                       {overdueDays > 0 && <div className="text-[9px] leading-none">há {overdueDays}d</div>}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-[10px] whitespace-nowrap">{statusLabel[p.status] || p.status}</TableCell>
-                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap">{formatCurrency(total)}</TableCell>
-                    <TableCell className="py-1 px-2 text-right font-mono text-[10px] whitespace-nowrap text-muted-foreground">{pago > 0 ? formatCurrency(pago) : "—"}</TableCell>
                     <TableCell className="py-1 px-2 text-right font-mono text-[10px] font-semibold whitespace-nowrap">{formatCurrency(balance)}</TableCell>
                     <TableCell className="py-1 px-2">
                       <Button
