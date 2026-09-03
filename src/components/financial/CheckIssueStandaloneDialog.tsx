@@ -55,7 +55,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
     setEmpresaId((current) => current || matrizId);
     setDate(getLocalDateISO());
     setLinkType("conta_pagar");
-    setExpenseId("");
+    setExpenseIds([]);
     setAccountId("");
     setValue("");
     setBeneficiary("");
