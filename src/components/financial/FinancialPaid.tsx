@@ -461,14 +461,14 @@ export function FinancialPaid() {
     {
       key: "due_date",
       header: "Vencimento",
-      width: "100px",
+      width: "86px",
       sortValue: (r) => r.due_date || "",
       cell: (r) => (r.due_date ? formatDateBR(r.due_date) : "—"),
     },
     {
       key: "forma",
       header: "Forma",
-      width: "110px",
+      width: "92px",
       sortValue: (r) => r.forma_pagamento || "",
       cell: (r) => (
         <span className="capitalize">
