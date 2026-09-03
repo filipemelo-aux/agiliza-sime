@@ -179,6 +179,26 @@
     min-width: var(--data-grid-min-width, 900px);
   }
 
+  /* Truncation / one-line party cells — applies to mobile and desktop */
+  .data-grid-table td > span,
+  .data-grid-table td > span > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .data-grid-table .data-grid-party-cell [title]:first-child {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .data-grid-table td .truncate,
+  .data-grid-table td .whitespace-nowrap {
+    max-width: 100%;
+  }
+
   @media (min-width: 1024px) {
     .data-grid-table {
       width: 100% !important;
