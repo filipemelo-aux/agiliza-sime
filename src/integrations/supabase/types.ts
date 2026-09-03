@@ -83,6 +83,42 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliation_item_links: {
+        Row: {
+          created_at: string
+          id: string
+          movimentacao_id: string
+          reconciliation_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movimentacao_id: string
+          reconciliation_item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movimentacao_id?: string
+          reconciliation_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_item_links_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_item_links_reconciliation_item_id_fkey"
+            columns: ["reconciliation_item_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliation_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_reconciliation_items: {
         Row: {
           amount: number
