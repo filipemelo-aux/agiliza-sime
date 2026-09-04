@@ -132,6 +132,8 @@ interface ReconciliationSummary {
   file_name: string;
   bank_name: string | null;
   created_at: string;
+  period_start: string | null;
+  period_end: string | null;
   total_items: number;
   reconciled_items: number;
 }
@@ -327,7 +329,7 @@ export function BankReconciliation() {
     setLoadingHistory(true);
     const { data } = await supabase
       .from("bank_reconciliations")
-      .select("id, file_name, bank_name, created_at, total_items, reconciled_items")
+      .select("id, file_name, bank_name, created_at, period_start, period_end, total_items, reconciled_items")
       .order("created_at", { ascending: false })
       .limit(20);
     setHistory((data as ReconciliationSummary[]) || []);
@@ -1717,6 +1719,11 @@ export function BankReconciliation() {
       }
 
 
+      // Compute the period covered by the imported transactions
+      const sortedDates = parsed.transactions.map((t) => t.date).filter(Boolean).sort();
+      const periodStart = sortedDates.length ? sortedDates[0] : null;
+      const periodEnd = sortedDates.length ? sortedDates[sortedDates.length - 1] : null;
+
       // Save reconciliation header
       const { data: rec, error: recErr } = await supabase
         .from("bank_reconciliations")
@@ -1725,6 +1732,8 @@ export function BankReconciliation() {
           bank_name: parsed.bankName,
           account_id: parsed.accountId,
           total_items: parsed.transactions.length,
+          period_start: periodStart,
+          period_end: periodEnd,
           created_by: user?.id || "",
         })
         .select("id")
@@ -2636,7 +2645,7 @@ export function BankReconciliation() {
     setLoading(true);
     const { data: rec } = await supabase
       .from("bank_reconciliations")
-      .select("id, file_name, bank_name, created_at, total_items, reconciled_items")
+      .select("id, file_name, bank_name, created_at, period_start, period_end, total_items, reconciled_items")
       .eq("id", reconciliationId)
       .maybeSingle();
     if (rec) {
@@ -2859,12 +2868,22 @@ export function BankReconciliation() {
               <div className="divide-y divide-border">
                 {history.map((rec) => {
                   const pending = rec.total_items - rec.reconciled_items;
+                  const periodLabel =
+                    rec.period_start && rec.period_end
+                      ? rec.period_start === rec.period_end
+                        ? formatDateBR(rec.period_start)
+                        : `${formatDateBR(rec.period_start)} – ${formatDateBR(rec.period_end)}`
+                      : null;
                   return (
                     <div key={rec.id} className="px-4 py-2.5 flex items-center gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{rec.file_name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {formatDateBR(rec.created_at.slice(0, 10))} · {rec.bank_name || "Banco"} · {rec.total_items} transações
+                          {periodLabel
+                            ? <><span className="text-foreground/70 font-medium">Período: {periodLabel}</span> · {rec.bank_name || "Banco"} · {rec.total_items} transações</>
+                            : <>{formatDateBR(rec.created_at.slice(0, 10))} · {rec.bank_name || "Banco"} · {rec.total_items} transações</>
+                          }
+                          <span className="text-muted-foreground/60"> · Importado em {formatDateBR(rec.created_at.slice(0, 10))}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5">
