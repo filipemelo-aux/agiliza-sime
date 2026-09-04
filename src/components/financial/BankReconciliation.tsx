@@ -2723,7 +2723,6 @@ export function BankReconciliation() {
     {
       key: "vinculo",
       header: "Correspondência",
-      width: "1%",
       sortValue: (r) => r.matchedMovDesc || r.matchedPayableDesc || r.matchedReceivableDesc || "",
       cell: (r) => (
         <div className="space-y-1 min-w-0">
