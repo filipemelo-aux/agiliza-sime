@@ -132,6 +132,8 @@ interface ReconciliationSummary {
   file_name: string;
   bank_name: string | null;
   created_at: string;
+  period_start: string | null;
+  period_end: string | null;
   total_items: number;
   reconciled_items: number;
 }
