@@ -326,6 +326,17 @@
     }
   }
 
+  /* Conciliação em telas menores: limita Descrição/Correspondência para não
+     estourar a largura da grid com rolagem horizontal */
+  @media (max-width: 1279px) {
+    .recon-grid-wrapper .data-grid-table td[data-column-key="description"] > div {
+      max-width: 220px;
+    }
+    .recon-grid-wrapper .data-grid-table td[data-column-key="vinculo"] > div {
+      max-width: 240px;
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
