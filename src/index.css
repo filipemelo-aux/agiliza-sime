@@ -302,9 +302,13 @@
     .data-grid-table td[data-column-key="status"] {
       width: 84px !important;
     }
-    .data-grid-table th[data-column-key="vinculo"],
-    .data-grid-table td[data-column-key="vinculo"] {
+    .recon-grid-wrapper .data-grid-table th[data-column-key="vinculo"],
+    .recon-grid-wrapper .data-grid-table td[data-column-key="vinculo"] {
       width: 20% !important;
+    }
+    .recon-grid-wrapper .data-grid-table th[data-column-key="description"],
+    .recon-grid-wrapper .data-grid-table td[data-column-key="description"] {
+      width: auto !important;
     }
 
     .data-grid-table td > span,
