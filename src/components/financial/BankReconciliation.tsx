@@ -2868,12 +2868,22 @@ export function BankReconciliation() {
               <div className="divide-y divide-border">
                 {history.map((rec) => {
                   const pending = rec.total_items - rec.reconciled_items;
+                  const periodLabel =
+                    rec.period_start && rec.period_end
+                      ? rec.period_start === rec.period_end
+                        ? formatDateBR(rec.period_start)
+                        : `${formatDateBR(rec.period_start)} – ${formatDateBR(rec.period_end)}`
+                      : null;
                   return (
                     <div key={rec.id} className="px-4 py-2.5 flex items-center gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{rec.file_name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {formatDateBR(rec.created_at.slice(0, 10))} · {rec.bank_name || "Banco"} · {rec.total_items} transações
+                          {periodLabel
+                            ? <><span className="text-foreground/70 font-medium">Período: {periodLabel}</span> · {rec.bank_name || "Banco"} · {rec.total_items} transações</>
+                            : <>{formatDateBR(rec.created_at.slice(0, 10))} · {rec.bank_name || "Banco"} · {rec.total_items} transações</>
+                          }
+                          <span className="text-muted-foreground/60"> · Importado em {formatDateBR(rec.created_at.slice(0, 10))}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5">
