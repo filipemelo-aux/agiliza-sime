@@ -284,6 +284,29 @@
       width: 30% !important;
     }
 
+    /* Conciliação bancária: colunas pequenas no tamanho mínimo,
+       espaço restante vai para Descrição e Correspondência */
+    .data-grid-table th[data-column-key="date"],
+    .data-grid-table td[data-column-key="date"] {
+      width: 74px !important;
+    }
+    .data-grid-table th[data-column-key="tipo"],
+    .data-grid-table td[data-column-key="tipo"] {
+      width: 68px !important;
+    }
+    .data-grid-table th[data-column-key="valor"],
+    .data-grid-table td[data-column-key="valor"] {
+      width: 104px !important;
+    }
+    .data-grid-table th[data-column-key="status"],
+    .data-grid-table td[data-column-key="status"] {
+      width: 84px !important;
+    }
+    .data-grid-table th[data-column-key="vinculo"],
+    .data-grid-table td[data-column-key="vinculo"] {
+      width: auto !important;
+    }
+
     .data-grid-table td > span,
     .data-grid-table td > span > * {
       min-width: 0 !important;
