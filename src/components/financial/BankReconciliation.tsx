@@ -2671,20 +2671,20 @@ export function BankReconciliation() {
     {
       key: "date",
       header: "Data",
-      width: "86px",
+      width: "72px",
       sortValue: (r) => r.date,
-      cell: (r) => <span className="whitespace-nowrap">{formatDateBR(r.date)}</span>,
+      cell: (r) => <span className="whitespace-nowrap text-[11px]">{formatDateBR(r.date)}</span>,
     },
     {
       key: "tipo",
       header: "Tipo",
-      width: "72px",
+      width: "58px",
       align: "center",
       sortValue: (r) => r.tipo,
       cell: (r) => (
         <Badge
           variant={r.tipo === "entrada" ? "default" : "destructive"}
-          className={cn("text-[10px] h-5", r.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+          className={cn("text-[10px] h-5 px-1.5", r.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
         >
           {r.tipo === "entrada" ? "Crédito" : "Débito"}
         </Badge>
@@ -2693,11 +2693,11 @@ export function BankReconciliation() {
     {
       key: "valor",
       header: "Valor",
-      width: "104px",
+      width: "92px",
       align: "right",
       sortValue: (r) => Math.abs(r.amount),
       cell: (r) => (
-        <span className={cn("font-mono font-bold whitespace-nowrap", r.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+        <span className={cn("font-mono font-bold whitespace-nowrap text-xs", r.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
           {formatCurrency(Math.abs(r.amount))}
         </span>
       ),
@@ -2705,10 +2705,11 @@ export function BankReconciliation() {
     {
       key: "description",
       header: "Descrição",
+      width: "1fr",
       sortValue: (r) => r.description,
       cell: (r) => (
         <div className="min-w-0 space-y-1">
-          <p className="text-xs text-foreground">{r.description}</p>
+          <p className="text-xs text-foreground truncate" title={r.description}>{r.description}</p>
           <TransactionDetails
             details={r.details}
             description={r.description}
@@ -2722,10 +2723,10 @@ export function BankReconciliation() {
     {
       key: "vinculo",
       header: "Correspondência",
-      width: "32%",
+      width: "38%",
       sortValue: (r) => r.matchedMovDesc || r.matchedPayableDesc || r.matchedReceivableDesc || "",
       cell: (r) => (
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0">
           {r.matchedMovId && r.status === "pendente" && (
             <MatchBox
               desc={r.matchedMovDesc}
@@ -2800,7 +2801,7 @@ export function BankReconciliation() {
     {
       key: "status",
       header: "Situação",
-      width: "90px",
+      width: "76px",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => <StatusBadge status={r.status} />,
