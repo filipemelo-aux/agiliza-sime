@@ -2672,6 +2672,7 @@ export function BankReconciliation() {
       key: "date",
       header: "Data",
       width: "1%",
+      align: "center",
       sortValue: (r) => r.date,
       cell: (r) => <span className="whitespace-nowrap text-[11px]">{formatDateBR(r.date)}</span>,
     },
