@@ -2709,7 +2709,7 @@ export function BankReconciliation() {
       width: "auto",
       sortValue: (r) => r.description,
       cell: (r) => (
-        <div className="min-w-0 space-y-1">
+        <div className="w-[220px] max-w-[220px] min-w-0 overflow-hidden space-y-1 xl:w-full xl:max-w-full">
           <p className="text-xs text-foreground truncate" title={r.description}>{r.description}</p>
           <TransactionDetails
             details={r.details}
