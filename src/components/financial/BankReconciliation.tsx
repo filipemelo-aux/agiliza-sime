@@ -3195,6 +3195,7 @@ export function BankReconciliation() {
       </GlobalToolbar>
 
       {/* Data Grid */}
+      <div className="recon-grid-wrapper">
       <DataGrid
         rows={filteredItems}
         columns={reconColumns}
@@ -3214,6 +3215,7 @@ export function BankReconciliation() {
           </div>
         }
       />
+      </div>
 
       <StatusLegend
         className="px-1"
