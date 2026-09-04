@@ -145,14 +145,17 @@ export function DataGrid<T>({
 
   return (
     <div className="min-w-0 rounded-lg border border-border bg-card [&_td_.truncate]:max-w-full">
-      <div className="overflow-x-auto xl:overflow-x-hidden" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
+      <div
+        className="scrollbar-thin-custom w-full max-w-full touch-pan-x overflow-x-auto overscroll-x-contain xl:overflow-x-hidden"
+        style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
+      >
         <table
           className="data-grid-table w-full table-auto border-collapse text-xs"
           style={{ "--data-grid-min-width": `${minWidth}px` } as React.CSSProperties}
         >
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr className="border-b border-border">
-                <th className="w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2 md:py-1.5 bg-muted text-center">
+                <th className="w-8 min-w-[32px] max-w-[32px] bg-muted px-1 py-1.5 text-center">
                   <div className="flex items-center justify-center">
                   <Checkbox
                     checked={allSelected}
@@ -168,7 +171,7 @@ export function DataGrid<T>({
                   style={col.width ? { width: col.width } : undefined}
                   onClick={() => toggleSort(col)}
                   className={cn(
-                    "px-1.5 py-2 md:py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
+                    "px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
                     
                     alignCls(col.align),
                     col.sortValue && "cursor-pointer select-none hover:text-foreground",
@@ -222,7 +225,7 @@ export function DataGrid<T>({
                     )}
                   >
                     <td
-                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1 text-center"
+                      className="relative w-8 min-w-[32px] max-w-[32px] px-1 py-1 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span
@@ -244,7 +247,7 @@ export function DataGrid<T>({
                         key={col.key}
                         data-column-key={col.key}
                         className={cn(
-                          "overflow-hidden px-1.5 py-2.5 md:py-1 align-middle",
+                          "overflow-hidden px-1.5 py-1 align-middle",
                           partyColumnKeys.has(col.key.toLocaleLowerCase("pt-BR")) && "data-grid-party-cell",
                           alignCls(col.align),
                           ci === 0 && "relative",
