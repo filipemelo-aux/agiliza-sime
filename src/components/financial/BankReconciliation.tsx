@@ -329,7 +329,7 @@ export function BankReconciliation() {
     setLoadingHistory(true);
     const { data } = await supabase
       .from("bank_reconciliations")
-      .select("id, file_name, bank_name, created_at, total_items, reconciled_items")
+      .select("id, file_name, bank_name, created_at, period_start, period_end, total_items, reconciled_items")
       .order("created_at", { ascending: false })
       .limit(20);
     setHistory((data as ReconciliationSummary[]) || []);
