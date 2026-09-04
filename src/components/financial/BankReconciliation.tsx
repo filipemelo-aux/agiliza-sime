@@ -3195,6 +3195,7 @@ export function BankReconciliation() {
       </GlobalToolbar>
 
       {/* Data Grid */}
+      <div className="recon-grid-wrapper">
       <DataGrid
         rows={filteredItems}
         columns={reconColumns}
