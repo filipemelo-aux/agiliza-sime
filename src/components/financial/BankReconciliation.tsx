@@ -3215,6 +3215,7 @@ export function BankReconciliation() {
           </div>
         }
       />
+      </div>
 
       <StatusLegend
         className="px-1"
