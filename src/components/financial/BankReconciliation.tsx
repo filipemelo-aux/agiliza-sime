@@ -1719,6 +1719,11 @@ export function BankReconciliation() {
       }
 
 
+      // Compute the period covered by the imported transactions
+      const sortedDates = parsed.transactions.map((t) => t.date).filter(Boolean).sort();
+      const periodStart = sortedDates.length ? sortedDates[0] : null;
+      const periodEnd = sortedDates.length ? sortedDates[sortedDates.length - 1] : null;
+
       // Save reconciliation header
       const { data: rec, error: recErr } = await supabase
         .from("bank_reconciliations")
@@ -1727,6 +1732,8 @@ export function BankReconciliation() {
           bank_name: parsed.bankName,
           account_id: parsed.accountId,
           total_items: parsed.transactions.length,
+          period_start: periodStart,
+          period_end: periodEnd,
           created_by: user?.id || "",
         })
         .select("id")
