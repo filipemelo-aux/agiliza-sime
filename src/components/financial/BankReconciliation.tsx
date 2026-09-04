@@ -2671,14 +2671,14 @@ export function BankReconciliation() {
     {
       key: "date",
       header: "Data",
-      width: "72px",
+      width: "1%",
       sortValue: (r) => r.date,
       cell: (r) => <span className="whitespace-nowrap text-[11px]">{formatDateBR(r.date)}</span>,
     },
     {
       key: "tipo",
       header: "Tipo",
-      width: "58px",
+      width: "1%",
       align: "center",
       sortValue: (r) => r.tipo,
       cell: (r) => (
@@ -2693,11 +2693,11 @@ export function BankReconciliation() {
     {
       key: "valor",
       header: "Valor",
-      width: "92px",
+      width: "1%",
       align: "right",
       sortValue: (r) => Math.abs(r.amount),
       cell: (r) => (
-        <span className={cn("font-mono font-bold whitespace-nowrap text-xs", r.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+        <span className={cn("font-mono font-bold whitespace-nowrap text-xs pl-2", r.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
           {formatCurrency(Math.abs(r.amount))}
         </span>
       ),
@@ -2705,7 +2705,7 @@ export function BankReconciliation() {
     {
       key: "description",
       header: "Descrição",
-      width: "1fr",
+      width: "auto",
       sortValue: (r) => r.description,
       cell: (r) => (
         <div className="min-w-0 space-y-1">
@@ -2723,7 +2723,6 @@ export function BankReconciliation() {
     {
       key: "vinculo",
       header: "Correspondência",
-      width: "38%",
       sortValue: (r) => r.matchedMovDesc || r.matchedPayableDesc || r.matchedReceivableDesc || "",
       cell: (r) => (
         <div className="space-y-1 min-w-0">
@@ -2801,7 +2800,7 @@ export function BankReconciliation() {
     {
       key: "status",
       header: "Situação",
-      width: "76px",
+      width: "1%",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => <StatusBadge status={r.status} />,
