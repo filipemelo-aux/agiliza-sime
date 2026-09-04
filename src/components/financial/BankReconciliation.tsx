@@ -2878,7 +2878,7 @@ export function BankReconciliation() {
                     <div key={rec.id} className="px-4 py-2.5 flex items-center gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">
-                          {periodLabel ?? rec.file_name}
+                          {periodLabel ? `Período: ${periodLabel}` : rec.file_name}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {periodLabel
