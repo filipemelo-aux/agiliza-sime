@@ -304,7 +304,7 @@
     }
     .data-grid-table th[data-column-key="vinculo"],
     .data-grid-table td[data-column-key="vinculo"] {
-      width: 24% !important;
+      width: 20% !important;
     }
 
     .data-grid-table td > span,
