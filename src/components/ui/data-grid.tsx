@@ -222,7 +222,7 @@ export function DataGrid<T>({
                     )}
                   >
                     <td
-                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1"
+                      className="relative w-10 min-w-[40px] max-w-[40px] md:w-8 md:min-w-[32px] md:max-w-[32px] px-1.5 py-2.5 md:py-1 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span
@@ -234,7 +234,9 @@ export function DataGrid<T>({
                         )}
                       />
                       {selectable && (
-                        <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} />
+                        <div className="flex items-center justify-center">
+                          <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} />
+                        </div>
                       )}
                     </td>
                     {columns.map((col, ci) => (
