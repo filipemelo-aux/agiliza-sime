@@ -2645,7 +2645,7 @@ export function BankReconciliation() {
     setLoading(true);
     const { data: rec } = await supabase
       .from("bank_reconciliations")
-      .select("id, file_name, bank_name, created_at, total_items, reconciled_items")
+      .select("id, file_name, bank_name, created_at, period_start, period_end, total_items, reconciled_items")
       .eq("id", reconciliationId)
       .maybeSingle();
     if (rec) {
