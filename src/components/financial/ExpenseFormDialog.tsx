@@ -967,7 +967,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? "Editar" : "Nova"} Despesa
