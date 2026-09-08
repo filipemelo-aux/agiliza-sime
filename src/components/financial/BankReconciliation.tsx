@@ -247,6 +247,9 @@ export function BankReconciliation() {
   // Movimentações do fluxo no período do OFX (para detectar lançamentos que NÃO existem no extrato)
   const [movsInPeriod, setMovsInPeriod] = useState<Array<{ id: string; valor: number; data_movimentacao: string; tipo: "entrada" | "saida"; descricao: string | null; origem: string; favorecido?: string | null }>>([]);
   const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
+  // Movimentações já conciliadas em OUTRO extrato (não são divergência aqui)
+  const [reconciledElsewhere, setReconciledElsewhere] = useState<Set<string>>(new Set());
+
   const [showMissing, setShowMissing] = useState(false);
   const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
   // Cadastro (CNPJ -> nome) para identificar favorecidos de transferências enviadas
