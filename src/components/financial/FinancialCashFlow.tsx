@@ -496,7 +496,7 @@ export function FinancialCashFlow() {
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{formatDateBR(m.data_movimentacao)}</span>
-                    <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
+                    <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem, m.recebimento_parcial)}</Badge>
                   </div>
                   {(m.pessoa_nome || m.descricao) && (
                     <p className="text-xs text-foreground truncate">
@@ -553,7 +553,7 @@ export function FinancialCashFlow() {
                           {m.tipo === "entrada" ? "Entrada" : "Saída"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem, m.recebimento_parcial)}</TableCell>
                       <TableCell className="text-xs truncate py-2">{m.pessoa_nome || "—"}</TableCell>
                       <TableCell className="text-xs truncate py-2">{m.descricao || "—"}</TableCell>
                       <TableCell className="text-xs max-w-[200px] py-2">
@@ -613,7 +613,7 @@ export function FinancialCashFlow() {
             <div className="space-y-3">
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <p><strong>Data:</strong> {formatDateBR(editPlanoMov.data_movimentacao)}</p>
-                <p><strong>Origem:</strong> {origemLabel(editPlanoMov.origem)}</p>
+                <p><strong>Origem:</strong> {origemLabel(editPlanoMov.origem, editPlanoMov.recebimento_parcial)}</p>
                 {editPlanoMov.descricao && <p><strong>Descrição:</strong> {editPlanoMov.descricao}</p>}
                 <p><strong>Valor:</strong> {formatCurrency(Number(editPlanoMov.valor))}</p>
               </div>
@@ -629,7 +629,7 @@ export function FinancialCashFlow() {
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                A alteração é aplicada na origem do lançamento ({origemLabel(editPlanoMov.origem)}) e refletirá em todos os relatórios.
+                A alteração é aplicada na origem do lançamento ({origemLabel(editPlanoMov.origem, editPlanoMov.recebimento_parcial)}) e refletirá em todos os relatórios.
               </p>
             </div>
           )}
