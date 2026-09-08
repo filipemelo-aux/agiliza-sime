@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Send, Loader2, Pencil, FileSignature, Printer, Trash2 } from "lucide-react";
 import { maskCNPJ, maskCurrency } from "@/lib/masks";
+import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
 import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
