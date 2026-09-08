@@ -1,3 +1,4 @@
+import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -280,8 +281,8 @@ export function TransportReports() {
             const t = (s || "").trim();
             return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
           };
-          const origemRaw = c.remetente_nome || c.expedidor_nome || c.municipio_origem_nome || c.uf_origem || "";
-          const destinoRaw = c.recebedor_nome || c.destinatario_nome || c.municipio_destino_nome || c.uf_destino || "";
+          const origemRaw = cteOrigemLabel(c, false);
+          const destinoRaw = cteDestinoLabel(c, false);
           const origem = trunc(origemRaw) || "—";
           const destino = trunc(destinoRaw) || "—";
           const placa = c.placa_veiculo || "—";

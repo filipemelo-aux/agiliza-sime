@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
+import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
 
 const esc = (v: unknown) =>
   String(v ?? "")
@@ -186,8 +187,8 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
 
     <div class="sec">Percurso e veículo</div>
     <div class="row">
-      ${cell("Origem", [cte.municipio_origem_nome, cte.uf_origem].filter(Boolean).join(" - "))}
-      ${cell("Destino", [cte.municipio_destino_nome, cte.uf_destino].filter(Boolean).join(" - "))}
+      ${cell("Origem", cteOrigemLabel(cte))}
+      ${cell("Destino", cteDestinoLabel(cte))}
       ${cell("Placa", cte.placa_veiculo)}
       ${cell("Motorista", cte.motorista_nome)}
     </div>
