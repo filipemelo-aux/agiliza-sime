@@ -210,6 +210,12 @@
       table-layout: fixed;
     }
 
+    /* Prevent text overflow across all cells in fixed-layout grids */
+    .data-grid-table th,
+    .data-grid-table td {
+      overflow: hidden;
+    }
+
     .data-grid-table th[data-column-key],
     .data-grid-table td[data-column-key] {
       width: auto !important;
