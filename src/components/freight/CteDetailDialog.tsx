@@ -393,8 +393,8 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
 
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Prestação</h4>
-            <Row label="Origem" value={`${cte.municipio_origem_nome || ""} - ${cte.uf_origem || ""}`} />
-            <Row label="Destino" value={`${cte.municipio_destino_nome || ""} - ${cte.uf_destino || ""}`} />
+            <Row label="Origem" value={cteOrigemLabel(cte as any)} />
+            <Row label="Destino" value={cteDestinoLabel(cte as any)} />
             {cte.municipio_envio_nome && <Row label="Município Envio" value={`${cte.municipio_envio_nome} - ${cte.uf_envio || ""}`} />}
             <Row label="CFOP" value={cte.cfop} />
             <Row label="Natureza" value={cte.natureza_operacao} />
