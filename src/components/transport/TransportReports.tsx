@@ -1035,8 +1035,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         <th data-column-key="tr_proprietario" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap">Proprietário</th>
                         {showPeso && <th data-column-key="tr_peso" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap">Peso (t)</th>}
                         {showLitros && <th data-column-key="tr_litros" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap">Litros</th>}
-                        {showDesconto && <th data-column-key="tr_desconto" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap">Desconto</th>}
-                        {showValor && <SortableTh data-column-key="tr_valor" align="right" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
+                            {showDesconto && <th data-column-key="tr_desconto" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap"><span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">Desconto</span></th>}
+                            {showValor && <SortableTh data-column-key="tr_valor" align="right" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}><span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">Valor Líquido</span></SortableTh>}
                       </tr>
                     </thead>
                     <tbody>
