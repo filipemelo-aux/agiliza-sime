@@ -598,12 +598,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       // Tomador deve ser definido EXPLICITAMENTE pelo usuário (sem default para destinatário)
       const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
       const fAny = form as any;
+      // O tipo de tomador escolhido é sempre a fonte da verdade: se o usuário
+      // trocar o tomador (ex.: destinatário → remetente), o vínculo é recalculado.
       const derivedTomadorId =
-        form.tomador_id ||
         (form.tomador_tipo !== null && form.tomador_tipo !== 4
-          ? fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`]
-          : null) ||
+          ? fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`] || null
+          : form.tomador_id || null) ||
         null;
+
 
       // Se valor do frete = 0, remove previsão existente e não cria nova (negativos são permitidos para lançamentos em lote)
       if (Number(form.valor_frete) === 0) {
@@ -622,9 +624,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",
         });
       } else if (derivedTomadorId) {
-        if (!form.tomador_id) {
+        if (derivedTomadorId !== form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
+
         const dataPrev = form.data_emissao.slice(0, 10);
         const { data: existingPrev } = await supabase
           .from("previsoes_recebimento")
