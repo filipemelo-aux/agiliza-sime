@@ -400,7 +400,8 @@
     scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
   }
   .scrollbar-thin-custom::-webkit-scrollbar {
     width: 8px;
