@@ -1044,10 +1044,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         const rotaText = r.origem === "—" && r.destino === "—" ? "—" : `${r.origem} → ${r.destino}`;
                         return (
                           <tr key={r.id} className="border-b border-border/60 hover:bg-muted/40 transition-colors">
-                            <td data-column-key="tr_data" className="px-1.5 py-1 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                            <td data-column-key="tr_numero" className="px-1.5 py-1 whitespace-nowrap">
-                              <div className="font-medium">{r.titulo}</div>
-                              {r.subtitulo && <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>}
+                            <td data-column-key="tr_data" className="px-1.5 py-1 whitespace-nowrap tabular-nums overflow-hidden"><span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{formatDateBR(r.data)}</span></td>
+                            <td data-column-key="tr_numero" className="px-1.5 py-1 whitespace-nowrap overflow-hidden">
+                              <div className="font-medium leading-tight truncate">{r.titulo}</div>
+                              {r.subtitulo && <div className="text-[10px] text-muted-foreground leading-tight truncate">{r.subtitulo}</div>}
                             </td>
                             {showProduto && (
                               <td data-column-key="tr_produto" className="px-1.5 py-1">
