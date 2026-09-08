@@ -310,6 +310,7 @@ export function RevenueForecasts() {
             intervalo_dias: 0,
             data_emissao: venc,
             status: "faturada" as any,
+            ...(p.empresa_id ? { empresa_id: p.empresa_id } : {}),
           })
           .select()
           .single();
@@ -355,6 +356,7 @@ export function RevenueForecasts() {
           num_parcelas: effectiveParcelas,
           intervalo_dias: effectiveIntervalo,
           ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
+          ...(selectedItems[0]?.empresa_id ? { empresa_id: selectedItems[0].empresa_id } : {}),
           status: "faturada" as any,
         })
         .select()
