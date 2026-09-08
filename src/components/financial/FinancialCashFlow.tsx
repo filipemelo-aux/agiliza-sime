@@ -47,6 +47,7 @@ interface Movimentacao {
 interface MovimentacaoEnriquecida extends Movimentacao {
   pessoa_nome: string | null;
   plano_resolved_id: string | null;
+  recebimento_parcial?: boolean;
 }
 
 export function FinancialCashFlow() {
@@ -118,7 +119,7 @@ export function FinancialCashFlow() {
       despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
       colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id, filter_context").in("id", colheitaIds) : Promise.resolve({ data: [] }),
       pagDespesaIds.length > 0 ? supabase.from("expense_payments").select("id, expense_id").in("id", pagDespesaIds) : Promise.resolve({ data: [] }),
-      recebParcialIds.length > 0 ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds) : Promise.resolve({ data: [] }),
+      recebParcialIds.length > 0 ? supabase.from("receivable_payments").select("id, conta_receber_id, valor").in("id", recebParcialIds) : Promise.resolve({ data: [] }),
     ]);
 
 
@@ -198,9 +199,16 @@ export function FinancialCashFlow() {
     // Resolve receivable partial payments → contas_receber → cliente
     const recebParcialCrIds = [...new Set((recebParcialRes.data || []).map((rp: any) => rp.conta_receber_id).filter(Boolean))];
     let extraContasReceber: any[] = [];
+    // Um recebimento só é "parcial" quando não quita o título: valor recebido < valor do título.
+    const parcialMovOrigemIds = new Set<string>();
     if (recebParcialCrIds.length > 0) {
-      const { data: extraCr } = await supabase.from("contas_receber").select("id, cliente_id").in("id", recebParcialCrIds);
+      const { data: extraCr } = await supabase.from("contas_receber").select("id, cliente_id, valor").in("id", recebParcialCrIds);
       extraContasReceber = extraCr || [];
+      const crValorMap = new Map((extraContasReceber || []).map((cr: any) => [cr.id, Number(cr.valor || 0)]));
+      (recebParcialRes.data || []).forEach((rp: any) => {
+        const total = crValorMap.get(rp.conta_receber_id) || 0;
+        if (total > 0 && Number(rp.valor || 0) + 0.005 < total) parcialMovOrigemIds.add(rp.id);
+      });
     }
     const crClienteMap = new Map<string, string>();
     [...(receberRes.data || []), ...extraContasReceber].forEach((cr: any) => {
@@ -249,6 +257,7 @@ export function FinancialCashFlow() {
       ...m,
       pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null,
       plano_resolved_id: m.plano_contas_id || planoMap.get(m.origem_id) || planoMap.get(m.lote_id || "") || null,
+      recebimento_parcial: m.origem === "recebimento_conta_receber" && parcialMovOrigemIds.has(m.origem_id),
     }));
 
     if (filters.planoContasId === "sem_classificacao") {
