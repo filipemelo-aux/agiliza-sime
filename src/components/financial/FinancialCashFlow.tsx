@@ -321,10 +321,11 @@ export function FinancialCashFlow() {
     }));
   }, [dailySummary]);
 
-  const origemLabel = (o: string) => {
+  const origemLabel = (o: string, parcial?: boolean) => {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
-    if (o === "recebimento_conta_receber") return "Recebimento Parcial";
+    if (o === "recebimento_conta_receber") return parcial ? "Recebimento Parcial" : "Recebimento";
+
 
     if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
     if (o === "pagamento_agrupado") return "Pagamento Agrupado";
