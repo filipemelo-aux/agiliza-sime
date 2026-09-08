@@ -247,6 +247,9 @@ export function BankReconciliation() {
   // Movimentações do fluxo no período do OFX (para detectar lançamentos que NÃO existem no extrato)
   const [movsInPeriod, setMovsInPeriod] = useState<Array<{ id: string; valor: number; data_movimentacao: string; tipo: "entrada" | "saida"; descricao: string | null; origem: string; favorecido?: string | null }>>([]);
   const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
+  // Movimentações já conciliadas em OUTRO extrato (não são divergência aqui)
+  const [reconciledElsewhere, setReconciledElsewhere] = useState<Set<string>>(new Set());
+
   const [showMissing, setShowMissing] = useState(false);
   const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
   // Cadastro (CNPJ -> nome) para identificar favorecidos de transferências enviadas
@@ -871,12 +874,22 @@ export function BankReconciliation() {
 
   const updateReconciliationCount = useCallback(async () => {
     if (!reconciliationId) return;
-    const conciliados = items.filter((i) => i.status === "conciliado").length;
+    // Reconta direto no banco (o estado local pode estar desatualizado)
+    const { count: total } = await supabase
+      .from("bank_reconciliation_items")
+      .select("id", { count: "exact", head: true })
+      .eq("reconciliation_id", reconciliationId);
+    const { count: conciliados } = await supabase
+      .from("bank_reconciliation_items")
+      .select("id", { count: "exact", head: true })
+      .eq("reconciliation_id", reconciliationId)
+      .in("status", ["conciliado", "registrado"]);
     await supabase
       .from("bank_reconciliations")
-      .update({ reconciled_items: conciliados })
+      .update({ reconciled_items: conciliados ?? 0, total_items: total ?? 0 })
       .eq("id", reconciliationId);
-  }, [reconciliationId, items]);
+  }, [reconciliationId]);
+
 
   // Localiza a movimentação bancária criada para uma despesa/conta a pagar
   // (após quitação, o trigger gera movimento via origem='pagamento_despesa' ou 'contas_pagar').
@@ -1658,7 +1671,9 @@ export function BankReconciliation() {
     const consumed = new Set<string>(
       items.filter((i) => i.matchedMovId).map((i) => i.id)
     );
-    const candidates = movsInPeriod.filter((m) => !linkedIds.has(m.id));
+    // Movimentações já conciliadas em outro extrato não são divergência.
+    const candidates = movsInPeriod.filter((m) => !linkedIds.has(m.id) && !reconciledElsewhere.has(m.id));
+
     const missing: typeof movsInPeriod = [];
     for (const m of candidates) {
       const absVal = Math.abs(m.valor);
@@ -1672,7 +1687,39 @@ export function BankReconciliation() {
       else missing.push(m);
     }
     return missing;
-  }, [items, movsInPeriod, ofxRange]);
+  }, [items, movsInPeriod, ofxRange, reconciledElsewhere]);
+
+  // Descobre quais movimentações do período já foram conciliadas em outro extrato
+  useEffect(() => {
+    let cancelled = false;
+    const ids = movsInPeriod.map((m) => m.id);
+    if (ids.length === 0 || !reconciliationId) {
+      setReconciledElsewhere(new Set());
+      return;
+    }
+    (async () => {
+      const found = new Set<string>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200);
+        const { data: direct } = await supabase
+          .from("bank_reconciliation_items")
+          .select("matched_movimentacao_id, reconciliation_id")
+          .in("matched_movimentacao_id", chunk)
+          .neq("reconciliation_id", reconciliationId);
+        (direct || []).forEach((r: any) => r.matched_movimentacao_id && found.add(r.matched_movimentacao_id));
+
+        const { data: links } = await supabase
+          .from("bank_reconciliation_item_links")
+          .select("movimentacao_id, bank_reconciliation_items!inner(reconciliation_id)")
+          .in("movimentacao_id", chunk)
+          .neq("bank_reconciliation_items.reconciliation_id", reconciliationId);
+        (links || []).forEach((r: any) => r.movimentacao_id && found.add(r.movimentacao_id));
+      }
+      if (!cancelled) setReconciledElsewhere(found);
+    })();
+    return () => { cancelled = true; };
+  }, [movsInPeriod, reconciliationId]);
+
 
 
   const filteredItems = useMemo(() => {
