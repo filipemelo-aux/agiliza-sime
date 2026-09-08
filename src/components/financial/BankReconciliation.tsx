@@ -1687,7 +1687,39 @@ export function BankReconciliation() {
       else missing.push(m);
     }
     return missing;
-  }, [items, movsInPeriod, ofxRange]);
+  }, [items, movsInPeriod, ofxRange, reconciledElsewhere]);
+
+  // Descobre quais movimentações do período já foram conciliadas em outro extrato
+  useEffect(() => {
+    let cancelled = false;
+    const ids = movsInPeriod.map((m) => m.id);
+    if (ids.length === 0 || !reconciliationId) {
+      setReconciledElsewhere(new Set());
+      return;
+    }
+    (async () => {
+      const found = new Set<string>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200);
+        const { data: direct } = await supabase
+          .from("bank_reconciliation_items")
+          .select("matched_movimentacao_id, reconciliation_id")
+          .in("matched_movimentacao_id", chunk)
+          .neq("reconciliation_id", reconciliationId);
+        (direct || []).forEach((r: any) => r.matched_movimentacao_id && found.add(r.matched_movimentacao_id));
+
+        const { data: links } = await supabase
+          .from("bank_reconciliation_item_links")
+          .select("movimentacao_id, bank_reconciliation_items!inner(reconciliation_id)")
+          .in("movimentacao_id", chunk)
+          .neq("bank_reconciliation_items.reconciliation_id", reconciliationId);
+        (links || []).forEach((r: any) => r.movimentacao_id && found.add(r.movimentacao_id));
+      }
+      if (!cancelled) setReconciledElsewhere(found);
+    })();
+    return () => { cancelled = true; };
+  }, [movsInPeriod, reconciliationId]);
+
 
 
   const filteredItems = useMemo(() => {
