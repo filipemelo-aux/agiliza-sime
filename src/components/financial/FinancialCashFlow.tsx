@@ -47,6 +47,7 @@ interface Movimentacao {
 interface MovimentacaoEnriquecida extends Movimentacao {
   pessoa_nome: string | null;
   plano_resolved_id: string | null;
+  recebimento_parcial?: boolean;
 }
 
 export function FinancialCashFlow() {
@@ -118,7 +119,7 @@ export function FinancialCashFlow() {
       despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
       colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id, filter_context").in("id", colheitaIds) : Promise.resolve({ data: [] }),
       pagDespesaIds.length > 0 ? supabase.from("expense_payments").select("id, expense_id").in("id", pagDespesaIds) : Promise.resolve({ data: [] }),
-      recebParcialIds.length > 0 ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds) : Promise.resolve({ data: [] }),
+      recebParcialIds.length > 0 ? supabase.from("receivable_payments").select("id, conta_receber_id, valor").in("id", recebParcialIds) : Promise.resolve({ data: [] }),
     ]);
 
 
@@ -198,9 +199,16 @@ export function FinancialCashFlow() {
     // Resolve receivable partial payments → contas_receber → cliente
     const recebParcialCrIds = [...new Set((recebParcialRes.data || []).map((rp: any) => rp.conta_receber_id).filter(Boolean))];
     let extraContasReceber: any[] = [];
+    // Um recebimento só é "parcial" quando não quita o título: valor recebido < valor do título.
+    const parcialMovOrigemIds = new Set<string>();
     if (recebParcialCrIds.length > 0) {
-      const { data: extraCr } = await supabase.from("contas_receber").select("id, cliente_id").in("id", recebParcialCrIds);
+      const { data: extraCr } = await supabase.from("contas_receber").select("id, cliente_id, valor").in("id", recebParcialCrIds);
       extraContasReceber = extraCr || [];
+      const crValorMap = new Map((extraContasReceber || []).map((cr: any) => [cr.id, Number(cr.valor || 0)]));
+      (recebParcialRes.data || []).forEach((rp: any) => {
+        const total = crValorMap.get(rp.conta_receber_id) || 0;
+        if (total > 0 && Number(rp.valor || 0) + 0.005 < total) parcialMovOrigemIds.add(rp.id);
+      });
     }
     const crClienteMap = new Map<string, string>();
     [...(receberRes.data || []), ...extraContasReceber].forEach((cr: any) => {
@@ -249,6 +257,7 @@ export function FinancialCashFlow() {
       ...m,
       pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null,
       plano_resolved_id: m.plano_contas_id || planoMap.get(m.origem_id) || planoMap.get(m.lote_id || "") || null,
+      recebimento_parcial: m.origem === "recebimento_conta_receber" && parcialMovOrigemIds.has(m.origem_id),
     }));
 
     if (filters.planoContasId === "sem_classificacao") {
@@ -312,10 +321,11 @@ export function FinancialCashFlow() {
     }));
   }, [dailySummary]);
 
-  const origemLabel = (o: string) => {
+  const origemLabel = (o: string, parcial?: boolean) => {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
-    if (o === "recebimento_conta_receber") return "Recebimento Parcial";
+    if (o === "recebimento_conta_receber") return parcial ? "Recebimento Parcial" : "Recebimento";
+
 
     if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
     if (o === "pagamento_agrupado") return "Pagamento Agrupado";
@@ -486,7 +496,7 @@ export function FinancialCashFlow() {
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{formatDateBR(m.data_movimentacao)}</span>
-                    <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
+                    <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem, m.recebimento_parcial)}</Badge>
                   </div>
                   {(m.pessoa_nome || m.descricao) && (
                     <p className="text-xs text-foreground truncate">
@@ -543,7 +553,7 @@ export function FinancialCashFlow() {
                           {m.tipo === "entrada" ? "Entrada" : "Saída"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem, m.recebimento_parcial)}</TableCell>
                       <TableCell className="text-xs truncate py-2">{m.pessoa_nome || "—"}</TableCell>
                       <TableCell className="text-xs truncate py-2">{m.descricao || "—"}</TableCell>
                       <TableCell className="text-xs max-w-[200px] py-2">
@@ -603,7 +613,7 @@ export function FinancialCashFlow() {
             <div className="space-y-3">
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <p><strong>Data:</strong> {formatDateBR(editPlanoMov.data_movimentacao)}</p>
-                <p><strong>Origem:</strong> {origemLabel(editPlanoMov.origem)}</p>
+                <p><strong>Origem:</strong> {origemLabel(editPlanoMov.origem, editPlanoMov.recebimento_parcial)}</p>
                 {editPlanoMov.descricao && <p><strong>Descrição:</strong> {editPlanoMov.descricao}</p>}
                 <p><strong>Valor:</strong> {formatCurrency(Number(editPlanoMov.valor))}</p>
               </div>
@@ -619,7 +629,7 @@ export function FinancialCashFlow() {
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                A alteração é aplicada na origem do lançamento ({origemLabel(editPlanoMov.origem)}) e refletirá em todos os relatórios.
+                A alteração é aplicada na origem do lançamento ({origemLabel(editPlanoMov.origem, editPlanoMov.recebimento_parcial)}) e refletirá em todos os relatórios.
               </p>
             </div>
           )}
