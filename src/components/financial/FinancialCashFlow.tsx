@@ -20,6 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { limitDisplayText } from "@/lib/displayText";
 import {
   BarChart,
   Bar,
