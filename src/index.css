@@ -325,29 +325,75 @@
       white-space: nowrap;
     }
 
-    /* Transport Reports — column widths */
+    /* Transport Reports — column widths
+       Override the first-child checkbox rule (max-width: 32px) since
+       this table has no checkbox column. */
     .data-grid-table th[data-column-key="tr_data"],
-    .data-grid-table td[data-column-key="tr_data"] { width: 70px !important; }
+    .data-grid-table td[data-column-key="tr_data"] {
+      width: 72px !important;
+      min-width: 72px !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_numero"],
-    .data-grid-table td[data-column-key="tr_numero"] { width: 60px !important; }
+    .data-grid-table td[data-column-key="tr_numero"] {
+      width: 64px !important;
+      min-width: 64px !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_produto"],
-    .data-grid-table td[data-column-key="tr_produto"] { width: 10% !important; }
+    .data-grid-table td[data-column-key="tr_produto"] {
+      width: 10% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_pessoa"],
-    .data-grid-table td[data-column-key="tr_pessoa"] { width: 16% !important; }
+    .data-grid-table td[data-column-key="tr_pessoa"] {
+      width: 16% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_rota"],
-    .data-grid-table td[data-column-key="tr_rota"] { width: 16% !important; }
+    .data-grid-table td[data-column-key="tr_rota"] {
+      width: 16% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_veiculo"],
-    .data-grid-table td[data-column-key="tr_veiculo"] { width: 56px !important; }
+    .data-grid-table td[data-column-key="tr_veiculo"] {
+      width: 64px !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_proprietario"],
-    .data-grid-table td[data-column-key="tr_proprietario"] { width: 12% !important; }
+    .data-grid-table td[data-column-key="tr_proprietario"] {
+      width: 12% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_peso"],
-    .data-grid-table td[data-column-key="tr_peso"] { width: 56px !important; }
+    .data-grid-table td[data-column-key="tr_peso"] {
+      width: 64px !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_litros"],
-    .data-grid-table td[data-column-key="tr_litros"] { width: 56px !important; }
+    .data-grid-table td[data-column-key="tr_litros"] {
+      width: 64px !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_desconto"],
-    .data-grid-table td[data-column-key="tr_desconto"] { width: 76px !important; }
+    .data-grid-table td[data-column-key="tr_desconto"] {
+      width: 76px !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
     .data-grid-table th[data-column-key="tr_valor"],
-    .data-grid-table td[data-column-key="tr_valor"] { width: 88px !important; }
+    .data-grid-table td[data-column-key="tr_valor"] {
+      width: 88px !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
   }
 
   /* Conciliação em telas menores: limita Descrição/Correspondência para não
