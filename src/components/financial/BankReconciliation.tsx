@@ -871,12 +871,22 @@ export function BankReconciliation() {
 
   const updateReconciliationCount = useCallback(async () => {
     if (!reconciliationId) return;
-    const conciliados = items.filter((i) => i.status === "conciliado").length;
+    // Reconta direto no banco (o estado local pode estar desatualizado)
+    const { count: total } = await supabase
+      .from("bank_reconciliation_items")
+      .select("id", { count: "exact", head: true })
+      .eq("reconciliation_id", reconciliationId);
+    const { count: conciliados } = await supabase
+      .from("bank_reconciliation_items")
+      .select("id", { count: "exact", head: true })
+      .eq("reconciliation_id", reconciliationId)
+      .in("status", ["conciliado", "registrado"]);
     await supabase
       .from("bank_reconciliations")
-      .update({ reconciled_items: conciliados })
+      .update({ reconciled_items: conciliados ?? 0, total_items: total ?? 0 })
       .eq("id", reconciliationId);
-  }, [reconciliationId, items]);
+  }, [reconciliationId]);
+
 
   // Localiza a movimentação bancária criada para uma despesa/conta a pagar
   // (após quitação, o trigger gera movimento via origem='pagamento_despesa' ou 'contas_pagar').
