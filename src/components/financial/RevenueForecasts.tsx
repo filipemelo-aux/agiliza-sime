@@ -38,6 +38,7 @@ interface Previsao {
   created_at: string;
   cliente_nome?: string;
   metadata?: Record<string, any>;
+  empresa_id?: string | null;
 }
 
 const ORIGEM_ICON: Record<string, typeof Truck> = {
