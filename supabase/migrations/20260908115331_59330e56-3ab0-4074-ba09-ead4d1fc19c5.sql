@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.fn_sync_reconciliation_counters() FROM PUBLIC, anon, authenticated;
