@@ -1671,7 +1671,9 @@ export function BankReconciliation() {
     const consumed = new Set<string>(
       items.filter((i) => i.matchedMovId).map((i) => i.id)
     );
-    const candidates = movsInPeriod.filter((m) => !linkedIds.has(m.id));
+    // Movimentações já conciliadas em outro extrato não são divergência.
+    const candidates = movsInPeriod.filter((m) => !linkedIds.has(m.id) && !reconciledElsewhere.has(m.id));
+
     const missing: typeof movsInPeriod = [];
     for (const m of candidates) {
       const absVal = Math.abs(m.valor);
