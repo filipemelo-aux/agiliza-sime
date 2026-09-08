@@ -20,6 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { limitDisplayText } from "@/lib/displayText";
 import {
   BarChart,
   Bar,
@@ -554,8 +555,12 @@ export function FinancialCashFlow() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem, m.recebimento_parcial)}</TableCell>
-                      <TableCell className="text-xs truncate py-2">{m.pessoa_nome || "—"}</TableCell>
-                      <TableCell className="text-xs truncate py-2">{m.descricao || "—"}</TableCell>
+                      <TableCell className="text-xs py-2 max-w-[200px]">
+                        <div className="truncate" title={m.pessoa_nome || ""}>{limitDisplayText(m.pessoa_nome, 50) || "—"}</div>
+                      </TableCell>
+                      <TableCell className="text-xs py-2 max-w-[260px]">
+                        <div className="truncate" title={m.descricao || ""}>{m.descricao || "—"}</div>
+                      </TableCell>
                       <TableCell className="text-xs max-w-[200px] py-2">
                         {plano ? (
                           <button
