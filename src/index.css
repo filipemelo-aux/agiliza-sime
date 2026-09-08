@@ -324,6 +324,30 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    /* Transport Reports — column widths */
+    .data-grid-table th[data-column-key="tr_data"],
+    .data-grid-table td[data-column-key="tr_data"] { width: 70px !important; }
+    .data-grid-table th[data-column-key="tr_numero"],
+    .data-grid-table td[data-column-key="tr_numero"] { width: 60px !important; }
+    .data-grid-table th[data-column-key="tr_produto"],
+    .data-grid-table td[data-column-key="tr_produto"] { width: 10% !important; }
+    .data-grid-table th[data-column-key="tr_pessoa"],
+    .data-grid-table td[data-column-key="tr_pessoa"] { width: 16% !important; }
+    .data-grid-table th[data-column-key="tr_rota"],
+    .data-grid-table td[data-column-key="tr_rota"] { width: 16% !important; }
+    .data-grid-table th[data-column-key="tr_veiculo"],
+    .data-grid-table td[data-column-key="tr_veiculo"] { width: 56px !important; }
+    .data-grid-table th[data-column-key="tr_proprietario"],
+    .data-grid-table td[data-column-key="tr_proprietario"] { width: 12% !important; }
+    .data-grid-table th[data-column-key="tr_peso"],
+    .data-grid-table td[data-column-key="tr_peso"] { width: 56px !important; }
+    .data-grid-table th[data-column-key="tr_litros"],
+    .data-grid-table td[data-column-key="tr_litros"] { width: 56px !important; }
+    .data-grid-table th[data-column-key="tr_desconto"],
+    .data-grid-table td[data-column-key="tr_desconto"] { width: 76px !important; }
+    .data-grid-table th[data-column-key="tr_valor"],
+    .data-grid-table td[data-column-key="tr_valor"] { width: 88px !important; }
   }
 
   /* Conciliação em telas menores: limita Descrição/Correspondência para não

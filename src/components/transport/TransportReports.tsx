@@ -14,7 +14,7 @@ import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
-import { DragScroll } from "@/components/ui/drag-scroll";
+
 import { toast } from "sonner";
 import { PeriodFilter } from "@/components/PeriodFilter";
 
@@ -277,14 +277,8 @@ export function TransportReports() {
         }
 
         result = (data || []).map((c: any) => {
-          const trunc = (s?: string | null, n = 22) => {
-            const t = (s || "").trim();
-            return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
-          };
-          const origemRaw = cteOrigemLabel(c, false);
-          const destinoRaw = cteDestinoLabel(c, false);
-          const origem = trunc(origemRaw) || "—";
-          const destino = trunc(destinoRaw) || "—";
+          const origem = cteOrigemLabel(c, false).trim() || "—";
+          const destino = cteDestinoLabel(c, false).trim() || "—";
           const placa = c.placa_veiculo || "—";
           const isServ = c.tipo_talao === "servico";
           const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
@@ -391,15 +385,10 @@ export function TransportReports() {
           });
         }
 
-        const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
-        const truncTo = (s?: string | null, n = 38) => {
-          const t = (s || "").trim();
-          return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
-        };
         result = (data || []).map((c: any) => {
           const placa = c.placa_veiculo || "—";
-          const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
-          const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
+          const remet = (c.cte?.remetente_nome || "").trim() || "—";
+          const destin = (c.cte?.recebedor_nome || c.cte?.destinatario_nome || "").trim() || "—";
           let payStatus = c.payable?.status;
           let payData = c.payable?.data_pagamento;
           if (payStatus !== "pago" && c.payable?.id) {
@@ -1030,63 +1019,77 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
               </div>
 
               <div className="border border-border rounded-md overflow-hidden bg-card">
-                <DragScroll className="overflow-x-auto">
-                  <table className="w-full text-xs min-w-[820px]">
-                      <thead className="bg-muted/40 text-muted-foreground">
-                        <tr className="text-left">
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[60px]" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>{numeroLabel}</SortableTh>
-                          {showProduto && <th className="px-3 py-2 font-medium whitespace-nowrap w-[100px]">Produto</th>}
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[130px]" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[80px]" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo</SortableTh>
-                          <th className="px-3 py-2 font-medium whitespace-nowrap w-[120px]">Proprietário</th>
-                          {showPeso && <th className="px-2 py-2 font-medium text-right w-[90px]">Peso (t)</th>}
-                          {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
-                          {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
-                          {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sorted.map((r) => (
-                          <tr key={r.id} className="border-t border-border hover:bg-muted/30">
-                            <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                            <td className="px-3 py-2 whitespace-nowrap">
+                <div className="scrollbar-thin-custom w-full max-w-full overflow-x-auto overscroll-x-contain xl:overflow-x-hidden">
+                  <table
+                    className="data-grid-table w-full table-auto border-collapse text-xs"
+                    style={{ "--data-grid-min-width": "820px" } as React.CSSProperties}
+                  >
+                    <thead className="sticky top-0 z-10 bg-muted/60">
+                      <tr className="border-b border-border">
+                        <SortableTh data-column-key="tr_data" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
+                        <SortableTh data-column-key="tr_numero" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>{numeroLabel}</SortableTh>
+                        {showProduto && <th data-column-key="tr_produto" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap">Produto</th>}
+                        <SortableTh data-column-key="tr_pessoa" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
+                        <SortableTh data-column-key="tr_rota" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
+                        <SortableTh data-column-key="tr_veiculo" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo</SortableTh>
+                        <th data-column-key="tr_proprietario" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap">Proprietário</th>
+                        {showPeso && <th data-column-key="tr_peso" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap">Peso (t)</th>}
+                        {showLitros && <th data-column-key="tr_litros" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap">Litros</th>}
+                        {showDesconto && <th data-column-key="tr_desconto" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap">Desconto</th>}
+                        {showValor && <SortableTh data-column-key="tr_valor" align="right" className="px-1.5 py-1.5 font-semibold text-[11px] uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sorted.map((r) => {
+                        const rotaText = r.origem === "—" && r.destino === "—" ? "—" : `${r.origem} → ${r.destino}`;
+                        return (
+                          <tr key={r.id} className="border-b border-border/60 hover:bg-muted/40 transition-colors">
+                            <td data-column-key="tr_data" className="px-1.5 py-1 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
+                            <td data-column-key="tr_numero" className="px-1.5 py-1 whitespace-nowrap">
                               <div className="font-medium">{r.titulo}</div>
                               {r.subtitulo && <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>}
                             </td>
-                            {showProduto && <td className="px-3 py-2 text-[11px] whitespace-nowrap">{r.produto || "—"}</td>}
-                            <td className="px-3 py-2">{r.pessoa}</td>
-                            <td className="px-3 py-2 text-[11px] whitespace-nowrap">
-                              {r.origem === "—" && r.destino === "—" ? "—" : `${r.origem} → ${r.destino}`}
+                            {showProduto && (
+                              <td data-column-key="tr_produto" className="px-1.5 py-1">
+                                <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={r.produto || "—"}>{r.produto || "—"}</span>
+                              </td>
+                            )}
+                            <td data-column-key="tr_pessoa" className="px-1.5 py-1">
+                              <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={r.pessoa}>{r.pessoa}</span>
                             </td>
-                            <td className="px-3 py-2 whitespace-nowrap">{r.veiculo}</td>
-                            <td className="px-3 py-2 whitespace-nowrap text-[11px]">{r.proprietario}</td>
+                            <td data-column-key="tr_rota" className="px-1.5 py-1">
+                              <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={rotaText}>{rotaText}</span>
+                            </td>
+                            <td data-column-key="tr_veiculo" className="px-1.5 py-1 whitespace-nowrap">{r.veiculo}</td>
+                            <td data-column-key="tr_proprietario" className="px-1.5 py-1">
+                              <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={r.proprietario}>{r.proprietario}</span>
+                            </td>
                             {showPeso && (
-                              <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
+                              <td data-column-key="tr_peso" className={`px-1.5 py-1 text-right tabular-nums whitespace-nowrap ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
                                 {(r.pesoKg || 0) > 0 ? fmtTon(r.pesoKg || 0) : "—"}
                               </td>
                             )}
                             {showLitros && (
-                              <td className={`px-2 py-2 text-right tabular-nums ${(r.litrosDesconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                              <td data-column-key="tr_litros" className={`px-1.5 py-1 text-right tabular-nums whitespace-nowrap ${(r.litrosDesconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                                 {(r.litrosDesconto || 0) > 0 ? fmtL(r.litrosDesconto || 0) : "—"}
                               </td>
                             )}
                             {showDesconto && (
-                              <td className={`px-2 py-2 text-right tabular-nums ${(r.desconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                              <td data-column-key="tr_desconto" className={`px-1.5 py-1 text-right tabular-nums whitespace-nowrap ${(r.desconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                                 {(r.desconto || 0) > 0 ? `− ${formatCurrency(r.desconto || 0)}` : "—"}
                               </td>
                             )}
                             {showValor && (
-                              <td className="px-2 py-2 text-right tabular-nums font-medium">
+                              <td data-column-key="tr_valor" className="px-1.5 py-1 text-right tabular-nums font-medium whitespace-nowrap">
                                 {formatCurrency(r.valor)}
                               </td>
                             )}
                           </tr>
-                        ))}
-                      </tbody>
+                        );
+                      })}
+                    </tbody>
                   </table>
-                </DragScroll>
+                </div>
               </div>
             </div>
           )}
