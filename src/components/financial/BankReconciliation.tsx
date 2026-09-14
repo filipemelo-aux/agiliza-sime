@@ -41,6 +41,32 @@ function daysDiff(a: string, b: string): number {
   return Math.abs(Math.round((da.getTime() - db.getTime()) / 86400000));
 }
 
+/** Dias com sinal: negativo = vencimento anterior ao extrato (pagamento em atraso). */
+function signedDays(txDate: string, refDate: string): number {
+  const dt = new Date(txDate + "T00:00:00").getTime();
+  const dr = new Date(refDate + "T00:00:00").getTime();
+  return Math.round((dr - dt) / 86400000);
+}
+
+/** Vencimentos muito à frente do extrato não são correspondência plausível. */
+const MAX_FUTURE_DAYS = 10;
+
+function isPlausibleMatchDate(txDate: string, refDate?: string | null): boolean {
+  if (!refDate) return false;
+  return signedDays(txDate, refDate) <= MAX_FUTURE_DAYS;
+}
+
+/**
+ * Custo de correspondência por data: privilegia títulos vencidos antes do
+ * extrato (pagamento em atraso) e penaliza fortemente vencimentos futuros.
+ */
+function matchCost(txDate: string, refDate?: string | null): number {
+  if (!refDate) return 99999;
+  const d = signedDays(txDate, refDate);
+  if (d <= 0) return Math.abs(d);
+  return d > MAX_FUTURE_DAYS ? 50000 + d : 30 + d * 8;
+}
+
 function matchValueQuery(query: string, valor?: number | null): boolean {
   if (!query || !/[0-9]/.test(query) || valor == null) return false;
   const qDigits = query.replace(/\D/g, "");
