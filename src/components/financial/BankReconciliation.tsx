@@ -632,10 +632,10 @@ export function BankReconciliation() {
          // Se já existe pagamento no caixa para o mesmo valor/data, ele é a
          // correspondência efetiva; não crie uma segunda sugestão de título.
          if (assignedMovByIdx.has(idx)) return;
-         for (const p of payables) {
+        for (const p of payables) {
            if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
-           const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
-           payPairs.push({ idx, candId: p.id, dist });
+           if (!isPlausibleMatchDate(raw.txDate, p.referenceDate)) continue;
+           payPairs.push({ idx, candId: p.id, dist: matchCost(raw.txDate, p.referenceDate) });
          }
        });
       payPairs.sort((a, b) => a.dist - b.dist);
@@ -656,8 +656,8 @@ export function BankReconciliation() {
         if (raw.status !== "pendente" || raw.tipo !== "entrada") return;
         for (const r of receivables) {
           if (Math.abs(r.amount - raw.absVal) >= 0.01) continue;
-          const dist = r.referenceDate ? daysDiff(raw.txDate, r.referenceDate) : 9999;
-          recPairs.push({ idx, candId: r.id, dist });
+          if (!isPlausibleMatchDate(raw.txDate, r.referenceDate)) continue;
+          recPairs.push({ idx, candId: r.id, dist: matchCost(raw.txDate, r.referenceDate) });
         }
       });
       recPairs.sort((a, b) => a.dist - b.dist);
