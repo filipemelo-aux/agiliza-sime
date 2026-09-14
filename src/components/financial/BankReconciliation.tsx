@@ -1989,17 +1989,17 @@ export function BankReconciliation() {
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // E também em contas a receber pendentes — valor + data referência ±10 dias
-          let rCandidates = receivables.filter(
-            (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01 && r.referenceDate && daysDiff(txDate, r.referenceDate) <= 10
+          // Contas a receber: prioriza vencimentos anteriores ao extrato (recebimento em atraso)
+          const rCandidates = receivables.filter(
+            (r) =>
+              !usedReceivableIds.has(r.id) &&
+              Math.abs(r.amount - absVal) < 0.01 &&
+              isPlausibleMatchDate(txDate, r.referenceDate),
           );
-          if (rCandidates.length === 0) {
-            rCandidates = receivables.filter(
-              (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01
-            );
-          }
           const rExact = rCandidates.find((r) => r.referenceDate === txDate);
-          const rm = rExact || (rCandidates.length > 0 ? (rCandidates[0].referenceDate ? rCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : rCandidates[0]) : undefined);
+          const rm =
+            rExact ||
+            [...rCandidates].sort((a, b) => matchCost(txDate, a.referenceDate) - matchCost(txDate, b.referenceDate))[0];
           if (rm) {
             receivableMatch = rm;
             usedReceivableIds.add(rm.id);
