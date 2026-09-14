@@ -41,6 +41,32 @@ function daysDiff(a: string, b: string): number {
   return Math.abs(Math.round((da.getTime() - db.getTime()) / 86400000));
 }
 
+/** Dias com sinal: negativo = vencimento anterior ao extrato (pagamento em atraso). */
+function signedDays(txDate: string, refDate: string): number {
+  const dt = new Date(txDate + "T00:00:00").getTime();
+  const dr = new Date(refDate + "T00:00:00").getTime();
+  return Math.round((dr - dt) / 86400000);
+}
+
+/** Vencimentos muito à frente do extrato não são correspondência plausível. */
+const MAX_FUTURE_DAYS = 10;
+
+function isPlausibleMatchDate(txDate: string, refDate?: string | null): boolean {
+  if (!refDate) return false;
+  return signedDays(txDate, refDate) <= MAX_FUTURE_DAYS;
+}
+
+/**
+ * Custo de correspondência por data: privilegia títulos vencidos antes do
+ * extrato (pagamento em atraso) e penaliza fortemente vencimentos futuros.
+ */
+function matchCost(txDate: string, refDate?: string | null): number {
+  if (!refDate) return 99999;
+  const d = signedDays(txDate, refDate);
+  if (d <= 0) return Math.abs(d);
+  return d > MAX_FUTURE_DAYS ? 50000 + d : 30 + d * 8;
+}
+
 function matchValueQuery(query: string, valor?: number | null): boolean {
   if (!query || !/[0-9]/.test(query) || valor == null) return false;
   const qDigits = query.replace(/\D/g, "");
@@ -606,10 +632,10 @@ export function BankReconciliation() {
          // Se já existe pagamento no caixa para o mesmo valor/data, ele é a
          // correspondência efetiva; não crie uma segunda sugestão de título.
          if (assignedMovByIdx.has(idx)) return;
-         for (const p of payables) {
+        for (const p of payables) {
            if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
-           const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
-           payPairs.push({ idx, candId: p.id, dist });
+           if (!isPlausibleMatchDate(raw.txDate, p.referenceDate)) continue;
+           payPairs.push({ idx, candId: p.id, dist: matchCost(raw.txDate, p.referenceDate) });
          }
        });
       payPairs.sort((a, b) => a.dist - b.dist);
@@ -630,8 +656,8 @@ export function BankReconciliation() {
         if (raw.status !== "pendente" || raw.tipo !== "entrada") return;
         for (const r of receivables) {
           if (Math.abs(r.amount - raw.absVal) >= 0.01) continue;
-          const dist = r.referenceDate ? daysDiff(raw.txDate, r.referenceDate) : 9999;
-          recPairs.push({ idx, candId: r.id, dist });
+          if (!isPlausibleMatchDate(raw.txDate, r.referenceDate)) continue;
+          recPairs.push({ idx, candId: r.id, dist: matchCost(raw.txDate, r.referenceDate) });
         }
       });
       recPairs.sort((a, b) => a.dist - b.dist);
@@ -1934,18 +1960,18 @@ export function BankReconciliation() {
           // A movimentação de pagamento é a fonte principal. Só oferece a conta
           // em aberto quando ainda existe saldo e não há movimento equivalente;
           // assim a mesma despesa não aparece como "paga" e "a pagar" ao mesmo tempo.
-          let pCandidates = matchedMov
+          const pCandidates = matchedMov
             ? []
             : payables.filter(
-                (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5,
+                (p) =>
+                  !usedPayableIds.has(p.id) &&
+                  Math.abs(p.amount - absVal) < 0.01 &&
+                  isPlausibleMatchDate(txDate, p.referenceDate),
               );
-          if (!matchedMov && pCandidates.length === 0) {
-            pCandidates = payables.filter(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01,
-            );
-          }
           const pExact = pCandidates.find((p) => p.referenceDate === txDate);
-          const pm = pExact || (pCandidates.length > 0 ? (pCandidates[0].referenceDate ? pCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : pCandidates[0]) : undefined);
+          const pm =
+            pExact ||
+            [...pCandidates].sort((a, b) => matchCost(txDate, a.referenceDate) - matchCost(txDate, b.referenceDate))[0];
           if (pm) {
             payableMatch = pm;
             usedPayableIds.add(pm.id);
@@ -1963,17 +1989,17 @@ export function BankReconciliation() {
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // E também em contas a receber pendentes — valor + data referência ±10 dias
-          let rCandidates = receivables.filter(
-            (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01 && r.referenceDate && daysDiff(txDate, r.referenceDate) <= 10
+          // Contas a receber: prioriza vencimentos anteriores ao extrato (recebimento em atraso)
+          const rCandidates = receivables.filter(
+            (r) =>
+              !usedReceivableIds.has(r.id) &&
+              Math.abs(r.amount - absVal) < 0.01 &&
+              isPlausibleMatchDate(txDate, r.referenceDate),
           );
-          if (rCandidates.length === 0) {
-            rCandidates = receivables.filter(
-              (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01
-            );
-          }
           const rExact = rCandidates.find((r) => r.referenceDate === txDate);
-          const rm = rExact || (rCandidates.length > 0 ? (rCandidates[0].referenceDate ? rCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : rCandidates[0]) : undefined);
+          const rm =
+            rExact ||
+            [...rCandidates].sort((a, b) => matchCost(txDate, a.referenceDate) - matchCost(txDate, b.referenceDate))[0];
           if (rm) {
             receivableMatch = rm;
             usedReceivableIds.add(rm.id);
