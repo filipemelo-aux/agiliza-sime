@@ -1960,18 +1960,18 @@ export function BankReconciliation() {
           // A movimentação de pagamento é a fonte principal. Só oferece a conta
           // em aberto quando ainda existe saldo e não há movimento equivalente;
           // assim a mesma despesa não aparece como "paga" e "a pagar" ao mesmo tempo.
-          let pCandidates = matchedMov
+          const pCandidates = matchedMov
             ? []
             : payables.filter(
-                (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5,
+                (p) =>
+                  !usedPayableIds.has(p.id) &&
+                  Math.abs(p.amount - absVal) < 0.01 &&
+                  isPlausibleMatchDate(txDate, p.referenceDate),
               );
-          if (!matchedMov && pCandidates.length === 0) {
-            pCandidates = payables.filter(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01,
-            );
-          }
           const pExact = pCandidates.find((p) => p.referenceDate === txDate);
-          const pm = pExact || (pCandidates.length > 0 ? (pCandidates[0].referenceDate ? pCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : pCandidates[0]) : undefined);
+          const pm =
+            pExact ||
+            [...pCandidates].sort((a, b) => matchCost(txDate, a.referenceDate) - matchCost(txDate, b.referenceDate))[0];
           if (pm) {
             payableMatch = pm;
             usedPayableIds.add(pm.id);
