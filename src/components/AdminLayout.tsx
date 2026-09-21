@@ -236,11 +236,17 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
+                  const itemActive = item.children.some((child: any) => {
+                    if (child.submenu) return child.submenu.some((s: any) => isActive(s.url));
+                    return isActive(child.url);
+                  });
                   return (
-                    <div key={item.title} className="pt-2 first:pt-0">
-                      <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
-                        {item.title}
-                      </div>
+                    <CollapsibleMenu
+                      key={item.title}
+                      title={item.title}
+                      Icon={item.icon}
+                      defaultOpen={itemActive}
+                    >
                       {item.children.map((child: any) => {
                         if (child.submenu) {
                           const anySubActive = child.submenu.some((s: any) => isActive(s.url));
@@ -275,7 +281,7 @@ function SidebarNav() {
                           </SidebarMenuItem>
                         );
                       })}
-                    </div>
+                    </CollapsibleMenu>
                   );
                 }
                 if (item.title === "_spacer") {
