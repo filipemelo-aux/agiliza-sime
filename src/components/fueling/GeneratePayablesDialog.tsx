@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
+import { fuelAccountCode, DEFAULT_FUEL_ACCOUNT_CODE } from "@/lib/fuelAccount";
 
 interface Fueling {
   id: string;
