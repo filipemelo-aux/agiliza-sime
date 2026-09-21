@@ -108,6 +108,52 @@ const menuItems = [
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
+function usePersistedOpen(key: string, defaultOpen: boolean) {
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return !!defaultOpen;
+    const stored = localStorage.getItem(key);
+    if (stored !== null) return stored === "true";
+    return !!defaultOpen;
+  });
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    try { localStorage.setItem(key, String(v)); } catch {}
+  };
+  return [open, handleOpenChange] as const;
+}
+
+function CollapsibleMenu({
+  title,
+  Icon,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = usePersistedOpen(`menu-open-${title}`, !!defaultOpen);
+  return (
+    <SidebarMenuItem className="pt-2 first:pt-0">
+      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={title} className="h-7 text-xs px-2 gap-2 w-full">
+            <Icon className="h-3.5 w-3.5" />
+            <span className="flex-1 text-left">{title}</span>
+            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub className="mr-0 pr-0">
+            {children}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+}
+
 function CollapsibleSubmenu({
   title,
   Icon,
@@ -190,11 +236,17 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
+                  const itemActive = item.children.some((child: any) => {
+                    if (child.submenu) return child.submenu.some((s: any) => isActive(s.url));
+                    return isActive(child.url);
+                  });
                   return (
-                    <div key={item.title} className="pt-2 first:pt-0">
-                      <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
-                        {item.title}
-                      </div>
+                    <CollapsibleMenu
+                      key={item.title}
+                      title={item.title}
+                      Icon={item.icon}
+                      defaultOpen={itemActive}
+                    >
                       {item.children.map((child: any) => {
                         if (child.submenu) {
                           const anySubActive = child.submenu.some((s: any) => isActive(s.url));
@@ -229,7 +281,7 @@ function SidebarNav() {
                           </SidebarMenuItem>
                         );
                       })}
-                    </div>
+                    </CollapsibleMenu>
                   );
                 }
                 if (item.title === "_spacer") {
