@@ -96,14 +96,15 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
         // Create one expense per fueling
         for (const f of selectedFuelings) {
           const descricao = `Abastecimento - ${f.posto_combustivel || "Posto"} - ${format(new Date(f.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}`;
-          
+          const acc = resolveAccount(f.tipo_combustivel);
+
           const { data: expense, error } = await supabase.from("expenses").insert({
             empresa_id: empresaId,
             unidade_id: empresaId,
             created_by: userId,
             descricao,
-            tipo_despesa: derivedTipoDespesa as any,
-            plano_contas_id: planoContasId,
+            tipo_despesa: tipoDespesaOf(acc) as any,
+            plano_contas_id: acc?.id || null,
             centro_custo: "frota_propria" as any,
             origem: "abastecimento" as any,
             valor_total: f.valor_total,
