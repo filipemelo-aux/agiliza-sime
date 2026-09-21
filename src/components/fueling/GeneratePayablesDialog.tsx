@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
+import { fuelAccountCode, DEFAULT_FUEL_ACCOUNT_CODE } from "@/lib/fuelAccount";
 
 interface Fueling {
   id: string;
@@ -17,6 +18,7 @@ interface Fueling {
   data_abastecimento: string;
   veiculo_id: string;
   vehicle_plate?: string;
+  tipo_combustivel?: string | null;
 }
 
 interface Props {
@@ -40,58 +42,70 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
     setSaving(true);
 
     try {
-      // Look up the combustível account by tipo_operacional
+      // Resolve accounts by código (gasolina/etanol => Combustível Apoio, diesel => Diesel, arla => Arla 32)
       const { data: allAccounts } = await supabase
         .from("chart_of_accounts")
-        .select("id, nome, tipo_operacional")
+        .select("id, codigo, nome, tipo_operacional")
         .eq("tipo", "despesa")
         .eq("ativo", true);
-      const combAccount = (allAccounts as any[] || []).find((c: any) => c.tipo_operacional === "combustivel");
-      const planoContasId = combAccount?.id || null;
-      const derivedTipoDespesa = combAccount?.tipo_operacional === "manutencao" ? "manutencao"
-        : combAccount?.tipo_operacional === "combustivel" ? "combustivel" : "outros";
+      const accByCode = new Map<string, any>((allAccounts as any[] || []).map((c: any) => [c.codigo, c]));
+      const resolveAccount = (tipo?: string | null) =>
+        accByCode.get(fuelAccountCode(tipo)) || accByCode.get(DEFAULT_FUEL_ACCOUNT_CODE) || null;
+      const tipoDespesaOf = (acc: any) =>
+        acc?.tipo_operacional === "manutencao" ? "manutencao"
+          : acc?.tipo_operacional === "combustivel" ? "combustivel" : "outros";
 
       if (groupMode === "single") {
-        // Create one expense for all fuelings
-        const postos = [...new Set(selectedFuelings.map(f => f.posto_combustivel).filter(Boolean))];
-        const descricao = `Abastecimentos - ${postos.join(", ") || "Diversos"} (${selectedFuelings.length} abast.)`;
-        
-        const { data: expense, error } = await supabase.from("expenses").insert({
-          empresa_id: empresaId,
-          unidade_id: empresaId,
-          created_by: userId,
-          descricao,
-          tipo_despesa: derivedTipoDespesa as any,
-          plano_contas_id: planoContasId,
-          centro_custo: "frota_propria" as any,
-          origem: "abastecimento" as any,
-          valor_total: total,
-          data_emissao: getLocalDateISO(),
-          data_vencimento: dueDate,
-          favorecido_nome: postos[0] || null,
-          status: "pendente" as any,
-        } as any).select("id").single();
+        // One expense per plano de contas (nunca misturar combustível de apoio com operacional)
+        const groups = new Map<string, Fueling[]>();
+        selectedFuelings.forEach(f => {
+          const code = fuelAccountCode(f.tipo_combustivel);
+          groups.set(code, [...(groups.get(code) || []), f]);
+        });
 
-        if (error) throw error;
+        for (const [code, list] of groups) {
+          const acc = accByCode.get(code) || null;
+          const postos = [...new Set(list.map(f => f.posto_combustivel).filter(Boolean))];
+          const descricao = `Abastecimentos - ${postos.join(", ") || "Diversos"} (${list.length} abast.)`;
+          const groupTotal = list.reduce((s, f) => s + Number(f.valor_total), 0);
 
-        // Link all fuelings to this expense
-        await supabase.from("fuelings").update({
-          expense_id: expense.id,
-          status_faturamento: "faturado",
-        } as any).in("id", selectedFuelings.map(f => f.id));
-
-      } else {
-        // Create one expense per fueling
-        for (const f of selectedFuelings) {
-          const descricao = `Abastecimento - ${f.posto_combustivel || "Posto"} - ${format(new Date(f.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}`;
-          
           const { data: expense, error } = await supabase.from("expenses").insert({
             empresa_id: empresaId,
             unidade_id: empresaId,
             created_by: userId,
             descricao,
-            tipo_despesa: derivedTipoDespesa as any,
-            plano_contas_id: planoContasId,
+            tipo_despesa: tipoDespesaOf(acc) as any,
+            plano_contas_id: acc?.id || null,
+            centro_custo: "frota_propria" as any,
+            origem: "abastecimento" as any,
+            valor_total: groupTotal,
+            data_emissao: getLocalDateISO(),
+            data_vencimento: dueDate,
+            favorecido_nome: postos[0] || null,
+            status: "pendente" as any,
+          } as any).select("id").single();
+
+          if (error) throw error;
+
+          await supabase.from("fuelings").update({
+            expense_id: expense.id,
+            status_faturamento: "faturado",
+          } as any).in("id", list.map(f => f.id));
+        }
+
+      } else {
+        // Create one expense per fueling
+        for (const f of selectedFuelings) {
+          const descricao = `Abastecimento - ${f.posto_combustivel || "Posto"} - ${format(new Date(f.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}`;
+          const acc = resolveAccount(f.tipo_combustivel);
+
+          const { data: expense, error } = await supabase.from("expenses").insert({
+            empresa_id: empresaId,
+            unidade_id: empresaId,
+            created_by: userId,
+            descricao,
+            tipo_despesa: tipoDespesaOf(acc) as any,
+            plano_contas_id: acc?.id || null,
             centro_custo: "frota_propria" as any,
             origem: "abastecimento" as any,
             valor_total: f.valor_total,
