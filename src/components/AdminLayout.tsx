@@ -40,6 +40,16 @@ const menuItems = [
     ],
   },
   {
+    title: "Recursos Humanos",
+    icon: UserCog,
+    children: [
+      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
+      { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
+      { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
+      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
+    ],
+  },
+  {
     title: "Bancos",
     icon: Landmark,
     children: [
@@ -92,16 +102,6 @@ const menuItems = [
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
       { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
-    ],
-  },
-  {
-    title: "Recursos Humanos",
-    icon: UserCog,
-    children: [
-      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
-      { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
-      { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
-      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
     ],
   },
   { title: "_spacer", url: "", icon: Settings },
