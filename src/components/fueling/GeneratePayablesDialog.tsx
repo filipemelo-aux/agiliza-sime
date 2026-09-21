@@ -17,6 +17,7 @@ interface Fueling {
   data_abastecimento: string;
   veiculo_id: string;
   vehicle_plate?: string;
+  tipo_combustivel?: string | null;
 }
 
 interface Props {
