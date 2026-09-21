@@ -153,19 +153,21 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
             <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
           </div>
 
-          <div>
-            <Label className="mb-2 block">Agrupamento</Label>
-            <RadioGroup value={groupMode} onValueChange={v => setGroupMode(v as any)} className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="single" id="single" />
-                <Label htmlFor="single" className="font-normal">Título único (agrupar tudo)</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="individual" id="individual" />
-                <Label htmlFor="individual" className="font-normal">Um título por abastecimento</Label>
-              </div>
-            </RadioGroup>
-          </div>
+          {selectedFuelings.length > 1 && (
+            <div>
+              <Label className="mb-2 block">Agrupamento</Label>
+              <RadioGroup value={groupMode} onValueChange={v => setGroupMode(v as any)} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="single" id="single" />
+                  <Label htmlFor="single" className="font-normal">Título único (agrupar tudo)</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="individual" id="individual" />
+                  <Label htmlFor="individual" className="font-normal">Um título por abastecimento</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
