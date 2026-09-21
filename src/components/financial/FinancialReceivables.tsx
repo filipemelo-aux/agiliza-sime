@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -44,6 +45,7 @@ export function FinancialReceivables() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterCliente, setFilterCliente] = useState("");
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [selectedConta, setSelectedConta] = useState<ContaReceber | null>(null);
 
@@ -90,7 +92,14 @@ export function FinancialReceivables() {
 
   useEffect(() => { fetchContas(); }, []);
 
-  const filtered = contas.filter(c => filterStatus === "todos" || c.status === filterStatus);
+  const filtered = contas.filter(c => {
+    if (filterStatus !== "todos" && c.status !== filterStatus) return false;
+    if (filterCliente.trim()) {
+      const q = filterCliente.trim().toLowerCase();
+      if (!(c.cliente_nome || "").toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   const { sort, toggle, sorted: filteredSorted } = useSortableTable<ContaReceber, "cliente_nome" | "data_vencimento" | "valor" | "valor_recebido" | "status" | "data_recebimento" | "origem">(
     filtered,
@@ -141,9 +150,15 @@ export function FinancialReceivables() {
             <SelectItem value="atrasado">Atrasado</SelectItem>
           </SelectContent>
         </Select>
+        <Input
+          placeholder="Buscar cliente..."
+          value={filterCliente}
+          onChange={(e) => setFilterCliente(e.target.value)}
+          className="h-8 w-[220px] text-xs"
+        />
         <span className="text-xs text-muted-foreground">{filtered.length} título(s)</span>
-        {filterStatus !== "todos" && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterStatus("todos")}>
+        {(filterStatus !== "todos" || filterCliente) && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => { setFilterStatus("todos"); setFilterCliente(""); }}>
             <X className="h-3 w-3" /> Limpar filtros
           </Button>
         )}
