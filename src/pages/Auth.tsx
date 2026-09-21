@@ -184,128 +184,107 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Panel - Form */}
-      <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
-        <div className="max-w-md w-full mx-auto">
-          <div className="flex flex-col items-center mb-8">
-            <img src={logo} alt="SIME Transportes" className="h-28 w-auto mb-4" />
-            <p className="text-sm text-muted-foreground">
-              {isSignup ? "Crie sua conta" : "Acesse sua conta"}
-            </p>
+    <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
+      <div className="max-w-md w-full mx-auto">
+        <div className="flex flex-col items-center mb-8">
+          <img src={logo} alt="SIME Transportes" className="h-28 w-auto mb-4" />
+          <p className="text-sm text-muted-foreground">
+            {isSignup ? "Crie sua conta" : "Acesse sua conta"}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={formData.email}
+              onChange={handleChange}
+              className="input-transport"
+              disabled={loading}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">E-mail</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Senha</Label>
+            <div className="relative">
               <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={formData.email}
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                className="input-transport pr-12"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
+          </div>
+
+          {isSignup && (
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
                 onChange={handleChange}
                 className="input-transport"
                 disabled={loading}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+              {errors.confirmPassword && (
+                <p className="text-sm text-destructive">
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
+          )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="input-transport pr-12"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-            </div>
+          <Button
+            type="submit"
+            className=" w-full py-6 text-base"
+            disabled={loading}
+          >
+            {loading
+              ? "Carregando..."
+              : isSignup
+              ? "Criar conta"
+              : "Entrar"}
+          </Button>
+        </form>
 
-            {isSignup && (
-              <div className="space-y-1.5">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="input-transport"
-                  disabled={loading}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className=" w-full py-6 text-base"
-              disabled={loading}
-            >
-              {loading
-                ? "Carregando..."
-                : isSignup
-                ? "Criar conta"
-                : "Entrar"}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            {isSignup ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
-            <button
-              type="button"
-              onClick={() => setIsSignup(!isSignup)}
-              className="text-primary hover:underline font-medium"
-            >
-              {isSignup ? "Fazer login" : "Cadastre-se"}
-            </button>
-          </p>
-        </div>
-      </div>
-
-      {/* Right Panel - Decorative */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-primary/80 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center p-12">
-          <div className="text-center text-primary-foreground">
-            <img src={logo} alt="SIME Transportes" className="h-32 w-auto mx-auto mb-8 drop-shadow-lg" />
-            <h2 className="text-3xl font-bold font-display mb-4">
-              SIME TRANSPORTES
-            </h2>
-            <p className="text-lg opacity-90 max-w-md">
-              CRM completo para gestão de fretes e colheita.
-              Acesse sua conta para começar.
-            </p>
-          </div>
-        </div>
-        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
-        <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary-foreground/10 rounded-full blur-3xl" />
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          {isSignup ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
+          <button
+            type="button"
+            onClick={() => setIsSignup(!isSignup)}
+            className="text-primary hover:underline font-medium"
+          >
+            {isSignup ? "Fazer login" : "Cadastre-se"}
+          </button>
+        </p>
       </div>
 
       <ForcePasswordChangeDialog
