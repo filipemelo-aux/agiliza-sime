@@ -530,9 +530,14 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     }
 
 
-    // 2) Create profile
+    // 2) Create profile — exige CPF (11) ou CNPJ (14) válidos; a planilha sempre traz o documento
     const isPJ = actor.doc.length === 14;
     const isPF = actor.doc.length === 11;
+    if (!isPJ && !isPF) {
+      throw new Error(
+        `Cadastro automático recusado para "${actor.nome}": CPF/CNPJ ausente ou inválido na planilha. Cadastre a pessoa manualmente e tente novamente.`
+      );
+    }
     let payload: any = {
       user_id: crypto.randomUUID(),
       full_name: actor.nome,
