@@ -1090,6 +1090,20 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
 
 
+                  {validation && validation.actorsWithoutDoc.length > 0 && (
+                    <div className="border border-destructive/50 rounded-md p-2 bg-destructive/10 space-y-1">
+                      <p className="text-[11px] font-semibold flex items-center gap-1 text-destructive">
+                        <Users className="w-3.5 h-3.5" /> Sem CPF/CNPJ válido na planilha (cadastre manualmente antes de importar):
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {validation.actorsWithoutDoc.map((a) => (
+                          <span key={a.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-background border border-destructive/40 text-[10px]">
+                            {a.nome}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {validation && (validation.missingActors.length > 0 || validation.missingNaturezas.length > 0) && (
                     <div className="border rounded-md p-2 bg-blue-50 dark:bg-blue-950/20 space-y-2">
                       <p className="text-[11px] font-semibold flex items-center gap-1">
