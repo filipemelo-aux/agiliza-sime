@@ -348,6 +348,7 @@ function SidebarNav() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContentUI>
+      <ReadOnlyBanner />
     </Sidebar>
   );
 }
@@ -413,7 +414,6 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
       </header>
       <div className="h-14 shrink-0" />
       <main className="flex-1 min-h-0 overflow-y-auto">
-        <ReadOnlyBanner />
         <PageGate>{children}</PageGate>
       </main>
     </div>
@@ -424,7 +424,7 @@ function ReadOnlyBanner() {
   const { isConsultor } = useUserRole();
   if (!isConsultor) return null;
   return (
-    <div className="px-4 py-1.5 text-xs border-b border-border bg-muted text-muted-foreground">
+    <div className="px-3 py-2 text-[10px] leading-snug border-t border-sidebar-border/60 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden">
       Modo consulta: você pode visualizar tudo e emitir relatórios, mas não pode alterar informações.
     </div>
   );

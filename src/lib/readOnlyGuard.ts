@@ -50,7 +50,7 @@ export function setReadOnlyMode(on: boolean) {
 
 // ---- Desativa visualmente botões de criar/editar para o consultor ----
 const WRITE_WORDS = /\b(nov[oa]s?|adicionar|criar|cadastrar|editar|alterar|salvar|excluir|apagar|remover|deletar|importar|lan[cç]ar|pagar|quitar|receber|baixar pagamento|estornar|conciliar|vincular|desvincular|gerar|emitir|duplicar|faturar|transmitir|confirmar|aprovar|rejeitar|enviar|upload|anexar|parcelar|transferir|registrar|atualizar cadastro|inutilizar|cancelar (cte|mdf|fatura|cheque|nota))\b/i;
-const ALLOW_WORDS = /(sincronizar open finance|imprimir|relat[oó]rio|exportar|baixar pdf|download|visualizar|filtrar|limpar|buscar|pesquisar|fechar|voltar|atualizar$|detalhes|ver )/i;
+const ALLOW_WORDS = /(sincronizar open finance|contas a pagar|contas a receber|imprimir|relat[oó]rio|exportar|baixar pdf|download|visualizar|filtrar|limpar|buscar|pesquisar|fechar|voltar|atualizar$|detalhes|ver )/i;
 const WRITE_ICONS = ["lucide-plus", "lucide-pencil", "lucide-square-pen", "lucide-pen", "lucide-pen-line", "lucide-trash", "lucide-trash-2", "lucide-save", "lucide-upload", "lucide-circle-plus", "lucide-plus-circle", "lucide-copy-plus", "lucide-banknote", "lucide-hand-coins", "lucide-link", "lucide-unlink", "lucide-send"];
 let observer: MutationObserver | null = null;
 
