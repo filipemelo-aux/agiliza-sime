@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
       const roleClient = createClient(supabaseUrl, serviceKey);
       const { data: rs } = await roleClient.from("user_roles").select("role").eq("user_id", userData.user.id);
       const rl = (rs || []).map((r: any) => r.role);
-      if (!rl.some((r: string) => ["admin", "moderator", "operador"].includes(r))) {
+      if (!rl.some((r: string) => ["admin", "moderator", "operador", "consultor"].includes(r))) {
         return json({ error: "Sem permissão para sincronizar (acesso somente consulta)" }, 403);
       }
     }
