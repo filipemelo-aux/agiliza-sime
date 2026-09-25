@@ -19,10 +19,20 @@ import { quickPrintVisibleTable } from "@/lib/pdfDownload";
 
 function QuickPrint({ title, children }: { title: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [hasRows, setHasRows] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setHasRows(el.querySelectorAll("table tbody tr").length > 0);
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(el, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
   return (
     <div ref={ref} className="space-y-2">
       <div className="flex justify-end">
-        <Button type="button" size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => quickPrintVisibleTable(ref.current, title)}>
+        <Button type="button" size="sm" variant="outline" className="h-8 text-xs gap-1.5" disabled={!hasRows} onClick={() => quickPrintVisibleTable(ref.current, title)}>
           <Printer className="h-3.5 w-3.5" /> Imprimir
         </Button>
       </div>
