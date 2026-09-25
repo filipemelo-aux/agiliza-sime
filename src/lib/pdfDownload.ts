@@ -28,7 +28,6 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   const clean = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     // Remove barras/botões de impressão embutidos no documento (evita botão duplicado)
-    .replace(/<div[^>]*class="[^"]*\btoolbar\b[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "")
     .replace(/<button[^>]*window\.print\(\)[^>]*>[\s\S]*?<\/button>/gi, "")
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`)
     .replace(/<\/head>/i, `<style>
