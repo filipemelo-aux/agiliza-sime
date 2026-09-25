@@ -3,6 +3,7 @@
 // NÃO usar para cheques (layout próprio em checkPdf.ts).
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
 
 const MARGIN_MM = 12;
@@ -50,6 +51,12 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
     await new Promise((r) => setTimeout(r, 150));
     const body = doc.body;
     const fullH = body.scrollHeight + 20;
+    // Documentos longos com tabelas: PDF com texto nativo (rápido, sem "fotografar" a página)
+    if (fullH > 5000 && doc.querySelector("table")) {
+      renderNativePdf(doc, landscape, fileName);
+      toast.success("PDF salvo", { id: loading });
+      return;
+    }
     iframe.style.height = `${fullH}px`;
     // limita o tamanho do canvas (navegadores falham acima de ~16000px)
     const scale = Math.max(0.8, Math.min(2, 15000 / fullH));
@@ -82,6 +89,66 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   } finally {
     iframe.remove();
   }
+}
+
+function cellText(el: Element) {
+  return ((el as HTMLElement).innerText ?? el.textContent ?? "").replace(/[ \t]+/g, " ").trim();
+}
+
+/** Gera PDF com texto/tabelas nativas do jsPDF a partir do documento já montado. */
+function renderNativePdf(doc: Document, landscape: boolean, fileName: string) {
+  const pdf = new jsPDF({ orientation: landscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
+  const maxW = pdf.internal.pageSize.getWidth() - MARGIN_MM * 2;
+  let y = MARGIN_MM;
+  const ensure = (h: number) => {
+    if (y + h > pdf.internal.pageSize.getHeight() - MARGIN_MM) { pdf.addPage(); y = MARGIN_MM; }
+  };
+  const writeText = (text: string, size: number, bold: boolean, color: [number, number, number]) => {
+    pdf.setFont("helvetica", bold ? "bold" : "normal");
+    pdf.setFontSize(size);
+    pdf.setTextColor(...color);
+    const lines = pdf.splitTextToSize(text, maxW) as string[];
+    const lh = size * 0.42;
+    for (const l of lines) { ensure(lh); pdf.text(l, MARGIN_MM, y + lh * 0.8); y += lh; }
+    y += 1;
+  };
+  const walk = (node: Element) => {
+    for (const child of Array.from(node.children)) {
+      const tag = child.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE") continue;
+      const cs = doc.defaultView?.getComputedStyle(child);
+      if (cs && cs.display === "none") continue;
+      if (tag === "TABLE") {
+        const t = child as HTMLTableElement;
+        const head = Array.from(t.querySelectorAll("thead tr")).map((r) => Array.from(r.children).map(cellText));
+        const rows = Array.from(t.rows).filter((r) => r.parentElement?.tagName !== "THEAD");
+        const body = rows.map((r) => Array.from(r.cells).map((c) => ({
+          content: cellText(c),
+          colSpan: c.colSpan || 1,
+          styles: r.parentElement?.tagName === "TFOOT" ? { fontStyle: "bold" as const } : {},
+        })));
+        autoTable(pdf, {
+          head: head.length ? head : undefined,
+          body,
+          startY: y,
+          margin: { left: MARGIN_MM, right: MARGIN_MM, top: MARGIN_MM, bottom: MARGIN_MM },
+          styles: { fontSize: 7, cellPadding: 1.2, overflow: "linebreak" },
+          headStyles: { fillColor: [43, 76, 126], textColor: 255, fontSize: 7 },
+          alternateRowStyles: { fillColor: [246, 247, 249] },
+        });
+        y = (pdf as any).lastAutoTable.finalY + 3;
+        continue;
+      }
+      if (child.querySelector("table")) { walk(child); continue; }
+      const text = cellText(child);
+      if (!text) continue;
+      const big = /^H[1-2]$/.test(tag);
+      const mid = /^H[3-6]$/.test(tag);
+      writeText(text, big ? 12 : mid ? 10 : 8, big || mid, big ? [43, 76, 126] : [17, 17, 17]);
+    }
+  };
+  walk(doc.body);
+  pdf.save(`${sanitizeFileName(fileName)}.pdf`);
 }
 
 /** Extrai o <title> do HTML para usar como nome do arquivo. */
