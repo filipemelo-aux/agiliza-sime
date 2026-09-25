@@ -192,6 +192,8 @@ function CollapsibleSubmenu({
 function SidebarNav() {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
+  const { canAccessSettings } = useUserRole();
+  const menuItems = allMenuItems.filter((i: any) => canAccessSettings || i.url !== "/admin/settings");
 
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return location.pathname === url;
@@ -372,8 +374,19 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
       </header>
       <div className="h-14 shrink-0" />
       <main className="flex-1 min-h-0 overflow-y-auto">
+        <ReadOnlyBanner />
         {children}
       </main>
+    </div>
+  );
+}
+
+function ReadOnlyBanner() {
+  const { isConsultor } = useUserRole();
+  if (!isConsultor) return null;
+  return (
+    <div className="px-4 py-1.5 text-xs border-b border-border bg-muted text-muted-foreground">
+      Modo consulta: você pode visualizar tudo e emitir relatórios, mas não pode alterar informações.
     </div>
   );
 }
