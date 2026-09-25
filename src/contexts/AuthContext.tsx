@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { setReadOnlyMode } from "@/lib/readOnlyGuard";
+import { setReadOnlyMode, setReadOnlyUi } from "@/lib/readOnlyGuard";
 
 type AppRole = "admin" | "moderator" | "operador" | "consultor" | "user";
 
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchRoles]);
 
   const isConsultorOnly = roles.includes("consultor") && !isAdmin && !isModerator && !isOperador;
-  useEffect(() => { setReadOnlyMode(isConsultorOnly); }, [isConsultorOnly]);
+  useEffect(() => { setReadOnlyMode(isConsultorOnly); setReadOnlyUi(isConsultorOnly); }, [isConsultorOnly]);
 
   const isLoading = loading || (user !== null && rolesLoading);
 
