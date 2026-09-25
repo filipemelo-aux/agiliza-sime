@@ -227,7 +227,11 @@ Deno.serve(async (req) => {
     const from = typeof body?.from === "string" ? body.from : defaultFrom.toISOString().slice(0, 10);
     const to = typeof body?.to === "string" ? body.to : today.toISOString().slice(0, 10);
 
-    const mcp = new McpClient(apiUrl);
+    // Aceita URL completa (chave embutida) ou apenas a chave sk_live_… (Bearer no endpoint Banco MCP)
+    const cfg = apiUrl.trim();
+    const mcp = /^https?:\/\//i.test(cfg)
+      ? new McpClient(cfg)
+      : new McpClient("https://api.mcp.ai/banco", cfg);
     await mcp.initialize();
 
     const pickArray = (res: any): Record<string, any>[] => {
