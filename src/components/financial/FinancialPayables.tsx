@@ -1409,7 +1409,7 @@ tfoot{display:table-row-group}
 @media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
-<div class="toolbar no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+<div class="toolbar no-print"></div>
 <div class="wrap">
   <div class="head">
     <div style="flex:1"><h1>Relação de Contas a Pagar</h1><div class="per">Período: ${esc(periodo)} • ${rows.length} registro(s)</div></div>
