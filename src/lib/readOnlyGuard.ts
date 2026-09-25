@@ -20,7 +20,7 @@ function isWrite(url: string, method: string): boolean {
     if (url.includes("/object/sign") || url.includes("/object/list")) return false;
     return m !== "GET" && m !== "HEAD";
   }
-  if (url.includes("/functions/v1/")) return true;
+  if (url.includes("/functions/v1/")) return !url.includes("/functions/v1/open-finance-sync");
   return false;
 }
 
