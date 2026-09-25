@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Loader2 } from "lucide-react";
-import { maskCNPJ, unmaskCNPJ, maskName } from "@/lib/masks";
+import { maskCNPJ, unmaskCNPJ, maskDocument, maskName } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
 
 const UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
@@ -75,7 +75,7 @@ export function CteActorSection({
           onSelect={(person) => {
             set(`${prefix}_profile_id`, person.id);
             set(`${prefix}_nome`, person.razao_social || person.full_name);
-            if (person.cnpj) set(`${prefix}_cnpj`, maskCNPJ(person.cnpj));
+            if (person.cnpj) set(`${prefix}_cnpj`, maskDocument(person.cnpj));
             if (person.inscricao_estadual) set(`${prefix}_ie`, person.inscricao_estadual);
             if (person.address_state) set(`${prefix}_uf`, person.address_state);
             const endereco = [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ");
@@ -111,7 +111,7 @@ export function CteActorSection({
               value={form[`${prefix}_cnpj`] || ""}
               onChange={(e) => {
                 setCnpjError("");
-                const masked = maskCNPJ(e.target.value);
+                const masked = maskDocument(e.target.value);
                 set(`${prefix}_cnpj`, masked);
                 const raw = unmaskCNPJ(masked);
                 if (raw.length === 14) lookupCnpj(raw);

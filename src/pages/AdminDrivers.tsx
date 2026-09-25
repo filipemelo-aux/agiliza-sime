@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { maskPhone, maskCNPJ } from "@/lib/masks";
+import { maskPhone, maskCNPJ, maskDocument } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";
 import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -494,7 +494,7 @@ export default function AdminDrivers() {
               {viewPerson.person_type === "cnpj" && viewPerson.razao_social && (
                 <p className="text-muted-foreground">{viewPerson.razao_social}</p>
               )}
-              {viewPerson.cnpj && <p><span className="text-muted-foreground">CNPJ:</span> {maskCNPJ(viewPerson.cnpj)}</p>}
+              {viewPerson.cnpj && <p><span className="text-muted-foreground">{viewPerson.cnpj.replace(/\D/g, "").length <= 11 ? "CPF" : "CNPJ"}:</span> {maskDocument(viewPerson.cnpj)}</p>}
               {viewPersonDocs?.cpf && <p><span className="text-muted-foreground">CPF:</span> {viewPersonDocs.cpf}</p>}
               {viewPerson.phone && <p><span className="text-muted-foreground">Telefone:</span> {maskPhone(viewPerson.phone)}</p>}
               {viewPerson.email && <p><span className="text-muted-foreground">E-mail:</span> {viewPerson.email}</p>}

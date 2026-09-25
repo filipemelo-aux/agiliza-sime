@@ -209,3 +209,9 @@ export const formatCurrency = (value: number | string | null | undefined): strin
   const num = Number(value) || 0;
   return `R$ ${num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+
+/** Máscara automática: até 11 dígitos = CPF, acima = CNPJ. */
+export const maskDocument = (value: string | null | undefined): string => {
+  const d = String(value || "").replace(/\D/g, "");
+  return d.length <= 11 ? maskCPF(d) : maskCNPJ(d);
+};

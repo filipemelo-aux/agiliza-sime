@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Send, Loader2, Pencil, FileSignature, Printer, Trash2 } from "lucide-react";
-import { maskCNPJ, maskCurrency } from "@/lib/masks";
+import { maskCNPJ, maskDocument, maskCurrency } from "@/lib/masks";
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
@@ -77,7 +77,7 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{title}</h4>
         <Row label="Nome" value={nome} />
-        {cnpj && <Row label="CNPJ/CPF" value={maskCNPJ(cnpj)} />}
+        {cnpj && <Row label="CNPJ/CPF" value={maskDocument(cnpj)} />}
         {ie && <Row label="IE" value={ie} />}
         {endereco && <Row label="Endereço" value={endereco} />}
         {uf && <Row label="UF" value={uf} />}
@@ -384,7 +384,7 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
             {cte.tomador_tipo === 4 && cte.tomador_nome && (
               <>
                 <Row label="Nome" value={cte.tomador_nome} />
-                {cte.tomador_cnpj && <Row label="CNPJ/CPF" value={maskCNPJ(cte.tomador_cnpj)} />}
+                {cte.tomador_cnpj && <Row label="CNPJ/CPF" value={maskDocument(cte.tomador_cnpj)} />}
                 {cte.tomador_ie && <Row label="IE" value={cte.tomador_ie} />}
               </>
             )}
