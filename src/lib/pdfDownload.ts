@@ -27,6 +27,9 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   // Remove comandos antigos e inclui um único controle leve para imprimir novamente.
   const clean = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
+    // Remove barras/botões de impressão embutidos no documento (evita botão duplicado)
+    .replace(/<div[^>]*class="[^"]*\btoolbar\b[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "")
+    .replace(/<button[^>]*window\.print\(\)[^>]*>[\s\S]*?<\/button>/gi, "")
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`)
     .replace(/<\/head>/i, `<style>
       @page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${MARGIN_MM}mm!important}
@@ -71,7 +74,18 @@ export function quickPrintVisibleTable(anchor: HTMLElement | null, title: string
     void downloadHtmlAsPdf(html2, `${title} ${new Date().toISOString().slice(0, 10)}`, { landscape: true });
     return;
   }
+  // Se houver linhas selecionadas, imprime apenas elas
+  const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
+  const isSel = (r: Element) =>
+    r.getAttribute("aria-selected") === "true" || r.getAttribute("data-state") === "selected" ||
+    !!r.querySelector('button[role="checkbox"][data-state="checked"], [role="checkbox"][aria-checked="true"]') ||
+    Array.from(r.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).some((i) => i.checked);
+  const selectedIdx = new Set(bodyRows.map((r, i) => (isSel(r) ? i : -1)).filter((i) => i >= 0));
   const clone = table.cloneNode(true) as HTMLTableElement;
+  if (selectedIdx.size > 0) {
+    Array.from(clone.querySelectorAll("tbody tr")).forEach((r, i) => { if (!selectedIdx.has(i)) r.remove(); });
+    clone.querySelector("tfoot")?.remove();
+  }
   clone.querySelectorAll('input[type="checkbox"], button[role="checkbox"], svg').forEach((n) => n.remove());
   clone.querySelectorAll<HTMLElement>("*").forEach((n) => { n.removeAttribute("style"); n.removeAttribute("class"); });
   const now = new Date().toLocaleString("pt-BR");
