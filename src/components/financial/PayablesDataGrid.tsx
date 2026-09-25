@@ -441,15 +441,6 @@ tfoot{display:table-row-group}
 </body></html>`;
 
     downloadHtmlAsPdf(html, titleFromHtml(html, "Contas a Pagar"));
-    return;
-    const url = "";
-    const w = null as Window | null;
-    if (!w) {
-      URL.revokeObjectURL(url);
-      toast.error("Libere pop-ups para gerar a impressão");
-      return;
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 180000);
   };
 
 
