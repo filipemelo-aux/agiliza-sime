@@ -15,7 +15,12 @@ function isWrite(url: string, method: string): boolean {
     const name = url.split("/rest/v1/rpc/")[1]?.split("?")[0] || "";
     return !READ_RPC_PREFIXES.some((p) => name.startsWith(p));
   }
-  if (url.includes("/rest/v1/")) return m !== "GET" && m !== "HEAD";
+  if (url.includes("/rest/v1/")) {
+    // Todo usuário (inclusive consultor) pode editar o próprio perfil;
+    // as regras do banco já garantem que ele só altera a própria linha.
+    if (url.includes("/rest/v1/profiles")) return false;
+    return m !== "GET" && m !== "HEAD";
+  }
   if (url.includes("/storage/v1/object")) {
     if (url.includes("/object/sign") || url.includes("/object/list")) return false;
     return m !== "GET" && m !== "HEAD";
