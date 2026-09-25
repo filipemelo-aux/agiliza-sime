@@ -2206,7 +2206,7 @@ export function BankReconciliation() {
       setSyncing(false);
       setLoading(false);
     }
-  }, [runImport, syncDays, syncFrom, syncTo]);
+  }, [runImport, syncDays, syncFrom, syncTo, confirm]);
 
   const handleOpenFinanceSync = useCallback(async () => {
     const ok = await confirm({
