@@ -212,9 +212,23 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     setFileName(file.name);
     try {
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
+      let aoa: any[][];
+      // Relatório HTML salvo como .xls (padrão Cargil/e-login): converte a tabela de dados em matriz
+      const head = new TextDecoder("windows-1252").decode(buf.slice(0, 512));
+      if (/<\s*(html|table)/i.test(head)) {
+        const html = new TextDecoder("windows-1252").decode(buf);
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const tables = Array.from(doc.querySelectorAll("table"));
+        const dataTable = tables.find((t) => /conh/i.test(t.textContent || "") && /placa/i.test(t.textContent || ""));
+        if (!dataTable) throw new Error("Tabela de dados não encontrada no arquivo HTML.");
+        aoa = Array.from(dataTable.querySelectorAll("tr")).map((tr) =>
+          Array.from(tr.children).map((td) => (td.textContent || "").replace(/\s+/g, " ").trim())
+        );
+      } else {
+        const wb = XLSX.read(buf, { cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
+      }
 
       // Padrão fixo simples: DATA | REMETENTE | CPF/CNPJ | NATUREZA | DESTINATÁRIO | CPF/CNPJ | PLACA | PESO | VALOR
       // Padrão Cargil completo (18 colunas, cabeçalho duplo):
