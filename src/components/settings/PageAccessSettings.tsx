@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listSystemPages } from "@/components/AdminLayout";
-import { usePageRules, PAGE_RULES_KEY, MENU_PREFIX, type PageMode, type PageRule } from "@/hooks/usePageAccess";
+import { usePageRules, PAGE_RULES_KEY, MENU_PREFIX, type PageMode } from "@/hooks/usePageAccess";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
