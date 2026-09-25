@@ -12,7 +12,7 @@ import { BankReconciliation } from "@/components/financial/BankReconciliation";
 import { CreditCardInvoices } from "@/components/financial/CreditCardInvoices";
 import { FinancialReports } from "@/components/financial/FinancialReports";
 import { FinancialChecks } from "@/components/financial/FinancialChecks";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { quickPrintVisibleTable } from "@/lib/pdfDownload";
