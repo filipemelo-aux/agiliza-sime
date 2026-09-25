@@ -44,22 +44,6 @@ export function PageAccessSettings() {
   const refresh = () => qc.invalidateQueries({ queryKey: PAGE_RULES_KEY });
   const db = () => (supabase as any).from("page_access_rules");
 
-  const setGlobal = async (key: string, mode: PageMode, current?: PageRule) => {
-    let error;
-    if (mode === "active") { if (current) ({ error } = await db().delete().eq("id", current.id)); }
-    else if (current) ({ error } = await db().update({ mode }).eq("id", current.id));
-    else ({ error } = await db().insert({ page_url: key, mode, user_id: null }));
-    if (error) return toast.error(error.message);
-    refresh();
-  };
-
-  const saveMessage = async (rule: PageRule, message: string) => {
-    if ((rule.message || "") === message) return;
-    const { error } = await db().update({ message: message || null }).eq("id", rule.id);
-    if (error) return toast.error(error.message);
-    refresh();
-  };
-
   const addUserRules = async (key: string) => {
     const a = addFor[key];
     if (!a?.users.length) return toast.error("Escolha ao menos um usuário");
