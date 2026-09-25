@@ -246,11 +246,17 @@
       width: 70px !important;
     }
 
-    /* CT-e: Placa na largura do texto; o espaço restante vai para Cliente */
+    /* CT-e: Placa na largura do texto; Cliente absorve o espaço restante */
     .cte-grid .data-grid-table th[data-column-key="placa"],
     .cte-grid .data-grid-table td[data-column-key="placa"] {
       width: 80px !important;
     }
+
+    .cte-grid .data-grid-table th[data-column-key="cliente"],
+    .cte-grid .data-grid-table td[data-column-key="cliente"] {
+      width: auto !important;
+    }
+
 
 
 
