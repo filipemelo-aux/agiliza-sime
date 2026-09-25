@@ -227,12 +227,32 @@ Deno.serve(async (req) => {
     const from = typeof body?.from === "string" ? body.from : defaultFrom.toISOString().slice(0, 10);
     const to = typeof body?.to === "string" ? body.to : today.toISOString().slice(0, 10);
 
-    // Aceita URL completa (chave embutida) ou apenas a chave sk_live_… (Bearer no endpoint Banco MCP)
+    // Aceita URL completa MCP (chave embutida) ou chave sk_live_… (API REST do Banco MCP)
     const cfg = apiUrl.trim();
-    const mcp = /^https?:\/\//i.test(cfg)
-      ? new McpClient(cfg)
-      : new McpClient("https://api.mcp.ai/banco", cfg);
-    await mcp.initialize();
+    const REST_PATHS: Record<string, string> = {
+      openfinance_list_accounts: "accounts/list",
+      openfinance_list_transactions: "transactions/list",
+    };
+    const mcp: { callTool: (n: string, a?: Record<string, unknown>) => Promise<any> } = /^https?:\/\//i.test(cfg)
+      ? await (async () => { const c = new McpClient(cfg); await c.initialize(); return c; })()
+      : {
+          callTool: async (name, args = {}) => {
+            const res = await fetch(`https://api.mcp.ai/api/openfinance/${REST_PATHS[name] ?? name}`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${cfg}`, "Content-Type": "application/json", Accept: "application/json" },
+              body: JSON.stringify(args),
+            });
+            const text = await res.text();
+            let parsed: any = null;
+            try { parsed = JSON.parse(text); } catch { /* texto */ }
+            if (!res.ok && !parsed) throw new Error(`Erro na chamada ${name} (${res.status}): ${text.slice(0, 200)}`);
+            if (parsed?.ok === false || (parsed?.error && !parsed?.result)) {
+              const msg = typeof parsed.error === "string" ? parsed.error : parsed.error?.message;
+              throw new Error(msg || parsed.message || `Erro em ${name}`);
+            }
+            return parsed?.result ?? parsed ?? {};
+          },
+        };
 
     const pickArray = (res: any): Record<string, any>[] => {
       if (!res) return [];
