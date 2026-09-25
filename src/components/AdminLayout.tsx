@@ -381,6 +381,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
 function SidebarContentInner({ children, handleLogout, user }: { children: React.ReactNode; handleLogout: () => void; user: any }) {
   const { state, isMobile } = useSidebar();
+  const navigate = useNavigate();
   const isExpanded = state === "expanded";
   const headerLeft = isMobile ? "0px" : isExpanded ? "var(--sidebar-width)" : "var(--sidebar-width-icon)";
 
