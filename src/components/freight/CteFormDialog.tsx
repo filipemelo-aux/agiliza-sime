@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature } from "lucide-react";
-import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
+import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
@@ -218,7 +218,7 @@ function ActorSection({
           selectedName={form[`${prefix}_nome`] || undefined}
           onSelect={(person) => {
             set(`${prefix}_nome`, person.razao_social || person.full_name);
-            set(`${prefix}_cnpj`, person.cnpj ? maskCNPJ(person.cnpj) : form[`${prefix}_cnpj`]);
+            set(`${prefix}_cnpj`, person.cnpj ? maskDocument(person.cnpj) : form[`${prefix}_cnpj`]);
             set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
             set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
             set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
@@ -252,7 +252,7 @@ function ActorSection({
               value={form[`${prefix}_cnpj`]}
               onChange={(e) => {
                 setCnpjError("");
-                const masked = maskCNPJ(e.target.value);
+                const masked = maskDocument(e.target.value);
                 set(`${prefix}_cnpj`, masked);
                 const raw = unmaskCNPJ(masked);
                 if (raw.length === 14) lookupCnpj(raw, prefix);
@@ -354,32 +354,32 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         modal: cte.modal || "01",
         retira: cte.retira ?? 1,
         remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
-        remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
+        remetente_cnpj: cte.remetente_cnpj ? maskDocument(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
         remetente_endereco: cte.remetente_endereco || "",
         remetente_municipio_ibge: cte.remetente_municipio_ibge || "",
         remetente_uf: cte.remetente_uf || "",
         destinatario_nome: cte.destinatario_nome ? maskName(cte.destinatario_nome) : "",
-        destinatario_cnpj: cte.destinatario_cnpj ? maskCNPJ(cte.destinatario_cnpj) : "",
+        destinatario_cnpj: cte.destinatario_cnpj ? maskDocument(cte.destinatario_cnpj) : "",
         destinatario_ie: cte.destinatario_ie || "",
         destinatario_endereco: cte.destinatario_endereco || "",
         destinatario_municipio_ibge: cte.destinatario_municipio_ibge || "",
         destinatario_uf: cte.destinatario_uf || "",
         expedidor_nome: cte.expedidor_nome ? maskName(cte.expedidor_nome) : "",
-        expedidor_cnpj: cte.expedidor_cnpj ? maskCNPJ(cte.expedidor_cnpj) : "",
+        expedidor_cnpj: cte.expedidor_cnpj ? maskDocument(cte.expedidor_cnpj) : "",
         expedidor_ie: cte.expedidor_ie || "",
         expedidor_endereco: cte.expedidor_endereco || "",
         expedidor_municipio_ibge: cte.expedidor_municipio_ibge || "",
         expedidor_uf: cte.expedidor_uf || "",
         recebedor_nome: cte.recebedor_nome ? maskName(cte.recebedor_nome) : "",
-        recebedor_cnpj: cte.recebedor_cnpj ? maskCNPJ(cte.recebedor_cnpj) : "",
+        recebedor_cnpj: cte.recebedor_cnpj ? maskDocument(cte.recebedor_cnpj) : "",
         recebedor_ie: cte.recebedor_ie || "",
         recebedor_endereco: cte.recebedor_endereco || "",
         recebedor_municipio_ibge: cte.recebedor_municipio_ibge || "",
         recebedor_uf: cte.recebedor_uf || "",
         tomador_tipo: cte.tomador_tipo ?? null,
         tomador_nome: cte.tomador_nome ? maskName(cte.tomador_nome) : "",
-        tomador_cnpj: cte.tomador_cnpj ? maskCNPJ(cte.tomador_cnpj) : "",
+        tomador_cnpj: cte.tomador_cnpj ? maskDocument(cte.tomador_cnpj) : "",
         tomador_ie: cte.tomador_ie || "",
         tomador_endereco: cte.tomador_endereco || "",
         tomador_municipio_ibge: cte.tomador_municipio_ibge || "",
