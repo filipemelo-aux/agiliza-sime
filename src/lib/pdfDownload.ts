@@ -33,18 +33,30 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   const clean = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<\/head>/i, `<style>html,body{margin:0!important;padding:0!important;background:#fff!important;width:${widthPx}px!important}.no-print,.toolbar{display:none!important}</style></head>`);
-  document.body.appendChild(iframe);
+  const withTimeout = <T,>(p: Promise<T>, ms: number, msg: string) =>
+    Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
   try {
-    await new Promise<void>((resolve) => {
-      iframe.onload = () => resolve();
-      iframe.srcdoc = clean;
-    });
+    // srcdoc antes de anexar: evita que o load do about:blank resolva cedo demais
+    const loaded = new Promise<void>((resolve) => { iframe.onload = () => resolve(); });
+    iframe.srcdoc = clean;
+    document.body.appendChild(iframe);
+    await withTimeout(loaded, 10000, "tempo esgotado ao montar o documento");
     const doc = iframe.contentDocument!;
-    await Promise.all(Array.from(doc.images).map((img) => img.complete ? null : new Promise((r) => { img.onload = img.onerror = r; })));
+    // imagens que não carregam não podem travar a geração
+    await withTimeout(
+      Promise.all(Array.from(doc.images).map((img) => img.complete ? null : new Promise((r) => { img.onload = img.onerror = r; }))),
+      5000, "imagens",
+    ).catch(() => null);
     await new Promise((r) => setTimeout(r, 150));
     const body = doc.body;
-    iframe.style.height = `${body.scrollHeight + 20}px`;
-    const canvas = await html2canvas(body, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: widthPx, width: widthPx });
+    const fullH = body.scrollHeight + 20;
+    iframe.style.height = `${fullH}px`;
+    // limita o tamanho do canvas (navegadores falham acima de ~16000px)
+    const scale = Math.max(0.8, Math.min(2, 15000 / fullH));
+    const canvas = await withTimeout(
+      html2canvas(body, { scale, backgroundColor: "#ffffff", useCORS: true, windowWidth: widthPx, width: widthPx, logging: false }),
+      45000, "tempo esgotado ao gerar o PDF (documento muito grande)",
+    );
 
     const pdf = new jsPDF({ orientation: landscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
     const pxPerMm = canvas.width / contentWmm;

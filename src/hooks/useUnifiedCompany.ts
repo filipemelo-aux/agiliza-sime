@@ -28,21 +28,40 @@ export interface EstablishmentInfo {
  * - `unifiedCnpjs`: formatted string with both CNPJs
  * - `establishments`: raw list for fiscal-only use
  */
-export function useUnifiedCompany() {
-  const [establishments, setEstablishments] = useState<EstablishmentInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+// Cache compartilhado: evita milhares de consultas repetidas (uma por componente montado)
+let cache: { data: EstablishmentInfo[]; at: number } | null = null;
+let inflight: Promise<EstablishmentInfo[]> | null = null;
+const TTL = 5 * 60 * 1000;
 
-  useEffect(() => {
-    supabase
+function fetchEstablishments(): Promise<EstablishmentInfo[]> {
+  if (cache && Date.now() - cache.at < TTL) return Promise.resolve(cache.data);
+  if (inflight) return inflight;
+  inflight = (async () => {
+    const { data } = await supabase
       .from("fiscal_establishments")
       .select("id, razao_social, nome_fantasia, cnpj, type, inscricao_estadual, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, rntrc")
       .eq("active", true)
       .order("type")
-      .order("razao_social")
-      .then(({ data }) => {
-        setEstablishments((data as EstablishmentInfo[]) || []);
-        setLoading(false);
-      });
+      .order("razao_social");
+    const list = (data as EstablishmentInfo[]) || [];
+    cache = { data: list, at: Date.now() };
+    return list;
+  })().finally(() => { inflight = null; });
+  return inflight;
+}
+
+export function useUnifiedCompany() {
+  const [establishments, setEstablishments] = useState<EstablishmentInfo[]>(cache?.data || []);
+  const [loading, setLoading] = useState(!cache);
+
+  useEffect(() => {
+    let alive = true;
+    fetchEstablishments().then((list) => {
+      if (!alive) return;
+      setEstablishments(list);
+      setLoading(false);
+    });
+    return () => { alive = false; };
   }, []);
 
   const matriz = useMemo(
