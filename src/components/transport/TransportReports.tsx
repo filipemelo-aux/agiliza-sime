@@ -1,4 +1,5 @@
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -827,18 +828,11 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   const handlePrint = async () => {
     if (!rows.length) return toast.warning("Nenhum dado para imprimir");
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
-
     try {
       const html = buildReportHtml(await getReportMeta());
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
+      await downloadHtmlAsPdf(html, titleFromHtml(html, "Relatorio Transporte"));
     } catch (e: any) {
-      printWindow.close();
-      toast.error("Erro ao abrir impressão", { description: e?.message });
+      toast.error("Erro ao gerar PDF", { description: e?.message });
     }
   };
 
