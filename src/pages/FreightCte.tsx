@@ -468,12 +468,12 @@ export default function FreightCte() {
       ),
     },
     {
-      key: "talao", header: "Talão", width: "100px",
+      key: "talao", header: "Talão", width: "70px",
       sortValue: (c) => c.tipo_talao || "",
-      cell: (c) => <span className="text-muted-foreground">{c.tipo_talao === "servico" ? "Serviço" : "Produção"}</span>,
+      cell: (c) => <span className="text-muted-foreground whitespace-nowrap">{c.tipo_talao === "servico" ? "Serviço" : "Produção"}</span>,
     },
     {
-      key: "data", header: "Data Emissão", width: "120px",
+      key: "data", header: "Emissão", width: "86px",
       sortValue: (c) => getEmissaoDate(c),
       cell: (c) => <span className="tabular-nums whitespace-nowrap">{formatDateBR(getEmissaoDate(c))}</span>,
     },

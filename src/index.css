@@ -240,6 +240,13 @@
       width: 76px !important;
     }
 
+    /* Coluna Talão: largura do texto ("Serviço" / "Produção") */
+    .data-grid-table th[data-column-key="talao"],
+    .data-grid-table td[data-column-key="talao"] {
+      width: 70px !important;
+    }
+
+
     .data-grid-table th[data-column-key="data"],
     .data-grid-table td[data-column-key="data"],
     .data-grid-table th[data-column-key="bomPara"],
