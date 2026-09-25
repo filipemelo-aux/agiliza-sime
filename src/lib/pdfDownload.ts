@@ -76,3 +76,23 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
 export function titleFromHtml(html: string, fallback = "documento") {
   return html.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() || fallback;
 }
+
+/** Impressão rápida: gera PDF da tabela visível na área (a partir de um elemento de referência). */
+export function quickPrintVisibleTable(anchor: HTMLElement | null, title: string) {
+  let el: HTMLElement | null = anchor;
+  let table: HTMLTableElement | null = null;
+  while (el && !table) { table = el.querySelector("table"); el = el.parentElement; }
+  if (!table) { toast.warning("Nenhuma tabela para imprimir nesta tela"); return; }
+  const clone = table.cloneNode(true) as HTMLTableElement;
+  clone.querySelectorAll('input[type="checkbox"], button[role="checkbox"], svg').forEach((n) => n.remove());
+  clone.querySelectorAll<HTMLElement>("*").forEach((n) => { n.removeAttribute("style"); n.removeAttribute("class"); });
+  const now = new Date().toLocaleString("pt-BR");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px}
+    h1{font-size:15px;margin:0 0 2px;color:#2B4C7E} .sub{color:#666;font-size:9px;margin-bottom:8px}
+    table{width:100%;border-collapse:collapse} th{background:#2B4C7E;color:#fff;text-align:left;padding:4px;font-size:9px}
+    td{padding:3px 4px;border-bottom:1px solid #ddd;font-size:9px;vertical-align:top} tr:nth-child(even) td{background:#f6f7f9}
+  </style></head><body><h1>SIME TRANSPORTES — ${title}</h1><div class="sub">Gerado em ${now}</div>${clone.outerHTML}</body></html>`;
+  const cols = clone.querySelectorAll("thead th").length;
+  void downloadHtmlAsPdf(html, `${title} ${new Date().toISOString().slice(0, 10)}`, { landscape: cols > 7 });
+}
