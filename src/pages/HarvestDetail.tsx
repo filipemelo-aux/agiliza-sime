@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock, Receipt, Undo2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -870,13 +871,7 @@ export default function HarvestDetail() {
     } else {
       docTitle = `relatorio-colheita-completo-${clienteSlug}-${periodoSlug}`;
     }
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => printWindow.print(), 300);
-    }
+    downloadHtmlAsPdf(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`, docTitle);
   };
 
   const handleToggleStatus = async () => {
@@ -1038,13 +1033,7 @@ export default function HarvestDetail() {
         .toLowerCase();
     const periodoSlug = `${filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio"}-a-${filterEndDate ? filterEndDate.replace(/-/g, "") : "atual"}`;
     const docTitle = `recibo-colheita-${slug(ownerName)}-${slug(job.client_name || job.farm_name)}-${periodoSlug}`;
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => printWindow.print(), 300);
-    }
+    downloadHtmlAsPdf(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`, docTitle);
   };
 
   // Helper: convert value to words (simplified Brazilian Portuguese)

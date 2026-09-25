@@ -1,6 +1,7 @@
 // Shared helper that fetches full driver/owner details and builds the
 // rich Contrato de Afretamento HTML, modeled after the Bsoft TMS layout.
 import { supabase } from "@/integrations/supabase/client";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { maskCPF, maskCNPJ, maskCEP, maskPhone } from "@/lib/masks";
 
 export interface ContractPrintInput {
@@ -490,8 +491,5 @@ ${bodies.map((b) => `<div class="doc-page">${b}</div>`).join("\n")}
 }
 
 export function openPrintWindow(html: string) {
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const w = window.open(url, "_blank");
-  if (w) w.onload = () => setTimeout(() => w.print(), 400);
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"));
 }

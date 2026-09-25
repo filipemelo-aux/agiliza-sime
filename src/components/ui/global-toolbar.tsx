@@ -16,6 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { isWriteActionLabel, isPrintActionLabel } from "@/lib/readOnlyGuard";
+import { Printer } from "lucide-react";
+import { quickPrintVisibleTable } from "@/lib/pdfDownload";
 
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
 
@@ -225,7 +227,13 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     if (enabled && a.priority) return 0;
     return enabled ? 1 : 2;
   };
-  const orderedActions = [...actions].filter((a) => !a.hidden).sort((a, b) => rank(a) - rank(b));
+  // Impressão rápida automática em todas as áreas financeiras que ainda não têm botão de imprimir
+  const isFinancialArea = typeof window !== "undefined" && window.location.pathname.startsWith("/admin/financial") && !window.location.pathname.includes("/reports");
+  const hasPrint = actions.some((a) => !a.hidden && isPrintActionLabel(a.label));
+  const allActions: ToolbarAction[] = isFinancialArea && !hasPrint
+    ? [...actions, { key: "__quick-print", label: "Imprimir", icon: Printer, mode: "always", onClick: () => quickPrintVisibleTable(ref.current, document.querySelector("main h1, h1")?.textContent?.trim() || "Relatório") }]
+    : actions;
+  const orderedActions = [...allActions].filter((a) => !a.hidden).sort((a, b) => rank(a) - rank(b));
 
 
   if (filtersFirstOnMobile) {

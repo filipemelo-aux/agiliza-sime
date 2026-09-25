@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useNavigate } from "react-router-dom";
 import { FileSpreadsheet, Search, Download, Users, Car, Package, FolderTree, Printer } from "lucide-react";
 import { format } from "date-fns";
@@ -166,15 +167,7 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 </table>
 </body></html>`;
 
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
-  if (win) {
-    win.onload = () => { win.focus(); win.print(); };
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } else {
-    window.location.href = url;
-  }
+  downloadHtmlAsPdf(html, titleFromHtml(html, "Relatorio"));
 }
 
 function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled: boolean }) {

@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 
 const formatCurrency = (v: number | null) =>
   v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
@@ -131,10 +132,5 @@ ${q.observacoes ? `<h2>Observações</h2><div class="obs">${q.observacoes}</div>
 
 </body></html>`;
 
-  const printWindow = window.open("", "_blank");
-  if (printWindow) {
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
-  }
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Cotacao"));
 }

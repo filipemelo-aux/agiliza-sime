@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -144,13 +145,7 @@ ${i.observacoes ? `<div class="obs"><strong>Observações:</strong>\n${escapeHtm
 <script>window.onload = () => setTimeout(() => window.print(), 400);</script>
 </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) {
-    toast.error("Bloqueador de pop-ups impediu a impressão.");
-    return;
-  }
-  w.document.write(html);
-  w.document.close();
+  downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura Cartao"));
 }
 
 function escapeHtml(s: any): string {

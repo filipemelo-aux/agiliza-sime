@@ -14,6 +14,7 @@
  * Impressão via HTML Blob (padrão do projeto — sem bibliotecas de PDF).
  */
 import { calcularINSS, calcularIRRF } from "@/services/rh/tributosFolhaService";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
@@ -353,12 +354,8 @@ ${itens
 
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
-  const w = window.open(url, "_blank");
-  if (!w) {
-    URL.revokeObjectURL(url);
-    throw new Error("Bloqueio de pop-up impediu a abertura do documento.");
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  URL.revokeObjectURL(url);
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Folha de Pagamento"));
 }
 
 /** Gera somente os recibos dos colaboradores selecionados, sem o resumo geral. */
@@ -412,10 +409,6 @@ ${itens.map((i) => `<div class="pagina">${reciboHtml(folha, i, "1ª via — Empr
 </body></html>`;
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
-  const w = window.open(url, "_blank");
-  if (!w) {
-    URL.revokeObjectURL(url);
-    throw new Error("Bloqueio de pop-up impediu a abertura dos recibos.");
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  URL.revokeObjectURL(url);
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Folha de Pagamento"));
 }

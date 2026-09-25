@@ -12,6 +12,24 @@ import { BankReconciliation } from "@/components/financial/BankReconciliation";
 import { CreditCardInvoices } from "@/components/financial/CreditCardInvoices";
 import { FinancialReports } from "@/components/financial/FinancialReports";
 import { FinancialChecks } from "@/components/financial/FinancialChecks";
+import { useRef } from "react";
+import { Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { quickPrintVisibleTable } from "@/lib/pdfDownload";
+
+function QuickPrint({ title, children }: { title: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  return (
+    <div ref={ref} className="space-y-2">
+      <div className="flex justify-end">
+        <Button type="button" size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => quickPrintVisibleTable(ref.current, title)}>
+          <Printer className="h-3.5 w-3.5" /> Imprimir
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function AdminFinancial({ section = "payables" }: { section?: string }) {
   return (
@@ -26,7 +44,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "receipts" && (
           <>
             <h1 className="text-lg font-bold text-foreground">Recibos</h1>
-            <FinancialReceipts />
+            <QuickPrint title="Recibos"><FinancialReceipts /></QuickPrint>
           </>
         )}
         {section === "chart" && (
@@ -35,7 +53,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
             <ChartOfAccounts />
           </>
         )}
-        {section === "cashflow" && <FinancialCashFlow />}
+        {section === "cashflow" && <QuickPrint title="Fluxo de Caixa"><FinancialCashFlow /></QuickPrint>}
         {section === "reconciliation" && <BankReconciliation />}
         {section === "credit-card" && <CreditCardInvoices />}
         {section === "checks" && <FinancialChecks />}
