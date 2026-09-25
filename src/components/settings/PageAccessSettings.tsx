@@ -67,7 +67,6 @@ export function PageAccessSettings() {
 
   const renderRow = (key: string, title: string, subtitle: string) => {
     const g = rules.find((r) => r.page_url === key && !r.user_id);
-    const gMode: PageMode = g?.mode || "active";
     const userRules = rules.filter((r) => r.page_url === key && r.user_id);
     const a = addFor[key] || { users: [], mode: "active" as PageMode };
     const setA = (v: Partial<typeof a>) => setAddFor((s) => ({ ...s, [key]: { ...a, ...v } }));
@@ -79,16 +78,12 @@ export function PageAccessSettings() {
             <div className="text-xs font-medium">{title}</div>
             <div className="text-[11px] text-muted-foreground">{subtitle}</div>
           </div>
-          <span className="text-[11px] text-muted-foreground">Para todos:</span>
-          <Select value={gMode} onValueChange={(v) => setGlobal(key, v as PageMode, g)}>
-            <SelectTrigger className="h-7 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(MODE_LABEL) as PageMode[]).map((m) => <SelectItem key={m} value={m} className="text-xs">{MODE_LABEL[m]}</SelectItem>)}
-            </SelectContent>
-          </Select>
         </div>
-        {g && gMode !== "active" && (
-          <Input defaultValue={g.message || ""} placeholder="Mensagem exibida (opcional)" className="h-7 text-xs" onBlur={(e) => saveMessage(g, e.target.value.trim())} />
+        {g && (
+          <Badge variant={MODE_VARIANT[g.mode]} className="text-[11px] gap-1 w-fit">
+            Todos: {MODE_LABEL[g.mode]}
+            <button type="button" onClick={() => removeRule(g.id)} aria-label="Remover regra geral"><Trash2 className="h-3 w-3" /></button>
+          </Badge>
         )}
         {userRules.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -105,7 +100,7 @@ export function PageAccessSettings() {
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" size="sm" className="h-7 w-[220px] justify-between text-xs font-normal">
                 <span className="truncate">
-                  {a.users.length === 0 ? "Usuários específicos..." : a.users.length === 1 ? userName(a.users[0]) : `${a.users.length} usuários selecionados`}
+                  {a.users.length === 0 ? "Selecionar usuários..." : a.users.length === 1 ? userName(a.users[0]) : `${a.users.length} usuários selecionados`}
                 </span>
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </Button>
