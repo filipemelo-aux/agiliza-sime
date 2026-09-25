@@ -90,8 +90,8 @@ export function quickPrintVisibleTable(anchor: HTMLElement | null, title: string
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>
     body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px}
     h1{font-size:15px;margin:0 0 2px;color:#2B4C7E} .sub{color:#666;font-size:9px;margin-bottom:8px}
-    table{width:100%;border-collapse:collapse} th{background:#2B4C7E;color:#fff;text-align:left;padding:4px;font-size:9px}
-    td{padding:3px 4px;border-bottom:1px solid #ddd;font-size:9px;vertical-align:top} tr:nth-child(even) td{background:#f6f7f9}
+    table{width:100%;border-collapse:collapse} th{background:#2B4C7E;color:#fff;text-align:left;padding:5px 4px 7px;font-size:9px;line-height:1.4}
+    td{padding:3px 4px 5px;line-height:1.4;border-bottom:1px solid #ddd;font-size:9px;vertical-align:top} tr:nth-child(even) td{background:#f6f7f9}
   </style></head><body><h1>SIME TRANSPORTES — ${title}</h1><div class="sub">Gerado em ${now}</div>${clone.outerHTML}</body></html>`;
   const cols = clone.querySelectorAll("thead th").length;
   void downloadHtmlAsPdf(html, `${title} ${new Date().toISOString().slice(0, 10)}`, { landscape: cols > 7 });
