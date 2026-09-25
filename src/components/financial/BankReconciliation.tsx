@@ -1313,6 +1313,7 @@ export function BankReconciliation() {
             descricao: fat ? `Fatura #${fat.numero}` : "Conta a Receber",
             favorecido_nome: cli?.razao_social || cli?.full_name || "Cliente",
             cliente_nome_lower: ((cli?.razao_social || cli?.full_name || "") as string).toLowerCase(),
+            cliente_documento: cli?.cnpj || null,
             documento_fiscal_numero: fat?.numero ? String(fat.numero) : null,
             valor_total: valor,
             valor_pago: recebido,
@@ -1323,12 +1324,15 @@ export function BankReconciliation() {
           });
         }
 
-        // 6) Filtro client-side por texto (nome cliente / número fatura / data)
+        // 6) Filtro client-side por texto (nome cliente / descrição / número fatura / data)
         if (safe.length >= 2) {
           const needle = safe.toLowerCase();
+          const needleDigits = safe.replace(/\D/g, "");
           results = results.filter((r) =>
             (r.cliente_nome_lower || "").includes(needle) ||
+            String(r.descricao || "").toLowerCase().includes(needle) ||
             (r.documento_fiscal_numero || "").includes(safe) ||
+            (needleDigits.length >= 3 && String(r.cliente_documento || "").replace(/\D/g, "").includes(needleDigits)) ||
             (queryDate && r.data_vencimento === queryDate) ||
             (faturaNum && Number(r.fatura_numero) === faturaNum)
           );
