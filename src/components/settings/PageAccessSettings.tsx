@@ -144,7 +144,7 @@ export function PageAccessSettings() {
       <div>
         <h2 className="text-lg font-semibold">Páginas do Sistema</h2>
         <p className="text-sm text-muted-foreground">
-          Oculte ou coloque em manutenção um menu inteiro ou qualquer página, para todos ou para usuários específicos. A regra do usuário tem prioridade sobre a geral, e a regra da página tem prioridade sobre a do menu. Administradores e moderadores sempre enxergam tudo.
+          Oculte ou coloque em manutenção um menu inteiro ou qualquer página para usuários específicos. A regra da página tem prioridade sobre a do menu. Administradores e moderadores sempre enxergam tudo.
         </p>
       </div>
       <Input placeholder="Buscar página ou menu..." value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 max-w-sm text-xs" />
