@@ -379,6 +379,50 @@ function formToPayload(form: FormState) {
   };
 }
 
+/** Dados básicos obrigatórios: nome, CPF/CNPJ, telefone e endereço. */
+function validateBasics(form: FormState): string | null {
+  const isPJ = form.category !== "motorista" && form.category !== "colaborador" && form.person_type === "cnpj";
+  const missing: string[] = [];
+  if (!form.full_name.trim()) missing.push(isPJ ? "Razão Social" : "Nome");
+  const doc = isPJ ? unmaskCNPJ(form.cnpj) : unmaskCPF(form.cpf);
+  if (isPJ ? doc.length !== 14 : doc.length !== 11) missing.push(isPJ ? "CNPJ" : "CPF");
+  if (unmaskPhone(form.phone).length < 10) missing.push("Telefone");
+  if (!form.address_street.trim()) missing.push("Endereço (rua)");
+  if (!form.address_city.trim()) missing.push("Cidade");
+  if (!form.address_state.trim()) missing.push("UF");
+  return missing.length ? `Preencha: ${missing.join(", ")}.` : null;
+}
+
+/** Bloqueia duplicidade por nome (qualquer categoria) e por CPF/CNPJ. */
+async function findDuplicate(form: FormState, excludeId?: string): Promise<string | null> {
+  const isPJ = form.category !== "motorista" && form.category !== "colaborador" && form.person_type === "cnpj";
+  const doc = isPJ ? unmaskCNPJ(form.cnpj) : unmaskCPF(form.cpf);
+  const name = form.full_name.trim();
+  if (doc) {
+    let q = supabase.from("profiles").select("id, full_name").eq("cnpj", doc).limit(1);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q;
+    if (data?.[0]) return `${isPJ ? "CNPJ" : "CPF"} já cadastrado para "${data[0].full_name}".`;
+    if (!isPJ) {
+      const { data: dd } = await supabase.from("driver_documents").select("user_id").eq("cpf", doc).limit(1);
+      if (dd?.[0]) {
+        let pq = supabase.from("profiles").select("id, full_name").eq("user_id", dd[0].user_id).limit(1);
+        if (excludeId) pq = pq.neq("id", excludeId);
+        const { data: p } = await pq;
+        if (p?.[0]) return `CPF já cadastrado para "${p[0].full_name}".`;
+      }
+    }
+  }
+  if (name) {
+    let q = supabase.from("profiles").select("id, full_name").ilike("full_name", name.replace(/[%_]/g, "")).limit(1);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q;
+    if (data?.[0]) return `Já existe um cadastro com o nome "${data[0].full_name}". Use o cadastro existente.`;
+  }
+  return null;
+}
+
+
 // ---- EDIT DIALOG ----
 interface PersonEditDialogProps {
   person: PersonProfile | null;
@@ -417,12 +461,18 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
 
   const handleSave = async () => {
     if (!person) return;
-    if (!form.full_name.trim()) {
-      toast({ title: form.person_type === "cnpj" ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
+    const basicErr = validateBasics(form);
+    if (basicErr) {
+      toast({ title: "Dados básicos obrigatórios", description: basicErr, variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
+      const dup = await findDuplicate(form, person.id);
+      if (dup) {
+        toast({ title: "Cadastro duplicado", description: dup, variant: "destructive" });
+        return;
+      }
       const newUserId = person.user_id;
 
       const payload = formToPayload(form) as any;
@@ -538,8 +588,9 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
 
   const doCreate = async (): Promise<string | null> => {
-    if (!form.full_name.trim()) {
-      toast({ title: form.person_type === "cnpj" ? "Razão Social é obrigatória" : "Nome é obrigatório", variant: "destructive" });
+    const basicErr = validateBasics(form);
+    if (basicErr) {
+      toast({ title: "Dados básicos obrigatórios", description: basicErr, variant: "destructive" });
       return null;
     }
     setLoading(true);
@@ -547,59 +598,11 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      // ---- Validação de duplicidade ----
-      const isMotorista = form.category === "motorista";
-      const isColaborador = form.category === "colaborador";
-      const rawCpf = unmaskCPF(form.cpf);
-      const rawCnpj = unmaskCNPJ(form.cnpj);
-      const trimmedName = form.full_name.trim();
-
-      // 1) CNPJ duplicado (PJ)
-      if (!isMotorista && !isColaborador && form.person_type === "cnpj" && rawCnpj.length === 14) {
-        const { data: dupCnpj } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .eq("cnpj", rawCnpj)
-          .maybeSingle();
-        if (dupCnpj) {
-          toast({ title: "CNPJ já cadastrado", description: `Vinculado a "${dupCnpj.full_name}".`, variant: "destructive" });
-          setLoading(false);
-          return null;
-        }
-      }
-
-      // 2) CPF duplicado (motorista/colaborador/PF) — checa em driver_documents
-      if (rawCpf.length === 11) {
-        const { data: dupCpfDoc } = await supabase
-          .from("driver_documents")
-          .select("user_id")
-          .eq("cpf", rawCpf)
-          .maybeSingle();
-        if (dupCpfDoc) {
-          const { data: dupProfile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", dupCpfDoc.user_id)
-            .maybeSingle();
-          toast({ title: "CPF já cadastrado", description: `Vinculado a "${dupProfile?.full_name || "outro registro"}".`, variant: "destructive" });
-          setLoading(false);
-          return null;
-        }
-      }
-
-      // 3) Nome + categoria duplicados (fallback quando não há documento)
-      if (trimmedName) {
-        const { data: dupName } = await supabase
-          .from("profiles")
-          .select("id")
-          .ilike("full_name", trimmedName)
-          .eq("category", form.category)
-          .maybeSingle();
-        if (dupName) {
-          toast({ title: "Pessoa já cadastrada", description: `Já existe um(a) ${form.category} com o nome "${trimmedName}".`, variant: "destructive" });
-          setLoading(false);
-          return null;
-        }
+      const dup = await findDuplicate(form);
+      if (dup) {
+        toast({ title: "Cadastro duplicado", description: dup, variant: "destructive" });
+        setLoading(false);
+        return null;
       }
 
       const profileUserId = crypto.randomUUID();
