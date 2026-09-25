@@ -231,7 +231,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const isFinancialArea = typeof window !== "undefined" && window.location.pathname.startsWith("/admin/financial") && !window.location.pathname.includes("/reports");
   const hasPrint = actions.some((a) => !a.hidden && isPrintActionLabel(a.label));
   const allActions: ToolbarAction[] = isFinancialArea && !hasPrint
-    ? [...actions, { key: "__quick-print", label: "Imprimir", icon: Printer, mode: "always", onClick: () => quickPrintVisibleTable(ref.current, document.querySelector("main h1, h1")?.textContent?.trim() || "Relatório") }]
+    ? [...actions, { key: "__quick-print", label: "Imprimir", icon: Printer, mode: "batch", onClick: () => quickPrintVisibleTable(ref.current, document.querySelector("main h1, h1")?.textContent?.trim() || "Relatório") }]
     : actions;
   const orderedActions = [...allActions].filter((a) => !a.hidden).sort((a, b) => rank(a) - rank(b));
 
