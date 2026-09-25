@@ -895,6 +895,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     // Create second expense for NFSe/Ordem de Serviço if enabled
     if (hasNfse && nfseValorTotal > 0) {
+      if (nfseFornecedorNome.trim() && !nfseFornecedorId) {
+        toast.error(
+          `O fornecedor da NFSe "${nfseFornecedorNome.trim()}" não tem cadastro vinculado. Selecione-o na busca ou cadastre-o antes de salvar.`,
+          { duration: 6000 }
+        );
+        setSaving(false);
+        return;
+      }
       const nfseDescStr = nfseItens.map(i => i.descricao).join(", ");
       const nfsePayload: any = {
         empresa_id: empresaSelecionada || empresaId || null,
