@@ -399,7 +399,9 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
         {user && (
           <div className="flex items-center gap-2 sm:gap-4">
             <NotificationBell userId={user.id} />
-            <UserAvatar userId={user.id} showName size="sm" />
+            <button type="button" onClick={() => navigate("/admin/settings")} title="Meu perfil" className="rounded-md px-1 hover:bg-accent transition-colors">
+              <UserAvatar userId={user.id} showName size="sm" />
+            </button>
             <Button
               variant="ghost"
               size="icon"
