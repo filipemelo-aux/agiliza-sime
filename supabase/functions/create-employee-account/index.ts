@@ -77,7 +77,7 @@ serve(async (req) => {
     }
 
     let assignRole = role || "user";
-    const validRoles = ["user", "moderator", "operador"];
+    const validRoles = ["user", "moderator", "operador", "consultor"];
     if (!validRoles.includes(assignRole)) assignRole = "user";
     if (isModerator && !isAdmin && assignRole === "moderator") {
       throw new Error("Apenas administradores podem criar moderadores");
@@ -115,7 +115,7 @@ serve(async (req) => {
       .from("user_roles")
       .select("role")
       .eq("user_id", authUserId)
-      .in("role", ["user", "moderator", "operador"]);
+      .in("role", ["user", "moderator", "operador", "consultor"]);
     if (existingRolesError) throw existingRolesError;
 
     const hasTargetRole = (existingRoles || []).some((r: any) => r.role === assignRole);
@@ -124,7 +124,7 @@ serve(async (req) => {
         .from("user_roles")
         .delete()
         .eq("user_id", authUserId)
-        .in("role", ["user", "moderator", "operador"]);
+        .in("role", ["user", "moderator", "operador", "consultor"]);
       if (clearRolesError) throw clearRolesError;
 
       const { error: roleError } = await adminClient.from("user_roles").insert({
