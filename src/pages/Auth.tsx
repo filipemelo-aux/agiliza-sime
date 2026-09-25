@@ -54,7 +54,8 @@ export default function Auth() {
     if (isAdmin || isModerator || isOperador || isConsultor) {
       navigate("/admin");
     } else {
-      navigate("/my-applications");
+      await supabase.auth.signOut();
+      toast({ title: "Acesso não liberado", description: "Seu usuário ainda não possui perfil de acesso ao sistema.", variant: "destructive" });
     }
   };
 
