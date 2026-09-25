@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckLayoutsSettings } from "@/components/settings/CheckLayoutsSettings";
+import { PageAccessSettings } from "@/components/settings/PageAccessSettings";
+import { LayoutGrid } from "lucide-react";
 import { Printer } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -481,7 +483,7 @@ export default function AdminSettings() {
 
         {/* Tabs */}
         <Tabs value={isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "perfil" : activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-5"}`}>
+          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-6 max-w-3xl"}`}>
             {(isCurrentUserAdmin || isCurrentUserModerator) && (
               <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
                 <Users className="w-4 h-4" />
@@ -504,6 +506,12 @@ export default function AdminSettings() {
               <TabsTrigger value="cheques" className="gap-2 text-xs sm:text-sm">
                 <Printer className="w-4 h-4" />
                 Cheques
+              </TabsTrigger>
+            )}
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="paginas" className="gap-2 text-xs sm:text-sm">
+                <LayoutGrid className="w-4 h-4" />
+                Páginas
               </TabsTrigger>
             )}
             <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
@@ -649,6 +657,10 @@ export default function AdminSettings() {
           </TabsContent>
 
           {/* ===== TAB CHEQUES ===== */}
+          <TabsContent value="paginas" className="space-y-6">
+            <PageAccessSettings />
+          </TabsContent>
+
           <TabsContent value="cheques" className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold">Emissor de Cheques</h2>

@@ -5,6 +5,7 @@ import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePageAccess } from "@/hooks/usePageAccess";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
@@ -25,7 +26,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect, useRef, useCallback, type UIEvent } from "react";
 
-const allMenuItems = [
+export const allMenuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   {
     title: "Financeiro",
@@ -189,11 +190,49 @@ function CollapsibleSubmenu({
 
 
 
+/** Lista plana de todas as páginas do menu (para gerenciamento de acesso). */
+export function listSystemPages(): { url: string; title: string; group: string }[] {
+  const out: { url: string; title: string; group: string }[] = [];
+  (allMenuItems as any[]).forEach((i) => {
+    if (i.title === "_spacer") return;
+    if (i.children) i.children.forEach((c: any) => {
+      if (c.submenu) c.submenu.forEach((s: any) => out.push({ url: s.url, title: s.title, group: `${i.title} › ${c.title}` }));
+      else out.push({ url: c.url, title: c.title, group: i.title });
+    });
+    else out.push({ url: i.url, title: i.title, group: "Geral" });
+  });
+  return out;
+}
+
+export function matchPageUrl(pathname: string): string | null {
+  const pages = listSystemPages().map((p) => p.url).sort((a, b) => b.length - a.length);
+  if (pathname === "/admin") return "/admin";
+  return pages.find((u) => u !== "/admin" && (pathname === u || pathname.startsWith(u + "/"))) || null;
+}
+
+function filterMenu(items: any[], hidden: (u: string) => boolean): any[] {
+  return items
+    .map((i) => {
+      if (i.children) {
+        const children = i.children
+          .map((c: any) => (c.submenu ? { ...c, submenu: c.submenu.filter((s: any) => !hidden(s.url)) } : c))
+          .filter((c: any) => (c.submenu ? c.submenu.length > 0 : !hidden(c.url)));
+        return children.length ? { ...i, children } : null;
+      }
+      return i.url && hidden(i.url) ? null : i;
+    })
+    .filter(Boolean);
+}
+
 function SidebarNav() {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
   const { canAccessSettings } = useUserRole();
-  const menuItems = allMenuItems.filter((i: any) => canAccessSettings || i.url !== "/admin/settings");
+  const { getRule } = usePageAccess();
+  const menuItems = filterMenu(
+    allMenuItems.filter((i: any) => canAccessSettings || i.url !== "/admin/settings"),
+    (u) => getRule(u).mode === "hidden",
+  );
 
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return location.pathname === url;
@@ -375,7 +414,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
       <div className="h-14 shrink-0" />
       <main className="flex-1 min-h-0 overflow-y-auto">
         <ReadOnlyBanner />
-        {children}
+        <PageGate>{children}</PageGate>
       </main>
     </div>
   );
@@ -387,6 +426,27 @@ function ReadOnlyBanner() {
   return (
     <div className="px-4 py-1.5 text-xs border-b border-border bg-muted text-muted-foreground">
       Modo consulta: você pode visualizar tudo e emitir relatórios, mas não pode alterar informações.
+    </div>
+  );
+}
+
+function PageGate({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const { getRule } = usePageAccess();
+  const url = matchPageUrl(location.pathname);
+  const rule = url ? getRule(url) : { mode: "active" as const, message: null };
+  if (rule.mode === "active") return <>{children}</>;
+  const maint = rule.mode === "maintenance";
+  return (
+    <div className="flex items-center justify-center p-6 min-h-[60vh]">
+      <div className="max-w-md text-center space-y-3 border border-border rounded-lg p-8 bg-card">
+        {maint ? <Wrench className="h-10 w-10 mx-auto text-accent" /> : <Settings className="h-10 w-10 mx-auto text-muted-foreground" />}
+        <h2 className="text-lg font-semibold">{maint ? "Página em manutenção" : "Página indisponível"}</h2>
+        <p className="text-sm text-muted-foreground">
+          {rule.message || (maint ? "Esta área está passando por ajustes e volta em breve." : "Esta página não está liberada para o seu acesso.")}
+        </p>
+        <Button asChild variant="outline" className="h-10"><Link to="/admin">Voltar ao início</Link></Button>
+      </div>
     </div>
   );
 }

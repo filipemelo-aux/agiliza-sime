@@ -3672,6 +3672,39 @@ export type Database = {
         }
         Relationships: []
       }
+      page_access_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string | null
+          mode: string
+          page_url: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string | null
+          mode: string
+          page_url: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string | null
+          mode?: string
+          page_url?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment_receipts: {
         Row: {
           created_at: string
