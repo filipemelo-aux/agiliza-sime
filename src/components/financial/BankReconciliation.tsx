@@ -1273,7 +1273,7 @@ export function BankReconciliation() {
         if (allFatIds.length > 0) {
           const { data: fats } = await supabase
             .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, cnpj)")
             .in("id", allFatIds);
           for (const f of ((fats as any[]) || [])) faturasMap.set(f.id, f);
         }
@@ -1282,7 +1282,7 @@ export function BankReconciliation() {
         if (faturaNum) {
           const { data: fatByNum } = await supabase
             .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, cnpj)")
             .eq("numero", faturaNum)
             .limit(20);
           const extraIds = ((fatByNum as any[]) || []).map((f) => { faturasMap.set(f.id, f); return f.id; });
