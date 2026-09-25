@@ -46,7 +46,7 @@ function fixMojibake(input: string): string {
 class McpClient {
   private sessionId: string | null = null;
   private nextId = 1;
-  constructor(private url: string) {}
+  constructor(private url: string, private apiKey: string | null = null) {}
 
   private async rpc(body: Record<string, unknown>): Promise<Response> {
     const headers: Record<string, string> = {
@@ -54,6 +54,7 @@ class McpClient {
       // Exigido pela spec MCP Streamable HTTP — sem isso o servidor responde 406
       Accept: "application/json, text/event-stream",
     };
+    if (this.apiKey) headers["Authorization"] = `Bearer ${this.apiKey}`;
     if (this.sessionId) headers["mcp-session-id"] = this.sessionId;
     return await fetch(this.url, { method: "POST", headers, body: JSON.stringify(body) });
   }
