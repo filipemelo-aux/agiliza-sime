@@ -596,7 +596,7 @@ export default function FreightCte() {
           selectedCount={selectedIds.size}
         />
 
-        <div className="mt-3">
+        <div className="cte-grid mt-3">
           <DataGrid
             rows={sorted}
             columns={cteColumns}

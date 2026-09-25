@@ -246,6 +246,13 @@
       width: 70px !important;
     }
 
+    /* CT-e: Placa na largura do texto; o espaço restante vai para Cliente */
+    .cte-grid .data-grid-table th[data-column-key="placa"],
+    .cte-grid .data-grid-table td[data-column-key="placa"] {
+      width: 80px !important;
+    }
+
+
 
     .data-grid-table th[data-column-key="data"],
     .data-grid-table td[data-column-key="data"],
