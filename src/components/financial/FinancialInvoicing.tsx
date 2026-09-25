@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
@@ -1460,14 +1461,7 @@ ${hasRecebimentos ? `
 </div>
 </body></html>`;
 
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.addEventListener("load", () => {
-        setTimeout(() => win.print(), 300);
-      });
-    }
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"));
   };
 
   const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);

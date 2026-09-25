@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
@@ -236,16 +237,5 @@ export async function printFuelOrderPDF(order: any, companyName: string, company
 
   const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl);
 
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const printWindow = window.open(url);
-  if (printWindow) {
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-    };
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } else {
-    window.location.href = url;
-  }
+  await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"));
 }

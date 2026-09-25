@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -897,15 +898,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 </div>
 </body></html>`;
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
-      return;
-    }
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Relatorio"));
   };
 
 

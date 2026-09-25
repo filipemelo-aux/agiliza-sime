@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -439,9 +440,10 @@ tfoot{display:table-row-group}
 </script>
 </body></html>`;
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank", "width=900,height=1000,menubar=no,toolbar=no,location=no,status=no");
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Contas a Pagar"));
+    return;
+    const url = "";
+    const w = null as Window | null;
     if (!w) {
       URL.revokeObjectURL(url);
       toast.error("Libere pop-ups para gerar a impressão");

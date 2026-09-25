@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -1453,15 +1454,7 @@ tfoot{display:table-row-group}
 </script>
 </body></html>`;
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank", "width=900,height=1000,menubar=no,toolbar=no,location=no,status=no");
-    if (!w) {
-      URL.revokeObjectURL(url);
-      toast.error("Libere pop-ups para gerar a impressão");
-      return;
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 180000);
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Contas a Pagar"));
   };
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
