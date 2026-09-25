@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { maskCNPJ } from "@/lib/masks";
+import { maskCNPJ, maskCPF } from "@/lib/masks";
 import { personDisplayName, personSecondaryName } from "@/lib/personName";
 
 interface PersonResult {
@@ -52,6 +52,17 @@ const CATEGORY_COLORS: Record<string, string> = {
   colaborador: "bg-cyan-500/10 text-cyan-500",
   banco: "bg-rose-500/10 text-rose-500",
 };
+/**
+ * Documento da pessoa (armazenado no campo `cnpj` dos perfis, que também recebe CPF).
+ * Retorna rótulo + valor formatado para exibição nas buscas.
+ */
+export function personDocInfo(p: { cnpj?: string | null } | null | undefined) {
+  const digits = (p?.cnpj || "").replace(/\D/g, "");
+  if (!digits) return null;
+  return digits.length <= 11
+    ? { label: "CPF", value: maskCPF(digits) }
+    : { label: "CNPJ", value: maskCNPJ(digits) };
+}
 
 export function PersonSearchInput({
   categories = ["cliente", "proprietario", "fornecedor"],
@@ -66,6 +77,7 @@ export function PersonSearchInput({
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selected, setSelected] = useState<string | null>(selectedName || null);
+  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -102,8 +114,17 @@ export function PersonSearchInput({
           .from("profiles")
           .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state, inscricao_estadual, is_owner")
           .or(orParts.join(","));
+        const digits = q.replace(/\D/g, "");
+        const matchParts = [
+          `full_name.ilike.%${q}%`,
+          `razao_social.ilike.%${q}%`,
+          `nome_fantasia.ilike.%${q}%`,
+          `cnpj.ilike.%${q}%`,
+        ];
+        // Permite buscar digitando o documento com máscara (05.050.995/0001-19).
+        if (digits.length >= 2 && digits !== q) matchParts.push(`cnpj.ilike.%${digits}%`);
         const { data } = await query
-          .or(`full_name.ilike.%${q}%,razao_social.ilike.%${q}%,cnpj.ilike.%${q}%,nome_fantasia.ilike.%${q}%`)
+          .or(matchParts.join(","))
           .order("full_name")
           .limit(10);
         setResults(data || []);
@@ -118,6 +139,8 @@ export function PersonSearchInput({
 
   const handleSelect = (person: PersonResult) => {
     setSelected(personDisplayName(person));
+    const doc = personDocInfo(person);
+    setSelectedDoc(doc ? `${doc.label} ${doc.value}` : null);
     setQuery("");
     setShowDropdown(false);
     onSelect(person);
@@ -125,6 +148,7 @@ export function PersonSearchInput({
 
   const handleClear = () => {
     setSelected(null);
+    setSelectedDoc(null);
     setQuery("");
     setResults([]);
     onClear?.();
@@ -133,7 +157,12 @@ export function PersonSearchInput({
   if (selected) {
     return (
       <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/30 min-w-0">
-        <span className="text-sm font-medium flex-1 min-w-0 break-words whitespace-normal">{selected}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium break-words whitespace-normal">{selected}</div>
+          {selectedDoc && (
+            <div className="text-xs text-muted-foreground tabular-nums mt-0.5">{selectedDoc}</div>
+          )}
+        </div>
         <button
           type="button"
           onClick={handleClear}
@@ -180,11 +209,24 @@ export function PersonSearchInput({
                   {CATEGORY_LABELS[person.category] || person.category}
                 </Badge>
               </div>
-              <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-0.5 min-w-0">
-                {person.cnpj && <span>{maskCNPJ(person.cnpj)}</span>}
-                {personSecondaryName(person) && <span className="break-words">• {personSecondaryName(person)}</span>}
+              {(() => {
+                const doc = personDocInfo(person);
+                return doc ? (
+                  <div className="mt-1">
+                    <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums text-foreground/90">
+                      {doc.label}: {doc.value}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-1 text-xs text-destructive/80">Sem documento cadastrado</div>
+                );
+              })()}
+              <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
+                {personSecondaryName(person) && <span className="break-words">{personSecondaryName(person)}</span>}
                 {person.address_city && person.address_state && (
-                  <span>• {person.address_city}/{person.address_state}</span>
+                  <span className={personSecondaryName(person) ? "before:content-['•'] before:mr-1" : ""}>
+                    {person.address_city}/{person.address_state}
+                  </span>
                 )}
               </div>
             </button>
