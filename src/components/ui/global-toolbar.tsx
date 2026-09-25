@@ -78,6 +78,18 @@ function getScrollParent(el: HTMLElement | null): HTMLElement | null {
 
 export function GlobalToolbar({ actions, selectedCount, children, className, filtersFirstOnMobile = false, iconOnlyOnDesktop = false }: GlobalToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { isConsultor } = useAuth();
+  // Consultor: ações de criar/editar ficam desativadas e sem destaque;
+  // ações permitidas (imprimir/relatórios) ganham a prioridade e o destaque.
+  const adapt = (a: ToolbarAction): ToolbarAction => {
+    if (!isConsultor) return a;
+    const iconName = (a.icon as any)?.displayName as string | undefined;
+    if (isWriteActionLabel(a.label, iconName)) {
+      return { ...a, disabled: true, priority: false, variant: "outline", className: undefined };
+    }
+    if (isPrintActionLabel(a.label)) return { ...a, priority: true, variant: "default", className: undefined };
+    return a;
+  };
   const [scrolled, setScrolled] = useState(false);
   const [tip, setTip] = useState<{ key: string; label: string; x: number; y: number } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
