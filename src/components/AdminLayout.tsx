@@ -25,7 +25,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect, useRef, useCallback, type UIEvent } from "react";
 
-const menuItems = [
+const allMenuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   {
     title: "Financeiro",
