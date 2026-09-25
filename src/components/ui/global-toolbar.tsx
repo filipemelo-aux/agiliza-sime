@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { isWriteActionLabel, isPrintActionLabel } from "@/lib/readOnlyGuard";
 
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
 
@@ -110,7 +112,8 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
     };
   }, []);
 
-  const renderAction = (a: ToolbarAction) => {
+  const renderAction = (raw: ToolbarAction) => {
+    const a = adapt(raw);
     const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
     const Icon = a.icon;
     const iconOnly = iconOnlyOnDesktop && !!Icon;
@@ -204,7 +207,8 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
 
 
   // Ordena: ações prioritárias habilitadas primeiro, depois habilitadas, depois desabilitadas
-  const rank = (a: ToolbarAction) => {
+  const rank = (raw: ToolbarAction) => {
+    const a = adapt(raw);
     const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
     if (enabled && a.priority) return 0;
     return enabled ? 1 : 2;

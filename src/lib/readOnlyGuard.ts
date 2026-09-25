@@ -113,3 +113,15 @@ export function setReadOnlyUi(on: boolean) {
     unlockAll();
   }
 }
+
+/** Classifica uma ação pelo nome (e ícone opcional) para o perfil consultor. */
+export function isWriteActionLabel(label: string, iconName?: string): boolean {
+  if (ALLOW_WORDS.test(label)) return false;
+  if (WRITE_WORDS.test(label)) return true;
+  if (iconName) {
+    const kebab = "lucide-" + iconName.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+    return WRITE_ICONS.includes(kebab);
+  }
+  return false;
+}
+export const isPrintActionLabel = (label: string) => /(imprimir|relat[oó]rio|exportar|pdf)/i.test(label);
