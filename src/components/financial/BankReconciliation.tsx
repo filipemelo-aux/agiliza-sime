@@ -870,6 +870,19 @@ export function BankReconciliation() {
   );
   const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
+  /** Datas dos lançamentos do extrato selecionados, para comparar com os vencimentos buscados. */
+  const linkTargetDatesText = useMemo(() => {
+    const unique = Array.from(new Set(
+      items
+        .filter((i) => linkTargetItemIds.includes(i.id))
+        .map((i) => String(i.date ?? "").slice(0, 10))
+        .filter(Boolean)
+    )).sort();
+    if (unique.length === 0) return "";
+    if (unique.length === 1) return formatDateBR(unique[0]);
+    if (unique.length <= 3) return unique.map((d) => formatDateBR(d)).join(" · ");
+    return `${formatDateBR(unique[0])} a ${formatDateBR(unique[unique.length - 1])} (${unique.length} datas)`;
+  }, [items, linkTargetItemIds]);
 
   const selectableItems = useMemo(() =>
     items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
@@ -3401,6 +3414,11 @@ export function BankReconciliation() {
           <div className="space-y-3">
             <div className="rounded border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
               <p className="font-medium">{linkTargetItemIds.length} lançamento(s) selecionado(s)</p>
+              {linkTargetDatesText && (
+                <p className="text-muted-foreground">
+                  Data no extrato: <span className="font-mono font-semibold">{linkTargetDatesText}</span>
+                </p>
+              )}
               <p className="text-muted-foreground">
                 Total do extrato: <span className="font-mono font-semibold">
                   {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
