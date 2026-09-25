@@ -5,8 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
-import MyApplications from "./pages/MyApplications";
-import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
@@ -111,8 +109,8 @@ const App = () => (
              <Route path="/admin/financial/reports/checks" element={<AdminFinancial section="reports-checks" />} />
              <Route path="/admin/financial/reports/forecasts" element={<AdminFinancial section="reports-forecasts" />} />
              <Route path="/admin/financial/reports/dre" element={<AdminFinancial section="reports-dre" />} />
-            <Route path="/freights" element={<Index />} />
-            <Route path="/my-applications" element={<MyApplications />} />
+            <Route path="/freights" element={<Navigate to="/admin" replace />} />
+            <Route path="/my-applications" element={<Navigate to="/admin" replace />} />
             {/* Redirects for removed pages */}
             <Route path="/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/driver" element={<Navigate to="/admin/applications" replace />} />
