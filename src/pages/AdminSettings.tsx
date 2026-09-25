@@ -83,7 +83,8 @@ export default function AdminSettings() {
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
   const isCurrentUserOperador = roles.includes("operador");
-  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
+  const hasAccess = !!user;
+  const isBasicUser = !isCurrentUserAdmin && !isCurrentUserModerator;
   void isCurrentUserOperador;
 
   const fetchColaboradores = async () => {
@@ -482,8 +483,8 @@ export default function AdminSettings() {
         <Separator />
 
         {/* Tabs */}
-        <Tabs value={isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "perfil" : activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-6 max-w-3xl"}`}>
+        <Tabs value={isBasicUser ? "perfil" : activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className={`grid w-full max-w-xl ${isBasicUser ? "grid-cols-1 max-w-xs" : "grid-cols-6 max-w-3xl"}`}>
             {(isCurrentUserAdmin || isCurrentUserModerator) && (
               <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
                 <Users className="w-4 h-4" />
