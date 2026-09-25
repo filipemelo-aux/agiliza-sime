@@ -89,6 +89,7 @@ interface ValidationState {
   dbDups: Record<string, DbDupInfo[]>;
   missingPlates: string[];
   missingActors: { key: string; nome: string; doc: string }[]; // unique
+  actorsWithoutDoc: { key: string; nome: string }[]; // bloqueante: sem CPF/CNPJ válido
   missingNaturezas: string[];
 }
 
@@ -443,10 +444,15 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       }
 
       const missingActors: ValidationState["missingActors"] = [];
+      const actorsWithoutDoc: ValidationState["actorsWithoutDoc"] = [];
       for (const [key, a] of actorMap.entries()) {
         const doc = onlyDigits(a.doc);
         const exists = (doc && foundDocs.has(doc)) || foundNames.has(normName(a.nome));
         if (!exists) missingActors.push({ key, nome: a.nome, doc: a.doc });
+        // Cadastro automático exige CPF (11) ou CNPJ (14) — a planilha sempre traz o documento
+        if (!exists && doc.length !== 11 && doc.length !== 14) {
+          actorsWithoutDoc.push({ key, nome: a.nome });
+        }
       }
 
       const naturezas = Array.from(naturezaSet);
