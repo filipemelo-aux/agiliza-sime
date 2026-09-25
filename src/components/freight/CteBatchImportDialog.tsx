@@ -185,6 +185,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   };
 
   const handleFile = async (file: File) => {
+    if (!tomador) {
+      toast({ title: "Escolha o Cliente/Tomador primeiro", variant: "destructive" });
+      return;
+    }
     setFileName(file.name);
     try {
       const buf = await file.arrayBuffer();
@@ -192,89 +196,19 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const ws = wb.Sheets[wb.SheetNames[0]];
       const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
 
-      // Locate header row: row containing "DATA" in column 0
-      let headerIdx = -1;
-      for (let i = 0; i < aoa.length; i++) {
-        const cell = aoa[i]?.[0];
-        if (typeof cell === "string" && /^\s*data\s*$/i.test(cell)) {
-          headerIdx = i;
-          break;
-        }
-      }
-      if (headerIdx === -1) {
-        toast({ title: "Cabeçalho não encontrado", description: "A planilha deve ter 'DATA' como primeira coluna.", variant: "destructive" });
-        return;
-      }
+      // Padrão fixo: DATA | REMETENTE | CPF/CNPJ | NATUREZA | DESTINATÁRIO | CPF/CNPJ | PLACA | PESO | VALOR
+      // Aceita o layout estendido (Padrão Cargil): DATA | REMETENTE | CPF/CNPJ | CIDADE | UF | NF | NATUREZA |
+      // VALOR MERC. | DESTINATÁRIO | CPF/CNPJ | CIDADE | UF | PLACA | PESO | VALOR
+      const norm = (c: any) => String(c ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+      let headerIdx = aoa.findIndex((r) => r && norm(r[0]) === "data" && r.some((c: any) => /remetente/.test(norm(c))));
 
-      // Expected column order (per template):
-      // DATA | REMETENTE | CNPJ | EXPEDIDOR | CNPJ | DESTINATARIO | CNPJ | RECEBEDOR | CNPJ | NATUREZA | PLACA | PESO | VALOR DO FRETE
-      // Expedidor e Recebedor são OPCIONAIS: podem estar em branco ou ausentes da planilha.
-      const headerCells = (aoa[headerIdx] || []).map((c) =>
-        String(c ?? "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim()
-          .toLowerCase()
-      );
-
-      // Mapeia colunas por cabeçalho (tolerante à ausência de EXPEDIDOR/RECEBEDOR)
-      const findCol = (...patterns: RegExp[]) => {
-        for (const p of patterns) {
-          const i = headerCells.findIndex((h) => p.test(h));
-          if (i >= 0) return i;
-        }
-        return -1;
-      };
-      const docAfter = (nameIdx: number) => {
-        if (nameIdx < 0) return -1;
-        const next = headerCells[nameIdx + 1] ?? "";
-        return /cnpj|cpf|doc/.test(next) ? nameIdx + 1 : -1;
-      };
-
-      const cRemet = findCol(/^remetente/);
-      const cExped = findCol(/^expedidor/);
-      const cDest = findCol(/^destinat/);
-      const cReceb = findCol(/^recebedor/);
-      const cNat = findCol(/natureza|produto|carga/);
-      const cPlaca = findCol(/placa/);
-      const cPeso = findCol(/peso/);
-      const cValor = findCol(/valor/);
-
-      const useHeaderMap = cRemet >= 0 && cDest >= 0 && cPlaca >= 0 && cValor >= 0;
-
-      const COL = useHeaderMap
-        ? {
-            data: 0,
-            remet: cRemet,
-            remetDoc: docAfter(cRemet),
-            exped: cExped,
-            expedDoc: docAfter(cExped),
-            dest: cDest,
-            destDoc: docAfter(cDest),
-            receb: cReceb,
-            recebDoc: docAfter(cReceb),
-            nat: cNat,
-            placa: cPlaca,
-            peso: cPeso,
-            valor: cValor,
-          }
-        : {
-            data: 0,
-            remet: 1,
-            remetDoc: 2,
-            exped: 3,
-            expedDoc: 4,
-            dest: 5,
-            destDoc: 6,
-            receb: 7,
-            recebDoc: 8,
-            nat: 9,
-            placa: 10,
-            peso: 11,
-            valor: 12,
-          };
+      const widest = aoa.reduce((m, r) => Math.max(m, r?.length || 0), 0);
+      const COL = widest >= 15
+        ? { data: 0, remet: 1, remetDoc: 2, remetUf: 4, nat: 6, dest: 8, destDoc: 9, destUf: 11, placa: 12, peso: 13, valor: 14 }
+        : { data: 0, remet: 1, remetDoc: 2, remetUf: -1, nat: 3, dest: 4, destDoc: 5, destUf: -1, placa: 6, peso: 7, valor: 8 };
 
       const cell = (row: any[], i: number) => (i >= 0 ? row[i] : "");
+      const empty: ParsedActor = { nome: "", doc: "" };
 
       const parsed: ParsedRow[] = [];
       let idx = 0;
@@ -285,25 +219,26 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (!data) continue;
 
         const remetente: ParsedActor = { nome: String(cell(row, COL.remet) || "").trim(), doc: onlyDigits(cell(row, COL.remetDoc)) };
-        const expedidor: ParsedActor = { nome: String(cell(row, COL.exped) || "").trim(), doc: onlyDigits(cell(row, COL.expedDoc)) };
         const destinatario: ParsedActor = { nome: String(cell(row, COL.dest) || "").trim(), doc: onlyDigits(cell(row, COL.destDoc)) };
-        const recebedor: ParsedActor = { nome: String(cell(row, COL.receb) || "").trim(), doc: onlyDigits(cell(row, COL.recebDoc)) };
         const natureza = String(cell(row, COL.nat) || "").trim();
         const placa = String(cell(row, COL.placa) || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const pesoTon = parseNum(cell(row, COL.peso));
+        let pesoTon = parseNum(cell(row, COL.peso));
+        if (pesoTon > 1000) pesoTon = +(pesoTon / 1000).toFixed(3); // informado em kg
         const valorFrete = parseNum(cell(row, COL.valor));
 
         const r: ParsedRow = {
           _key: `r${++idx}-${Math.random().toString(36).slice(2, 8)}`,
           data,
           remetente,
-          expedidor,
+          expedidor: empty,
           destinatario,
-          recebedor,
+          recebedor: empty,
           natureza,
           placa,
           pesoTon,
           valorFrete,
+          remetUf: String(cell(row, COL.remetUf) || "").trim().toUpperCase().slice(0, 2),
+          destUf: String(cell(row, COL.destUf) || "").trim().toUpperCase().slice(0, 2),
         };
 
         const missing: string[] = [];
