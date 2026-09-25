@@ -216,16 +216,25 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const ws = wb.Sheets[wb.SheetNames[0]];
       const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
 
-      // Padrão fixo: DATA | REMETENTE | CPF/CNPJ | NATUREZA | DESTINATÁRIO | CPF/CNPJ | PLACA | PESO | VALOR
-      // Aceita o layout estendido (Padrão Cargil): DATA | REMETENTE | CPF/CNPJ | CIDADE | UF | NF | NATUREZA |
-      // VALOR MERC. | DESTINATÁRIO | CPF/CNPJ | CIDADE | UF | PLACA | PESO | VALOR
+      // Padrão fixo simples: DATA | REMETENTE | CPF/CNPJ | NATUREZA | DESTINATÁRIO | CPF/CNPJ | PLACA | PESO | VALOR
+      // Padrão Cargil completo (18 colunas, cabeçalho duplo):
+      // EMISSÃO | CONH. | REMETENTE | CNPJ | CIDADE | UF | NF Nº | PRODUTO | NF VALOR |
+      // DESTINATÁRIO | CNPJ | CIDADE | UF | FRETE | PLACA | PESO | TARIFA | TOTAL PRESTAÇÃO
+      // Aproveitados: Emissão, Remetente, CNPJ, Produto (natureza), Destinatário, CNPJ, Placa, Peso, Total Prestação.
       const norm = (c: any) => String(c ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
       let headerIdx = aoa.findIndex((r) => r && norm(r[0]) === "data" && r.some((c: any) => /remetente/.test(norm(c))));
+      const isCargil = (r: any[]) => r && r.some((c: any) => norm(c) === "conh.") && r.some((c: any) => /prestacao/.test(norm(c)));
+      let cargilIdx = aoa.findIndex((r) => isCargil(r));
+      if (cargilIdx < 0) cargilIdx = aoa.findIndex((r, i) => i > 0 && isCargil(aoa[i - 1]) && r.some((c: any) => norm(c) === "placa"));
+      if (cargilIdx >= 0 && headerIdx < 0) headerIdx = cargilIdx;
+      const cargil = cargilIdx >= 0;
 
       const widest = aoa.reduce((m, r) => Math.max(m, r?.length || 0), 0);
-      const COL = widest >= 15
-        ? { data: 0, remet: 1, remetDoc: 2, remetUf: 4, nat: 6, dest: 8, destDoc: 9, destUf: 11, placa: 12, peso: 13, valor: 14 }
-        : { data: 0, remet: 1, remetDoc: 2, remetUf: -1, nat: 3, dest: 4, destDoc: 5, destUf: -1, placa: 6, peso: 7, valor: 8 };
+      const COL = cargil
+        ? { data: 0, remet: 2, remetDoc: 3, remetUf: 5, nat: 7, dest: 9, destDoc: 10, destUf: 12, placa: 14, peso: 15, valor: 17 }
+        : widest >= 15
+          ? { data: 0, remet: 1, remetDoc: 2, remetUf: 4, nat: 6, dest: 8, destDoc: 9, destUf: 11, placa: 12, peso: 13, valor: 14 }
+          : { data: 0, remet: 1, remetDoc: 2, remetUf: -1, nat: 3, dest: 4, destDoc: 5, destUf: -1, placa: 6, peso: 7, valor: 8 };
 
       const cell = (row: any[], i: number) => (i >= 0 ? row[i] : "");
       const empty: ParsedActor = { nome: "", doc: "" };
