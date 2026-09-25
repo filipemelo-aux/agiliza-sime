@@ -142,6 +142,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [formaPagamento, setFormaPagamento] = useState("");
   const [numeroCheque, setNumeroCheque] = useState("");
   const [checkDialogOpen, setCheckDialogOpen] = useState(false);
+  const [autoSavedId, setAutoSavedId] = useState<string | null>(null);
+  const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
   const [favorecidoNome, setFavorecidoNome] = useState("");
   const [favorecidoId, setFavorecidoId] = useState<string | null>(null);
   const [favorecidoCategory, setFavorecidoCategory] = useState<string | null>(null);
@@ -645,7 +647,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   }, [isMaintenanceType, itensNota]);
 
-  const handleSave = async () => {
+  const handleSave = async (opts?: { keepOpen?: boolean }): Promise<string | undefined> => {
     if (!empresaSelecionada) return toast.error("Selecione a Empresa / Unidade");
     if (!planoContasId) return toast.error("Selecione a conta contábil");
     if (!descricao.trim()) return toast.error("Informe a descrição");
@@ -713,10 +715,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       proxima_manutencao_km: isMaintenanceType && proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
     };
 
-    let expenseId = expense?.id;
+    let expenseId = expense?.id || autoSavedId || undefined;
 
-    if (expense) {
-      const { error } = await supabase.from("expenses").update(payload).eq("id", expense.id);
+    if (expenseId) {
+      const { error } = await supabase.from("expenses").update(payload).eq("id", expenseId);
       if (error) {
         toast.error(error.message.includes("idx_expenses_chave_nfe_unique") ? "Chave NF-e duplicada" : error.message);
         setSaving(false); return;
@@ -953,10 +955,41 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       }
     }
 
-    toast.success(expense ? "Despesa atualizada" : hasNfse ? "Duas despesas criadas com sucesso" : "Despesa criada");
     setSaving(false);
+    if (opts?.keepOpen) {
+      if (expenseId && !expense) setAutoSavedId(expenseId);
+      return expenseId;
+    }
+    toast.success(expense || autoSavedId ? "Despesa atualizada" : hasNfse ? "Duas despesas criadas com sucesso" : "Despesa criada");
     onOpenChange(false);
     onSaved(expenseId);
+    return expenseId;
+  };
+
+  // Emissão de cheque: salva a conta a pagar antes e, ao concluir o cheque,
+  // grava o número/vencimento e fecha o formulário já salvo.
+  const handleGerarCheque = async () => {
+    if (!Number(valorTotal)) return toast.error("Informe o valor da despesa antes de emitir o cheque");
+    const id = await handleSave({ keepOpen: true });
+    if (!id) return;
+    setCheckExpenseId(id);
+    setCheckDialogOpen(true);
+  };
+
+  const handleChequeSaved = async (n: string, info?: { predatado: boolean; dataVencimento: string | null }) => {
+    setNumeroCheque(n);
+    if (info?.predatado && info.dataVencimento) setDataVencimento(info.dataVencimento);
+    const id = checkExpenseId;
+    if (!id) return;
+    const upd: any = { numero_cheque: n || null };
+    if (info?.predatado && info.dataVencimento) upd.data_vencimento = info.dataVencimento;
+    const { error } = await supabase.from("expenses").update(upd).eq("id", id);
+    if (error) return toast.error("Cheque salvo, mas não foi possível atualizar a conta: " + error.message);
+    toast.success("Conta a pagar salva com o cheque");
+    setAutoSavedId(null);
+    setCheckExpenseId(null);
+    onOpenChange(false);
+    onSaved(id);
   };
 
   const isCategoryWithVehicle = selectedAccount?.tipo_operacional === "combustivel";
@@ -1447,10 +1480,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <Button
                 type="button"
                 className="h-9 gap-1.5"
-                onClick={() => {
-                  if (!Number(valorTotal)) return toast.error("Informe o valor da despesa antes de emitir o cheque");
-                  setCheckDialogOpen(true);
-                }}
+                disabled={saving}
+                onClick={handleGerarCheque}
               >
                 <Printer className="h-4 w-4" /> Gerar e Imprimir Cheque
               </Button>
@@ -2107,17 +2138,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       open={checkDialogOpen}
       onOpenChange={setCheckDialogOpen}
       data={{
-        expenseId: expense?.id || null,
+        expenseId: checkExpenseId || expense?.id || null,
         valor: Number(valorTotal) || 0,
         nominal: favorecidoNome || descricao,
         data: dataVencimento || dataEmissao,
         historico: descricao,
         numeroCheque: numeroCheque,
       }}
-      onSaved={(n, info) => {
-        setNumeroCheque(n);
-        if (info?.predatado && info.dataVencimento) setDataVencimento(info.dataVencimento);
-      }}
+      onSaved={handleChequeSaved}
     />
   </>
   );
