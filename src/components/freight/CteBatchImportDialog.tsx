@@ -37,6 +37,12 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { maskName } from "@/lib/masks";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
 import { lookupCnpj } from "@/lib/cnpjLookup";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
+import { UserPlus } from "lucide-react";
+
+type PickedPerson = { id: string; full_name: string; razao_social?: string | null; cnpj?: string | null; inscricao_estadual?: string | null; address_state?: string | null };
+const PERSON_SELECT = "id, full_name, razao_social, cnpj, inscricao_estadual, address_state";
 
 interface Props {
   open: boolean;
@@ -62,6 +68,8 @@ interface ParsedRow {
   placa: string;
   pesoTon: number;
   valorFrete: number;
+  remetUf?: string;
+  destUf?: string;
   _error?: string;
   _missingWeight?: boolean;
 }
@@ -146,7 +154,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const { matrizId } = useUnifiedCompany();
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
-  const [tomadorRole, setTomadorRole] = useState<ActorRole>("destinatario");
+  // Importação via planilha: o Cliente/Tomador é sempre o Expedidor, escolhido antes do arquivo.
+  const tomadorRole: ActorRole = "expedidor";
+  const [tomador, setTomador] = useState<PickedPerson | null>(null);
+  const [recebedor, setRecebedor] = useState<PickedPerson | null>(null);
+  const [createFor, setCreateFor] = useState<null | "tomador" | "recebedor">(null);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState("");
@@ -182,9 +194,21 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     setFileName("");
     setProgress({ done: 0, total: 0, errors: [], step: "" });
     setValidation(null);
+    setTomador(null);
+    setRecebedor(null);
+  };
+
+  const pickLatestCreated = async () => {
+    const { data } = await supabase.from("profiles").select(PERSON_SELECT).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (data && createFor === "tomador") setTomador(data as any);
+    if (data && createFor === "recebedor") setRecebedor(data as any);
   };
 
   const handleFile = async (file: File) => {
+    if (!tomador) {
+      toast({ title: "Escolha o Cliente/Tomador primeiro", variant: "destructive" });
+      return;
+    }
     setFileName(file.name);
     try {
       const buf = await file.arrayBuffer();
@@ -192,89 +216,19 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const ws = wb.Sheets[wb.SheetNames[0]];
       const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
 
-      // Locate header row: row containing "DATA" in column 0
-      let headerIdx = -1;
-      for (let i = 0; i < aoa.length; i++) {
-        const cell = aoa[i]?.[0];
-        if (typeof cell === "string" && /^\s*data\s*$/i.test(cell)) {
-          headerIdx = i;
-          break;
-        }
-      }
-      if (headerIdx === -1) {
-        toast({ title: "Cabeçalho não encontrado", description: "A planilha deve ter 'DATA' como primeira coluna.", variant: "destructive" });
-        return;
-      }
+      // Padrão fixo: DATA | REMETENTE | CPF/CNPJ | NATUREZA | DESTINATÁRIO | CPF/CNPJ | PLACA | PESO | VALOR
+      // Aceita o layout estendido (Padrão Cargil): DATA | REMETENTE | CPF/CNPJ | CIDADE | UF | NF | NATUREZA |
+      // VALOR MERC. | DESTINATÁRIO | CPF/CNPJ | CIDADE | UF | PLACA | PESO | VALOR
+      const norm = (c: any) => String(c ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+      let headerIdx = aoa.findIndex((r) => r && norm(r[0]) === "data" && r.some((c: any) => /remetente/.test(norm(c))));
 
-      // Expected column order (per template):
-      // DATA | REMETENTE | CNPJ | EXPEDIDOR | CNPJ | DESTINATARIO | CNPJ | RECEBEDOR | CNPJ | NATUREZA | PLACA | PESO | VALOR DO FRETE
-      // Expedidor e Recebedor são OPCIONAIS: podem estar em branco ou ausentes da planilha.
-      const headerCells = (aoa[headerIdx] || []).map((c) =>
-        String(c ?? "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim()
-          .toLowerCase()
-      );
-
-      // Mapeia colunas por cabeçalho (tolerante à ausência de EXPEDIDOR/RECEBEDOR)
-      const findCol = (...patterns: RegExp[]) => {
-        for (const p of patterns) {
-          const i = headerCells.findIndex((h) => p.test(h));
-          if (i >= 0) return i;
-        }
-        return -1;
-      };
-      const docAfter = (nameIdx: number) => {
-        if (nameIdx < 0) return -1;
-        const next = headerCells[nameIdx + 1] ?? "";
-        return /cnpj|cpf|doc/.test(next) ? nameIdx + 1 : -1;
-      };
-
-      const cRemet = findCol(/^remetente/);
-      const cExped = findCol(/^expedidor/);
-      const cDest = findCol(/^destinat/);
-      const cReceb = findCol(/^recebedor/);
-      const cNat = findCol(/natureza|produto|carga/);
-      const cPlaca = findCol(/placa/);
-      const cPeso = findCol(/peso/);
-      const cValor = findCol(/valor/);
-
-      const useHeaderMap = cRemet >= 0 && cDest >= 0 && cPlaca >= 0 && cValor >= 0;
-
-      const COL = useHeaderMap
-        ? {
-            data: 0,
-            remet: cRemet,
-            remetDoc: docAfter(cRemet),
-            exped: cExped,
-            expedDoc: docAfter(cExped),
-            dest: cDest,
-            destDoc: docAfter(cDest),
-            receb: cReceb,
-            recebDoc: docAfter(cReceb),
-            nat: cNat,
-            placa: cPlaca,
-            peso: cPeso,
-            valor: cValor,
-          }
-        : {
-            data: 0,
-            remet: 1,
-            remetDoc: 2,
-            exped: 3,
-            expedDoc: 4,
-            dest: 5,
-            destDoc: 6,
-            receb: 7,
-            recebDoc: 8,
-            nat: 9,
-            placa: 10,
-            peso: 11,
-            valor: 12,
-          };
+      const widest = aoa.reduce((m, r) => Math.max(m, r?.length || 0), 0);
+      const COL = widest >= 15
+        ? { data: 0, remet: 1, remetDoc: 2, remetUf: 4, nat: 6, dest: 8, destDoc: 9, destUf: 11, placa: 12, peso: 13, valor: 14 }
+        : { data: 0, remet: 1, remetDoc: 2, remetUf: -1, nat: 3, dest: 4, destDoc: 5, destUf: -1, placa: 6, peso: 7, valor: 8 };
 
       const cell = (row: any[], i: number) => (i >= 0 ? row[i] : "");
+      const empty: ParsedActor = { nome: "", doc: "" };
 
       const parsed: ParsedRow[] = [];
       let idx = 0;
@@ -285,25 +239,26 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (!data) continue;
 
         const remetente: ParsedActor = { nome: String(cell(row, COL.remet) || "").trim(), doc: onlyDigits(cell(row, COL.remetDoc)) };
-        const expedidor: ParsedActor = { nome: String(cell(row, COL.exped) || "").trim(), doc: onlyDigits(cell(row, COL.expedDoc)) };
         const destinatario: ParsedActor = { nome: String(cell(row, COL.dest) || "").trim(), doc: onlyDigits(cell(row, COL.destDoc)) };
-        const recebedor: ParsedActor = { nome: String(cell(row, COL.receb) || "").trim(), doc: onlyDigits(cell(row, COL.recebDoc)) };
         const natureza = String(cell(row, COL.nat) || "").trim();
         const placa = String(cell(row, COL.placa) || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const pesoTon = parseNum(cell(row, COL.peso));
+        let pesoTon = parseNum(cell(row, COL.peso));
+        if (pesoTon > 1000) pesoTon = +(pesoTon / 1000).toFixed(3); // informado em kg
         const valorFrete = parseNum(cell(row, COL.valor));
 
         const r: ParsedRow = {
           _key: `r${++idx}-${Math.random().toString(36).slice(2, 8)}`,
           data,
           remetente,
-          expedidor,
+          expedidor: empty,
           destinatario,
-          recebedor,
+          recebedor: empty,
           natureza,
           placa,
           pesoTon,
           valorFrete,
+          remetUf: String(cell(row, COL.remetUf) || "").trim().toUpperCase().slice(0, 2),
+          destUf: String(cell(row, COL.destUf) || "").trim().toUpperCase().slice(0, 2),
         };
 
         const missing: string[] = [];
@@ -431,7 +386,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const actorMap = new Map<string, { nome: string; doc: string }>();
       const naturezaSet = new Set<string>();
       for (const r of valid) {
-        for (const a of [r.remetente, r.expedidor, r.destinatario, r.recebedor]) {
+        for (const a of [r.remetente, r.destinatario]) {
           if (!a.nome) continue;
           const key = a.doc ? `d:${a.doc}` : `n:${normName(a.nome)}`;
           if (!actorMap.has(key)) actorMap.set(key, { nome: a.nome, doc: a.doc });
@@ -650,6 +605,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       toast({ title: "Estabelecimento obrigatório", variant: "destructive" });
       return;
     }
+    if (!tomador?.id) {
+      toast({ title: "Cliente/Tomador obrigatório", variant: "destructive" });
+      return;
+    }
     const validRows = rows.filter(isImportable);
     if (validRows.length === 0) {
       toast({ title: "Nenhuma linha válida para importar", variant: "destructive" });
@@ -676,7 +635,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const uniqueActors = new Map<string, ParsedActor>();
       const uniqueNats = new Set<string>();
       for (const r of validRows) {
-        for (const a of [r.remetente, r.expedidor, r.destinatario, r.recebedor]) {
+        for (const a of [r.remetente, r.destinatario]) {
           if (!a.nome) continue;
           const k = a.doc ? `d:${a.doc}` : `n:${normName(a.nome)}`;
           if (!uniqueActors.has(k)) uniqueActors.set(k, a);
@@ -713,18 +672,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const r = validRows[i];
       try {
         const remetente = await resolveActor(r.remetente, actorCache);
-        const expedidor = r.expedidor.nome ? await resolveActor(r.expedidor, actorCache) : null;
+        const expedidor = tomador;
         const destinatario = await resolveActor(r.destinatario, actorCache);
-        const recebedor = r.recebedor.nome ? await resolveActor(r.recebedor, actorCache) : null;
-
-        const tomadorMap: Record<ActorRole, any> = {
-          remetente,
-          expedidor: expedidor || remetente,
-          destinatario,
-          recebedor: recebedor || destinatario,
-        };
-        const tomador = tomadorMap[tomadorRole];
-        if (!tomador?.id) throw new Error(`Tomador (${tomadorRole}) não pôde ser resolvido.`);
 
         const { data: nextNum, error: numErr } = await supabase.rpc("next_cte_servico_number", {
           _establishment_id: selectedEstId,
@@ -772,14 +721,13 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         } : { nome: null, cnpj: null, ie: null, endereco: null, uf: null };
 
         const rem = actorPayload(remetente);
+        if (!rem.uf && r.remetUf) rem.uf = r.remetUf;
         const dst = actorPayload(destinatario);
+        if (!dst.uf && r.destUf) dst.uf = r.destUf;
         const exp = actorPayload(expedidor);
         const rec = actorPayload(recebedor);
 
-        const tomadorTipoNum =
-          tomadorRole === "remetente" ? 0 :
-          tomadorRole === "expedidor" ? 1 :
-          tomadorRole === "recebedor" ? 2 : 3;
+        const tomadorTipoNum = 1; // Expedidor
 
         const cteInsert: Record<string, any> = {
           tipo_talao: "servico",
@@ -917,9 +865,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
               <FileSpreadsheet className="w-5 h-5" /> Importar CT-e em Lote (Serviço)
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Cada linha da planilha já traz remetente, expedidor, destinatário, recebedor, natureza e placa.
-              Atores ou naturezas não cadastrados serão criados automaticamente. Você só precisa escolher o emitente,
-              qual papel é o tomador e se deve gerar contrato de frete.
+              Escolha o emitente e o Cliente/Tomador (Expedidor) antes de enviar a planilha. Remetentes, destinatários
+              ou naturezas não cadastrados serão criados automaticamente.
             </DialogDescription>
           </DialogHeader>
 
@@ -942,18 +889,21 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Quem é o tomador/cliente em cada CT-e? *</Label>
-                  <Select value={tomadorRole} onValueChange={(v) => setTomadorRole(v as ActorRole)}>
-                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="remetente">Remetente</SelectItem>
-                      <SelectItem value="expedidor">Expedidor</SelectItem>
-                      <SelectItem value="destinatario">Destinatário</SelectItem>
-                      <SelectItem value="recebedor">Recebedor</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs">Cliente/Tomador (Expedidor) *</Label>
+                  <PersonSearchInput
+                    categories={["cliente", "fornecedor", "proprietario"]}
+                    placeholder="Buscar cliente cadastrado..."
+                    selectedName={tomador ? (tomador.razao_social || tomador.full_name) : ""}
+                    onSelect={(p: any) => setTomador(p)}
+                    onClear={() => setTomador(null)}
+                    endAction={
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Cadastrar novo cliente" onClick={() => setCreateFor("tomador")}>
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    O sistema usará o ator dessa coluna em cada linha como tomador/cliente da nota.
+                    Na importação por planilha o cliente/tomador é sempre o Expedidor de todos os CT-e.
                   </p>
                 </div>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -969,8 +919,12 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                 <CardTitle className="text-sm flex items-center gap-2"><Upload className="w-4 h-4" /> Planilha (.xlsx)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {!tomador && (
+                  <p className="text-[11px] text-destructive">Escolha o Cliente/Tomador acima para liberar o envio da planilha.</p>
+                )}
                 <Input
                   type="file"
+                  disabled={!tomador}
                   accept=".xlsx,.xls"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
@@ -979,12 +933,36 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                   className="text-xs"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Colunas esperadas (cabeçalho começa com "DATA"): DATA, REMETENTE, CPF/CNPJ, EXPEDIDOR, CPF/CNPJ,
-                  DESTINATÁRIO, CPF/CNPJ, RECEBEDOR, CPF/CNPJ, NATUREZA DA CARGA, PLACA, PESO, VALOR DO FRETE.
+                  Padrão da planilha: DATA, REMETENTE, CPF/CNPJ, NATUREZA DA CARGA, DESTINATÁRIO, CPF/CNPJ, PLACA, PESO, VALOR
+                  (o modelo Cargil com cidade/UF/NF também é aceito).
                 </p>
                 {fileName && <p className="text-xs">{fileName} — <strong>{rows.length}</strong> linhas</p>}
               </CardContent>
             </Card>
+
+            {/* Recebedor opcional */}
+            {rows.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Recebedor (opcional)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <PersonSearchInput
+                    categories={["cliente", "fornecedor", "proprietario"]}
+                    placeholder="Buscar recebedor, se houver..."
+                    selectedName={recebedor ? (recebedor.razao_social || recebedor.full_name) : ""}
+                    onSelect={(p: any) => setRecebedor(p)}
+                    onClear={() => setRecebedor(null)}
+                    endAction={
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Cadastrar novo recebedor" onClick={() => setCreateFor("recebedor")}>
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">Se escolhido, será gravado como recebedor em todos os CT-e importados.</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Validação */}
             {rows.length > 0 && (
@@ -1145,7 +1123,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                           const dbHits = validation?.dbDups[r._key];
                           const missingPlate = validation?.missingPlates.includes(r.placa);
                           const flagged = !!internal || !!dbHits || missingPlate;
-                          const tomadorActor = r[tomadorRole];
+                          const tomadorName = tomador ? (tomador.razao_social || tomador.full_name) : "";
                           return (
                             <tr
                               key={r._key}
@@ -1157,7 +1135,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                               <td className="px-2 py-1 whitespace-nowrap">{r.data || "?"}</td>
                               <td className="px-2 py-1 truncate max-w-[140px]" title={r.remetente.nome}>{r.remetente.nome}</td>
                               <td className="px-2 py-1 truncate max-w-[140px]" title={r.destinatario.nome}>{r.destinatario.nome}</td>
-                              <td className="px-2 py-1 truncate max-w-[140px]" title={tomadorActor.nome}>{tomadorActor.nome || "—"}</td>
+                              <td className="px-2 py-1 truncate max-w-[140px]" title={tomadorName}>{tomadorName || "—"}</td>
                               <td className="px-2 py-1 truncate max-w-[120px]" title={r.natureza}>{r.natureza}</td>
                               <td className="px-2 py-1 font-mono">{r.placa}</td>
                               <td className="px-2 py-1 text-right">{r.pesoTon.toFixed(2)}</td>
@@ -1232,6 +1210,13 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           </div>
         </DialogContent>
       </Dialog>
+
+      <PersonCreateDialog
+        open={!!createFor}
+        onOpenChange={(v) => { if (!v) setCreateFor(null); }}
+        defaultCategory="cliente"
+        onCreated={async () => { await pickLatestCreated(); setCreateFor(null); }}
+      />
 
       <VehicleFormModal
         open={vehicleModalOpen}
