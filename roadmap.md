@@ -30,3 +30,7 @@
 - [x] Remover rolagem horizontal no desktop, truncar descrições com tooltip e limitar favorecidos a 50 caracteres
 - [x] Eliminar espaços artificiais entre colunas e manter favorecidos em uma única linha com reticências
 - [x] Compactar espaçamento global, priorizar data de pagamento e reduzir colunas de cheque/datas
+
+## Pendente
+- [x] Aplicar regra de cadastro completo na criação de contas a pagar
+- [x] Conciliação bancária: despesa exige cadastro efetivo do beneficiário

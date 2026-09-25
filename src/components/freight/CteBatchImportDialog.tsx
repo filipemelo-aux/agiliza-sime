@@ -89,6 +89,7 @@ interface ValidationState {
   dbDups: Record<string, DbDupInfo[]>;
   missingPlates: string[];
   missingActors: { key: string; nome: string; doc: string }[]; // unique
+  actorsWithoutDoc: { key: string; nome: string }[]; // bloqueante: sem CPF/CNPJ válido
   missingNaturezas: string[];
 }
 
@@ -443,10 +444,15 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       }
 
       const missingActors: ValidationState["missingActors"] = [];
+      const actorsWithoutDoc: ValidationState["actorsWithoutDoc"] = [];
       for (const [key, a] of actorMap.entries()) {
         const doc = onlyDigits(a.doc);
         const exists = (doc && foundDocs.has(doc)) || foundNames.has(normName(a.nome));
         if (!exists) missingActors.push({ key, nome: a.nome, doc: a.doc });
+        // Cadastro automático exige CPF (11) ou CNPJ (14) — a planilha sempre traz o documento
+        if (!exists && doc.length !== 11 && doc.length !== 14) {
+          actorsWithoutDoc.push({ key, nome: a.nome });
+        }
       }
 
       const naturezas = Array.from(naturezaSet);
@@ -460,10 +466,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       }
       const missingNaturezas = naturezas.filter((n) => !foundNat.has(n.toLowerCase()));
 
-      setValidation({ internalDups, dbDups, missingPlates, missingActors, missingNaturezas });
+      setValidation({ internalDups, dbDups, missingPlates, missingActors, actorsWithoutDoc, missingNaturezas });
     } catch (err: any) {
       console.warn("validação falhou:", err.message);
-      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [], missingActors: [], missingNaturezas: [] });
+      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [], missingActors: [], actorsWithoutDoc: [], missingNaturezas: [] });
     } finally {
       setValidating(false);
     }
@@ -530,9 +536,14 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     }
 
 
-    // 2) Create profile
+    // 2) Create profile — exige CPF (11) ou CNPJ (14) válidos; a planilha sempre traz o documento
     const isPJ = actor.doc.length === 14;
     const isPF = actor.doc.length === 11;
+    if (!isPJ && !isPF) {
+      throw new Error(
+        `Cadastro automático recusado para "${actor.nome}": CPF/CNPJ ausente ou inválido na planilha. Cadastre a pessoa manualmente e tente novamente.`
+      );
+    }
     let payload: any = {
       user_id: crypto.randomUUID(),
       full_name: actor.nome,
@@ -618,6 +629,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const hasBlockingIssues = useMemo(() => {
     if (!validation) return false;
     if (validation.missingPlates.length > 0) return true;
+    if (validation.actorsWithoutDoc.length > 0) return true;
     if (!ignoreDuplicates && hasDuplicateWarnings) return true;
     if (!ignoreMissingWeight && hasMissingWeightWarnings) return true;
     return false;
@@ -1078,6 +1090,20 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
 
 
+                  {validation && validation.actorsWithoutDoc.length > 0 && (
+                    <div className="border border-destructive/50 rounded-md p-2 bg-destructive/10 space-y-1">
+                      <p className="text-[11px] font-semibold flex items-center gap-1 text-destructive">
+                        <Users className="w-3.5 h-3.5" /> Sem CPF/CNPJ válido na planilha (cadastre manualmente antes de importar):
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {validation.actorsWithoutDoc.map((a) => (
+                          <span key={a.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-background border border-destructive/40 text-[10px]">
+                            {a.nome}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {validation && (validation.missingActors.length > 0 || validation.missingNaturezas.length > 0) && (
                     <div className="border rounded-md p-2 bg-blue-50 dark:bg-blue-950/20 space-y-2">
                       <p className="text-[11px] font-semibold flex items-center gap-1">
