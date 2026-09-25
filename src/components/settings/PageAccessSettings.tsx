@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listSystemPages } from "@/components/AdminLayout";
-import { usePageRules, PAGE_RULES_KEY, MENU_PREFIX, type PageMode, type PageRule } from "@/hooks/usePageAccess";
+import { usePageRules, PAGE_RULES_KEY, MENU_PREFIX, type PageMode } from "@/hooks/usePageAccess";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -44,22 +44,6 @@ export function PageAccessSettings() {
   const refresh = () => qc.invalidateQueries({ queryKey: PAGE_RULES_KEY });
   const db = () => (supabase as any).from("page_access_rules");
 
-  const setGlobal = async (key: string, mode: PageMode, current?: PageRule) => {
-    let error;
-    if (mode === "active") { if (current) ({ error } = await db().delete().eq("id", current.id)); }
-    else if (current) ({ error } = await db().update({ mode }).eq("id", current.id));
-    else ({ error } = await db().insert({ page_url: key, mode, user_id: null }));
-    if (error) return toast.error(error.message);
-    refresh();
-  };
-
-  const saveMessage = async (rule: PageRule, message: string) => {
-    if ((rule.message || "") === message) return;
-    const { error } = await db().update({ message: message || null }).eq("id", rule.id);
-    if (error) return toast.error(error.message);
-    refresh();
-  };
-
   const addUserRules = async (key: string) => {
     const a = addFor[key];
     if (!a?.users.length) return toast.error("Escolha ao menos um usuário");
@@ -83,7 +67,6 @@ export function PageAccessSettings() {
 
   const renderRow = (key: string, title: string, subtitle: string) => {
     const g = rules.find((r) => r.page_url === key && !r.user_id);
-    const gMode: PageMode = g?.mode || "active";
     const userRules = rules.filter((r) => r.page_url === key && r.user_id);
     const a = addFor[key] || { users: [], mode: "active" as PageMode };
     const setA = (v: Partial<typeof a>) => setAddFor((s) => ({ ...s, [key]: { ...a, ...v } }));
@@ -95,16 +78,12 @@ export function PageAccessSettings() {
             <div className="text-xs font-medium">{title}</div>
             <div className="text-[11px] text-muted-foreground">{subtitle}</div>
           </div>
-          <span className="text-[11px] text-muted-foreground">Para todos:</span>
-          <Select value={gMode} onValueChange={(v) => setGlobal(key, v as PageMode, g)}>
-            <SelectTrigger className="h-7 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(MODE_LABEL) as PageMode[]).map((m) => <SelectItem key={m} value={m} className="text-xs">{MODE_LABEL[m]}</SelectItem>)}
-            </SelectContent>
-          </Select>
         </div>
-        {g && gMode !== "active" && (
-          <Input defaultValue={g.message || ""} placeholder="Mensagem exibida (opcional)" className="h-7 text-xs" onBlur={(e) => saveMessage(g, e.target.value.trim())} />
+        {g && (
+          <Badge variant={MODE_VARIANT[g.mode]} className="text-[11px] gap-1 w-fit">
+            Todos: {MODE_LABEL[g.mode]}
+            <button type="button" onClick={() => removeRule(g.id)} aria-label="Remover regra geral"><Trash2 className="h-3 w-3" /></button>
+          </Badge>
         )}
         {userRules.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -121,7 +100,7 @@ export function PageAccessSettings() {
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" size="sm" className="h-7 w-[220px] justify-between text-xs font-normal">
                 <span className="truncate">
-                  {a.users.length === 0 ? "Usuários específicos..." : a.users.length === 1 ? userName(a.users[0]) : `${a.users.length} usuários selecionados`}
+                  {a.users.length === 0 ? "Selecionar usuários..." : a.users.length === 1 ? userName(a.users[0]) : `${a.users.length} usuários selecionados`}
                 </span>
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </Button>
@@ -165,7 +144,7 @@ export function PageAccessSettings() {
       <div>
         <h2 className="text-lg font-semibold">Páginas do Sistema</h2>
         <p className="text-sm text-muted-foreground">
-          Oculte ou coloque em manutenção um menu inteiro ou qualquer página, para todos ou para usuários específicos. A regra do usuário tem prioridade sobre a geral, e a regra da página tem prioridade sobre a do menu. Administradores e moderadores sempre enxergam tudo.
+          Oculte ou coloque em manutenção um menu inteiro ou qualquer página para usuários específicos. A regra da página tem prioridade sobre a do menu. Administradores e moderadores sempre enxergam tudo.
         </p>
       </div>
       <Input placeholder="Buscar página ou menu..." value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 max-w-sm text-xs" />
