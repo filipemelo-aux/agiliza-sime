@@ -387,7 +387,6 @@ tfoot{display:table-row-group}
   ${xlsxDataUrl
     ? `<a class="excel" href="${xlsxDataUrl}" download="${fileName}">Exportar Excel</a>`
     : `<a class="excel disabled">Excel indisponível</a>`}
-  <button onclick="window.print()">Imprimir / Salvar PDF</button>
 </div>
 <div class="wrap">
   <div class="head">
