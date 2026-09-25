@@ -214,6 +214,15 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) return json({ error: "Não autenticado" }, 401);
 
+    {
+      const roleClient = createClient(supabaseUrl, serviceKey);
+      const { data: rs } = await roleClient.from("user_roles").select("role").eq("user_id", userData.user.id);
+      const rl = (rs || []).map((r: any) => r.role);
+      if (!rl.some((r: string) => ["admin", "moderator", "operador"].includes(r))) {
+        return json({ error: "Sem permissão para sincronizar (acesso somente consulta)" }, 403);
+      }
+    }
+
     const apiUrl = Deno.env.get("OPEN_FINANCE_API_URL");
     if (!apiUrl) return json({ error: "Integração Open Finance não configurada" }, 500);
 

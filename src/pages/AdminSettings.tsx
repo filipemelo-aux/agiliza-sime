@@ -81,7 +81,8 @@ export default function AdminSettings() {
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
   const isCurrentUserOperador = roles.includes("operador");
-  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator || isCurrentUserOperador;
+  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
+  void isCurrentUserOperador;
 
   const fetchColaboradores = async () => {
     try {
@@ -288,7 +289,7 @@ export default function AdminSettings() {
 
   // --- Edit User ---
   const openEdit = (u: SystemUser) => {
-    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : u.roles.includes("operador") ? "operador" : "user";
+    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : u.roles.includes("operador") ? "operador" : u.roles.includes("consultor") ? "consultor" : "user";
     setEditForm({ name: u.profile_name || "", email: u.email || "", role: mainRole });
     setEditUser(u);
   };
@@ -303,10 +304,10 @@ export default function AdminSettings() {
         .eq("user_id", editUser.id);
       if (profError) throw profError;
 
-      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : editUser.roles.includes("operador") ? "operador" : "user";
+      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : editUser.roles.includes("operador") ? "operador" : editUser.roles.includes("consultor") ? "consultor" : "user";
       if ((isCurrentUserAdmin || isCurrentUserModerator) && editForm.role !== currentRole && !editUser.roles.includes("admin")) {
-        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "operador", "user"]);
-        if (editForm.role === "moderator" || editForm.role === "operador") {
+        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "operador", "consultor", "user"]);
+        if (editForm.role === "moderator" || editForm.role === "operador" || editForm.role === "consultor") {
           await supabase.from("user_roles").insert({ user_id: editUser.id, role: editForm.role });
         }
       }
@@ -444,6 +445,8 @@ export default function AdminSettings() {
         return <Badge className="bg-purple-500/20 text-purple-400 text-xs"><Shield className="w-3 h-3 mr-1" />Moderador</Badge>;
       case "operador":
         return <Badge className="bg-blue-500/20 text-blue-400 text-xs"><Shield className="w-3 h-3 mr-1" />Operador</Badge>;
+      case "consultor":
+        return <Badge variant="outline" className="text-xs"><Shield className="w-3 h-3 mr-1" />Consultor</Badge>;
       default:
         return <Badge className="bg-muted text-muted-foreground text-xs">{role}</Badge>;
     }
@@ -846,6 +849,7 @@ export default function AdminSettings() {
                 <SelectContent>
                   <SelectItem value="user">Usuário</SelectItem>
                   <SelectItem value="operador">Operador</SelectItem>
+                  <SelectItem value="consultor">Consultor (somente leitura)</SelectItem>
                   {(isCurrentUserAdmin || isCurrentUserModerator) && <SelectItem value="moderator">Moderador</SelectItem>}
                 </SelectContent>
               </Select>
@@ -891,6 +895,7 @@ export default function AdminSettings() {
                   <SelectContent>
                     <SelectItem value="user">Usuário</SelectItem>
                     <SelectItem value="operador">Operador</SelectItem>
+                  <SelectItem value="consultor">Consultor (somente leitura)</SelectItem>
                     <SelectItem value="moderator">Moderador</SelectItem>
                   </SelectContent>
                 </Select>
