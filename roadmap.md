@@ -32,5 +32,5 @@
 - [x] Compactar espaçamento global, priorizar data de pagamento e reduzir colunas de cheque/datas
 
 ## Pendente
-- [ ] Aplicar regra de cadastro completo (nome + CPF/CNPJ + telefone + endereço) na criação de contas a pagar
-- [ ] Conciliação bancária: não permitir despesa criada só com nome do beneficiário — exigir cadastro efetivo da pessoa
+- [x] Aplicar regra de cadastro completo na criação de contas a pagar
+- [x] Conciliação bancária: despesa exige cadastro efetivo do beneficiário
