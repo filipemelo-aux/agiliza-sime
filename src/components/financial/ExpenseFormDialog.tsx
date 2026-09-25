@@ -657,6 +657,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (!valorTotal || Number(valorTotal) <= 0) return void toast.error("Informe o valor");
     if (!centroCusto) return void toast.error("Selecione o centro de custo");
     if (!formaPagamento) return void toast.error("Selecione a forma de pagamento");
+    if (favorecidoNome.trim() && !favorecidoId) {
+      return void toast.error(
+        `O favorecido "${favorecidoNome.trim()}" não tem cadastro vinculado. Selecione-o na busca ou cadastre-o pelo botão + antes de salvar.`,
+        { duration: 6000 }
+      );
+    }
     if (isMaintenanceType) {
       if (!veiculoId) return void toast.error("Selecione o veículo para manutenção");
       if (!kmAtual || Number(kmAtual) <= 0) return void toast.error("Informe o KM atual");
