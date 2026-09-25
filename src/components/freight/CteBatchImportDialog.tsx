@@ -466,10 +466,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       }
       const missingNaturezas = naturezas.filter((n) => !foundNat.has(n.toLowerCase()));
 
-      setValidation({ internalDups, dbDups, missingPlates, missingActors, missingNaturezas });
+      setValidation({ internalDups, dbDups, missingPlates, missingActors, actorsWithoutDoc, missingNaturezas });
     } catch (err: any) {
       console.warn("validação falhou:", err.message);
-      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [], missingActors: [], missingNaturezas: [] });
+      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [], missingActors: [], actorsWithoutDoc: [], missingNaturezas: [] });
     } finally {
       setValidating(false);
     }
@@ -629,6 +629,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const hasBlockingIssues = useMemo(() => {
     if (!validation) return false;
     if (validation.missingPlates.length > 0) return true;
+    if (validation.actorsWithoutDoc.length > 0) return true;
     if (!ignoreDuplicates && hasDuplicateWarnings) return true;
     if (!ignoreMissingWeight && hasMissingWeightWarnings) return true;
     return false;
