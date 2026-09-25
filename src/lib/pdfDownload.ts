@@ -82,7 +82,16 @@ export function quickPrintVisibleTable(anchor: HTMLElement | null, title: string
   let el: HTMLElement | null = anchor;
   let table: HTMLTableElement | null = null;
   while (el && !table) { table = el.querySelector("table"); el = el.parentElement; }
-  if (!table) { toast.warning("Nenhuma tabela para imprimir nesta tela"); return; }
+  if (!table) {
+    // Área sem <table> (ex.: grades em divs): imprime o conteúdo com os estilos da página
+    if (!anchor) { toast.warning("Nada para imprimir nesta tela"); return; }
+    const area = anchor.cloneNode(true) as HTMLElement;
+    area.querySelectorAll("button, input, select, [role='combobox']").forEach((n) => n.remove());
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map((n) => n.outerHTML).join("");
+    const html2 = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>${styles}<style>*{overflow:visible!important;max-height:none!important}</style></head><body><h1 style="font:bold 15px Arial;color:#2B4C7E;margin:0 0 2px">SIME TRANSPORTES — ${title}</h1><div style="font:9px Arial;color:#666;margin-bottom:8px">Gerado em ${new Date().toLocaleString("pt-BR")}</div>${area.outerHTML}</body></html>`;
+    void downloadHtmlAsPdf(html2, `${title} ${new Date().toISOString().slice(0, 10)}`, { landscape: true });
+    return;
+  }
   const clone = table.cloneNode(true) as HTMLTableElement;
   clone.querySelectorAll('input[type="checkbox"], button[role="checkbox"], svg').forEach((n) => n.remove());
   clone.querySelectorAll<HTMLElement>("*").forEach((n) => { n.removeAttribute("style"); n.removeAttribute("class"); });
