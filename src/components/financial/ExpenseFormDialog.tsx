@@ -668,6 +668,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (!kmAtual || Number(kmAtual) <= 0) return void toast.error("Informe o KM atual");
       if (!tipoManutencao) return void toast.error("Selecione o tipo de manutenção");
       if (!hasNfse && !descricaoServico.trim()) return void toast.error("Informe a descrição do serviço");
+      if (hasNfse && nfseFornecedorNome.trim() && !nfseFornecedorId) {
+        return void toast.error(
+          `O fornecedor da NFSe "${nfseFornecedorNome.trim()}" não tem cadastro vinculado. Selecione-o na busca ou cadastre-o antes de salvar.`,
+          { duration: 6000 }
+        );
+      }
 
       // Validate odometer is greater than last recorded KM
       const { data: lastKmData } = await supabase
