@@ -651,17 +651,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   }, [isMaintenanceType, itensNota]);
 
   const handleSave = async (opts?: { keepOpen?: boolean }): Promise<string | undefined> => {
-    if (!empresaSelecionada) return toast.error("Selecione a Empresa / Unidade");
-    if (!planoContasId) return toast.error("Selecione a conta contábil");
-    if (!descricao.trim()) return toast.error("Informe a descrição");
-    if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
-    if (!centroCusto) return toast.error("Selecione o centro de custo");
-    if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
+    if (!empresaSelecionada) return void toast.error("Selecione a Empresa / Unidade");
+    if (!planoContasId) return void toast.error("Selecione a conta contábil");
+    if (!descricao.trim()) return void toast.error("Informe a descrição");
+    if (!valorTotal || Number(valorTotal) <= 0) return void toast.error("Informe o valor");
+    if (!centroCusto) return void toast.error("Selecione o centro de custo");
+    if (!formaPagamento) return void toast.error("Selecione a forma de pagamento");
     if (isMaintenanceType) {
-      if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
-      if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
-      if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
-      if (!hasNfse && !descricaoServico.trim()) return toast.error("Informe a descrição do serviço");
+      if (!veiculoId) return void toast.error("Selecione o veículo para manutenção");
+      if (!kmAtual || Number(kmAtual) <= 0) return void toast.error("Informe o KM atual");
+      if (!tipoManutencao) return void toast.error("Selecione o tipo de manutenção");
+      if (!hasNfse && !descricaoServico.trim()) return void toast.error("Informe a descrição do serviço");
 
       // Validate odometer is greater than last recorded KM
       const { data: lastKmData } = await supabase
@@ -676,14 +676,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
       const lastKm = lastKmData?.km_atual ? Number(lastKmData.km_atual) : null;
       if (lastKm !== null && Number(kmAtual) <= lastKm) {
-        return toast.error(`KM deve ser maior que o último registrado (${lastKm.toLocaleString("pt-BR")} km)`);
+        return void toast.error(`KM deve ser maior que o último registrado (${lastKm.toLocaleString("pt-BR")} km)`);
       }
     }
 
     const trimmedChave = chaveNfe.trim();
     if (trimmedChave) {
       const { data: existing } = await supabase.from("expenses").select("id").eq("chave_nfe", trimmedChave).is("deleted_at", null).maybeSingle();
-      if (existing && existing.id !== expense?.id) return toast.error("Já existe uma despesa com esta chave de NF-e.");
+      if (existing && existing.id !== expense?.id) return void toast.error("Já existe uma despesa com esta chave de NF-e.");
     }
 
     // Derive tipo_despesa from account for backward compatibility
@@ -693,7 +693,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     if (rateioAtivo && !isMaintenanceType) {
       const rErr = validateRateio(rateioRows, Number(valorTotal) || 0);
-      if (rErr) return toast.error(rErr);
+      if (rErr) return void toast.error(rErr);
     }
 
     setSaving(true);

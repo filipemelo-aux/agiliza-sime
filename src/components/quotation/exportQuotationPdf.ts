@@ -132,5 +132,5 @@ ${q.observacoes ? `<h2>Observações</h2><div class="obs">${q.observacoes}</div>
 
 </body></html>`;
 
-  await downloadHtmlAsPdf(html, titleFromHtml(html, "Cotacao"));
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Cotacao"));
 }
