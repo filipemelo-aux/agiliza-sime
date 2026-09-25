@@ -47,3 +47,69 @@ export function setReadOnlyMode(on: boolean) {
     return orig(input as any, init);
   };
 }
+
+// ---- Desativa visualmente botões de criar/editar para o consultor ----
+const WRITE_WORDS = /\b(nov[oa]s?|adicionar|criar|cadastrar|editar|alterar|salvar|excluir|apagar|remover|deletar|importar|lan[cç]ar|pagar|quitar|receber|baixar pagamento|estornar|conciliar|vincular|desvincular|gerar|emitir|duplicar|faturar|transmitir|confirmar|aprovar|rejeitar|enviar|upload|anexar|parcelar|transferir|registrar|atualizar cadastro|inutilizar|cancelar (cte|mdf|fatura|cheque|nota))\b/i;
+const ALLOW_WORDS = /(sincronizar open finance|imprimir|relat[oó]rio|exportar|baixar pdf|download|visualizar|filtrar|limpar|buscar|pesquisar|fechar|voltar|atualizar$|detalhes|ver )/i;
+const WRITE_ICONS = ["lucide-plus", "lucide-pencil", "lucide-square-pen", "lucide-pen", "lucide-pen-line", "lucide-trash", "lucide-trash-2", "lucide-save", "lucide-upload", "lucide-circle-plus", "lucide-plus-circle", "lucide-copy-plus", "lucide-banknote", "lucide-hand-coins", "lucide-link", "lucide-unlink", "lucide-send"];
+let observer: MutationObserver | null = null;
+
+function labelOf(el: HTMLElement) {
+  return `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""} ${el.textContent || ""}`.replace(/\s+/g, " ").trim();
+}
+
+function isWriteControl(el: HTMLElement): boolean {
+  if (el.closest("[data-readonly-allow]")) return false;
+  const label = labelOf(el);
+  if (label && ALLOW_WORDS.test(label)) return false;
+  if (label && WRITE_WORDS.test(label)) return true;
+  if (!el.textContent?.trim()) {
+    const svg = el.querySelector("svg");
+    const cls = svg?.getAttribute("class") || "";
+    return WRITE_ICONS.some((c) => cls.split(/\s+/).includes(c));
+  }
+  return false;
+}
+
+function lockControls(root: ParentNode) {
+  root.querySelectorAll<HTMLElement>('button, [role="menuitem"], a[role="button"]').forEach((el) => {
+    if (el.dataset.roLocked) return;
+    if (!isWriteControl(el)) return;
+    el.dataset.roLocked = "1";
+    if (el instanceof HTMLButtonElement) el.disabled = true;
+    el.setAttribute("aria-disabled", "true");
+    el.setAttribute("data-disabled", "");
+    el.style.pointerEvents = "none";
+    el.style.opacity = "0.45";
+    el.title = "Somente consulta";
+  });
+}
+
+function unlockAll() {
+  document.querySelectorAll<HTMLElement>("[data-ro-locked]").forEach((el) => {
+    delete el.dataset.roLocked;
+    if (el instanceof HTMLButtonElement) el.disabled = false;
+    el.removeAttribute("aria-disabled");
+    el.removeAttribute("data-disabled");
+    el.style.pointerEvents = "";
+    el.style.opacity = "";
+  });
+}
+
+export function setReadOnlyUi(on: boolean) {
+  if (typeof document === "undefined") return;
+  if (on && !observer) {
+    lockControls(document);
+    let scheduled = false;
+    observer = new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => { scheduled = false; lockControls(document); });
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  } else if (!on && observer) {
+    observer.disconnect();
+    observer = null;
+    unlockAll();
+  }
+}
