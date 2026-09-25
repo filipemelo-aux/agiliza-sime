@@ -671,7 +671,7 @@ export default function AdminSettings() {
           </TabsContent>
 
           {/* ===== TAB MEU PERFIL ===== */}
-          <TabsContent value="perfil" className="space-y-6">
+          <TabsContent value="perfil" className="space-y-6" data-readonly-allow>
             <div>
               <h2 className="text-lg font-semibold">Meu Perfil</h2>
               <p className="text-sm text-muted-foreground">Edite suas informações pessoais</p>
