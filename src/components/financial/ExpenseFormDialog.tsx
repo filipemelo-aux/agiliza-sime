@@ -144,6 +144,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [checkDialogOpen, setCheckDialogOpen] = useState(false);
   const [autoSavedId, setAutoSavedId] = useState<string | null>(null);
   const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open && autoSavedId) { onSaved(autoSavedId); setAutoSavedId(null); setCheckExpenseId(null); }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const [favorecidoNome, setFavorecidoNome] = useState("");
   const [favorecidoId, setFavorecidoId] = useState<string | null>(null);
   const [favorecidoCategory, setFavorecidoCategory] = useState<string | null>(null);
@@ -2119,7 +2122,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Save ── */}
           <div className="pt-2 border-t">
-            <Button onClick={handleSave} className="w-full" disabled={saving}>
+            <Button onClick={() => handleSave()} className="w-full" disabled={saving}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
