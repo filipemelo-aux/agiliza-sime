@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { listSystemPages } from "@/components/AdminLayout";
 
 export type PageMode = "active" | "hidden" | "maintenance";
 export interface PageRule {
@@ -25,18 +26,22 @@ export function usePageRules() {
   });
 }
 
-/** Regra de usuário tem prioridade sobre a regra geral. Admin/moderador nunca são bloqueados. */
+/** Prefixo usado para regras aplicadas a um menu inteiro (ex.: "menu:Financeiro"). */
+export const MENU_PREFIX = "menu:";
+
+/** Regra de usuário tem prioridade sobre a regra geral; regra da página tem prioridade sobre a do menu. Admin/moderador nunca são bloqueados. */
 export function usePageAccess() {
   const { user, canAccessSettings } = useUserRole();
   const { data: rules = [] } = usePageRules();
 
   const getRule = (url: string): { mode: PageMode; message: string | null } => {
     if (!url || url === "/admin/settings" || canAccessSettings) return { mode: "active", message: null };
-    const mine = rules.find((r) => r.page_url === url && user && r.user_id === user.id);
-    if (mine) return { mode: mine.mode, message: mine.message };
-    const global = rules.find((r) => r.page_url === url && !r.user_id);
-    if (global) return { mode: global.mode, message: global.message };
-    return { mode: "active", message: null };
+    const menu = listSystemPages().find((p) => p.url === url)?.group.split(" › ")[0];
+    const menuKey = menu ? MENU_PREFIX + menu : null;
+    const pick = (key: string | null, mine: boolean) =>
+      key ? rules.find((r) => r.page_url === key && (mine ? !!user && r.user_id === user.id : !r.user_id)) : undefined;
+    const r = pick(url, true) || pick(menuKey, true) || pick(url, false) || pick(menuKey, false);
+    return r ? { mode: r.mode, message: r.message } : { mode: "active", message: null };
   };
   return { getRule, rules };
 }
