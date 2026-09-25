@@ -2135,6 +2135,32 @@ export function BankReconciliation() {
       from = iso(new Date(hoje.getTime() - syncDays * 86400000));
       to = iso(hoje);
     }
+    // Avisa se o período (ou parte dele) já foi sincronizado antes
+    try {
+      const { data: existing } = await supabase
+        .from("bank_reconciliations")
+        .select("id, file_name, created_at, period_start, period_end")
+        .lte("period_start", to)
+        .gte("period_end", from)
+        .limit(5);
+      if (existing && existing.length > 0) {
+        const lista = existing
+          .map((r: any) => {
+            const p = r.period_start && r.period_end
+              ? `${formatDateBR(r.period_start)} a ${formatDateBR(r.period_end)}`
+              : "período não informado";
+            return `• ${p} (sincronizado em ${formatDateBR(new Date(r.created_at))})`;
+          })
+          .join("\n");
+        const prosseguir = await confirm({
+          title: "Período já sincronizado",
+          description: `Já existe sincronização cobrindo esse período:\n${lista}\n\nSincronizar novamente não duplica lançamentos (os já existentes são ignorados). Deseja continuar mesmo assim?`,
+          confirmLabel: "Sincronizar mesmo assim",
+          cancelLabel: "Cancelar",
+        });
+        if (!prosseguir) return;
+      }
+    } catch { /* se a verificação falhar, segue o fluxo normal */ }
     setSyncing(true);
     setLoading(true);
     try {
@@ -2180,7 +2206,7 @@ export function BankReconciliation() {
       setSyncing(false);
       setLoading(false);
     }
-  }, [runImport, syncDays, syncFrom, syncTo]);
+  }, [runImport, syncDays, syncFrom, syncTo, confirm]);
 
   const handleOpenFinanceSync = useCallback(async () => {
     const ok = await confirm({
