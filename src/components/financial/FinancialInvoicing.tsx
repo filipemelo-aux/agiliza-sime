@@ -615,6 +615,23 @@ export function FinancialInvoicing() {
     try {
       if (editingFaturaId) {
         // --- UPDATE existing fatura ---
+        // 0. Preserva recebimentos já registrados (seriam apagados junto com as parcelas)
+        const { data: oldContas } = await supabase
+          .from("contas_receber").select("id").eq("fatura_id", editingFaturaId);
+        const oldIds = (oldContas || []).map((c: any) => c.id);
+        let oldPayments: any[] = [];
+        if (oldIds.length) {
+          const { data: rp } = await supabase
+            .from("receivable_payments" as any)
+            .select("valor, forma_recebimento, data_recebimento, observacoes, conta_bancaria_id, created_by")
+            .in("conta_receber_id", oldIds)
+            .order("data_recebimento", { ascending: true });
+          oldPayments = (rp as any[]) || [];
+        }
+        const totalRecebidoAntes = oldPayments.reduce((s, p) => s + Number(p.valor || 0), 0);
+        if (totalRecebidoAntes > totalLiquido + 0.005) {
+          throw new Error(`O novo total (${formatCurrency(totalLiquido)}) é menor que o já recebido (${formatCurrency(totalRecebidoAntes)})`);
+        }
         // 1. Delete existing contas_receber for this fatura
         await supabase.from("contas_receber").delete().eq("fatura_id", editingFaturaId);
         // 2. Delete existing links (triggers set previsões back to pendente)
@@ -633,6 +650,35 @@ export function FinancialInvoicing() {
         }));
         const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
         if (linkErr) throw linkErr;
+
+        // 5. Recoloca os recebimentos nas novas parcelas (ordem de vencimento)
+        if (oldPayments.length) {
+          const { data: newContas } = await supabase
+            .from("contas_receber").select("id, valor")
+            .eq("fatura_id", editingFaturaId)
+            .order("data_vencimento", { ascending: true });
+          const saldos = (newContas || []).map((c: any) => ({ id: c.id, saldo: Number(c.valor) }));
+          for (const p of oldPayments) {
+            let restante = +Number(p.valor).toFixed(2);
+            for (const c of saldos) {
+              if (restante <= 0.005) break;
+              if (c.saldo <= 0.005) continue;
+              const parte = +Math.min(restante, c.saldo).toFixed(2);
+              const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+                conta_receber_id: c.id,
+                valor: parte,
+                forma_recebimento: p.forma_recebimento,
+                data_recebimento: p.data_recebimento,
+                observacoes: p.observacoes,
+                conta_bancaria_id: p.conta_bancaria_id,
+                created_by: p.created_by || user?.id,
+              });
+              if (rpErr) throw rpErr;
+              c.saldo = +(c.saldo - parte).toFixed(2);
+              restante = +(restante - parte).toFixed(2);
+            }
+          }
+        }
 
         toast.success("Fatura atualizada com sucesso!");
       } else {
