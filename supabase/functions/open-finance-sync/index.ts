@@ -152,7 +152,7 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
   // O lado "nosso" (titular) nunca é favorecido. Escolhe o lado esperado e, se for o titular, tenta o outro.
   const primary = toParty(tipo === "saida" ? pd.receiver : pd.payer);
   const secondary = toParty(tipo === "saida" ? pd.payer : pd.receiver);
-  const descRaw = fixMojibake(String(row.description ?? row.descricao ?? ""));
+  const descRaw = fixMojibake([row.descriptionRaw ?? row.description ?? row.descricao ?? "", row.operationTypeAdditionalInfo ?? ""].filter(Boolean).join(" | "));
   const descMentionsHolder = isHolderName(descRaw) || isHolderDoc(descRaw.match(/[\d][\d.\-/\s]{12,}\d/)?.[0]);
   const isHolderParty = (p: Record<string, any> | null) =>
     !!p && (isHolderDoc(partyDoc(p)) || isHolderName(p.name));
@@ -199,7 +199,7 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     contraparte: clean(contraparte?.name ?? contraparte?.legalName ?? contraparte?.fullName ?? (isHolderName(merchantName) ? null : merchantName) ?? nomeDesc),
     documentoContraparte: clean(partyDoc(contraparte) ?? (isHolderDoc(merchant?.cnpj) ? null : merchant?.cnpj) ?? docDesc),
 
-    banco: clean(contraparte?.routingNumber),
+    banco: clean(contraparte?.routingNumber ?? contraparte?.routingNumberISPB),
     agencia: clean(contraparte?.branchNumber),
     conta: clean(contraparte?.accountNumber),
     codigoAutenticacao: clean(pd.authenticationCode),
@@ -307,14 +307,6 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    if (body?.debugTools) {
-      if (mcp instanceof McpClient) {
-        const r = await (mcp as any).rpc({ jsonrpc: "2.0", id: 99, method: "tools/list", params: {} });
-        return json({ mode: "mcp", tools: McpClient["parseBody"](await r.text()) });
-      }
-      return json({ mode: "rest" });
-    }
-    if (body?.debugCall) return json({ r: await mcp.callTool(body.debugCall, body.args ?? {}) });
     let accountsRes = await mcp.callTool("openfinance_list_accounts", {});
     let accounts = pickArray(accountsRes);
     if (accounts.length === 0 && !billingError(accountsRes)) {
@@ -389,10 +381,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (body?.debugRaw) {
-      const tools = typeof (mcp as any).rpc === "function" ? null : null;
-      return json({ debugRaw: true, tools, raw: raw.filter((r) => !body.match || JSON.stringify(r).includes(String(body.match))).slice(0, 20) });
-    }
 
     const admin = createClient(supabaseUrl, serviceKey);
 
