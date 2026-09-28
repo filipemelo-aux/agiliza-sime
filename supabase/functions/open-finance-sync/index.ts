@@ -152,7 +152,7 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
   // O lado "nosso" (titular) nunca é favorecido. Escolhe o lado esperado e, se for o titular, tenta o outro.
   const primary = toParty(tipo === "saida" ? pd.receiver : pd.payer);
   const secondary = toParty(tipo === "saida" ? pd.payer : pd.receiver);
-  const descRaw = fixMojibake(String(row.description ?? row.descricao ?? ""));
+  const descRaw = fixMojibake([row.descriptionRaw ?? row.description ?? row.descricao ?? "", row.operationTypeAdditionalInfo ?? ""].filter(Boolean).join(" | "));
   const descMentionsHolder = isHolderName(descRaw) || isHolderDoc(descRaw.match(/[\d][\d.\-/\s]{12,}\d/)?.[0]);
   const isHolderParty = (p: Record<string, any> | null) =>
     !!p && (isHolderDoc(partyDoc(p)) || isHolderName(p.name));
@@ -199,7 +199,7 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     contraparte: clean(contraparte?.name ?? contraparte?.legalName ?? contraparte?.fullName ?? (isHolderName(merchantName) ? null : merchantName) ?? nomeDesc),
     documentoContraparte: clean(partyDoc(contraparte) ?? (isHolderDoc(merchant?.cnpj) ? null : merchant?.cnpj) ?? docDesc),
 
-    banco: clean(contraparte?.routingNumber),
+    banco: clean(contraparte?.routingNumber ?? contraparte?.routingNumberISPB),
     agencia: clean(contraparte?.branchNumber),
     conta: clean(contraparte?.accountNumber),
     codigoAutenticacao: clean(pd.authenticationCode),
@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
           to,
           page,
           page_size: 200,
-          detail: "rich",
+          detail: body?.detailMode ?? "raw",
         });
         const results = (res?.results ?? []) as Record<string, any>[];
         // Segurança extra: descarta linhas marcadas como cartão de crédito pela API
