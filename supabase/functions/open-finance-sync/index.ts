@@ -381,6 +381,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (body?.debugRaw) {
+      const tools = typeof (mcp as any).rpc === "function" ? null : null;
+      return json({ debugRaw: true, tools, raw: raw.filter((r) => !body.match || JSON.stringify(r).includes(String(body.match))).slice(0, 20) });
+    }
 
     const admin = createClient(supabaseUrl, serviceKey);
 
