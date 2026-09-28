@@ -382,14 +382,49 @@ Deno.serve(async (req) => {
     }
 
 
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // Titular da conta: todas as raízes de CNPJ dos estabelecimentos da empresa
+    {
+      const { data: est } = await admin.from("fiscal_establishments").select("cnpj, razao_social");
+      const roots = new Set<string>(["23662751"]);
+      const names = new Set<string>(["SIME TRANSPORTE"]);
+      (est ?? []).forEach((e: any) => {
+        const d = onlyDigits(e.cnpj);
+        if (d.length === 14) roots.add(d.slice(0, 8));
+        const n = String(e.razao_social ?? "").toUpperCase().split(" - ")[0].replace(/\s+LTDA.*$/, "").trim();
+        if (n.length >= 5) names.add(n);
+      });
+      HOLDER_ROOTS = roots;
+      HOLDER_NAMES = [...names];
+    }
+
     const transactions = raw
       .map(adaptTransaction)
       .filter((t): t is NormalizedTx => t !== null);
 
-
+    // Favorecido só com CPF/CNPJ (inclusive mascarado "***.133.132-**"): busca o nome no cadastro de pessoas
+    const semNome = transactions.filter((t) => t.detalhes && !t.detalhes.contraparte && t.detalhes.documentoContraparte);
+    if (semNome.length) {
+      const { data: pessoas } = await admin.from("profiles").select("full_name, razao_social, cnpj").not("cnpj", "is", null).limit(10000);
+      const lista = (pessoas ?? []).map((p: any) => ({ nome: p.razao_social || p.full_name, doc: onlyDigits(p.cnpj) })).filter((p) => p.nome && p.doc);
+      for (const t of semNome) {
+        const raw = String(t.detalhes!.documentoContraparte);
+        let cand: typeof lista = [];
+        if (raw.includes("*")) {
+          // CPF mascarado: dígitos visíveis nas posições 4-9
+          const m = raw.match(/\*{3}\.?(\d{3})\.?(\d{3})-?\*{2}/);
+          if (m) cand = lista.filter((p) => p.doc.length === 11 && p.doc.slice(3, 9) === m[1] + m[2]);
+        } else {
+          const d = onlyDigits(raw);
+          cand = lista.filter((p) => p.doc === d);
+        }
+        const nomes = [...new Set(cand.map((c) => c.nome))];
+        if (nomes.length === 1) t.detalhes!.contraparte = nomes[0];
+      }
+    }
 
     // Deduplicação pelo ID único da API contra o que já foi gravado
-    const admin = createClient(supabaseUrl, serviceKey);
     const ids = transactions.map((t) => t.externalId);
     const known = new Set<string>();
     for (let i = 0; i < ids.length; i += 200) {
