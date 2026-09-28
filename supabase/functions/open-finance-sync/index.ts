@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
           to,
           page,
           page_size: 200,
-          detail: "rich",
+          detail: body?.detailMode ?? "raw",
         });
         const results = (res?.results ?? []) as Record<string, any>[];
         // Segurança extra: descarta linhas marcadas como cartão de crédito pela API
