@@ -615,6 +615,23 @@ export function FinancialInvoicing() {
     try {
       if (editingFaturaId) {
         // --- UPDATE existing fatura ---
+        // 0. Preserva recebimentos já registrados (seriam apagados junto com as parcelas)
+        const { data: oldContas } = await supabase
+          .from("contas_receber").select("id").eq("fatura_id", editingFaturaId);
+        const oldIds = (oldContas || []).map((c: any) => c.id);
+        let oldPayments: any[] = [];
+        if (oldIds.length) {
+          const { data: rp } = await supabase
+            .from("receivable_payments" as any)
+            .select("valor, forma_recebimento, data_recebimento, observacoes, conta_bancaria_id, created_by")
+            .in("conta_receber_id", oldIds)
+            .order("data_recebimento", { ascending: true });
+          oldPayments = (rp as any[]) || [];
+        }
+        const totalRecebidoAntes = oldPayments.reduce((s, p) => s + Number(p.valor || 0), 0);
+        if (totalRecebidoAntes > totalLiquido + 0.005) {
+          throw new Error(`O novo total (${formatCurrency(totalLiquido)}) é menor que o já recebido (${formatCurrency(totalRecebidoAntes)})`);
+        }
         // 1. Delete existing contas_receber for this fatura
         await supabase.from("contas_receber").delete().eq("fatura_id", editingFaturaId);
         // 2. Delete existing links (triggers set previsões back to pendente)
@@ -633,6 +650,35 @@ export function FinancialInvoicing() {
         }));
         const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
         if (linkErr) throw linkErr;
+
+        // 5. Recoloca os recebimentos nas novas parcelas (ordem de vencimento)
+        if (oldPayments.length) {
+          const { data: newContas } = await supabase
+            .from("contas_receber").select("id, valor")
+            .eq("fatura_id", editingFaturaId)
+            .order("data_vencimento", { ascending: true });
+          const saldos = (newContas || []).map((c: any) => ({ id: c.id, saldo: Number(c.valor) }));
+          for (const p of oldPayments) {
+            let restante = +Number(p.valor).toFixed(2);
+            for (const c of saldos) {
+              if (restante <= 0.005) break;
+              if (c.saldo <= 0.005) continue;
+              const parte = +Math.min(restante, c.saldo).toFixed(2);
+              const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+                conta_receber_id: c.id,
+                valor: parte,
+                forma_recebimento: p.forma_recebimento,
+                data_recebimento: p.data_recebimento,
+                observacoes: p.observacoes,
+                conta_bancaria_id: p.conta_bancaria_id,
+                created_by: p.created_by || user?.id,
+              });
+              if (rpErr) throw rpErr;
+              c.saldo = +(c.saldo - parte).toFixed(2);
+              restante = +(restante - parte).toFixed(2);
+            }
+          }
+        }
 
         toast.success("Fatura atualizada com sucesso!");
       } else {
@@ -1690,7 +1736,7 @@ ${hasRecebimentos ? `
           {formatCurrency(Number(f.valor_total))}
           {f.has_partial && (
             <span className="block text-[10px] text-amber-600 font-normal">
-              Receb: {formatCurrency(f.valor_recebido_total || 0)}
+              Receb: {formatCurrency(f.valor_recebido_total || 0)} · Saldo: {formatCurrency(Math.max(0, Number(f.valor_total) - Number(f.valor_recebido_total || 0)))}
             </span>
           )}
         </span>
@@ -1825,14 +1871,25 @@ ${hasRecebimentos ? `
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Cliente:</span> <strong>{selectedFatura.cliente_nome}</strong></div>
                 <div><span className="text-muted-foreground">Emissão:</span> <strong>{formatDateBR(selectedFatura.data_emissao)}</strong></div>
-                <div><span className="text-muted-foreground">Valor Total:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
+                {(Number(selectedFatura.valor_desconto || 0) > 0 || Number(selectedFatura.valor_acrescimo || 0) > 0) && (
+                  <div><span className="text-muted-foreground">Subtotal:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total) + Number(selectedFatura.valor_desconto || 0) - Number(selectedFatura.valor_acrescimo || 0))}</strong></div>
+                )}
+                <div><span className="text-muted-foreground">Valor Total{Number(selectedFatura.valor_desconto || 0) > 0 ? " (com desconto)" : ""}:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
                 <div><span className="text-muted-foreground">Condição:</span> <strong>{selectedFatura.num_parcelas === 1 ? "À vista" : `${selectedFatura.num_parcelas}x (a cada ${selectedFatura.intervalo_dias} dias)`}</strong></div>
                 {Number(selectedFatura.valor_acrescimo || 0) > 0 && (
                   <div><span className="text-muted-foreground">Acréscimo:</span> <strong>{formatCurrency(Number(selectedFatura.valor_acrescimo))}</strong></div>
                 )}
                 {Number(selectedFatura.valor_desconto || 0) > 0 && (
-                  <div><span className="text-muted-foreground">Desconto:</span> <strong>{formatCurrency(Number(selectedFatura.valor_desconto))}</strong></div>
+                  <div><span className="text-muted-foreground">Desconto:</span> <strong className="text-destructive">- {formatCurrency(Number(selectedFatura.valor_desconto))}</strong></div>
                 )}
+                {(() => {
+                  const rec = detailContas.reduce((s, c) => s + Number(c.valor_recebido || 0), 0);
+                  const saldo = Math.max(0, Number(selectedFatura.valor_total) - rec);
+                  return (<>
+                    <div><span className="text-muted-foreground">Recebido:</span> <strong className="text-success">{formatCurrency(rec)}</strong></div>
+                    <div><span className="text-muted-foreground">Saldo a receber:</span> <strong className={saldo > 0.005 ? "text-destructive" : ""}>{formatCurrency(saldo)}</strong></div>
+                  </>);
+                })()}
                 {selectedFatura.observacoes && (
                   <div className="col-span-2"><span className="text-muted-foreground">Observações:</span> <strong>{selectedFatura.observacoes}</strong></div>
                 )}
@@ -1954,6 +2011,8 @@ ${hasRecebimentos ? `
                       <TableRow>
                         <TableHead>Vencimento</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Recebido</TableHead>
+                        <TableHead className="text-right">Saldo</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead>Recebimento</TableHead>
                       </TableRow>
@@ -1963,9 +2022,11 @@ ${hasRecebimentos ? `
                         <TableRow key={c.id}>
                           <TableCell className="text-xs">{formatDateBR(c.data_vencimento)}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor_recebido || 0))}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)))}</TableCell>
                           <TableCell className="text-xs text-center">
                             <Badge variant={c.status === "recebido" ? "default" : c.status === "atrasado" ? "destructive" : "outline"}>
-                              {c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto"}
+                              {c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : Number(c.valor_recebido || 0) > 0 ? "Parcial" : "Aberto"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs">{c.data_recebimento ? formatDateBR(c.data_recebimento) : "—"}</TableCell>
