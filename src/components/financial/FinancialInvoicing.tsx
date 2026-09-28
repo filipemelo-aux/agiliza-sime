@@ -1736,7 +1736,7 @@ ${hasRecebimentos ? `
           {formatCurrency(Number(f.valor_total))}
           {f.has_partial && (
             <span className="block text-[10px] text-amber-600 font-normal">
-              Receb: {formatCurrency(f.valor_recebido_total || 0)}
+              Receb: {formatCurrency(f.valor_recebido_total || 0)} · Saldo: {formatCurrency(Math.max(0, Number(f.valor_total) - Number(f.valor_recebido_total || 0)))}
             </span>
           )}
         </span>
@@ -1871,14 +1871,25 @@ ${hasRecebimentos ? `
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Cliente:</span> <strong>{selectedFatura.cliente_nome}</strong></div>
                 <div><span className="text-muted-foreground">Emissão:</span> <strong>{formatDateBR(selectedFatura.data_emissao)}</strong></div>
-                <div><span className="text-muted-foreground">Valor Total:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
+                {(Number(selectedFatura.valor_desconto || 0) > 0 || Number(selectedFatura.valor_acrescimo || 0) > 0) && (
+                  <div><span className="text-muted-foreground">Subtotal:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total) + Number(selectedFatura.valor_desconto || 0) - Number(selectedFatura.valor_acrescimo || 0))}</strong></div>
+                )}
+                <div><span className="text-muted-foreground">Valor Total{Number(selectedFatura.valor_desconto || 0) > 0 ? " (com desconto)" : ""}:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
                 <div><span className="text-muted-foreground">Condição:</span> <strong>{selectedFatura.num_parcelas === 1 ? "À vista" : `${selectedFatura.num_parcelas}x (a cada ${selectedFatura.intervalo_dias} dias)`}</strong></div>
                 {Number(selectedFatura.valor_acrescimo || 0) > 0 && (
                   <div><span className="text-muted-foreground">Acréscimo:</span> <strong>{formatCurrency(Number(selectedFatura.valor_acrescimo))}</strong></div>
                 )}
                 {Number(selectedFatura.valor_desconto || 0) > 0 && (
-                  <div><span className="text-muted-foreground">Desconto:</span> <strong>{formatCurrency(Number(selectedFatura.valor_desconto))}</strong></div>
+                  <div><span className="text-muted-foreground">Desconto:</span> <strong className="text-destructive">- {formatCurrency(Number(selectedFatura.valor_desconto))}</strong></div>
                 )}
+                {(() => {
+                  const rec = detailContas.reduce((s, c) => s + Number(c.valor_recebido || 0), 0);
+                  const saldo = Math.max(0, Number(selectedFatura.valor_total) - rec);
+                  return (<>
+                    <div><span className="text-muted-foreground">Recebido:</span> <strong className="text-success">{formatCurrency(rec)}</strong></div>
+                    <div><span className="text-muted-foreground">Saldo a receber:</span> <strong className={saldo > 0.005 ? "text-destructive" : ""}>{formatCurrency(saldo)}</strong></div>
+                  </>);
+                })()}
                 {selectedFatura.observacoes && (
                   <div className="col-span-2"><span className="text-muted-foreground">Observações:</span> <strong>{selectedFatura.observacoes}</strong></div>
                 )}
@@ -2000,6 +2011,8 @@ ${hasRecebimentos ? `
                       <TableRow>
                         <TableHead>Vencimento</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Recebido</TableHead>
+                        <TableHead className="text-right">Saldo</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead>Recebimento</TableHead>
                       </TableRow>
@@ -2009,9 +2022,11 @@ ${hasRecebimentos ? `
                         <TableRow key={c.id}>
                           <TableCell className="text-xs">{formatDateBR(c.data_vencimento)}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor_recebido || 0))}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)))}</TableCell>
                           <TableCell className="text-xs text-center">
                             <Badge variant={c.status === "recebido" ? "default" : c.status === "atrasado" ? "destructive" : "outline"}>
-                              {c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto"}
+                              {c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : Number(c.valor_recebido || 0) > 0 ? "Parcial" : "Aberto"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs">{c.data_recebimento ? formatDateBR(c.data_recebimento) : "—"}</TableCell>
