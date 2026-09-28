@@ -792,20 +792,24 @@ export function FinancialInvoicing() {
 
     const saldoTitulo = +(Number(conta.valor) - Number(conta.valor_recebido || 0)).toFixed(2);
     if (saldoTitulo <= 0.005) return toast.error("Esta parcela já está quitada");
+    const valor = +(Number(baixaValor) || 0).toFixed(2);
+    if (valor <= 0) return toast.error("Informe o valor recebido");
+    if (valor > saldoTitulo + 0.005) return toast.error(`Valor maior que o saldo da parcela (${formatCurrency(saldoTitulo)})`);
+    const parcial = valor + 0.005 < saldoTitulo;
 
     setReceiveSaving(true);
     try {
       const { error } = await supabase.from("receivable_payments" as any).insert({
         conta_receber_id: conta.id,
-        valor: saldoTitulo,
+        valor,
         forma_recebimento: receiveForma,
         data_recebimento: receiveDate,
-        observacoes: "Quitação da parcela",
+        observacoes: parcial ? "Recebimento parcial" : "Quitação da parcela",
         created_by: user.id,
       });
       if (error) throw error;
 
-      toast.success("Parcela quitada!");
+      toast.success(parcial ? "Recebimento parcial registrado" : "Parcela quitada!");
       setSelectedFaturaIds(new Set());
       await reloadReceiveContas();
     } catch (err: any) {
@@ -2415,18 +2419,30 @@ ${hasRecebimentos ? `
                           </Select>
                         </div>
 
+                        <div>
+                          <Label className="text-xs">Valor recebido (R$)</Label>
+                          <Input
+                            className="h-9 text-xs font-mono"
+                            inputMode="numeric"
+                            value={baixaValor ? maskCurrency(Number(baixaValor).toFixed(2)) : ""}
+                            onChange={(e) => setBaixaValor(unmaskCurrency(e.target.value))}
+                            placeholder="0,00"
+                          />
+                          <p className="text-[10px] text-muted-foreground mt-0.5">Informe um valor menor que o saldo para registrar um recebimento parcial.</p>
+                        </div>
+
                         <div className="flex justify-between text-[11px] text-muted-foreground border-t pt-2">
                           <span>Saldo da parcela: <strong className="font-mono text-foreground">{formatCurrency(saldoTitulo)}</strong></span>
-                          <span>Total a receber: <strong className="font-mono text-foreground">{formatCurrency(Math.max(0, aPagar))}</strong></span>
+                          <span>Restará: <strong className="font-mono text-foreground">{formatCurrency(Math.max(0, aPagar - (Number(baixaValor) || 0)))}</strong></span>
                         </div>
 
                         <Button
                           className="w-full bg-green-600 hover:bg-green-700 text-white h-9"
-                          disabled={receiveSaving || !receiveContaId}
+                          disabled={receiveSaving || !receiveContaId || !(Number(baixaValor) > 0)}
                           onClick={handleBaixaParcialFatura}
                         >
                           <HandCoins className="h-4 w-4 mr-1" />
-                          {receiveSaving ? "Registrando..." : "Registrar pagamento"}
+                          {receiveSaving ? "Registrando..." : (Number(baixaValor) || 0) + 0.005 < saldoTitulo ? "Registrar recebimento parcial" : "Quitar parcela"}
                         </Button>
                       </div>
                       );
