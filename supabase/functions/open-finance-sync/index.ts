@@ -118,6 +118,20 @@ class McpClient {
   }
 }
 
+/** Raízes de CNPJ (8 dígitos) do titular da conta — preenchidas a cada sincronização. */
+let HOLDER_ROOTS = new Set<string>(["23662751"]);
+let HOLDER_NAMES: string[] = ["SIME TRANSPORTE"];
+
+const onlyDigits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+function isHolderDoc(doc: unknown): boolean {
+  const d = onlyDigits(doc);
+  return d.length === 14 && HOLDER_ROOTS.has(d.slice(0, 8));
+}
+function isHolderName(name: unknown): boolean {
+  const n = String(name ?? "").toUpperCase();
+  return !!n && HOLDER_NAMES.some((h) => h && n.includes(h));
+}
+
 /** Adaptador: transação bruta da API -> tipagem padrão de conciliação. */
 export function adaptTransaction(row: Record<string, any>): NormalizedTx | null {
   const amount = Number(String(row.amount ?? row.valor ?? "").replace(/[^\d.,-]/g, "").replace(",", "."));
@@ -131,10 +145,20 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     typeHint === "CREDIT" ? "entrada" : typeHint === "DEBIT" ? "saida" : amount >= 0 ? "entrada" : "saida";
 
   const pd = (row.paymentData ?? {}) as Record<string, any>;
-  const rawParty = (tipo === "saida" ? pd.receiver : pd.payer) ?? pd.receiver ?? pd.payer ?? null;
-  // Alguns bancos devolvem payer/receiver como string simples ("POZI LTDA")
-  const contraparte: Record<string, any> | null =
-    typeof rawParty === "string" ? { name: rawParty } : (rawParty as Record<string, any> | null);
+  const toParty = (p: unknown): Record<string, any> | null =>
+    !p ? null : typeof p === "string" ? { name: p } : (p as Record<string, any>);
+  const partyDoc = (p: Record<string, any> | null) =>
+    p?.documentNumber?.value ?? p?.documentNumber ?? p?.document ?? p?.cpfCnpj ?? p?.taxId ?? null;
+  // O lado "nosso" (titular) nunca é favorecido. Escolhe o lado esperado e, se for o titular, tenta o outro.
+  const primary = toParty(tipo === "saida" ? pd.receiver : pd.payer);
+  const secondary = toParty(tipo === "saida" ? pd.payer : pd.receiver);
+  const descRaw = fixMojibake(String(row.description ?? row.descricao ?? ""));
+  const descMentionsHolder = isHolderName(descRaw) || isHolderDoc(descRaw.match(/[\d][\d.\-/\s]{12,}\d/)?.[0]);
+  const isHolderParty = (p: Record<string, any> | null) =>
+    !!p && (isHolderDoc(partyDoc(p)) || isHolderName(p.name));
+  // Transferência entre contas próprias: só aceita o titular se a descrição também o mencionar.
+  const pick = (p: Record<string, any> | null) => (p && (!isHolderParty(p) || descMentionsHolder) ? p : null);
+  const contraparte = pick(primary) ?? (isHolderParty(secondary) ? null : secondary);
 
   const merchant = (row.merchantInfo ?? row.merchant ?? null) as Record<string, any> | null;
   const clean = (v: unknown) => {
@@ -142,12 +166,11 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     return t ? t : null;
   };
 
-  // Fallback: Sicoob (e outros) embutem favorecido/pagador na descrição: "...|@NOME|@DOC|@msg"
-  // ou "DÉB.TRANSF.CONTAS DIF.TITULARIDADE - FAV.: NOME" / "CRÉD.TRANSF.CONTAS - REM.: NOME".
-  const descRaw = fixMojibake(String(row.description ?? row.descricao ?? ""));
-  const descParts = descRaw.split("|@").slice(1).map((p) => p.trim()).filter(Boolean);
+  // Fallback: Sicoob (e outros) embutem favorecido/pagador na descrição: "...|@NOME|@DOC|@msg" ou "...|NOME|DOC|"
+  // ou "DÉB.TRANSF.CONTAS DIF.TITULARIDADE - FAV.: NOME" / "CRÉD.TRANSF.CONTAS - REM.: NOME" / "NOME: X".
+  const descParts = descRaw.split(/\|@?/).slice(1).map((p) => p.replace(/^(CPF\s*CNPJ|CPF|CNPJ)\s*:?\s*/i, "").trim()).filter(Boolean);
   const isDoc = (p: string) => /^[\d*.\-/\s]+$/.test(p) && (p.includes("*") || p.replace(/\D/g, "").length >= 11);
-  const markerMatch = descRaw.match(/\b(FAV|BENEF(?:ICIARIO)?|REM|REMET(?:ENTE)?|PAG(?:ADOR)?)\b\.?\s*[:\-]\s*([^|]+)/i);
+  const markerMatch = descRaw.match(/\b(FAV(?:ORECIDO)?|BENEF(?:ICIARIO)?|REM|REMET(?:ENTE)?|PAG(?:ADOR)?|NOME)\b\.?\s*[:\-]\s*([^|]+)/i);
   let markerNome: string | null = null;
   let markerDoc: string | null = null;
   if (markerMatch) {
@@ -159,17 +182,22 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
     }
     if (rest && /[a-zA-ZÀ-ÿ]{3}/.test(rest)) markerNome = rest;
   }
-  const nomeDesc = markerNome ?? descParts.find((p) => !isDoc(p) && /[a-zA-ZÀ-ÿ]{3}/.test(p)) ?? null;
+  const GENERIC = /^(PAGAMENTO|RECEBIMENTO|DEVOLU[CÇ][AÃ]O)\s+PIX$|^PIX\b|^TRANSF/i;
+  // Compras com cartão de débito: "COMPRA MASTERCARD MAESTRO - LOJA CIDADE BRA"
+  const cardM = descRaw.match(/^COMPRA\s+(?:MASTERCARD|VISA|ELO|MAESTRO|CART[AÃ]O)[^-]*-\s*(.+?)(?:\s+[A-ZÀ-Ÿ]+\s+BRA)?\s*$/i);
+  const nomeDesc = markerNome
+    ?? descParts.find((p) => !isDoc(p) && /[a-zA-ZÀ-ÿ]{3}/.test(p) && !GENERIC.test(p))
+    ?? (cardM ? cardM[1].replace(/^MP \*/i, "").trim() : null);
   const docDesc = markerDoc ?? descParts.find(isDoc) ?? null;
 
-
+  const merchantName = merchant?.businessName ?? merchant?.name;
   const detalhes = {
     categoria: clean(row.category),
     tipoOperacao: clean(row.operationType),
     formaPagamento: clean(pd.paymentMethod),
     situacao: clean(row.status),
-    contraparte: clean(contraparte?.name ?? merchant?.businessName ?? merchant?.name ?? nomeDesc),
-    documentoContraparte: clean(contraparte?.documentNumber?.value ?? merchant?.cnpj ?? docDesc),
+    contraparte: clean(contraparte?.name ?? contraparte?.legalName ?? contraparte?.fullName ?? (isHolderName(merchantName) ? null : merchantName) ?? nomeDesc),
+    documentoContraparte: clean(partyDoc(contraparte) ?? (isHolderDoc(merchant?.cnpj) ? null : merchant?.cnpj) ?? docDesc),
 
     banco: clean(contraparte?.routingNumber),
     agencia: clean(contraparte?.branchNumber),
@@ -354,14 +382,49 @@ Deno.serve(async (req) => {
     }
 
 
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // Titular da conta: todas as raízes de CNPJ dos estabelecimentos da empresa
+    {
+      const { data: est } = await admin.from("fiscal_establishments").select("cnpj, razao_social");
+      const roots = new Set<string>(["23662751"]);
+      const names = new Set<string>(["SIME TRANSPORTE"]);
+      (est ?? []).forEach((e: any) => {
+        const d = onlyDigits(e.cnpj);
+        if (d.length === 14) roots.add(d.slice(0, 8));
+        const n = String(e.razao_social ?? "").toUpperCase().split(" - ")[0].replace(/\s+LTDA.*$/, "").trim();
+        if (n.length >= 5) names.add(n);
+      });
+      HOLDER_ROOTS = roots;
+      HOLDER_NAMES = [...names];
+    }
+
     const transactions = raw
       .map(adaptTransaction)
       .filter((t): t is NormalizedTx => t !== null);
 
-
+    // Favorecido só com CPF/CNPJ (inclusive mascarado "***.133.132-**"): busca o nome no cadastro de pessoas
+    const semNome = transactions.filter((t) => t.detalhes && !t.detalhes.contraparte && t.detalhes.documentoContraparte);
+    if (semNome.length) {
+      const { data: pessoas } = await admin.from("profiles").select("full_name, razao_social, cnpj").not("cnpj", "is", null).limit(10000);
+      const lista = (pessoas ?? []).map((p: any) => ({ nome: p.razao_social || p.full_name, doc: onlyDigits(p.cnpj) })).filter((p) => p.nome && p.doc);
+      for (const t of semNome) {
+        const raw = String(t.detalhes!.documentoContraparte);
+        let cand: typeof lista = [];
+        if (raw.includes("*")) {
+          // CPF mascarado: dígitos visíveis nas posições 4-9
+          const m = raw.match(/\*{3}\.?(\d{3})\.?(\d{3})-?\*{2}/);
+          if (m) cand = lista.filter((p) => p.doc.length === 11 && p.doc.slice(3, 9) === m[1] + m[2]);
+        } else {
+          const d = onlyDigits(raw);
+          cand = lista.filter((p) => p.doc === d);
+        }
+        const nomes = [...new Set(cand.map((c) => c.nome))];
+        if (nomes.length === 1) t.detalhes!.contraparte = nomes[0];
+      }
+    }
 
     // Deduplicação pelo ID único da API contra o que já foi gravado
-    const admin = createClient(supabaseUrl, serviceKey);
     const ids = transactions.map((t) => t.externalId);
     const known = new Set<string>();
     for (let i = 0; i < ids.length; i += 200) {
