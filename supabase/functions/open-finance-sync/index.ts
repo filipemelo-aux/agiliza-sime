@@ -307,6 +307,14 @@ Deno.serve(async (req) => {
       return null;
     };
 
+    if (body?.debugTools) {
+      if (mcp instanceof McpClient) {
+        const r = await (mcp as any).rpc({ jsonrpc: "2.0", id: 99, method: "tools/list", params: {} });
+        return json({ mode: "mcp", tools: McpClient["parseBody"](await r.text()) });
+      }
+      return json({ mode: "rest" });
+    }
+    if (body?.debugCall) return json({ r: await mcp.callTool(body.debugCall, body.args ?? {}) });
     let accountsRes = await mcp.callTool("openfinance_list_accounts", {});
     let accounts = pickArray(accountsRes);
     if (accounts.length === 0 && !billingError(accountsRes)) {
