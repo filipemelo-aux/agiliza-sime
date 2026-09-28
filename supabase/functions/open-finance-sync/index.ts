@@ -170,7 +170,7 @@ export function adaptTransaction(row: Record<string, any>): NormalizedTx | null 
   // ou "DÉB.TRANSF.CONTAS DIF.TITULARIDADE - FAV.: NOME" / "CRÉD.TRANSF.CONTAS - REM.: NOME" / "NOME: X".
   const descParts = descRaw.split(/\|@?/).slice(1).map((p) => p.replace(/^(CPF\s*CNPJ|CPF|CNPJ)\s*:?\s*/i, "").trim()).filter(Boolean);
   const isDoc = (p: string) => /^[\d*.\-/\s]+$/.test(p) && (p.includes("*") || p.replace(/\D/g, "").length >= 11);
-  const markerMatch = descRaw.match(/\b(FAV(?:ORECIDO)?|BENEF(?:ICIARIO)?|REM|REMET(?:ENTE)?|PAG(?:ADOR)?|NOME|DE|PARA)\b\.?\s*[:\-]\s*([^|]+)/i);
+  const markerMatch = descRaw.match(/\b(FAV(?:ORECIDO)?|BENEF(?:ICIARIO)?|REM|REMET(?:ENTE)?|PAG(?:ADOR)?|NOME)\b\.?\s*[:\-]\s*([^|]+)/i);
   let markerNome: string | null = null;
   let markerDoc: string | null = null;
   if (markerMatch) {
