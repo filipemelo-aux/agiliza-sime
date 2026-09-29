@@ -310,6 +310,38 @@ Deno.serve(async (req) => {
       return null;
     };
 
+    // Consulta sempre nova: força o banco a reenviar o extrato antes de ler.
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let syncInfo: Record<string, unknown> = { forced: false };
+    if (body?.skipForceSync !== true) {
+      try {
+        const connRes = await mcp.callTool("openfinance_list_connections", {});
+        const itemIds = ((connRes?.connections ?? []) as Record<string, any>[])
+          .map((c) => String(c.item_id ?? "")).filter(Boolean);
+        if (itemIds.length) {
+          await sleep(600);
+          await mcp.callTool("openfinance_force_sync", { items: itemIds });
+          syncInfo = { forced: true, items: itemIds.length };
+          const pending = new Set(itemIds);
+          const started = Date.now();
+          await sleep(3000);
+          while (pending.size && Date.now() - started < 45000) {
+            for (const id of [...pending]) {
+              await sleep(600);
+              const st = await mcp.callTool("openfinance_get_item_status", { item: id }).catch(() => null);
+              const status = String(st?.status ?? st?.item?.status ?? "").toUpperCase();
+              if (status && !/UPDATING|WAITING|PENDING|CREATED|SYNC/.test(status)) pending.delete(id);
+            }
+            if (pending.size) await sleep(2500);
+          }
+          syncInfo.timedOut = pending.size > 0;
+        }
+      } catch (e) {
+        syncInfo = { forced: false, error: String((e as Error)?.message ?? e) };
+      }
+      await sleep(600);
+    }
+
     let accountsRes = await mcp.callTool("openfinance_list_accounts", {});
     let accounts = pickArray(accountsRes);
     if (accounts.length === 0 && !billingError(accountsRes)) {
