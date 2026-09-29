@@ -249,11 +249,30 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const cargil = cargilIdx >= 0;
 
       const widest = aoa.reduce((m, r) => Math.max(m, r?.length || 0), 0);
+      // Posições dos dados são iguais no HTML do e-login (cabeçalho com colspan) e no
+      // .xlsx salvo pelo Excel. O valor é SEMPRE a coluna "Total Prestação" —
+      // "Tarifa" e "Frete" nunca são consideradas.
       const COL = cargil
         ? { data: 0, remet: 2, remetDoc: 3, remetUf: 5, nat: 7, dest: 9, destDoc: 10, destUf: 12, placa: 14, peso: 15, valor: 17 }
         : widest >= 15
           ? { data: 0, remet: 1, remetDoc: 2, remetUf: 4, nat: 6, dest: 8, destDoc: 9, destUf: 11, placa: 12, peso: 13, valor: 14 }
           : { data: 0, remet: 1, remetDoc: 2, remetUf: -1, nat: 3, dest: 4, destDoc: 5, destUf: -1, placa: 6, peso: 7, valor: 8 };
+      let conhCol = 1;
+      if (cargil) {
+        // Refina a coluna de valor pelo cabeçalho: procura "Total Prestação" nas linhas
+        // de cabeçalho e usa a posição alinhada aos dados (índice >= 15) quando existir.
+        // Nunca cai em "Tarifa" nem "Frete".
+        const valorHdr = (() => {
+          for (let i = Math.max(0, cargilIdx); i <= Math.min(aoa.length - 1, cargilIdx + 2); i++) {
+            const j = (aoa[i] || []).findIndex((c: any) => /^total\s*presta/.test(norm(c)));
+            if (j >= 15) return j;
+          }
+          return -1;
+        })();
+        if (valorHdr >= 0) COL.valor = valorHdr;
+        const conhHdr = (aoa[cargilIdx] || []).findIndex((c: any) => /^conh\.?$/.test(norm(c)));
+        if (conhHdr >= 0) conhCol = conhHdr;
+      }
 
       const cell = (row: any[], i: number) => (i >= 0 ? row[i] : "");
       const empty: ParsedActor = { nome: "", doc: "" };
@@ -266,7 +285,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         const data = excelDateToISO(row[COL.data]);
         if (!data) continue;
         // Rodapé do relatório (ex.: "Bsoft TMS - www...") traz data mas não é CT-e
-        if (cargil && !/^\d+$/.test(String(row[1] ?? "").trim())) continue;
+        if (cargil && !/^\d+$/.test(String(cell(row, conhCol) ?? "").trim())) continue;
         if (!String(cell(row, COL.remet) || "").trim() && !String(cell(row, COL.dest) || "").trim() && !String(cell(row, COL.placa) || "").trim()) continue;
 
         const remetente: ParsedActor = { nome: String(cell(row, COL.remet) || "").trim(), doc: onlyDigits(cell(row, COL.remetDoc)) };
