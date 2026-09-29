@@ -1782,7 +1782,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccounts, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
+  }, [linkSelectedAccounts, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails, history, resumeReconciliation]);
 
   const totals = useMemo(() => {
     const total = items.length;
