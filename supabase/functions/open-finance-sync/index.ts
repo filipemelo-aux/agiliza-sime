@@ -425,17 +425,13 @@ Deno.serve(async (req) => {
     if (body?.debugRaw) {
       return json({ syncInfo, count: raw.length, rows: raw.slice(0, 300) });
     }
-    // Lançamentos PENDING são provisórios (ex.: cheque devolvido que depois foi acatado).
-    // Só entram lançamentos efetivados (POSTED), salvo pedido explícito.
-    const pendentesIgnorados = body?.includePending === true
-      ? 0
-      : raw.filter((r) => String(r.status ?? "").toUpperCase() === "PENDING").length;
-    if (body?.includePending !== true) {
-      for (let i = raw.length - 1; i >= 0; i--) {
-        if (String(raw[i].status ?? "").toUpperCase() === "PENDING") raw.splice(i, 1);
-      }
-    }
-
+    // Lançamentos PENDING são provisórios: o banco não informa se foram desfeitos
+    // (ex.: cheque devolvido que depois foi acatado). Entram marcados para o usuário decidir.
+    const pendingIds = new Set(
+      raw.filter((r) => String(r.status ?? "").toUpperCase() === "PENDING").map((r) => String(r.id ?? "")),
+    );
+    const pendentesIgnorados = 0;
+    const provisorios = pendingIds.size;
 
     const admin = createClient(supabaseUrl, serviceKey);
 
@@ -455,7 +451,11 @@ Deno.serve(async (req) => {
     }
 
     const transactions = raw
-      .map(adaptTransaction)
+      .map((r) => {
+        const t = adaptTransaction(r);
+        if (t && pendingIds.has(String(r.id ?? ""))) t.descricao = `${t.descricao} (PROVISÓRIO)`;
+        return t;
+      })
       .filter((t): t is NormalizedTx => t !== null);
 
     // Favorecido só com CPF/CNPJ (inclusive mascarado "***.133.132-**"): busca o nome no cadastro de pessoas
