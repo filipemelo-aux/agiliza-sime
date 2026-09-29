@@ -269,6 +269,9 @@ Deno.serve(async (req) => {
     const REST_PATHS: Record<string, string> = {
       openfinance_list_accounts: "accounts/list",
       openfinance_list_transactions: "transactions/list",
+      openfinance_list_connections: "connections/list",
+      openfinance_force_sync: "connections/sync",
+      openfinance_get_item_status: "connections/status",
     };
     const mcp: { callTool: (n: string, a?: Record<string, unknown>) => Promise<any> } = /^https?:\/\//i.test(cfg)
       ? await (async () => { const c = new McpClient(cfg); await c.initialize(); return c; })()
