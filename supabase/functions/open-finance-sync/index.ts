@@ -418,6 +418,16 @@ Deno.serve(async (req) => {
     if (body?.debugRaw) {
       return json({ syncInfo, count: raw.length, rows: raw.slice(0, 300) });
     }
+    // Lançamentos PENDING são provisórios (ex.: cheque devolvido que depois foi acatado).
+    // Só entram lançamentos efetivados (POSTED), salvo pedido explícito.
+    const pendentesIgnorados = body?.includePending === true
+      ? 0
+      : raw.filter((r) => String(r.status ?? "").toUpperCase() === "PENDING").length;
+    if (body?.includePending !== true) {
+      for (let i = raw.length - 1; i >= 0; i--) {
+        if (String(raw[i].status ?? "").toUpperCase() === "PENDING") raw.splice(i, 1);
+      }
+    }
 
 
     const admin = createClient(supabaseUrl, serviceKey);
