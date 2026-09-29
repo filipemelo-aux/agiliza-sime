@@ -387,6 +387,11 @@ Deno.serve(async (req) => {
 
 
     const raw: Record<string, any>[] = [];
+    // Logo após a atualização forçada o serviço pode devolver o extrato ainda vazio
+    // (reprocessando). Nesse caso aguarda e lê de novo.
+    for (let attempt = 0; attempt < (syncInfo.forced ? 6 : 1); attempt++) {
+    if (attempt > 0) await sleep(5000);
+    raw.length = 0;
     for (const acc of accounts) {
       const accountId = String(acc.account_id ?? acc.id);
       let page = 1;
@@ -417,6 +422,8 @@ Deno.serve(async (req) => {
     }
     if (body?.debugRaw) {
       return json({ syncInfo, count: raw.length, rows: raw.slice(0, 300) });
+    }
+    if (raw.length > 0) break;
     }
     // Lançamentos PENDING são provisórios (ex.: cheque devolvido que depois foi acatado).
     // Só entram lançamentos efetivados (POSTED), salvo pedido explícito.
@@ -499,6 +506,7 @@ Deno.serve(async (req) => {
       duplicados: transactions.length - novos.length,
       novos: novos.length,
       cartoesIgnorados,
+      pendentesIgnorados,
       syncInfo,
       transactions: novos,
 
