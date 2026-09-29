@@ -257,6 +257,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         : widest >= 15
           ? { data: 0, remet: 1, remetDoc: 2, remetUf: 4, nat: 6, dest: 8, destDoc: 9, destUf: 11, placa: 12, peso: 13, valor: 14 }
           : { data: 0, remet: 1, remetDoc: 2, remetUf: -1, nat: 3, dest: 4, destDoc: 5, destUf: -1, placa: 6, peso: 7, valor: 8 };
+      let conhCol = 1;
       if (cargil) {
         // Refina a coluna de valor pelo cabeçalho: procura "Total Prestação" nas linhas
         // de cabeçalho e usa a posição alinhada aos dados (índice >= 15) quando existir.
