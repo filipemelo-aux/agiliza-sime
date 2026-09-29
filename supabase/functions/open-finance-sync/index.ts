@@ -420,10 +420,10 @@ Deno.serve(async (req) => {
         page++;
       }
     }
+    if (raw.length > 0) break;
+    }
     if (body?.debugRaw) {
       return json({ syncInfo, count: raw.length, rows: raw.slice(0, 300) });
-    }
-    if (raw.length > 0) break;
     }
     // Lançamentos PENDING são provisórios (ex.: cheque devolvido que depois foi acatado).
     // Só entram lançamentos efetivados (POSTED), salvo pedido explícito.
