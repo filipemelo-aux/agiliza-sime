@@ -415,6 +415,9 @@ Deno.serve(async (req) => {
         page++;
       }
     }
+    if (body?.debugRaw) {
+      return json({ syncInfo, count: raw.length, rows: raw.slice(0, 300) });
+    }
 
 
     const admin = createClient(supabaseUrl, serviceKey);
