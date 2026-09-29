@@ -486,6 +486,7 @@ Deno.serve(async (req) => {
       duplicados: transactions.length - novos.length,
       novos: novos.length,
       cartoesIgnorados,
+      syncInfo,
       transactions: novos,
 
     });
