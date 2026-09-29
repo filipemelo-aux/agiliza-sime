@@ -1613,6 +1613,97 @@ export function BankReconciliation() {
     try {
       const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
       const targetTotal = +targetItems.reduce((sum, item) => sum + Math.abs(item.amount), 0).toFixed(2);
+
+      // ── Créditos: vincular a contas a receber ──
+      if (targetItems.length > 0 && targetItems.every((i) => i.tipo === "entrada")) {
+        if (targetItems.length !== 1) throw new Error("Selecione apenas um crédito do extrato para vincular.");
+        const credit = targetItems[0];
+        const recs = linkSelectedAccounts.filter((a: any) => a.is_receivable && a.conta_receber_id);
+        if (recs.length === 0) throw new Error("Selecione ao menos uma conta a receber.");
+        const saldos = recs.map((a: any) => +Math.max(0, Number(a.valor_total || 0) - Number(a.valor_pago || 0)).toFixed(2));
+        const saldoTotal = +saldos.reduce((s, v) => s + v, 0).toFixed(2);
+        if (saldoTotal <= 0) throw new Error("As contas selecionadas não têm saldo em aberto.");
+        const diff = +(targetTotal - saldoTotal).toFixed(2);
+
+        let quitarComDesconto = false;
+        if (diff < -0.005) {
+          quitarComDesconto = await confirm({
+            title: "Crédito menor que o saldo",
+            description: `O crédito de ${formatCurrency(targetTotal)} é ${formatCurrency(-diff)} menor que o saldo das contas (${formatCurrency(saldoTotal)}). Deseja quitar registrando a diferença como DESCONTO? Se escolher "Manter saldo", o recebimento fica parcial e a diferença continua em aberto.`,
+            confirmLabel: "Quitar com desconto",
+            cancelLabel: "Manter saldo",
+          });
+        } else {
+          const ok = await confirm({
+            title: "Confirmar vinculação",
+            description: `O crédito de ${formatCurrency(targetTotal)} será registrado como recebimento em ${recs.length} conta(s) (saldo ${formatCurrency(saldoTotal)}).${diff > 0.005 ? ` A diferença de ${formatCurrency(diff)} será registrada como acréscimo.` : ""}`,
+            confirmLabel: "Finalizar vinculação",
+            cancelLabel: "Revisar",
+          });
+          if (!ok) return;
+        }
+
+        // Distribui o valor do extrato pelas contas na ordem selecionada
+        let restante = targetTotal;
+        const receiptIds: string[] = [];
+        for (let idx = 0; idx < recs.length; idx++) {
+          const acc: any = recs[idx];
+          const isLast = idx === recs.length - 1;
+          const valor = isLast ? +restante.toFixed(2) : +Math.min(saldos[idx], restante).toFixed(2);
+          restante = +(restante - valor).toFixed(2);
+          if (valor <= 0) continue;
+          const falta = +(saldos[idx] - valor).toFixed(2);
+          const { data: receipt, error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+            conta_receber_id: acc.conta_receber_id,
+            valor,
+            forma_recebimento: "transferencia",
+            data_recebimento: credit.date,
+            observacoes: "Recebimento via conciliação bancária" +
+              (falta > 0.005 && quitarComDesconto ? ` — desconto de ${formatCurrency(falta)}` : "") +
+              (falta < -0.005 ? ` — acréscimo de ${formatCurrency(-falta)}` : ""),
+            created_by: user?.id,
+          } as any).select("id").single();
+          if (rpErr) throw rpErr;
+          receiptIds.push((receipt as any).id);
+          if (falta > 0.005 && quitarComDesconto) {
+            // Reduz o título ao valor efetivamente recebido e quita
+            const novoValor = +(Number(acc.valor_total || 0) - falta).toFixed(2);
+            const { error: upErr } = await supabase.from("contas_receber").update({
+              valor: novoValor,
+              status: "recebido",
+              data_recebimento: credit.date,
+              forma_recebimento: "transferencia",
+            } as any).eq("id", acc.conta_receber_id);
+            if (upErr) throw upErr;
+          }
+        }
+
+        const { data: movs, error: movErr } = await supabase
+          .from("movimentacoes_bancarias").select("id").in("origem_id", receiptIds);
+        if (movErr) throw movErr;
+        const movIds = ((movs as any[]) || []).map((m) => m.id);
+        if (movIds.length === 0) throw new Error("O recebimento foi registrado, mas a movimentação bancária não foi localizada.");
+        if (!credit.dbItemId) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
+        const { error: updErr } = await supabase.from("bank_reconciliation_items")
+          .update({ status: "conciliado", matched_movimentacao_id: movIds[0] }).eq("id", credit.dbItemId);
+        if (updErr) throw updErr;
+        if (movIds.length > 1) {
+          await supabase.from("bank_reconciliation_item_links" as any).insert(
+            movIds.map((mid) => ({ reconciliation_item_id: credit.dbItemId, movimentacao_id: mid })) as any,
+          );
+        }
+
+        toast.success("Recebimento registrado e conciliado.");
+        setLinkAccountDialogOpen(false);
+        setLinkSelectedAccount(null);
+        setLinkSelectedAccounts([]);
+        setLinkTargetItemIds([]);
+        setTimeout(updateReconciliationCount, 500);
+        const rec = history.find((h) => h.id === reconciliationId);
+        if (rec) await resumeReconciliation(rec);
+        return;
+      }
+
       // Cada conta selecionada entra com seu saldo em aberto (sem rateio manual)
       const allocations = linkSelectedAccounts.map((account) => {
         if (account.ja_paga) {
@@ -1691,7 +1782,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccounts, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails]);
+  }, [linkSelectedAccounts, linkTargetItemIds, items, reconciliationId, user, confirm, updateReconciliationCount, fetchMovDetails, history, resumeReconciliation]);
 
   const totals = useMemo(() => {
     const total = items.length;
