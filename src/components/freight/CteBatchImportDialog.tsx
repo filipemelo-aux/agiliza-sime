@@ -238,7 +238,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       // Aproveitados: Emissão, Remetente, CNPJ, Produto (natureza), Destinatário, CNPJ, Placa, Peso, Total Prestação.
       const norm = (c: any) => String(c ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
       let headerIdx = aoa.findIndex((r) => r && norm(r[0]) === "data" && r.some((c: any) => /remetente/.test(norm(c))));
-      const isCargil = (r: any[]) => r && r.some((c: any) => norm(c) === "conh.") && r.some((c: any) => /prestacao/.test(norm(c)));
+      // Ao salvar no Excel, os acentos do cabeçalho podem vir corrompidos ("Total Presta磯"), então
+      // reconhece também por "Conh." + "Placa"/"Peso"/"Tarifa".
+      const isCargil = (r: any[]) =>
+        r && r.some((c: any) => /^conh\.?$/.test(norm(c))) &&
+        r.some((c: any) => /prestacao|^placa$|^peso$|tarifa/.test(norm(c)));
       let cargilIdx = aoa.findIndex((r) => isCargil(r));
       if (cargilIdx < 0) cargilIdx = aoa.findIndex((r, i) => i > 0 && isCargil(aoa[i - 1]) && r.some((c: any) => norm(c) === "placa"));
       if (cargilIdx >= 0 && headerIdx < 0) headerIdx = cargilIdx;
@@ -261,6 +265,9 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (!row || row.length === 0) continue;
         const data = excelDateToISO(row[COL.data]);
         if (!data) continue;
+        // Rodapé do relatório (ex.: "Bsoft TMS - www...") traz data mas não é CT-e
+        if (cargil && !/^\d+$/.test(String(row[1] ?? "").trim())) continue;
+        if (!String(cell(row, COL.remet) || "").trim() && !String(cell(row, COL.dest) || "").trim() && !String(cell(row, COL.placa) || "").trim()) continue;
 
         const remetente: ParsedActor = { nome: String(cell(row, COL.remet) || "").trim(), doc: onlyDigits(cell(row, COL.remetDoc)) };
         const destinatario: ParsedActor = { nome: String(cell(row, COL.dest) || "").trim(), doc: onlyDigits(cell(row, COL.destDoc)) };
