@@ -2082,26 +2082,21 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         </div>
 
         {/* Footer fixo */}
-        <div className="shrink-0 border-t border-border px-4 py-3 flex flex-col gap-2.5 bg-background">
-
+        <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           {!linkedContract && (
-            <label className="flex items-start gap-2 cursor-pointer">
-              <Checkbox
-                checked={gerarContrato}
-                onCheckedChange={(v) => setGerarContrato(!!v)}
-                className="mt-0.5"
-              />
-              <span className="text-xs">
+            <label className="flex cursor-pointer items-start gap-2">
+              <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} className="mt-0.5" />
+              <span className="text-[11px] leading-tight">
                 <span className="flex items-center gap-1 font-semibold">
-                  <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+                  <FileSignature className="h-3.5 w-3.5" /> Gerar contrato de frete
                 </span>
                 <span className="block text-muted-foreground">
-                  Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+                  Após salvar, abre o contrato de fretamento (subcontratado) e gera conta a pagar à vista.
                 </span>
               </span>
             </label>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             {!cte && (
               <Button variant="secondary" onClick={() => handleSave(true)} disabled={saving} title="Salva e mantém os dados gerais para o próximo CT-e">
@@ -2113,6 +2108,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </Button>
           </div>
         </div>
+
       </SheetContent>
 
       <FreightContractDialog
