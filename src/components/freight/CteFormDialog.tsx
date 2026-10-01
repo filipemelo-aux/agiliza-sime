@@ -1204,7 +1204,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     const ok = await confirm({
       title: "Transmitir CT-e",
       description: "O CT-e será enviado à SEFAZ para autorização. Deseja continuar?",
-      confirmText: "Transmitir",
+      confirmLabel: "Transmitir",
     });
     if (!ok) return;
     setTransmitting(true);
@@ -2061,13 +2061,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            {!cte && (
-              <Button variant="secondary" onClick={() => handleSave(true)} disabled={saving} title="Salva e mantém os dados gerais para o próximo CT-e">
-                {saving ? "Salvando..." : "Salvar e novo"}
+            {canTransmit && (
+              <Button variant="secondary" onClick={handleTransmit} disabled={saving || transmitting} title="Envia o CT-e à SEFAZ para autorização">
+                {transmitting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-1 h-3.5 w-3.5" />}
+                {transmitting ? "Transmitindo..." : "Transmitir"}
               </Button>
             )}
-            <Button onClick={() => handleSave(false)} disabled={saving}>
-              {saving ? "Salvando..." : cte ? "Atualizar CT-e" : "Salvar CT-e"}
+            <Button onClick={() => handleSave(false)} disabled={saving || transmitting}>
+              {saving ? "Salvando..." : "Salvar CT-e"}
             </Button>
           </div>
         </div>
