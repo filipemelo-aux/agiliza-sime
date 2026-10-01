@@ -1934,8 +1934,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </div>
                 );
               })}
-            </div>
+            </SubBlock>
           </FormBlock>
+
 
 
           {/* Transporte */}
