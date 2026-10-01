@@ -1403,76 +1403,76 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             summary={`frete ${formatBRL(form.valor_frete)} · IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}
           >
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Frete (vTPrest)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""}
-                    onChange={(e) => set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
+            <SubBlock title="Frete e Recebimento">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor Frete (vTPrest)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-8 text-xs"
+                      value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""}
+                      onChange={(e) => set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor a Receber (vRec)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-8 text-xs"
+                      value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""}
+                      onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Total de Tributos</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-8 text-xs"
+                      value={form.valor_total_tributos ? maskCurrency(String(Math.round(form.valor_total_tributos * 100))) : ""}
+                      onChange={(e) => set("valor_total_tributos", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor a Receber (vRec)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""}
-                    onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
+            </SubBlock>
+
+            <SubBlock title="ICMS e Operação">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Alíquota ICMS (%)</Label>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Base Cálculo ICMS</Label>
+                  <Input className="h-8 bg-muted text-xs text-muted-foreground" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor ICMS</Label>
+                  <Input className="h-8 bg-muted text-xs text-muted-foreground" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CST ICMS</Label>
+                  <Input className="h-8 text-xs" value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CFOP</Label>
+                  <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Natureza da Operação</Label>
+                  <Input className="h-8 text-xs" value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Alíquota ICMS (%)</Label>
-                <Input type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Base Cálculo ICMS</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10 bg-muted text-muted-foreground" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor ICMS</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10 bg-muted text-muted-foreground" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Total Tributos</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_total_tributos ? maskCurrency(String(Math.round(form.valor_total_tributos * 100))) : ""}
-                    onChange={(e) => set("valor_total_tributos", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">CST ICMS</Label>
-                <Input value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">CFOP</Label>
-                <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Natureza da Operação</Label>
-                <Input value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
-              </div>
-            </div>
+            </SubBlock>
+
 
             {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
             <SubBlock title="IBS / CBS — Reforma Tributária 2026">
