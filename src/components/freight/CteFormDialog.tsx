@@ -166,6 +166,7 @@ const defaultForm = {
   tp_serv: 0,
   modal: "01",
   retira: 1,
+  chave_cte_subcontratacao: "",
   // Remetente
   remetente_nome: "",
   remetente_cnpj: "",
@@ -562,6 +563,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         tp_serv: cte.tp_serv ?? 0,
         modal: cte.modal || "01",
         retira: cte.retira ?? 1,
+        chave_cte_subcontratacao: (cte as any).chave_cte_subcontratacao || "",
         remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
         remetente_cnpj: cte.remetente_cnpj ? maskDocument(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
