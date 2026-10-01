@@ -81,10 +81,12 @@ export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
               ? `${data.estabelecimento.ddd1}${data.estabelecimento.telefone1}`
               : null,
             email: data.estabelecimento?.email ?? null,
+            inscricao_estadual: extractIeFromCnpjWs(data),
           };
         }
 
-        // BrasilAPI shape (default)
+        // BrasilAPI shape (default) — BrasilAPI não retorna IE; busca à parte no cnpj.ws
+        const ie = await fetchIeOnly(rawCnpj);
         return {
           razao_social: data.razao_social ?? null,
           nome_fantasia: data.nome_fantasia ?? null,
@@ -97,6 +99,7 @@ export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
           cep: data.cep ?? null,
           ddd_telefone_1: data.ddd_telefone_1 ?? null,
           email: data.email ?? null,
+          inscricao_estadual: ie,
         };
       } catch (err: any) {
         lastError = err;
