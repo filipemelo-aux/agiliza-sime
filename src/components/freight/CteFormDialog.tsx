@@ -146,6 +146,20 @@ const NFE_FIELDS: { k: keyof NfeDetalhe; label: string; kind: "text" | "num" | "
   { k: "valor", label: "Valor do documento", kind: "money" },
 ];
 
+/** Converte o tipo gravado na natureza da carga (ex.: "Granel Sólido") na chave do seletor do CT-e. */
+function tipoCargaKey(tipo?: string | null): string {
+  const t = (tipo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (!t) return "";
+  if (t.includes("perigos")) return "perigosa";
+  if (t.includes("granel") && t.includes("liquid")) return "granel_liquido";
+  if (t.includes("neogranel")) return "neogranel";
+  if (t.includes("granel")) return "granel_solido";
+  if (t.includes("frigor") || t.includes("refriger")) return "frigorificada";
+  if (t.includes("conteiner")) return "conteinerizada";
+  if (t.includes("geral")) return "carga_geral";
+  return "";
+}
+
 const defaultForm = {
   // Tipo e serviço
   tp_cte: 0,
@@ -1256,9 +1270,20 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const setFm = (patch: Partial<typeof defaultForm.frete_minimo>) => setForm((p) => ({ ...p, frete_minimo: { ...p.frete_minimo, ...patch } }));
   useEffect(() => {
     const t = TIPO_CARGA_TO_ANTT[form.tipo_carga];
-    if (t && !form.frete_minimo.tipo) setFm({ tipo: t });
+    if (t) setFm({ tipo: t });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.tipo_carga]);
+  // Puxa o tipo cadastrado na natureza da carga (seleção, digitação ou NF-e importada)
+  useEffect(() => {
+    const nome = (form.produto_predominante || "").trim();
+    if (nome.length < 2) return;
+    const h = setTimeout(async () => {
+      const { data } = await supabase.from("cargas").select("produto_predominante, tipo").ilike("produto_predominante", nome).not("tipo", "is", null).limit(1);
+      const k = tipoCargaKey((data as any)?.[0]?.tipo);
+      if (k) setForm((p) => (p.tipo_carga === k ? p : { ...p, tipo_carga: k }));
+    }, 400);
+    return () => clearTimeout(h);
+  }, [form.produto_predominante]);
   const piso = calcPisoMinimo({ tabela: fm.tabela, tipo: fm.tipo, eixos: form.numero_eixos, distanciaKm: fm.distancia_km, retornoVazio: fm.retorno_vazio });
   const [distLoading, setDistLoading] = useState(false);
   const calcularDistancia = async (silent?: boolean) => {
@@ -1459,6 +1484,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   <NaturezaCargaSearchInput
                     value={form.produto_predominante || ""}
                     onChange={(v) => set("produto_predominante", v)}
+                    onSelectTipo={(t) => { const k = tipoCargaKey(t); if (k) set("tipo_carga", k); }}
                   />
                 </div>
                 <div className="space-y-1">
