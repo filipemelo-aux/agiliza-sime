@@ -300,7 +300,7 @@ function FormBlock({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
+    <section className="rounded-lg border border-border bg-card [&>button]:rounded-t-lg">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -376,7 +376,7 @@ function ActorSection({
   const [expanded, setExpanded] = useState(filled);
 
   return (
-    <section className={`overflow-hidden rounded-lg border bg-card ${filled ? "border-border" : "border-dashed border-border"}`}>
+    <section className={`rounded-lg border bg-card [&>button]:rounded-t-lg ${filled ? "border-border" : "border-dashed border-border"}`}>
       <button
         type="button"
         onClick={() => setExpanded((o) => !o)}
@@ -1033,9 +1033,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       setNovaChave("");
       toast({ title: "Nota importada", description: "Confira remetente, destinatário, peso e valores." });
     } catch (e: any) {
+      // Sem acesso ao conteúdo: aproveita tudo que a própria chave informa
+      const emitCnpj = chave.slice(6, 20);
+      const modelo = chave.slice(20, 22);
       setForm((p) => (p.chaves_nfe_ref.includes(chave) ? p : { ...p, chaves_nfe_ref: [...p.chaves_nfe_ref.filter(Boolean), chave] }));
+      setNfeDetalhe(chave, {
+        numero: String(Number(chave.slice(25, 34))),
+        serie: String(Number(chave.slice(22, 25))),
+        tipo: modelo === "55" ? "1" : getNfeDetalhe(chave).tipo,
+      });
+      let remetentePreenchido = false;
+      if (!form.remetente_cnpj?.replace(/\D/g, "") && /^\d{14}$/.test(emitCnpj) && !/^0+$/.test(emitCnpj)) {
+        set("remetente_cnpj", emitCnpj);
+        lookupCnpj(emitCnpj, "remetente");
+        remetentePreenchido = true;
+      }
       setNovaChave("");
-      toast({ title: "Nota não encontrada na consulta", description: `${e.message} A chave foi adicionada; complete os dados ou importe o XML.`, variant: "destructive" });
+      toast({
+        title: "Conteúdo da nota não liberado pela SEFAZ",
+        description: `${e.message} Preenchi pela chave: número, série${remetentePreenchido ? " e o remetente (emitente da nota, pelo CNPJ)" : ""}. Complete peso, valor e data ou importe o XML.`,
+      });
     } finally {
       setNfeLoading(false);
     }
@@ -1478,7 +1495,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   return (
   <>
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col gap-0">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-3xl p-0 flex flex-col gap-0"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <SheetHeader className="shrink-0 gap-1.5 border-b border-border px-4 pb-3 pt-4">
           <div className="flex items-center justify-between gap-3">
             <SheetTitle className="font-display text-lg leading-tight">
