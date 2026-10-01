@@ -1318,80 +1318,73 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
           <Separator />
 
-          {/* Prestação — Origem / Destino */}
-          <section className="space-y-4">
-            <SectionHeader icon={MapPin} title="Prestação" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Card className="border-border bg-muted/30">
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Origem</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Município</Label>
-                    <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
+          {/* Prestação — Origem / Destino / Envio */}
+          <FormBlock
+            icon={MapPin}
+            title="Prestação do Serviço"
+            summary={`${form.municipio_origem_nome || "origem"} → ${form.municipio_destino_nome || "destino"}`}
+          >
+            <div className="grid gap-2 sm:grid-cols-3">
+              <SubBlock title="Origem">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">IBGE</Label>
-                      <Input value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">UF</Label>
-                      <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
-                        <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                        <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border bg-muted/30">
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Destino</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Município</Label>
-                    <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+              </SubBlock>
+              <SubBlock title="Destino">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">IBGE</Label>
-                      <Input value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">UF</Label>
-                      <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
-                        <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                        <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SubBlock>
+              <SubBlock title="Envio">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
             </div>
-            {/* Município de envio */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Município Envio</Label>
-                <Input value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">IBGE Envio</Label>
-                <Input value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">UF Envio</Label>
-                <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
-                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                  <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-          </section>
+          </FormBlock>
 
-          <Separator />
 
           {/* Valores e Tributos */}
           <FormBlock
