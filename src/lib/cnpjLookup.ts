@@ -14,6 +14,31 @@ export interface CnpjData {
   cep: string | null;
   ddd_telefone_1: string | null;
   email: string | null;
+  inscricao_estadual: string | null;
+}
+
+/** Extrai a IE ativa do retorno do cnpj.ws (preferindo a do estado do estabelecimento). */
+function extractIeFromCnpjWs(data: any): string | null {
+  const lista: any[] = data?.estabelecimento?.inscricoes_estaduais ?? [];
+  const ativas = lista.filter((i) => i?.ativo && i?.inscricao_estadual);
+  if (ativas.length === 0) return null;
+  const uf = data?.estabelecimento?.estado?.sigla;
+  const match = ativas.find((i) => i?.estado?.sigla === uf) ?? ativas[0];
+  return String(match.inscricao_estadual).replace(/\D/g, "") || null;
+}
+
+/** Busca apenas a IE no cnpj.ws (BrasilAPI não retorna IE). Melhor esforço: falhas retornam null. */
+async function fetchIeOnly(rawCnpj: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`https://publica.cnpj.ws/cnpj/${rawCnpj}`, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    return extractIeFromCnpjWs(await res.json());
+  } catch {
+    return null;
+  }
 }
 
 async function tryFetch(url: string, signal?: AbortSignal): Promise<Response> {
@@ -56,10 +81,12 @@ export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
               ? `${data.estabelecimento.ddd1}${data.estabelecimento.telefone1}`
               : null,
             email: data.estabelecimento?.email ?? null,
+            inscricao_estadual: extractIeFromCnpjWs(data),
           };
         }
 
-        // BrasilAPI shape (default)
+        // BrasilAPI shape (default) — BrasilAPI não retorna IE; busca à parte no cnpj.ws
+        const ie = await fetchIeOnly(rawCnpj);
         return {
           razao_social: data.razao_social ?? null,
           nome_fantasia: data.nome_fantasia ?? null,
@@ -72,6 +99,7 @@ export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
           cep: data.cep ?? null,
           ddd_telefone_1: data.ddd_telefone_1 ?? null,
           email: data.email ?? null,
+          inscricao_estadual: ie,
         };
       } catch (err: any) {
         lastError = err;

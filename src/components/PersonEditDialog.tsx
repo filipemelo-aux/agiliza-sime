@@ -727,6 +727,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         address_city: data.municipio ? maskName(data.municipio) : p.address_city,
         address_state: data.uf || p.address_state,
         address_zip: data.cep ? maskCEP(data.cep.replace(/\D/g, "")) : p.address_zip,
+        inscricao_estadual: data.inscricao_estadual || p.inscricao_estadual,
       }));
     } catch {
       setCnpjError("Erro ao consultar CNPJ");
