@@ -87,6 +87,21 @@ const IND_IE_TOMA_OPTIONS = [
   { value: "9", label: "9 - Não contribuinte" },
 ];
 
+const MODAL_OPTIONS = [
+  { value: "01", label: "01 - Rodoviário" },
+  { value: "02", label: "02 - Aéreo" },
+  { value: "03", label: "03 - Aquaviário" },
+  { value: "04", label: "04 - Ferroviário" },
+  { value: "05", label: "05 - Dutos" },
+];
+
+const RETIRA_OPTIONS = [
+  { value: "0", label: "0 - Não" },
+  { value: "1", label: "1 - Sim" },
+];
+
+
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
