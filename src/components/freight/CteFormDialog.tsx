@@ -648,6 +648,24 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }));
   }, [form.valor_frete, form.ibs_uf_aliquota, form.ibs_mun_aliquota, form.cbs_aliquota]);
 
+  // Totais da carga somados das notas fiscais vinculadas
+  useEffect(() => {
+    const detalhes = form.chaves_nfe_ref
+      .filter((c) => c.length === 44)
+      .map((c) => form.nfe_detalhes.find((d) => d.chave === c))
+      .filter(Boolean) as NfeDetalhe[];
+    if (detalhes.length === 0) return;
+    const peso = detalhes.reduce((s, d) => s + (Number(d.peso) || 0), 0);
+    const valor = detalhes.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+    if (peso === 0 && valor === 0) return;
+    setForm((p) => ({
+      ...p,
+      peso_bruto: peso > 0 ? peso : p.peso_bruto,
+      valor_carga: valor > 0 ? valor : p.valor_carga,
+      valor_carga_averb: valor > 0 ? valor : p.valor_carga_averb,
+    }));
+  }, [form.chaves_nfe_ref, form.nfe_detalhes]);
+
   // Seguro padrão do emitente (somente quando ainda vazio)
   useEffect(() => {
     const est: any = establishments.find((e) => e.id === selectedEstId);
@@ -1319,28 +1337,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Valor Carga (vCarga)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""}
-                    onChange={(e) => set("valor_carga", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Carga Averb.</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""}
-                    onChange={(e) => set("valor_carga_averb", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-xs">Alíquota ICMS (%)</Label>
                 <Input type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
               </div>
@@ -1596,10 +1592,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Peso Bruto (kg)</Label>
-                <Input type="number" step="0.01" value={form.peso_bruto} onChange={(e) => set("peso_bruto", Number(e.target.value))} />
-              </div>
             </div>
 
             {/* Quantidades */}
@@ -1771,6 +1763,42 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               })}
             </div>
 
+
+            {/* Totais da carga (somados das notas) */}
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="text-xs font-semibold">Totais da carga</Label>
+                <p className="text-[10px] text-muted-foreground">Somados automaticamente das notas vinculadas. Editável se necessário.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Peso bruto total (kg)</Label>
+                  <Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} />
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Valor da mercadoria (vCarga)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                    <Input
+                      className="h-8 text-xs pl-8"
+                      value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""}
+                      onChange={(e) => set("valor_carga", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Valor averbado (seguro)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                    <Input
+                      className="h-8 text-xs pl-8"
+                      value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""}
+                      onChange={(e) => set("valor_carga_averb", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Outros documentos (carga sem NF-e) */}
             <div className="space-y-1.5">
