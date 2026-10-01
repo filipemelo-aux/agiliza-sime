@@ -1131,7 +1131,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <SheetTitle className="font-display text-lg leading-tight">
               {cte ? "Editar CT-e" : "Novo CT-e (Rascunho)"}
             </SheetTitle>
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="mr-6 flex shrink-0 items-center gap-1.5">
               <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 {tipoCteLabel}
               </Badge>
