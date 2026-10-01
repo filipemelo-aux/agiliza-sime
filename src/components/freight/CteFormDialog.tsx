@@ -316,7 +316,7 @@ function FormBlock({
           <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ${open ? "" : "-rotate-90"}`} />
         </span>
       </button>
-      <div className={open ? "space-y-2.5 border-t border-border bg-card px-3 pb-3 pt-2.5" : "hidden"}>
+      <div className={open ? "space-y-2.5 rounded-b-lg border-t border-border bg-card px-3 pb-3 pt-2.5" : "hidden"}>
         {children}
       </div>
     </section>
