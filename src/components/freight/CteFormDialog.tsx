@@ -1337,28 +1337,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Valor Carga (vCarga)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""}
-                    onChange={(e) => set("valor_carga", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Carga Averb.</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""}
-                    onChange={(e) => set("valor_carga_averb", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-xs">Alíquota ICMS (%)</Label>
                 <Input type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
               </div>
