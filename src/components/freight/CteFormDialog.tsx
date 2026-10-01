@@ -734,7 +734,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         const xml = r?.ok && typeof r.data === "string" ? r.data : "";
         if (xml.includes("<infCte")) {
           const doc = new DOMParser().parseFromString(xml, "text/xml");
-          const tx = (tag: string, root: ParentNode = doc) => root.getElementsByTagName(tag)[0]?.textContent || "";
+          const tx = (tag: string, root: Document | Element = doc) => root.getElementsByTagName(tag)[0]?.textContent || "";
           const dh = tx("dhEmi").slice(0, 10);
           const emit = doc.getElementsByTagName("emit")[0];
           const toma = doc.getElementsByTagName("toma4")[0];
