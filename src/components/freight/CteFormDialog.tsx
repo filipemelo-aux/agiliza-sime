@@ -1475,42 +1475,42 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
             {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
-            <div className="space-y-2 rounded-md border border-border p-3">
-              <Label className="text-xs font-semibold">IBS / CBS (Reforma Tributária 2026)</Label>
+            <SubBlock title="IBS / CBS — Reforma Tributária 2026">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Situação (CST)</Label>
-                  <Input value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
+                  <Input className="h-8 text-xs" value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Classificação</Label>
-                  <Input value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
+                  <Input className="h-8 text-xs" value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
                 </div>
                 <div className="space-y-1 col-span-2">
                   <Label className="text-[10px]">Base de cálculo</Label>
-                  <Input className="bg-muted text-muted-foreground" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
+                  <Input className="h-8 bg-muted text-xs text-muted-foreground" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Estadual (%)</Label>
-                  <Input type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_uf_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Municipal (%)</Label>
-                  <Input type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_mun_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CBS (%)</Label>
-                  <Input type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] text-muted-foreground">{formatBRL(form.cbs_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Total IBS + CBS</Label>
-                  <Input className="bg-muted text-muted-foreground" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
+                  <Input className="h-8 bg-muted text-xs text-muted-foreground" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
                 </div>
               </div>
-            </div>
+            </SubBlock>
+
 
             {/* Seguro da carga (obrigatório para emitir) */}
             <SubBlock title="Seguro da Carga" hint="Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).">
