@@ -21,6 +21,16 @@ export interface NfeData {
   peso_bruto: number;
   especie: string;
   produto: string;
+  natureza: string;
+  tipo: string; // 0 entrada, 1 saída
+  quantidade: number;
+  marca: string;
+  cfop: string;
+  ncm: string;
+  valor_produtos: number;
+  bc_icms: number;
+  bc_icms_st: number;
+  outros: number;
   emitente: NfeParty;
   destinatario: NfeParty;
 }
@@ -49,6 +59,7 @@ export function parseNfeXml(xml: string): NfeData {
   const ide = inf.getElementsByTagName("ide")[0];
   const vol = inf.getElementsByTagName("vol")[0];
   const firstProd = inf.getElementsByTagName("prod")[0];
+  const tot = inf.getElementsByTagName("ICMSTot")[0];
   const chave = (inf.getAttribute("Id") || "").replace(/\D/g, "") || txt(doc.documentElement, "chNFe");
   return {
     chave,
@@ -59,6 +70,16 @@ export function parseNfeXml(xml: string): NfeData {
     peso_bruto: Number(txt(vol, "pesoB")) || Number(txt(vol, "pesoL")) || 0,
     especie: txt(vol, "esp"),
     produto: txt(firstProd, "xProd"),
+    natureza: txt(ide, "natOp"),
+    tipo: txt(ide, "tpNF"),
+    quantidade: Number(txt(vol, "qVol")) || 0,
+    marca: txt(vol, "marca"),
+    cfop: txt(firstProd, "CFOP"),
+    ncm: txt(firstProd, "NCM"),
+    valor_produtos: Number(txt(tot, "vProd")) || 0,
+    bc_icms: Number(txt(tot, "vBC")) || 0,
+    bc_icms_st: Number(txt(tot, "vBCST")) || 0,
+    outros: Number(txt(tot, "vOutro")) || 0,
     emitente: party(inf.getElementsByTagName("emit")[0]),
     destinatario: party(inf.getElementsByTagName("dest")[0]),
   };

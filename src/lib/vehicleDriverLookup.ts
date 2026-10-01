@@ -2,6 +2,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { unmaskPlate } from "@/lib/masks";
 
 export interface DriverByPlate {
+  vehicle_id: string;
+  owner_id: string | null;
+  owner_nome: string | null;
+  owner_documento: string | null;
+  vehicle_type: string | null;
+  trailers: string[];
   motorista_id: string | null;
   motorista_nome: string | null;
   rntrc: string | null;
@@ -18,7 +24,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
 
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("plate, driver_id, antt_number")
+    .select("id, plate, driver_id, antt_number, owner_id, vehicle_type, trailer_plate_1, trailer_plate_2")
     .eq("plate", plate)
     .maybeSingle();
 
@@ -42,7 +48,14 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
     }
   }
 
+  const owner = await loadOwner(vehicle.owner_id);
   return {
+    vehicle_id: vehicle.id,
+    owner_id: vehicle.owner_id || null,
+    owner_nome: owner?.nome || null,
+    owner_documento: owner?.documento || null,
+    vehicle_type: vehicle.vehicle_type || null,
+    trailers: [vehicle.trailer_plate_1, vehicle.trailer_plate_2].filter(Boolean) as string[],
     motorista_id,
     motorista_nome,
     rntrc: vehicle.antt_number || null,
@@ -51,8 +64,32 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
 }
 
 export interface VehicleByDriver {
+  vehicle_id: string;
   plate: string;
   rntrc: string | null;
+  owner_id: string | null;
+  owner_nome: string | null;
+  owner_documento: string | null;
+  vehicle_type: string | null;
+  trailers: string[];
+}
+
+async function loadOwner(ownerId?: string | null): Promise<{ nome: string; documento: string } | null> {
+  if (!ownerId) return null;
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, razao_social, cnpj")
+    .or(`id.eq.${ownerId},user_id.eq.${ownerId}`)
+    .limit(1);
+  const p: any = data?.[0];
+  if (!p) return null;
+  return { nome: p.razao_social || p.full_name || "", documento: p.cnpj || "" };
+}
+
+/** Eixos carregados aproximados pelo tipo do veículo (conjunto completo). */
+export function eixosPorTipo(t?: string | null): number | null {
+  const m: Record<string, number> = { truck: 3, bitruck: 4, carreta: 5, carreta_ls: 6, bitrem: 7, rodotrem: 9, treminhao: 9, utilitario: 2 };
+  return t ? m[t] ?? null : null;
 }
 
 /**
@@ -69,7 +106,7 @@ export async function lookupVehicleByDriver(
 
   const { data } = await supabase
     .from("vehicles")
-    .select("plate, antt_number, is_active, vehicle_type")
+    .select("id, plate, antt_number, is_active, vehicle_type, owner_id, trailer_plate_1, trailer_plate_2")
     .in("driver_id", ids);
 
   if (!data || data.length === 0) return null;
@@ -82,6 +119,13 @@ export async function lookupVehicleByDriver(
     return score(b) - score(a);
   });
 
-  return { plate: sorted[0].plate, rntrc: sorted[0].antt_number || null };
+  const v: any = sorted[0];
+  const owner = await loadOwner(v.owner_id);
+  return {
+    vehicle_id: v.id, plate: v.plate, rntrc: v.antt_number || null,
+    owner_id: v.owner_id || null, owner_nome: owner?.nome || null, owner_documento: owner?.documento || null,
+    vehicle_type: v.vehicle_type || null,
+    trailers: [v.trailer_plate_1, v.trailer_plate_2].filter(Boolean),
+  };
 }
 
