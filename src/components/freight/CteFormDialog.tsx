@@ -1109,23 +1109,51 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   // Determine if tomador fields should show (toma=4 means "outros" → needs separate data)
   const showTomadorFields = form.tomador_tipo === 4;
 
+  const estSelecionado = establishments.find((e) => e.id === selectedEstId);
+  const notasVinculadas = form.chaves_nfe_ref.filter(Boolean).length;
+  const tipoCteLabel = TP_CTE_OPTIONS.find((o) => String(form.tp_cte) === o.value)?.label ?? "Normal";
+  const rotaOrigem = [form.municipio_origem_nome, form.uf_origem].filter(Boolean).join("/") || "origem";
+  const rotaDestino = [form.municipio_destino_nome, form.uf_destino].filter(Boolean).join("/") || "destino";
+
   return (
   <>
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
-          <SheetTitle className="font-display text-xl">
-            {cte ? "Editar CT-e" : "Novo CT-e (Rascunho)"}
-          </SheetTitle>
+      <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col gap-0">
+        <SheetHeader className="shrink-0 gap-1.5 border-b border-border px-4 pb-3 pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle className="font-display text-lg leading-tight">
+              {cte ? "Editar CT-e" : "Novo CT-e (Rascunho)"}
+            </SheetTitle>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {tipoCteLabel}
+              </Badge>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium uppercase tracking-wide">
+                Rascunho
+              </Badge>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+            <span className="max-w-[20rem] truncate font-medium text-foreground">
+              {estSelecionado ? estSelecionado.razao_social : "emitente não definido"}
+            </span>
+            <span aria-hidden>·</span>
+            <span className="truncate">{rotaOrigem} <span aria-hidden>→</span> {rotaDestino}</span>
+            <span aria-hidden>·</span>
+            <span>frete {formatBRL(form.valor_frete)}</span>
+            <span aria-hidden>·</span>
+            <span>{notasVinculadas} {notasVinculadas === 1 ? "nota" : "notas"}</span>
+          </div>
           {linkedContract && (
-            <div className="mt-2 inline-flex items-center gap-2 self-start rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700">
+            <div className="mt-1 inline-flex items-center gap-2 self-start rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700">
               <FileSignature className="w-3.5 h-3.5" />
               <span>Vinculado ao Contrato de Frete Nº <strong>{linkedContract.numero}</strong></span>
             </div>
           )}
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/25 px-4 py-3">
+
           {/* Emitente + Tipo do documento */}
           <div className="grid gap-2 lg:grid-cols-2">
             <FormBlock
