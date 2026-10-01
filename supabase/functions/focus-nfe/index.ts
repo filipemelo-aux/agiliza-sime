@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   ]);
   if (!isAdmin && !isMod) return json({ error: "Sem permissão" }, 403);
 
-  let body: { action?: string; cnpj?: string; versao?: number } = {};
+  let body: { action?: string; cnpj?: string; versao?: number; ref?: string; cte?: Record<string, unknown> } = {};
   try { body = await req.json(); } catch { /* empty */ }
   const action = body.action ?? "ping";
   const cnpj = (body.cnpj ?? "").replace(/\D/g, "");
@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
   const base = BASES[ambiente];
 
   let path: string;
+  let method = "GET";
+  let payload: string | undefined;
+  const ref = (body.ref ?? "").replace(/[^A-Za-z0-9_-]/g, "");
   switch (action) {
     case "ping":
     case "nfes_recebidas":
@@ -54,12 +57,21 @@ Deno.serve(async (req) => {
       if (!cnpj) return json({ error: "Informe o CNPJ" }, 400);
       path = `/v2/ctes_recebidas?cnpj=${cnpj}${body.versao ? `&versao=${Number(body.versao)}` : ""}`;
       break;
+    case "emitir_cte":
+      if (!ref || !body.cte) return json({ error: "Informe ref e cte" }, 400);
+      path = `/v2/cte?ref=${ref}`; method = "POST"; payload = JSON.stringify(body.cte);
+      break;
+    case "consultar_cte":
+      if (!ref) return json({ error: "Informe ref" }, 400);
+      path = `/v2/cte/${ref}?completa=1`;
+      break;
     default:
       return json({ error: "Ação inválida" }, 400);
   }
 
   const res = await fetch(base + path, {
-    headers: { Authorization: "Basic " + btoa(token + ":") },
+    method, body: payload,
+    headers: { Authorization: "Basic " + btoa(token + ":"), "Content-Type": "application/json" },
   });
   const text = await res.text();
   let data: unknown = text;
