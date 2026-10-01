@@ -3572,87 +3572,202 @@ export type Database = {
       }
       mdfe: {
         Row: {
+          apolice_numero: string | null
+          averbacao_numero: string | null
+          cep_carregamento: string | null
+          cep_descarregamento: string | null
           chave_acesso: string | null
+          chaves_cte_terceiros: string[] | null
+          ciot_documento: string | null
+          ciot_numero: string | null
+          condutores_extras: Json | null
+          conferente: string | null
+          contratado_documento: string | null
+          contratado_id: string | null
+          contratado_nome: string | null
+          coord_carregamento: string | null
+          coord_descarregamento: string | null
           created_at: string
           created_by: string
+          cte_ids: string[] | null
           data_autorizacao: string | null
           data_emissao: string | null
           data_encerramento: string | null
+          data_saida: string | null
           establishment_id: string
           id: string
+          km_inicial: number | null
           lista_ctes: string[] | null
+          motivo_rejeicao: string | null
+          motorista_cpf: string | null
           motorista_id: string | null
+          motorista_nome: string | null
           municipio_carregamento_ibge: string | null
+          municipio_carregamento_nome: string | null
           municipio_descarregamento_ibge: string | null
+          municipio_descarregamento_nome: string | null
+          ncm: string | null
           numero: number | null
+          observacoes: string | null
+          peso_total: number | null
           placa_veiculo: string
+          produto_predominante: string | null
           protocolo_autorizacao: string | null
           protocolo_encerramento: string | null
+          quantidade_total: number | null
+          reboque1_placa: string | null
+          reboque2_placa: string | null
           rntrc: string | null
+          seguradora_cnpj: string | null
+          seguradora_nome: string | null
           serie: number
           status: string
+          tipo_carga: string | null
+          tipo_manifesto: string
           uf_carregamento: string | null
           uf_descarregamento: string | null
+          ufs_percurso: string[] | null
           updated_at: string
+          vale_pedagio: Json | null
+          valor_total: number | null
           veiculo_id: string | null
           xml_autorizado: string | null
           xml_enviado: string | null
         }
         Insert: {
+          apolice_numero?: string | null
+          averbacao_numero?: string | null
+          cep_carregamento?: string | null
+          cep_descarregamento?: string | null
           chave_acesso?: string | null
+          chaves_cte_terceiros?: string[] | null
+          ciot_documento?: string | null
+          ciot_numero?: string | null
+          condutores_extras?: Json | null
+          conferente?: string | null
+          contratado_documento?: string | null
+          contratado_id?: string | null
+          contratado_nome?: string | null
+          coord_carregamento?: string | null
+          coord_descarregamento?: string | null
           created_at?: string
           created_by: string
+          cte_ids?: string[] | null
           data_autorizacao?: string | null
           data_emissao?: string | null
           data_encerramento?: string | null
+          data_saida?: string | null
           establishment_id: string
           id?: string
+          km_inicial?: number | null
           lista_ctes?: string[] | null
+          motivo_rejeicao?: string | null
+          motorista_cpf?: string | null
           motorista_id?: string | null
+          motorista_nome?: string | null
           municipio_carregamento_ibge?: string | null
+          municipio_carregamento_nome?: string | null
           municipio_descarregamento_ibge?: string | null
+          municipio_descarregamento_nome?: string | null
+          ncm?: string | null
           numero?: number | null
+          observacoes?: string | null
+          peso_total?: number | null
           placa_veiculo: string
+          produto_predominante?: string | null
           protocolo_autorizacao?: string | null
           protocolo_encerramento?: string | null
+          quantidade_total?: number | null
+          reboque1_placa?: string | null
+          reboque2_placa?: string | null
           rntrc?: string | null
+          seguradora_cnpj?: string | null
+          seguradora_nome?: string | null
           serie?: number
           status?: string
+          tipo_carga?: string | null
+          tipo_manifesto?: string
           uf_carregamento?: string | null
           uf_descarregamento?: string | null
+          ufs_percurso?: string[] | null
           updated_at?: string
+          vale_pedagio?: Json | null
+          valor_total?: number | null
           veiculo_id?: string | null
           xml_autorizado?: string | null
           xml_enviado?: string | null
         }
         Update: {
+          apolice_numero?: string | null
+          averbacao_numero?: string | null
+          cep_carregamento?: string | null
+          cep_descarregamento?: string | null
           chave_acesso?: string | null
+          chaves_cte_terceiros?: string[] | null
+          ciot_documento?: string | null
+          ciot_numero?: string | null
+          condutores_extras?: Json | null
+          conferente?: string | null
+          contratado_documento?: string | null
+          contratado_id?: string | null
+          contratado_nome?: string | null
+          coord_carregamento?: string | null
+          coord_descarregamento?: string | null
           created_at?: string
           created_by?: string
+          cte_ids?: string[] | null
           data_autorizacao?: string | null
           data_emissao?: string | null
           data_encerramento?: string | null
+          data_saida?: string | null
           establishment_id?: string
           id?: string
+          km_inicial?: number | null
           lista_ctes?: string[] | null
+          motivo_rejeicao?: string | null
+          motorista_cpf?: string | null
           motorista_id?: string | null
+          motorista_nome?: string | null
           municipio_carregamento_ibge?: string | null
+          municipio_carregamento_nome?: string | null
           municipio_descarregamento_ibge?: string | null
+          municipio_descarregamento_nome?: string | null
+          ncm?: string | null
           numero?: number | null
+          observacoes?: string | null
+          peso_total?: number | null
           placa_veiculo?: string
+          produto_predominante?: string | null
           protocolo_autorizacao?: string | null
           protocolo_encerramento?: string | null
+          quantidade_total?: number | null
+          reboque1_placa?: string | null
+          reboque2_placa?: string | null
           rntrc?: string | null
+          seguradora_cnpj?: string | null
+          seguradora_nome?: string | null
           serie?: number
           status?: string
+          tipo_carga?: string | null
+          tipo_manifesto?: string
           uf_carregamento?: string | null
           uf_descarregamento?: string | null
+          ufs_percurso?: string[] | null
           updated_at?: string
+          vale_pedagio?: Json | null
+          valor_total?: number | null
           veiculo_id?: string | null
           xml_autorizado?: string | null
           xml_enviado?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "mdfe_contratado_id_fkey"
+            columns: ["contratado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mdfe_establishment_id_fkey"
             columns: ["establishment_id"]
