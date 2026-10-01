@@ -190,6 +190,7 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     aliquota_icms: cte.aliquota_icms,
     valor_icms: cte.valor_icms,
     cst_icms: cte.cst_icms,
+    percentual_reducao_bc: Number((cte as any).percentual_reducao_bc) || 0,
 
     produto_predominante: cte.produto_predominante || undefined,
     peso_bruto: cte.peso_bruto || undefined,
