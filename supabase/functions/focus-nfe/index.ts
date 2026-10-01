@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     case "nfe_por_chave": {
       const chave = String((body as any).chave ?? "").replace(/\D/g, "");
       if (chave.length !== 44) return json({ error: "Chave de NF-e inválida" }, 400);
-      path = `/v2/nfes_recebidas/${chave}.json?completa=1`;
+      path = `/v2/nfes_recebidas/${chave}.xml`;
       break;
     }
     case "emitir_cte":
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
   return json({
     ok: res.ok,
     status: res.status,
-    ambiente: "homologacao",
+    ambiente,
     total: res.headers.get("X-Total-Count"),
     max_version: res.headers.get("X-Max-Version"),
     data,
