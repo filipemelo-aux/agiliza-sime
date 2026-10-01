@@ -1113,6 +1113,18 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
   };
 
+  // Tarifa por tonelada → valor do frete (não é gravada; apenas auxilia o cálculo)
+  const [tarifa, setTarifa] = useState(0);
+  const aplicarTarifa = (t: number) => {
+    setTarifa(t);
+    setForm((p) => ({ ...p, valor_frete: Math.round(t * (p.peso_bruto / 1000) * 100) / 100 }));
+  };
+  useEffect(() => {
+    if (tarifa > 0) setForm((p) => ({ ...p, valor_frete: Math.round(tarifa * (p.peso_bruto / 1000) * 100) / 100 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.peso_bruto]);
+  useEffect(() => { if (open) setTarifa(0); }, [open]);
+
   // Determine if tomador fields should show (toma=4 means "outros" → needs separate data)
   const showTomadorFields = form.tomador_tipo === 4;
 
@@ -1176,14 +1188,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Data de emissão *</Label>
-                  <Input type="date" className="h-8 text-xs" value={form.data_emissao} onChange={(e) => set("data_emissao", e.target.value)} />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Data de emissão *</Label>
+                <Input type="date" className="h-8 text-xs" value={form.data_emissao} onChange={(e) => set("data_emissao", e.target.value)} />
               </div>
               {establishments.length === 0 && (
-                <p className="text-[11px] text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
+                <p className="text-[11px] text-destructive sm:col-span-2">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
               )}
           </div>
 
@@ -1196,7 +1206,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <p className="text-[11px] text-muted-foreground">Comece por aqui: a nota preenche remetente, destinatário, cidades, peso e valor da mercadoria.</p>
             <SubBlock
               title="Adicionar nota fiscal"
-              hint="A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos."
+              hint="Busca encontra notas em que a Sime é transportadora ou destinatária; senão, use o XML."
             >
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
