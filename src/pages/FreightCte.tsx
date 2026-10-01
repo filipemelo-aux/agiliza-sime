@@ -464,14 +464,17 @@ export default function FreightCte() {
 
   const canTransmit = !!singleCte
     && singleCte.tipo_talao !== "servico"
-    && ["rascunho", "rejeitado"].includes(singleCte.status);
+    && ["rascunho", "rejeitado", "processando"].includes(singleCte.status);
 
   const handleTransmit = async () => {
     if (!singleCte || !canTransmit) return;
+    const isProcessing = singleCte.status === "processando";
     const ok = await confirm({
-      title: singleCte.status === "rejeitado" ? "Retransmitir CT-e" : "Emitir CT-e na SEFAZ",
-      description: "O CT-e selecionado será transmitido à SEFAZ para autorização no ambiente fiscal configurado. Deseja continuar?",
-      confirmLabel: "Emitir SEFAZ",
+      title: isProcessing ? "Consultar situação na SEFAZ" : singleCte.status === "rejeitado" ? "Retransmitir CT-e" : "Emitir CT-e na SEFAZ",
+      description: isProcessing
+        ? "Este CT-e está aguardando retorno. A situação será consultada na SEFAZ e atualizada; se tiver sido rejeitado, ficará liberado para edição."
+        : "O CT-e selecionado será transmitido à SEFAZ para autorização no ambiente fiscal configurado. Deseja continuar?",
+      confirmLabel: isProcessing ? "Consultar" : "Emitir SEFAZ",
     });
     if (!ok) return;
 

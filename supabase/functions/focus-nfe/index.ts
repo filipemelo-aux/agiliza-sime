@@ -57,8 +57,36 @@ Deno.serve(async (req) => {
       supabase.from("fiscal_settings").select("*").limit(1).maybeSingle(),
     ]);
     if (cteError || !cte) return json({ error: "CT-e não encontrado" }, 404);
-    if (cte.tipo_talao === "servico" || !["rascunho", "rejeitado"].includes(cte.status)) {
+    if (cte.tipo_talao === "servico" || !["rascunho", "rejeitado", "processando"].includes(cte.status)) {
       return json({ error: `CT-e não elegível para emissão (status: ${cte.status})` }, 409);
+    }
+
+    // CT-e parado em "processando": consulta a situação real antes de qualquer reenvio.
+    if (cte.status === "processando") {
+      const syncRes = await fetch(`${BASES.homologacao}/v2/cte/cte-${cteId}?completa=1`, {
+        headers: { Authorization: "Basic " + btoa(token + ":") },
+      });
+      let sync: any = null;
+      try { sync = await syncRes.json(); } catch { /* ignore */ }
+      const st = sync?.status;
+      if (st === "autorizado") {
+        await supabase.from("ctes").update({
+          status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso || cte.chave_acesso,
+          protocolo_autorizacao: sync?.protocolo || cte.protocolo_autorizacao,
+          data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
+        }).eq("id", cteId);
+        return json({ success: true, status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso, protocolo: sync?.protocolo });
+      }
+      if (["processando_autorizacao", "processando"].includes(st)) {
+        return json({ success: true, status: st, motivo_rejeicao: "A SEFAZ ainda está processando este CT-e. Tente novamente em alguns instantes." });
+      }
+      if (st === "erro_autorizacao" || st === "cancelado" || st === "denegado") {
+        const msg = sync?.mensagem_sefaz || sync?.mensagem || st;
+        const code = sync?.status_sefaz ? `Rejeição ${sync.status_sefaz}: ` : "";
+        await supabase.from("ctes").update({ status: "rejeitado", motivo_rejeicao: `${code}${msg}` }).eq("id", cteId);
+        return json({ success: false, status: "erro_autorizacao", motivo_rejeicao: `${code}${msg}. Corrija os dados, salve e transmita novamente.` });
+      }
+      // Não encontrado no serviço: segue para novo envio.
     }
     const { data: est, error: estError } = await supabase.from("fiscal_establishments").select("*").eq("id", cte.establishment_id).single();
     if (estError || !est) return json({ error: "Emitente fiscal não encontrado" }, 422);
