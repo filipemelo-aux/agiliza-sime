@@ -1555,7 +1555,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
-                <span className={cn("font-mono text-xs font-semibold", calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground")}>
+                <span className={`font-mono text-xs font-semibold ${calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                   {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
                 </span>
               </div>
