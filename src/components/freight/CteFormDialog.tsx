@@ -1480,15 +1480,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 {form.tp_serv === 1 && (
                   <div className="col-span-2 space-y-1 sm:col-span-4">
                     <Label className="text-[10px]">Chave do CT-e original (subcontratação)</Label>
-                    <Input
-                      className="h-8 text-xs"
-                      placeholder="44 dígitos da chave do CT-e do contratante"
-                      maxLength={44}
-                      value={form.chave_cte_subcontratacao}
-                      onChange={(e) => set("chave_cte_subcontratacao", e.target.value.replace(/\D/g, "").slice(0, 44))}
-                    />
+                    <div className="relative">
+                      <Input
+                        className="h-8 pr-8 text-xs"
+                        placeholder="44 dígitos da chave do CT-e do contratante — reconhecida automaticamente"
+                        maxLength={44}
+                        value={form.chave_cte_subcontratacao}
+                        onChange={(e) => set("chave_cte_subcontratacao", e.target.value.replace(/\D/g, "").slice(0, 44))}
+                      />
+                      {cteSubLoading && <Loader2 className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />}
+                    </div>
                     {form.chave_cte_subcontratacao.length > 0 && form.chave_cte_subcontratacao.length < 44 && (
                       <p className="text-[10px] text-destructive">A chave deve ter 44 dígitos ({form.chave_cte_subcontratacao.length}/44).</p>
+                    )}
+                    {cteSubInfo && cteSubInfo !== "notfound" && (
+                      <p className="text-[10px] text-muted-foreground">
+                        CT-e nº {cteSubInfo.numero || "—"}{cteSubInfo.data ? ` de ${cteSubInfo.data}` : ""}{cteSubInfo.tomador ? ` · Tomador: ${cteSubInfo.tomador}` : ""}{cteSubInfo.valor ? ` · Frete: ${formatCurrency(cteSubInfo.valor)}` : ""}
+                      </p>
+                    )}
+                    {cteSubInfo === "notfound" && (
+                      <p className="text-[10px] text-muted-foreground">CT-e não encontrado na base — a chave será gravada mesmo assim.</p>
                     )}
                   </div>
                 )}
