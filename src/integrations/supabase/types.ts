@@ -2379,6 +2379,7 @@ export type Database = {
           id: string
           inscricao_estadual: string | null
           nome_fantasia: string | null
+          profile_id: string | null
           razao_social: string
           rntrc: string | null
           seguradora_cnpj: string | null
@@ -2413,6 +2414,7 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           nome_fantasia?: string | null
+          profile_id?: string | null
           razao_social: string
           rntrc?: string | null
           seguradora_cnpj?: string | null
@@ -2447,6 +2449,7 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           nome_fantasia?: string | null
+          profile_id?: string | null
           razao_social?: string
           rntrc?: string | null
           seguradora_cnpj?: string | null
@@ -2466,6 +2469,13 @@ export type Database = {
             columns: ["fiscal_settings_id"]
             isOneToOne: false
             referencedRelation: "fiscal_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_establishments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
