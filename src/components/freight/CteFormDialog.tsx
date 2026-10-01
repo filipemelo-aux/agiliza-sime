@@ -1519,7 +1519,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                       <Input
                         className="h-8 pr-8 text-xs"
                         placeholder="44 dígitos da chave do CT-e do contratante — reconhecida automaticamente"
-                        maxLength={44}
                         value={form.chave_cte_subcontratacao}
                         onChange={(e) => set("chave_cte_subcontratacao", e.target.value.replace(/\D/g, "").slice(0, 44))}
                       />
@@ -1528,13 +1527,11 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     {form.chave_cte_subcontratacao.length > 0 && form.chave_cte_subcontratacao.length < 44 && (
                       <p className="text-[10px] text-destructive">A chave deve ter 44 dígitos ({form.chave_cte_subcontratacao.length}/44).</p>
                     )}
-                    {cteSubInfo && cteSubInfo !== "notfound" && (
+                    {cteSubInfo && (
                       <p className="text-[10px] text-muted-foreground">
-                        CT-e nº {cteSubInfo.numero || "—"}{cteSubInfo.data ? ` de ${cteSubInfo.data}` : ""}{cteSubInfo.tomador ? ` · Tomador: ${cteSubInfo.tomador}` : ""}{cteSubInfo.valor ? ` · Frete: ${formatCurrency(cteSubInfo.valor)}` : ""}
+                        CT-e nº {cteSubInfo.numero || "—"}{cteSubInfo.data ? ` de ${cteSubInfo.data}` : ""}{cteSubInfo.emitente ? ` · Emitente: ${cteSubInfo.emitente}` : ""}{cteSubInfo.tomador ? ` · Tomador: ${cteSubInfo.tomador}` : ""}{cteSubInfo.valor ? ` · Frete: ${formatCurrency(cteSubInfo.valor)}` : ""}
+                        {cteSubInfo.fonte === "chave" && " (dados lidos da chave — CT-e ainda não disponível na SEFAZ para a Sime)"}
                       </p>
-                    )}
-                    {cteSubInfo === "notfound" && (
-                      <p className="text-[10px] text-muted-foreground">CT-e não encontrado na base — a chave será gravada mesmo assim.</p>
                     )}
                   </div>
                 )}
@@ -1948,7 +1945,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                       <div className="flex items-end gap-2">
                         <div className="flex-1 space-y-0.5">
                           <Label className="text-[10px]">Chave de acesso</Label>
-                          <Input className="h-7 font-mono text-xs" placeholder="44 dígitos" maxLength={44} value={chave} onChange={(e) => { const arr = [...form.chaves_nfe_ref]; arr[i] = e.target.value.replace(/\D/g, ""); set("chaves_nfe_ref", arr); }} />
+                          <Input className="h-7 font-mono text-xs" placeholder="44 dígitos" value={chave} onChange={(e) => { const arr = [...form.chaves_nfe_ref]; arr[i] = e.target.value.replace(/\D/g, "").slice(0, 44); set("chaves_nfe_ref", arr); }} />
                         </div>
                         <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading || chave.length !== 44} onClick={() => buscarChave(chave)}><Search className="h-3 w-3" /> Buscar</Button>
                         <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
