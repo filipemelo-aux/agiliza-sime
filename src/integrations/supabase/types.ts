@@ -4871,6 +4871,7 @@ export type Database = {
         Args: { _plano_contas_id: string }
         Returns: boolean
       }
+      fn_norm_natureza: { Args: { _t: string }; Returns: string }
       fn_recalculate_expense_payment_state: {
         Args: { _expense_id: string }
         Returns: undefined
