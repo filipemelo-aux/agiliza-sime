@@ -25,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload } from "lucide-react";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
@@ -86,6 +86,21 @@ const IND_IE_TOMA_OPTIONS = [
   { value: "2", label: "2 - Isento" },
   { value: "9", label: "9 - Não contribuinte" },
 ];
+
+const MODAL_OPTIONS = [
+  { value: "01", label: "01 - Rodoviário" },
+  { value: "02", label: "02 - Aéreo" },
+  { value: "03", label: "03 - Aquaviário" },
+  { value: "04", label: "04 - Ferroviário" },
+  { value: "05", label: "05 - Dutos" },
+];
+
+const RETIRA_OPTIONS = [
+  { value: "0", label: "0 - Não" },
+  { value: "1", label: "1 - Sim" },
+];
+
+
 
 interface Props {
   open: boolean;
@@ -214,14 +229,67 @@ const defaultForm = {
   averbacao_numero: "",
 };
 
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+
+function FormBlock({
+  icon: Icon,
+  title,
+  summary,
+  defaultOpen = true,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  summary?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="flex items-center gap-2 pb-1">
-      <Icon className="w-4 h-4 text-primary" />
-      <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">{title}</h3>
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 bg-card px-3 py-2 text-left transition-colors hover:bg-muted/60"
+      >
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+          <Icon className="h-3 w-3" />
+        </span>
+        <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">{title}</span>
+        <span className="ml-auto flex min-w-0 items-center gap-2">
+          {summary ? <span className="truncate text-[11px] text-muted-foreground">{summary}</span> : null}
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ${open ? "" : "-rotate-90"}`} />
+        </span>
+      </button>
+      <div className={open ? "space-y-2.5 border-t border-border bg-card px-3 pb-3 pt-2.5" : "hidden"}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SubBlock({
+  title,
+  hint,
+  className = "",
+  children,
+}: {
+  title: string;
+  hint?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`space-y-2 rounded-md border border-border bg-muted/40 px-2.5 py-2 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+        <Label className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{title}</Label>
+        {hint ? <p className="text-[10px] text-muted-foreground">{hint}</p> : null}
+      </div>
+      {children}
     </div>
   );
 }
+
 
 function ActorSection({
   title,
@@ -246,92 +314,114 @@ function ActorSection({
   setCnpjError: (v: string) => void;
   onCityResolved?: (prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => void;
 }) {
+  const nome = String(form[`${prefix}_nome`] || "");
+  const uf = String(form[`${prefix}_uf`] || "");
+  const doc = String(form[`${prefix}_cnpj`] || "");
+  const filled = nome.trim().length > 0;
+  const [expanded, setExpanded] = useState(filled);
+
   return (
-    <section className="space-y-4">
-      <SectionHeader icon={Building2} title={title} />
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Buscar no cadastro</Label>
-        <PersonSearchInput
-          categories={searchCategories}
-          placeholder={`Buscar ${title.toLowerCase()} cadastrado...`}
-          selectedName={form[`${prefix}_nome`] || undefined}
-          onSelect={(person) => {
-            set(`${prefix}_nome`, person.razao_social || person.full_name);
-            set(`${prefix}_cnpj`, person.cnpj ? maskDocument(person.cnpj) : form[`${prefix}_cnpj`]);
-            set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
-            set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
-            set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
-            const cidade = person.address_city ? maskName(person.address_city) : "";
-            const uf = person.address_state || form[`${prefix}_uf`] || "";
-            if (cidade && uf) {
-              onCityResolved?.(prefix, { cidade, uf, ibge: "" });
-              buscarCodigoIbgePorMunicipio(uf, cidade).then((ibge) => {
-                if (ibge) {
-                  set(`${prefix}_municipio_ibge`, ibge);
-                  onCityResolved?.(prefix, { cidade, uf, ibge });
-                }
-              });
-            } else {
+    <section className={`overflow-hidden rounded-lg border bg-card ${filled ? "border-border" : "border-dashed border-border"}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded((o) => !o)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 bg-card px-2.5 py-2 text-left transition-colors hover:bg-muted/60"
+      >
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${filled ? "bg-success" : "bg-muted-foreground/40"}`} />
+        <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">{title}</span>
+        <span className="ml-auto truncate text-[11px] text-muted-foreground">
+          {filled ? [nome, uf].filter(Boolean).join(" · ") : (doc || "não informado")}
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ${expanded ? "" : "-rotate-90"}`} />
+      </button>
+      <div className={expanded ? "space-y-2 border-t border-border bg-card px-2.5 pb-2.5 pt-2" : "hidden"}>
+        <div className="space-y-1">
+          <Label className="text-[10px] text-muted-foreground">Buscar no cadastro</Label>
+          <PersonSearchInput
+            categories={searchCategories}
+            placeholder={`Buscar ${title.toLowerCase()} cadastrado...`}
+            selectedName={form[`${prefix}_nome`] || undefined}
+            onSelect={(person) => {
+              set(`${prefix}_nome`, person.razao_social || person.full_name);
+              set(`${prefix}_cnpj`, person.cnpj ? maskDocument(person.cnpj) : form[`${prefix}_cnpj`]);
+              set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
+              set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
+              set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
+              const cidade = person.address_city ? maskName(person.address_city) : "";
+              const ufSel = person.address_state || form[`${prefix}_uf`] || "";
+              if (cidade && ufSel) {
+                onCityResolved?.(prefix, { cidade, uf: ufSel, ibge: "" });
+                buscarCodigoIbgePorMunicipio(ufSel, cidade).then((ibge) => {
+                  if (ibge) {
+                    set(`${prefix}_municipio_ibge`, ibge);
+                    onCityResolved?.(prefix, { cidade, uf: ufSel, ibge });
+                  }
+                });
+              } else {
+                onCityResolved?.(prefix, null);
+              }
+            }}
+            onClear={() => {
+              set(`${prefix}_nome`, "");
+              set(`${prefix}_cnpj`, "");
+              set(`${prefix}_ie`, "");
+              set(`${prefix}_endereco`, "");
+              set(`${prefix}_uf`, "");
+              set(`${prefix}_municipio_ibge`, "");
               onCityResolved?.(prefix, null);
-            }
-          }}
-          onClear={() => {
-            set(`${prefix}_nome`, "");
-            set(`${prefix}_cnpj`, "");
-            set(`${prefix}_ie`, "");
-            set(`${prefix}_endereco`, "");
-            set(`${prefix}_uf`, "");
-            set(`${prefix}_municipio_ibge`, "");
-            onCityResolved?.(prefix, null);
-          }}
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
-        <div className="sm:col-span-4 space-y-1.5">
-          <Label className="text-xs">Nome / Razão Social</Label>
-          <Input value={form[`${prefix}_nome`]} onChange={(e) => set(`${prefix}_nome`, maskName(e.target.value))} placeholder="Nome completo ou razão social" />
+            }}
+          />
         </div>
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label className="text-xs">UF</Label>
-          <Select value={form[`${prefix}_uf`] || undefined} onValueChange={(v) => set(`${prefix}_uf`, v)}>
-            <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-            <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">CNPJ / CPF</Label>
-          <div className="relative">
-            <Input
-              value={form[`${prefix}_cnpj`]}
-              onChange={(e) => {
-                setCnpjError("");
-                const masked = maskDocument(e.target.value);
-                set(`${prefix}_cnpj`, masked);
-                const raw = unmaskCNPJ(masked);
-                if (raw.length === 14) lookupCnpj(raw, prefix);
-              }}
-              maxLength={18}
-              placeholder="00.000.000/0000-00"
-            />
-            {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+        <div className="grid grid-cols-2 gap-x-2 gap-y-2">
+          <div className="col-span-2 space-y-1">
+            <Label className="text-[10px]">Nome / Razão Social</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_nome`]} onChange={(e) => set(`${prefix}_nome`, maskName(e.target.value))} placeholder="Nome completo ou razão social" />
           </div>
-          {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">Inscrição Estadual</Label>
-          <Input value={form[`${prefix}_ie`]} onChange={(e) => set(`${prefix}_ie`, e.target.value)} placeholder="IE" />
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">Cód. Município IBGE</Label>
-          <Input value={form[`${prefix}_municipio_ibge`]} onChange={(e) => set(`${prefix}_municipio_ibge`, e.target.value)} placeholder="0000000" />
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">Endereço</Label>
-          <Input value={form[`${prefix}_endereco`]} onChange={(e) => set(`${prefix}_endereco`, e.target.value)} placeholder="Logradouro, nº, bairro" />
+          <div className="space-y-1">
+            <Label className="text-[10px]">CNPJ / CPF</Label>
+            <div className="relative">
+              <Input
+                className="h-8 text-xs"
+                value={form[`${prefix}_cnpj`]}
+                onChange={(e) => {
+                  setCnpjError("");
+                  const masked = maskDocument(e.target.value);
+                  set(`${prefix}_cnpj`, masked);
+                  const raw = unmaskCNPJ(masked);
+                  if (raw.length === 14) lookupCnpj(raw, prefix);
+                }}
+                maxLength={18}
+                placeholder="00.000.000/0000-00"
+              />
+              {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            </div>
+            {cnpjError && <p className="text-[10px] text-destructive">{cnpjError}</p>}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">UF</Label>
+            <Select value={form[`${prefix}_uf`] || undefined} onValueChange={(v) => set(`${prefix}_uf`, v)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+              <SelectContent>{UFS.map((ufItem) => <SelectItem key={ufItem} value={ufItem}>{ufItem}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">Inscrição Estadual</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_ie`]} onChange={(e) => set(`${prefix}_ie`, e.target.value)} placeholder="IE" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">Cód. Município IBGE</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_municipio_ibge`]} onChange={(e) => set(`${prefix}_municipio_ibge`, e.target.value)} placeholder="0000000" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label className="text-[10px]">Endereço</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_endereco`]} onChange={(e) => set(`${prefix}_endereco`, e.target.value)} placeholder="Logradouro, nº, bairro" />
+          </div>
         </div>
       </div>
     </section>
   );
+
 }
 
 export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
@@ -1026,31 +1116,62 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   // Determine if tomador fields should show (toma=4 means "outros" → needs separate data)
   const showTomadorFields = form.tomador_tipo === 4;
 
+  const estSelecionado = establishments.find((e) => e.id === selectedEstId);
+  const notasVinculadas = form.chaves_nfe_ref.filter(Boolean).length;
+  const tipoCteLabel = TP_CTE_OPTIONS.find((o) => String(form.tp_cte) === o.value)?.label ?? "Normal";
+  const rotaOrigem = [form.municipio_origem_nome, form.uf_origem].filter(Boolean).join("/") || "origem";
+  const rotaDestino = [form.municipio_destino_nome, form.uf_destino].filter(Boolean).join("/") || "destino";
+
   return (
   <>
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
-          <SheetTitle className="font-display text-xl">
-            {cte ? "Editar CT-e" : "Novo CT-e (Rascunho)"}
-          </SheetTitle>
+      <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col gap-0">
+        <SheetHeader className="shrink-0 gap-1.5 border-b border-border px-4 pb-3 pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle className="font-display text-lg leading-tight">
+              {cte ? "Editar CT-e" : "Novo CT-e (Rascunho)"}
+            </SheetTitle>
+            <div className="mr-6 flex shrink-0 items-center gap-1.5">
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {tipoCteLabel}
+              </Badge>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-medium uppercase tracking-wide">
+                Rascunho
+              </Badge>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+            <span className="max-w-[20rem] truncate font-medium text-foreground">
+              {estSelecionado ? estSelecionado.razao_social : "emitente não definido"}
+            </span>
+            <span aria-hidden>·</span>
+            <span className="truncate">{rotaOrigem} <span aria-hidden>→</span> {rotaDestino}</span>
+            <span aria-hidden>·</span>
+            <span>frete {formatBRL(form.valor_frete)}</span>
+            <span aria-hidden>·</span>
+            <span>{notasVinculadas} {notasVinculadas === 1 ? "nota" : "notas"}</span>
+          </div>
           {linkedContract && (
-            <div className="mt-2 inline-flex items-center gap-2 self-start rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700">
+            <div className="mt-1 inline-flex items-center gap-2 self-start rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700">
               <FileSignature className="w-3.5 h-3.5" />
               <span>Vinculado ao Contrato de Frete Nº <strong>{linkedContract.numero}</strong></span>
             </div>
           )}
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Emitente (Estabelecimento) */}
-          <section className="space-y-4">
-            <SectionHeader icon={Building2} title="Emitente" />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs">Estabelecimento *</Label>
+        <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/25 px-4 py-3">
+
+          {/* Emitente + Tipo do documento */}
+          <div className="grid gap-2 lg:grid-cols-2">
+            <FormBlock
+              icon={Building2}
+              title="Emitente"
+              summary={estSelecionado ? maskCNPJ(estSelecionado.cnpj) : "não definido"}
+            >
+              <div className="space-y-1">
+                <Label className="text-[10px]">Estabelecimento *</Label>
                 <Select value={selectedEstId} onValueChange={setSelectedEstId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
                   <SelectContent>
                     {establishments.map((est) => (
                       <SelectItem key={est.id} value={est.id}>
@@ -1060,118 +1181,138 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Data de emissão *</Label>
-                <Input
-                  type="date"
-                  value={form.data_emissao}
-                  onChange={(e) => set("data_emissao", e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Data de emissão *</Label>
+                  <Input type="date" className="h-8 text-xs" value={form.data_emissao} onChange={(e) => set("data_emissao", e.target.value)} />
+                </div>
               </div>
-            </div>
-            {establishments.length === 0 && (
-              <p className="text-xs text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
-            )}
-          </section>
+              {establishments.length === 0 && (
+                <p className="text-[11px] text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
+              )}
+            </FormBlock>
 
-          <Separator />
+            <FormBlock icon={FileText} title="Tipo do Documento" summary={`Modal ${form.modal}`}>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo CT-e</Label>
+                  <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo Serviço</Label>
+                  <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Modal</Label>
+                  <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{MODAL_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Retira</Label>
+                  <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </FormBlock>
+          </div>
 
-          {/* Remetente */}
-          <ActorSection
-            title="Remetente"
-            prefix="remetente"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.remetente}
-            cnpjError={cnpjErrors.remetente || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
-          onCityResolved={onCityResolved}
-          />
 
-          <Separator />
+          {/* Envolvidos */}
+          <div className="grid gap-2 lg:grid-cols-2">
+            <ActorSection
+              title="Remetente"
+              prefix="remetente"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.remetente}
+              cnpjError={cnpjErrors.remetente || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Destinatário"
+              prefix="destinatario"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.destinatario}
+              cnpjError={cnpjErrors.destinatario || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Expedidor"
+              prefix="expedidor"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.expedidor}
+              cnpjError={cnpjErrors.expedidor || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Recebedor"
+              prefix="recebedor"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.recebedor}
+              cnpjError={cnpjErrors.recebedor || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
+              onCityResolved={onCityResolved}
+            />
+          </div>
 
-          {/* Destinatário */}
-          <ActorSection
-            title="Destinatário"
-            prefix="destinatario"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.destinatario}
-            cnpjError={cnpjErrors.destinatario || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
-
-          {/* Expedidor */}
-          <ActorSection
-            title="Expedidor"
-            prefix="expedidor"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.expedidor}
-            cnpjError={cnpjErrors.expedidor || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
-
-          {/* Recebedor */}
-          <ActorSection
-            title="Recebedor"
-            prefix="recebedor"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.recebedor}
-            cnpjError={cnpjErrors.recebedor || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
 
           {/* Tomador — escolha por checkbox */}
-          <section className="space-y-3">
-            <SectionHeader icon={Users} title="Tomador do Serviço" />
-            <p className="text-xs text-muted-foreground">
+          <FormBlock
+            icon={Users}
+            title="Tomador do Serviço"
+            summary={TOMADOR_TIPO_OPTIONS.find((o) => String(form.tomador_tipo) === o.value)?.label}
+          >
+            <p className="text-[11px] text-muted-foreground">
               Marque qual dos atores acima é o tomador do serviço (quem paga o frete).
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
               {TOMADOR_TIPO_OPTIONS.map((o) => {
                 const checked = String(form.tomador_tipo) === o.value;
                 return (
                   <label
                     key={o.value}
-                    className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors text-xs ${
-                      checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                    className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${
+                      checked ? "border-primary bg-primary/5 font-semibold" : "border-border hover:bg-muted/40"
                     }`}
                   >
                     <Checkbox
                       checked={checked}
                       onCheckedChange={(v) => { if (v) set("tomador_tipo", Number(o.value)); }}
                     />
-                    <span className={checked ? "font-semibold text-foreground" : "text-foreground"}>
-                      {o.label}
-                    </span>
+                    <span>{o.label}</span>
                   </label>
                 );
               })}
             </div>
-
-            <div className="space-y-1.5 max-w-xs">
-              <Label className="text-xs">Ind. IE Tomador</Label>
-              <Select value={String(form.ind_ie_toma)} onValueChange={(v) => set("ind_ie_toma", Number(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{IND_IE_TOMA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-2 sm:max-w-sm">
+              <div className="space-y-1">
+                <Label className="text-[10px]">Ind. IE Tomador</Label>
+                <Select value={String(form.ind_ie_toma)} onValueChange={(v) => set("ind_ie_toma", Number(v))}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{IND_IE_TOMA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
-
             {showTomadorFields && (
               <ActorSection
                 title="Dados do Tomador (Outros)"
@@ -1184,252 +1325,200 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
               />
             )}
-          </section>
+          </FormBlock>
 
-          <Separator />
 
-          {/* Tipo CT-e / Serviço / Modal */}
-          <section className="space-y-4">
-            <SectionHeader icon={FileText} title="Tipo do Documento" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo CT-e</Label>
-                <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo Serviço</Label>
-                <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Modal</Label>
-                <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="01">01 - Rodoviário</SelectItem>
-                    <SelectItem value="02">02 - Aéreo</SelectItem>
-                    <SelectItem value="03">03 - Aquaviário</SelectItem>
-                    <SelectItem value="04">04 - Ferroviário</SelectItem>
-                    <SelectItem value="05">05 - Dutoviário</SelectItem>
-                    <SelectItem value="06">06 - Multimodal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Retira?</Label>
-                <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0 - Sim</SelectItem>
-                    <SelectItem value="1">1 - Não</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Prestação — Origem / Destino / Envio */}
+          <FormBlock
+            icon={MapPin}
+            title="Prestação do Serviço"
+            summary={`${form.municipio_origem_nome || "origem"} → ${form.municipio_destino_nome || "destino"}`}
+          >
+            <div className="grid gap-2 sm:grid-cols-3">
+              <SubBlock title="Origem">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
+              <SubBlock title="Destino">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
+              <SubBlock title="Envio">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
             </div>
-          </section>
+          </FormBlock>
 
-          <Separator />
-
-          {/* Prestação — Origem / Destino */}
-          <section className="space-y-4">
-            <SectionHeader icon={MapPin} title="Prestação" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Card className="border-border bg-muted/30">
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Origem</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Município</Label>
-                    <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">IBGE</Label>
-                      <Input value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">UF</Label>
-                      <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
-                        <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                        <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border bg-muted/30">
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Destino</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Município</Label>
-                    <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">IBGE</Label>
-                      <Input value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">UF</Label>
-                      <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
-                        <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                        <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            {/* Município de envio */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Município Envio</Label>
-                <Input value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">IBGE Envio</Label>
-                <Input value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">UF Envio</Label>
-                <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
-                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                  <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-          </section>
-
-          <Separator />
 
           {/* Valores e Tributos */}
-          <section className="space-y-4">
-            <SectionHeader icon={DollarSign} title="Valores e Tributos" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Frete (vTPrest)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""}
-                    onChange={(e) => set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
+          <FormBlock
+            icon={DollarSign}
+            title="Valores e Tributos"
+            summary={`frete ${formatBRL(form.valor_frete)} · IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}
+          >
+
+            <SubBlock title="Frete e Recebimento">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor Frete (vTPrest)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-8 text-xs"
+                      value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""}
+                      onChange={(e) => set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor a Receber (vRec)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-8 text-xs"
+                      value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""}
+                      onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Total de Tributos</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-8 text-xs"
+                      value={form.valor_total_tributos ? maskCurrency(String(Math.round(form.valor_total_tributos * 100))) : ""}
+                      onChange={(e) => set("valor_total_tributos", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor a Receber (vRec)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""}
-                    onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
+            </SubBlock>
+
+            <SubBlock title="ICMS e Operação">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Alíquota ICMS (%)</Label>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Base Cálculo ICMS</Label>
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor ICMS</Label>
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CST ICMS</Label>
+                  <Input className="h-8 text-xs" value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CFOP</Label>
+                  <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Natureza da Operação</Label>
+                  <Input className="h-8 text-xs" value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Alíquota ICMS (%)</Label>
-                <Input type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Base Cálculo ICMS</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10 bg-muted text-muted-foreground" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor ICMS</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10 bg-muted text-muted-foreground" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Total Tributos</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input
-                    className="pl-10"
-                    value={form.valor_total_tributos ? maskCurrency(String(Math.round(form.valor_total_tributos * 100))) : ""}
-                    onChange={(e) => set("valor_total_tributos", Number(unmaskCurrency(e.target.value)) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">CST ICMS</Label>
-                <Input value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">CFOP</Label>
-                <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Natureza da Operação</Label>
-                <Input value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
-              </div>
-            </div>
+            </SubBlock>
+
 
             {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
-            <div className="space-y-2 rounded-md border border-border p-3">
-              <Label className="text-xs font-semibold">IBS / CBS (Reforma Tributária 2026)</Label>
+            <SubBlock title="IBS / CBS — Reforma Tributária 2026">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Situação (CST)</Label>
-                  <Input value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
+                  <Input className="h-8 text-xs" value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Classificação</Label>
-                  <Input value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
+                  <Input className="h-8 text-xs" value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
                 </div>
                 <div className="space-y-1 col-span-2">
                   <Label className="text-[10px]">Base de cálculo</Label>
-                  <Input className="bg-muted text-muted-foreground" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Estadual (%)</Label>
-                  <Input type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_uf_valor)}</p>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_uf_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Municipal (%)</Label>
-                  <Input type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_mun_valor)}</p>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_mun_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CBS (%)</Label>
-                  <Input type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.cbs_valor)}</p>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.cbs_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Total IBS + CBS</Label>
-                  <Input className="bg-muted text-muted-foreground" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
                 </div>
               </div>
-            </div>
+            </SubBlock>
+
 
             {/* Seguro da carga (obrigatório para emitir) */}
-            <div className="space-y-2 rounded-md border border-border p-3">
-              <Label className="text-xs font-semibold">Seguro da Carga</Label>
+            <SubBlock title="Seguro da Carga" hint="Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Responsável pelo seguro</Label>
                   <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="4">Emitente do CT-e</SelectItem>
                       <SelectItem value="5">Tomador do serviço</SelectItem>
@@ -1442,58 +1531,56 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Seguradora</Label>
-                  <Input value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
+                  <Input className="h-8 text-xs" value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CNPJ da seguradora</Label>
-                  <Input value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
+                  <Input className="h-8 text-xs" value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Nº da apólice</Label>
-                  <Input value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
+                  <Input className="h-8 text-xs" value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <Label className="text-[10px]">Nº da averbação (opcional)</Label>
-                  <Input value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
+                  <Input className="h-8 text-xs" value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).</p>
-            </div>
+            </SubBlock>
 
-            {/* Desconto (registro interno — não afeta XML/Sefaz) */}
-            <div className="space-y-1.5 rounded-md border border-border bg-muted/10 p-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Desconto (interno)</Label>
-                {calcDescontoTotal(desconto) > 0 && (
-                  <span className="font-mono text-xs font-semibold text-destructive">
-                    − {calcDescontoTotal(desconto).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                )}
+
+            <SubBlock
+              title="Desconto (interno)"
+              hint="Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o 'Valor Frete' manualmente, se necessário."
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
+                <span className={`font-mono text-xs font-semibold ${calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
+                </span>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o "Valor Frete" manualmente, se necessário.
-              </p>
               <CteDescontoFields value={desconto} onChange={setDesconto} />
-            </div>
+            </SubBlock>
 
-            {/* Componentes do Frete */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Componentes do Frete</Label>
+            <SubBlock
+              title="Componentes do Frete"
+              hint={form.componentes_frete.length === 0 ? "nenhum componente" : undefined}
+            >
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs gap-1"
+                  className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("componentes_frete", [...form.componentes_frete, { xNome: "", vComp: 0 }])}
                 >
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> Adicionar componente
                 </Button>
               </div>
               {form.componentes_frete.map((comp, i) => (
-                <div key={i} className="flex gap-2 items-center">
+                <div key={i} className="flex items-center gap-2">
                   <Input
-                    className="flex-1"
+                    className="h-8 flex-1 text-xs"
                     placeholder="Nome (ex: FRETE VALOR)"
                     value={comp.xNome}
                     onChange={(e) => {
@@ -1503,9 +1590,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     }}
                   />
                   <div className="relative w-32">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
                     <Input
-                      className="pl-8"
+                      className="h-8 pl-7 text-xs"
                       value={comp.vComp ? maskCurrency(String(Math.round(comp.vComp * 100))) : ""}
                       onChange={(e) => {
                         const arr = [...form.componentes_frete];
@@ -1521,17 +1608,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </Button>
                 </div>
               ))}
-            </div>
-          </section>
+            </SubBlock>
 
-          <Separator />
+          </FormBlock>
+
 
           {/* Carga */}
-          <section className="space-y-4">
-            <SectionHeader icon={Package} title="Informações da Carga" />
-            
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Buscar carga cadastrada ou cadastrar nova</Label>
+          <FormBlock
+            icon={Package}
+            title="Informações da Carga"
+            summary={form.produto_predominante ? `${form.produto_predominante}${form.peso_bruto ? ` · ${form.peso_bruto} kg` : ""}` : "produto não informado"}
+          >
+
+            <SubBlock title="Carga cadastrada" hint="Ao escolher uma carga, produto, peso, valor e cidades são preenchidos.">
               <div className="flex gap-2">
                 <div className="flex-1">
                   <CargaSearchInput
@@ -1560,56 +1649,56 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="shrink-0 h-10 w-10"
+                  className="h-8 w-8 shrink-0"
                   title="Cadastrar nova carga"
                   onClick={() => setShowCargaForm(true)}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </SubBlock>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs">Produto Predominante</Label>
-                <NaturezaCargaSearchInput
-                  value={form.produto_predominante || ""}
-                  onChange={(v) => set("produto_predominante", v)}
-                />
+            <SubBlock title="Produto e tipo de carga">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Produto predominante</Label>
+                  <NaturezaCargaSearchInput
+                    value={form.produto_predominante || ""}
+                    onChange={(v) => set("produto_predominante", v)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo da carga</Label>
+                  <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="granel_solido">Granel Sólido</SelectItem>
+                      <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
+                      <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
+                      <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
+                      <SelectItem value="carga_geral">Carga Geral</SelectItem>
+                      <SelectItem value="neogranel">Neogranel</SelectItem>
+                      <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo da Carga</Label>
-                <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="granel_solido">Granel Sólido</SelectItem>
-                    <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
-                    <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
-                    <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
-                    <SelectItem value="carga_geral">Carga Geral</SelectItem>
-                    <SelectItem value="neogranel">Neogranel</SelectItem>
-                    <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            </SubBlock>
 
-            {/* Quantidades */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Quantidades (infQ)</Label>
+            <SubBlock title="Quantidades (infQ)" hint={form.info_quantidade.length === 0 ? "nenhuma quantidade informada" : undefined}>
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs gap-1"
+                  className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("info_quantidade", [...form.info_quantidade, { cUnid: "01", tpMed: "", qCarga: 0 }])}
                 >
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> Adicionar quantidade
                 </Button>
               </div>
               {form.info_quantidade.map((q, i) => (
-                <div key={i} className="flex gap-2 items-center">
+                <div key={i} className="flex items-center gap-2">
                   <Select
                     value={q.cUnid}
                     onValueChange={(v) => {
@@ -1618,7 +1707,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                       set("info_quantidade", arr);
                     }}
                   >
-                    <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="00">00 - M3</SelectItem>
                       <SelectItem value="01">01 - KG</SelectItem>
@@ -1629,7 +1718,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     </SelectContent>
                   </Select>
                   <Input
-                    className="flex-1"
+                    className="h-8 flex-1 text-xs"
                     placeholder="Tipo medida (ex: PESO BRUTO)"
                     value={q.tpMed}
                     onChange={(e) => {
@@ -1639,7 +1728,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     }}
                   />
                   <Input
-                    className="w-28"
+                    className="h-8 w-28 text-xs"
                     type="number"
                     step="0.0001"
                     placeholder="Qtde"
@@ -1657,22 +1746,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </Button>
                 </div>
               ))}
-            </div>
+            </SubBlock>
 
-          </section>
+          </FormBlock>
 
-          <Separator />
 
           {/* Notas fiscais da carga */}
-          <section className="space-y-4">
-            <SectionHeader icon={FileText} title="Notas Fiscais da Carga" />
+          <FormBlock
+            icon={FileText}
+            title="Notas Fiscais da Carga"
+            summary={`${form.chaves_nfe_ref.filter(Boolean).length} ${form.chaves_nfe_ref.filter(Boolean).length === 1 ? "nota vinculada" : "notas vinculadas"}`}
+          >
 
-            {/* Entrada: chave ou XML */}
-            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
-              <Label className="text-xs font-semibold">Adicionar nota fiscal</Label>
-              <div className="flex flex-col sm:flex-row gap-2">
+
+            <SubBlock
+              title="Adicionar nota fiscal"
+              hint="A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos."
+            >
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
-                  className="flex-1 font-mono text-xs"
+                  className="h-8 flex-1 font-mono text-xs"
                   placeholder="Cole ou digite a chave de acesso (44 dígitos)"
                   maxLength={44}
                   value={novaChave}
@@ -1680,25 +1773,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarChave(novaChave); } }}
                 />
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1" disabled={nfeLoading || novaChave.length !== 44} onClick={() => buscarChave(novaChave)}>
-                    {nfeLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Buscar pela chave
+                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={nfeLoading || novaChave.length !== 44} onClick={() => buscarChave(novaChave)}>
+                    {nfeLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />} Buscar pela chave
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1" onClick={() => xmlInputRef.current?.click()}>
-                    <Upload className="w-3 h-3" /> Importar XML
+                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => xmlInputRef.current?.click()}>
+                    <Upload className="h-3 w-3" /> Importar XML
                   </Button>
                   <input ref={xmlInputRef} type="file" accept=".xml,text/xml" multiple className="hidden" onChange={handleXmlFiles} />
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-[10px] text-muted-foreground">
-                  A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos.
-                </p>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>
                   <Plus className="w-3 h-3" /> Digitar nota manualmente
                 </Button>
               </div>
-            </div>
+            </SubBlock>
+
 
             {/* Lista de notas */}
             <div className="space-y-2">
@@ -1764,13 +1855,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
 
-            {/* Totais da carga (somados das notas) */}
-            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Label className="text-xs font-semibold">Totais da carga</Label>
-                <p className="text-[10px] text-muted-foreground">Somados automaticamente das notas vinculadas. Editável se necessário.</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <SubBlock title="Totais da carga" hint="Somados automaticamente das notas vinculadas. Editável se necessário.">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Peso bruto total (kg)</Label>
                   <Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} />
@@ -1798,15 +1884,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </div>
                 </div>
               </div>
-            </div>
+            </SubBlock>
 
-            {/* Outros documentos (carga sem NF-e) */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Outros documentos (carga sem NF-e)</Label>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+
+            <SubBlock title="Outros documentos" hint="Para cargas sem NF-e.">
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("outros_documentos", [...form.outros_documentos, { tipo: "99", descricao: "", numero: "", data_emissao: "", valor: 0 }])}>
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> Adicionar documento
                 </Button>
               </div>
               {form.outros_documentos.map((o, i) => {
@@ -1816,7 +1901,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   set("outros_documentos", arr);
                 };
                 return (
-                  <div key={i} className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end rounded-md border border-border p-2">
+                  <div key={i} className="grid grid-cols-2 items-end gap-2 rounded-md border border-border p-2 sm:grid-cols-6">
+
                     <div className="space-y-0.5">
                       <Label className="text-[10px]">Tipo</Label>
                       <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
@@ -1842,94 +1928,99 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </div>
                 );
               })}
-            </div>
-          </section>
+            </SubBlock>
+          </FormBlock>
 
-          <Separator />
+
 
           {/* Transporte */}
-          <section className="space-y-4">
-            <SectionHeader icon={Truck} title="Transporte" />
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Buscar motorista</Label>
-              <PersonSearchInput
-                categories={["motorista"]}
-                placeholder="Buscar motorista cadastrado..."
-                selectedName={motoristaNome}
-                onSelect={async (person) => {
-                  set("motorista_id", person.id);
-                  setMotoristaNome(person.full_name);
-                  // Auto-fill vehicle if driver is linked to one
-                  try {
-                    const v = await lookupVehicleByDriver(person.user_id, person.id);
-                    if (v) {
-                      set("placa_veiculo", maskPlate(v.plate));
-                      if (v.rntrc) set("rntrc", v.rntrc);
-                    }
-                  } catch {}
-                }}
-                onClear={() => {
-                  set("motorista_id", null);
-                  setMotoristaNome(undefined);
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Placa</Label>
-                <Input
-                  value={form.placa_veiculo}
-                  onChange={(e) => {
-                    const masked = maskPlate(e.target.value);
-                    set("placa_veiculo", masked);
-                    if (unmaskPlate(masked).length === 7) {
-                      lookupDriverByPlate(masked)
-                        .then((r) => {
-                          if (!r) return;
-                          if (r.rntrc) set("rntrc", r.rntrc);
-                          if (r.motorista_id) {
-                            set("motorista_id", r.motorista_id);
-                            setMotoristaNome(r.motorista_nome || undefined);
-                          }
-                        })
-                        .catch(() => {});
-                    }
-                  }}
+          <FormBlock
+            icon={Truck}
+            title="Transporte"
+            summary={form.placa_veiculo ? [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ") : "veículo não definido"}
+          >
 
-                  maxLength={8}
-                  placeholder="ABC-1D23"
-                  className="uppercase"
+            <SubBlock title="Motorista e veículo">
+              <div className="space-y-1">
+                <Label className="text-[10px]">Buscar motorista</Label>
+                <PersonSearchInput
+                  categories={["motorista"]}
+                  placeholder="Buscar motorista cadastrado..."
+                  selectedName={motoristaNome}
+                  onSelect={async (person) => {
+                    set("motorista_id", person.id);
+                    setMotoristaNome(person.full_name);
+                    // Auto-fill vehicle if driver is linked to one
+                    try {
+                      const v = await lookupVehicleByDriver(person.user_id, person.id);
+                      if (v) {
+                        set("placa_veiculo", maskPlate(v.plate));
+                        if (v.rntrc) set("rntrc", v.rntrc);
+                      }
+                    } catch {}
+                  }}
+                  onClear={() => {
+                    set("motorista_id", null);
+                    setMotoristaNome(undefined);
+                  }}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">RNTRC</Label>
-                <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Placa</Label>
+                  <Input
+                    className="h-8 text-xs uppercase"
+                    value={form.placa_veiculo}
+                    onChange={(e) => {
+                      const masked = maskPlate(e.target.value);
+                      set("placa_veiculo", masked);
+                      if (unmaskPlate(masked).length === 7) {
+                        lookupDriverByPlate(masked)
+                          .then((r) => {
+                            if (!r) return;
+                            if (r.rntrc) set("rntrc", r.rntrc);
+                            if (r.motorista_id) {
+                              set("motorista_id", r.motorista_id);
+                              setMotoristaNome(r.motorista_nome || undefined);
+                            }
+                          })
+                          .catch(() => {});
+                      }
+                    }}
+                    maxLength={8}
+                    placeholder="ABC-1D23"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">RNTRC</Label>
+                  <Input className="h-8 text-xs" value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Carreta 1</Label>
+                  <Input className="h-8 text-xs uppercase" value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque1_placa", maskPlate(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Carreta 2</Label>
+                  <Input className="h-8 text-xs uppercase" value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque2_placa", maskPlate(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Nº de eixos</Label>
+                  <Input className="h-8 text-xs" type="number" min={2} max={12} value={form.numero_eixos ?? ""} onChange={(e) => set("numero_eixos", e.target.value ? Number(e.target.value) : null)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Lotação</Label>
+                  <Select value={form.lotacao ? "1" : "0"} onValueChange={(v) => set("lotacao", v === "1")}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Sim</SelectItem>
+                      <SelectItem value="0">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Carreta 1</Label>
-                <Input value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" className="uppercase" onChange={(e) => set("reboque1_placa", maskPlate(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Carreta 2</Label>
-                <Input value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" className="uppercase" onChange={(e) => set("reboque2_placa", maskPlate(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nº de eixos</Label>
-                <Input type="number" min={2} max={12} value={form.numero_eixos ?? ""} onChange={(e) => set("numero_eixos", e.target.value ? Number(e.target.value) : null)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Lotação</Label>
-                <Select value={form.lotacao ? "1" : "0"} onValueChange={(v) => set("lotacao", v === "1")}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Sim</SelectItem>
-                    <SelectItem value="0">Não</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Contratado (dono do caminhão, quando de terceiro)</Label>
+            </SubBlock>
+
+            <SubBlock title="Contratado" hint="Dono do caminhão, quando ele for de terceiro.">
               <PersonSearchInput
                 categories={["proprietario", "motorista"]}
                 placeholder="Buscar proprietário/contratado..."
@@ -1946,62 +2037,65 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 }}
               />
               {form.contratado_documento && <p className="text-[10px] text-muted-foreground">Documento: {form.contratado_documento}</p>}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Previsão de saída</Label>
-                <Input type="date" value={form.previsao_saida} onChange={(e) => set("previsao_saida", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Previsão de chegada</Label>
-                <Input type="date" value={form.previsao_chegada} onChange={(e) => set("previsao_chegada", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pedido / Ordem carreg.</Label>
-                <Input value={form.pedido_numero} onChange={(e) => set("pedido_numero", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pedágio</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => set("valor_pedagio", Number(unmaskCurrency(e.target.value)) || 0)} />
+            </SubBlock>
+
+            <SubBlock title="Viagem">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Previsão de saída</Label>
+                  <Input className="h-8 text-xs" type="date" value={form.previsao_saida} onChange={(e) => set("previsao_saida", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Previsão de chegada</Label>
+                  <Input className="h-8 text-xs" type="date" value={form.previsao_chegada} onChange={(e) => set("previsao_chegada", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Pedido / Ordem carreg.</Label>
+                  <Input className="h-8 text-xs" value={form.pedido_numero} onChange={(e) => set("pedido_numero", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Pedágio</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input className="h-8 pl-8 text-xs" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => set("valor_pedagio", Number(unmaskCurrency(e.target.value)) || 0)} />
+                  </div>
                 </div>
               </div>
-            </div>
-            {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
-              <p className="text-xs text-destructive">A previsão de chegada está antes da saída.</p>
-            )}
-          </section>
+              {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
+                <p className="text-[11px] text-destructive">A previsão de chegada está antes da saída.</p>
+              )}
+            </SubBlock>
 
-          <Separator />
+          </FormBlock>
+
 
           {/* Observações */}
-          <section className="space-y-4">
-            <SectionHeader icon={FileText} title="Observações" />
-            <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} placeholder="Informações complementares..." />
-          </section>
+          <FormBlock
+            icon={FileText}
+            title="Observações"
+            defaultOpen={false}
+            summary={form.observacoes ? form.observacoes.slice(0, 70) : "sem observações"}
+          >
+            <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} className="text-xs" placeholder="Informações complementares..." />
+          </FormBlock>
         </div>
 
         {/* Footer fixo */}
-        <div className="shrink-0 border-t border-border px-6 py-4 flex flex-col gap-3 bg-background">
+        <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           {!linkedContract && (
-            <label className="flex items-start gap-2 cursor-pointer">
-              <Checkbox
-                checked={gerarContrato}
-                onCheckedChange={(v) => setGerarContrato(!!v)}
-                className="mt-0.5"
-              />
-              <span className="text-xs">
+            <label className="flex cursor-pointer items-start gap-2">
+              <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} className="mt-0.5" />
+              <span className="text-[11px] leading-tight">
                 <span className="flex items-center gap-1 font-semibold">
-                  <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+                  <FileSignature className="h-3.5 w-3.5" /> Gerar contrato de frete
                 </span>
                 <span className="block text-muted-foreground">
-                  Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+                  Após salvar, abre o contrato de fretamento (subcontratado) e gera conta a pagar à vista.
                 </span>
               </span>
             </label>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             {!cte && (
               <Button variant="secondary" onClick={() => handleSave(true)} disabled={saving} title="Salva e mantém os dados gerais para o próximo CT-e">
@@ -2013,6 +2107,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </Button>
           </div>
         </div>
+
       </SheetContent>
 
       <FreightContractDialog
