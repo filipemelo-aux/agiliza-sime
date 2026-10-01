@@ -1941,86 +1941,87 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             summary={form.placa_veiculo ? [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ") : "veículo não definido"}
           >
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Buscar motorista</Label>
-              <PersonSearchInput
-                categories={["motorista"]}
-                placeholder="Buscar motorista cadastrado..."
-                selectedName={motoristaNome}
-                onSelect={async (person) => {
-                  set("motorista_id", person.id);
-                  setMotoristaNome(person.full_name);
-                  // Auto-fill vehicle if driver is linked to one
-                  try {
-                    const v = await lookupVehicleByDriver(person.user_id, person.id);
-                    if (v) {
-                      set("placa_veiculo", maskPlate(v.plate));
-                      if (v.rntrc) set("rntrc", v.rntrc);
-                    }
-                  } catch {}
-                }}
-                onClear={() => {
-                  set("motorista_id", null);
-                  setMotoristaNome(undefined);
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Placa</Label>
-                <Input
-                  value={form.placa_veiculo}
-                  onChange={(e) => {
-                    const masked = maskPlate(e.target.value);
-                    set("placa_veiculo", masked);
-                    if (unmaskPlate(masked).length === 7) {
-                      lookupDriverByPlate(masked)
-                        .then((r) => {
-                          if (!r) return;
-                          if (r.rntrc) set("rntrc", r.rntrc);
-                          if (r.motorista_id) {
-                            set("motorista_id", r.motorista_id);
-                            setMotoristaNome(r.motorista_nome || undefined);
-                          }
-                        })
-                        .catch(() => {});
-                    }
+            <SubBlock title="Motorista e veículo">
+              <div className="space-y-1">
+                <Label className="text-[10px]">Buscar motorista</Label>
+                <PersonSearchInput
+                  categories={["motorista"]}
+                  placeholder="Buscar motorista cadastrado..."
+                  selectedName={motoristaNome}
+                  onSelect={async (person) => {
+                    set("motorista_id", person.id);
+                    setMotoristaNome(person.full_name);
+                    // Auto-fill vehicle if driver is linked to one
+                    try {
+                      const v = await lookupVehicleByDriver(person.user_id, person.id);
+                      if (v) {
+                        set("placa_veiculo", maskPlate(v.plate));
+                        if (v.rntrc) set("rntrc", v.rntrc);
+                      }
+                    } catch {}
                   }}
-
-                  maxLength={8}
-                  placeholder="ABC-1D23"
-                  className="uppercase"
+                  onClear={() => {
+                    set("motorista_id", null);
+                    setMotoristaNome(undefined);
+                  }}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">RNTRC</Label>
-                <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Placa</Label>
+                  <Input
+                    className="h-8 text-xs uppercase"
+                    value={form.placa_veiculo}
+                    onChange={(e) => {
+                      const masked = maskPlate(e.target.value);
+                      set("placa_veiculo", masked);
+                      if (unmaskPlate(masked).length === 7) {
+                        lookupDriverByPlate(masked)
+                          .then((r) => {
+                            if (!r) return;
+                            if (r.rntrc) set("rntrc", r.rntrc);
+                            if (r.motorista_id) {
+                              set("motorista_id", r.motorista_id);
+                              setMotoristaNome(r.motorista_nome || undefined);
+                            }
+                          })
+                          .catch(() => {});
+                      }
+                    }}
+                    maxLength={8}
+                    placeholder="ABC-1D23"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">RNTRC</Label>
+                  <Input className="h-8 text-xs" value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Carreta 1</Label>
+                  <Input className="h-8 text-xs uppercase" value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque1_placa", maskPlate(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Carreta 2</Label>
+                  <Input className="h-8 text-xs uppercase" value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque2_placa", maskPlate(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Nº de eixos</Label>
+                  <Input className="h-8 text-xs" type="number" min={2} max={12} value={form.numero_eixos ?? ""} onChange={(e) => set("numero_eixos", e.target.value ? Number(e.target.value) : null)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Lotação</Label>
+                  <Select value={form.lotacao ? "1" : "0"} onValueChange={(v) => set("lotacao", v === "1")}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Sim</SelectItem>
+                      <SelectItem value="0">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Carreta 1</Label>
-                <Input value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" className="uppercase" onChange={(e) => set("reboque1_placa", maskPlate(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Carreta 2</Label>
-                <Input value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" className="uppercase" onChange={(e) => set("reboque2_placa", maskPlate(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nº de eixos</Label>
-                <Input type="number" min={2} max={12} value={form.numero_eixos ?? ""} onChange={(e) => set("numero_eixos", e.target.value ? Number(e.target.value) : null)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Lotação</Label>
-                <Select value={form.lotacao ? "1" : "0"} onValueChange={(v) => set("lotacao", v === "1")}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Sim</SelectItem>
-                    <SelectItem value="0">Não</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Contratado (dono do caminhão, quando de terceiro)</Label>
+            </SubBlock>
+
+            <SubBlock title="Contratado" hint="Dono do caminhão, quando ele for de terceiro.">
               <PersonSearchInput
                 categories={["proprietario", "motorista"]}
                 placeholder="Buscar proprietário/contratado..."
@@ -2037,31 +2038,35 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 }}
               />
               {form.contratado_documento && <p className="text-[10px] text-muted-foreground">Documento: {form.contratado_documento}</p>}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Previsão de saída</Label>
-                <Input type="date" value={form.previsao_saida} onChange={(e) => set("previsao_saida", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Previsão de chegada</Label>
-                <Input type="date" value={form.previsao_chegada} onChange={(e) => set("previsao_chegada", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pedido / Ordem carreg.</Label>
-                <Input value={form.pedido_numero} onChange={(e) => set("pedido_numero", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pedágio</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => set("valor_pedagio", Number(unmaskCurrency(e.target.value)) || 0)} />
+            </SubBlock>
+
+            <SubBlock title="Viagem">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Previsão de saída</Label>
+                  <Input className="h-8 text-xs" type="date" value={form.previsao_saida} onChange={(e) => set("previsao_saida", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Previsão de chegada</Label>
+                  <Input className="h-8 text-xs" type="date" value={form.previsao_chegada} onChange={(e) => set("previsao_chegada", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Pedido / Ordem carreg.</Label>
+                  <Input className="h-8 text-xs" value={form.pedido_numero} onChange={(e) => set("pedido_numero", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Pedágio</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input className="h-8 pl-8 text-xs" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => set("valor_pedagio", Number(unmaskCurrency(e.target.value)) || 0)} />
+                  </div>
                 </div>
               </div>
-            </div>
-            {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
-              <p className="text-xs text-destructive">A previsão de chegada está antes da saída.</p>
-            )}
+              {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
+                <p className="text-[11px] text-destructive">A previsão de chegada está antes da saída.</p>
+              )}
+            </SubBlock>
+
           </FormBlock>
 
 
