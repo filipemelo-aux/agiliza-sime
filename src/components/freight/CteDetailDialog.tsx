@@ -8,12 +8,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Send, Loader2, Pencil, FileSignature, Printer, Trash2 } from "lucide-react";
+import { Loader2, Pencil, FileSignature, Printer, Trash2 } from "lucide-react";
 import { maskCNPJ, maskDocument, maskCurrency } from "@/lib/masks";
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
 import { useToast } from "@/hooks/use-toast";
-import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
-import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
 import { cancelarCte } from "@/services/fiscal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,7 +85,6 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
 }
 
 export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit, onDeleted }: Props) {
-  const [transmitting, setTransmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [localCte, setLocalCte] = useState(cteProp);
   const [contractOpen, setContractOpen] = useState(false);
@@ -103,7 +100,6 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const cte = localCte;
   const isServico = (cte as any).tipo_talao === "servico";
   const canEdit = isServico || cte.status === "rascunho" || cte.status === "rejeitado";
-  const canTransmit = !isServico && (cte.status === "rascunho" || cte.status === "rejeitado");
 
   const removeLinkedFreightContract = async (cteId: string) => {
     const { data: contracts } = await supabase
@@ -286,56 +282,6 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
     openPrintWindow(html);
   };
 
-  const handleTransmit = async () => {
-    setTransmitting(true);
-    try {
-      // 1. Montar XML no frontend e salvar no banco
-      const prep = await prepararCteParaTransmissao(cte.id);
-      if (!prep.success) {
-        toast({
-          title: "Erro na preparação do XML",
-          description: prep.errors?.join("; ") || "Erro desconhecido",
-          variant: "destructive",
-        });
-        setTransmitting(false);
-        return;
-      }
-
-      // 2. Chamar fiscal-service (que agora usará o xml_enviado já pronto)
-      const result = await emitirCteViaService(cte.id, { sync: true });
-      if (result.success && result.data?.success) {
-        const d = result.data;
-        if (d.status === "autorizado") {
-          toast({ title: "CT-e Autorizado!", description: `Chave: ${d.chave_acesso || "—"} | Protocolo: ${d.protocolo || "—"}` });
-        } else {
-          toast({ title: "CT-e transmitido", description: "Enviado com sucesso para processamento." });
-        }
-        onUpdated();
-        onOpenChange(false);
-      } else {
-        const motivo = result.data?.motivo_rejeicao || result.error || "Erro desconhecido";
-        const cStat = result.data?.cStat;
-        toast({
-          title: cStat ? `Rejeitado (cStat: ${cStat})` : "Erro na transmissão",
-          description: motivo,
-          variant: "destructive",
-        });
-        // Update local state immediately so the user sees the error and can edit/retransmit
-        setLocalCte(prev => ({
-          ...prev,
-          status: "rejeitado",
-          motivo_rejeicao: motivo,
-          numero: result.data?.numero || prev.numero,
-        }));
-        onUpdated();
-      }
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally {
-      setTransmitting(false);
-    }
-  };
-
   const componentes = Array.isArray(cte.componentes_frete) ? cte.componentes_frete : [];
   const quantidades = Array.isArray(cte.info_quantidade) ? cte.info_quantidade : [];
   const chavesNfe = Array.isArray(cte.chaves_nfe_ref) ? cte.chaves_nfe_ref : [];
@@ -506,25 +452,6 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
                   >
                     <Pencil className="w-4 h-4" />
                     Editar CT-e
-                  </Button>
-                )}
-                {canTransmit && (
-                  <Button
-                    onClick={handleTransmit}
-                    disabled={transmitting}
-                    className="flex-1 gap-2"
-                  >
-                    {transmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Transmitindo...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        {cte.status === "rejeitado" ? "Retransmitir para SEFAZ" : "Transmitir para SEFAZ"}
-                      </>
-                    )}
                   </Button>
                 )}
               </div>
