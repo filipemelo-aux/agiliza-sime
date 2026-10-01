@@ -73,14 +73,14 @@ export default function FreightMdfe() {
   };
 
   const columns: DataGridColumn<any>[] = [
-    { key: "numero", header: "Nº", width: 60, sortValue: (r) => r.numero ?? 0, cell: (r) => r.numero ?? "—" },
-    { key: "emissao", header: "Emissão", width: 90, sortValue: (r) => r.data_emissao || "", cell: (r) => formatDateBR(r.data_emissao) },
+    { key: "numero", header: "Nº", width: "60px", sortValue: (r) => r.numero ?? 0, cell: (r) => r.numero ?? "—" },
+    { key: "emissao", header: "Emissão", width: "90px", sortValue: (r) => r.data_emissao || "", cell: (r) => formatDateBR(r.data_emissao) },
     { key: "rota", header: "Percurso", cell: (r) => `${r.municipio_carregamento_nome || ""}/${r.uf_carregamento || ""} → ${r.municipio_descarregamento_nome || ""}/${r.uf_descarregamento || ""}` },
-    { key: "placa", header: "Placa", width: 90, cell: (r) => r.placa_veiculo },
+    { key: "placa", header: "Placa", width: "90px", cell: (r) => r.placa_veiculo },
     { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
-    { key: "ctes", header: "CT-es", width: 60, cell: (r) => (r.lista_ctes || []).length },
-    { key: "peso", header: "Peso (kg)", width: 100, sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
-    { key: "status", header: "Situação", width: 100, sortValue: (r) => r.status, cell: (r) => STATUS_LABEL[r.status] || r.status },
+    { key: "ctes", header: "CT-es", width: "60px", cell: (r) => (r.lista_ctes || []).length },
+    { key: "peso", header: "Peso (kg)", width: "100px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
+    { key: "status", header: "Situação", width: "100px", sortValue: (r) => r.status, cell: (r) => STATUS_LABEL[r.status] || r.status },
   ] as any;
 
   return (

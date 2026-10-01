@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { maskPlate, maskCEP } from "@/lib/masks";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency } from "@/lib/masks";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 const TIPOS_CARGA = [
