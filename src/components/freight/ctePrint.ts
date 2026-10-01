@@ -47,6 +47,21 @@ const asArray = <T,>(value: unknown): T[] => {
   }
 };
 
+const authorizationData = (cte: CtePrintInput) => {
+  let protocol = String(cte.protocolo_autorizacao || "");
+  let key = digits(cte.chave_acesso);
+  if (protocol.trim().startsWith("{")) {
+    try {
+      const parsed = JSON.parse(protocol) as { protocolo?: unknown; chave?: unknown };
+      protocol = String(parsed.protocolo || "");
+      if (!key) key = digits(parsed.chave);
+    } catch {
+      // Mantém o valor original quando integrações antigas gravaram texto simples.
+    }
+  }
+  return { key, protocol };
+};
+
 async function loadEmitente(establishmentId?: string | null) {
   if (!establishmentId) return null;
   const { data } = await supabase
@@ -234,7 +249,8 @@ function taxesHtml(cte: CtePrintInput) {
 export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
   const emit = await loadEmitente(cte.establishment_id);
   const isService = cte.tipo_talao === "servico";
-  const authorized = !isService && cte.status === "autorizado" && Boolean(cte.chave_acesso && cte.protocolo_autorizacao);
+  const authorization = authorizationData(cte);
+  const authorized = !isService && cte.status === "autorizado" && Boolean(authorization.key && authorization.protocol);
   const number = cte.numero ?? cte.numero_interno ?? "—";
   const quantities = asArray<Quantity>(cte.info_quantidade);
   const quantitiesRows = quantities.length
@@ -247,10 +263,10 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     <div class="header">
       <div class="issuer"><strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.nome_fantasia || "")}</span><span>${esc(emit?.endereco || "")}</span><span>CNPJ ${esc(emit?.cnpj || "—")} • IE ${esc(emit?.ie || "—")} • RNTRC ${esc(emit?.rntrc || cte.rntrc || "—")}</span></div>
       <div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span><strong>MODAL RODOVIÁRIO</strong><span>Nº ${esc(number)} • SÉRIE ${esc(cte.serie ?? (isService ? "INTERNA" : "—"))}</span></div>
-      <div class="access"><span class="label center">Controle do fisco</span><div class="barcode"></div><div class="key">${esc(formatChave(cte.chave_acesso))}</div><div class="status">${esc(STATUS[cte.status || ""] || String(cte.status || "INTERNO").toUpperCase())}</div></div>
+      <div class="access"><span class="label center">Controle do fisco</span><div class="barcode"></div><div class="key">${esc(formatChave(authorization.key))}</div><div class="status">${esc(STATUS[cte.status || ""] || String(cte.status || "INTERNO").toUpperCase())}</div></div>
     </div>
     <div class="grid c5">
-      ${cell("Modelo", isService ? "Interno" : "57")}${cell("Série", cte.serie ?? "—")}${cell("Número", number)}${cell("Data e hora de emissão", dateTime(cte.data_emissao))}${cell("Protocolo de autorização", cte.protocolo_autorizacao)}
+      ${cell("Modelo", isService ? "Interno" : "57")}${cell("Série", cte.serie ?? "—")}${cell("Número", number)}${cell("Data e hora de emissão", dateTime(cte.data_emissao))}${cell("Protocolo de autorização", authorization.protocol)}
     </div>
     <div class="grid c4">
       ${cell("CFOP", cte.cfop)}${cell("Natureza da operação", cte.natureza_operacao, "span2")}${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}
