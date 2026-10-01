@@ -2081,9 +2081,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <p className="text-[10px] text-muted-foreground">Pedágio, diária, seguro e outros somam ao total da prestação enviado à SEFAZ. O desconto interno abaixo reduz apenas o total a receber.</p>
             <SubBlock title="ICMS">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1 col-span-2 sm:col-span-3">
+                  <Label className="text-[10px]">CST ICMS</Label>
+                  <Select value={form.cst_icms} onValueChange={changeIcmsCst}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Escolha o CST" /></SelectTrigger>
+                    <SelectContent>{ICMS_CST_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">{ICMS_CST_OPTIONS.find((o) => o.value === form.cst_icms)?.hint}</p>
+                </div>
+                {(icmsMode === "reducao" || icmsMode === "outros") && (
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Redução da base (%)</Label>
+                    <Input className="h-8 text-xs" type="number" step="0.01" min={0} max={100} value={form.percentual_reducao_bc} onChange={(e) => set("percentual_reducao_bc", Math.min(100, Math.max(0, Number(e.target.value) || 0)))} />
+                  </div>
+                )}
                 <div className="space-y-1">
                   <Label className="text-[10px]">Alíquota ICMS (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={icmsMode === "isento"} value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Base Cálculo ICMS</Label>
@@ -2092,10 +2106,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <div className="space-y-1">
                   <Label className="text-[10px]">Valor ICMS</Label>
                   <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CST ICMS</Label>
-                  <Input className="h-8 text-xs" value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CFOP</Label>
@@ -2125,31 +2135,35 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <FormBlock icon={Building2} title="10. Impostos IBS e CBS" summary={`IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}>
             <SubBlock title="IBS / CBS — Reforma Tributária 2026">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
-                <div className="space-y-1">
+                <div className="space-y-1 col-span-2">
                   <Label className="text-[10px]">Situação (CST)</Label>
-                  <Input className="h-8 text-xs" value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
+                  <Select value={form.ibs_cbs_cst} onValueChange={changeIbsCbsCst}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Escolha o CST" /></SelectTrigger>
+                    <SelectContent>{IBS_CBS_CST_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">{IBS_CBS_CST_OPTIONS.find((o) => o.value === form.ibs_cbs_cst)?.hint}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Classificação</Label>
                   <Input className="h-8 text-xs" value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
                 </div>
-                <div className="space-y-1 col-span-2">
+                <div className="space-y-1">
                   <Label className="text-[10px]">Base de cálculo</Label>
                   <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Estadual (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={ibsIsento} value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_uf_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Municipal (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={ibsIsento} value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_mun_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CBS (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={ibsIsento} value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.cbs_valor)}</p>
                 </div>
                 <div className="space-y-1">
