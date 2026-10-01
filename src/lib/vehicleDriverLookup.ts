@@ -6,6 +6,7 @@ export interface DriverByPlate {
   owner_id: string | null;
   owner_nome: string | null;
   owner_documento: string | null;
+  owner_is_emitter: boolean;
   vehicle_type: string | null;
   trailers: string[];
   motorista_id: string | null;
@@ -54,6 +55,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
     owner_id: owner?.id ?? null,
     owner_nome: owner?.nome || null,
     owner_documento: owner?.documento || null,
+    owner_is_emitter: owner?.is_emitter ?? false,
     vehicle_type: vehicle.vehicle_type || null,
     trailers: [vehicle.trailer_plate_1, vehicle.trailer_plate_2].filter(Boolean) as string[],
     motorista_id,
@@ -70,16 +72,18 @@ export interface VehicleByDriver {
   owner_id: string | null;
   owner_nome: string | null;
   owner_documento: string | null;
+  owner_is_emitter: boolean;
   vehicle_type: string | null;
   trailers: string[];
 }
 
 /**
  * vehicles.owner_id pode guardar profiles.user_id (auth) ou profiles.id.
- * Retorna sempre o profiles.id; se o proprietário for uma empresa emitente
- * (frota própria da Sime), id volta nulo — não há contratado.
+ * Retorna sempre o profiles.id. Se o proprietário for uma empresa emitente
+ * (frota própria da Sime), is_emitter=true: o CT-e mostra a própria empresa
+ * como proprietária, mas ela não é gravada como contratada (FK).
  */
-async function loadOwner(ownerId?: string | null): Promise<{ id: string | null; nome: string; documento: string } | null> {
+async function loadOwner(ownerId?: string | null): Promise<{ id: string | null; nome: string; documento: string; is_emitter: boolean } | null> {
   if (!ownerId) return null;
   const { data } = await supabase
     .from("profiles")
@@ -87,10 +91,10 @@ async function loadOwner(ownerId?: string | null): Promise<{ id: string | null; 
     .or(`id.eq.${ownerId},user_id.eq.${ownerId}`)
     .limit(1);
   const p: any = data?.[0];
-  if (!p) return { id: null, nome: "", documento: "" };
+  if (!p) return { id: null, nome: "", documento: "", is_emitter: false };
   const { data: est } = await supabase.from("fiscal_establishments").select("id").eq("profile_id", p.id).limit(1);
-  if (est && est.length > 0) return { id: null, nome: "", documento: "" };
-  return { id: p.id, nome: p.razao_social || p.full_name || "", documento: p.cnpj || "" };
+  const is_emitter = !!(est && est.length > 0);
+  return { id: is_emitter ? null : p.id, nome: p.razao_social || p.full_name || "", documento: p.cnpj || "", is_emitter };
 }
 
 /** Converte um id que pode ser profiles.user_id em profiles.id (FK válida). */
@@ -138,6 +142,7 @@ export async function lookupVehicleByDriver(
   return {
     vehicle_id: v.id, plate: v.plate, rntrc: v.antt_number || null,
     owner_id: owner?.id ?? null, owner_nome: owner?.nome || null, owner_documento: owner?.documento || null,
+    owner_is_emitter: owner?.is_emitter ?? false,
     vehicle_type: v.vehicle_type || null,
     trailers: [v.trailer_plate_1, v.trailer_plate_2].filter(Boolean),
   };
