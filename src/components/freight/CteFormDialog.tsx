@@ -30,7 +30,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown, Send } from "lucide-react";
 import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
-import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
+import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate, formatCurrency } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo, resolveProfileId } from "@/lib/vehicleDriverLookup";
