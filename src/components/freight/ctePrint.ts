@@ -239,16 +239,12 @@ function valuesHtml(cte: CtePrintInput) {
         .filter(([key, value]) => key !== "regra" && key !== "tarifa_final" && Number(value) !== 0)
         .map(([key, value]) => ({ xNome: key.replace(/_/g, " ").toUpperCase(), vComp: Number(value) }))
     : [];
-  const rows = (components.length ? components : fallback).map((item) =>
-    `<tr><td>${esc(item.xNome || item.nome || "Componente")}</td><td class="right">${esc(money(item.vComp ?? item.valor))}</td></tr>`
-  ).join("") || `<tr><td>FRETE</td><td class="right">${esc(money(cte.valor_frete))}</td></tr>`;
+  const items = components.length ? components : fallback;
+  const slots = Array.from({ length: 3 }, (_, index) => items[index]);
   return `<div class="section-title">Componentes do valor da prestação</div>
-    <table><thead><tr><th>Nome do componente</th><th style="width:28%" class="right">Valor</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="grid c4">
-      ${cell("Valor total da prestação", money(cte.valor_frete))}
-      ${cell("Valor a receber", money(cte.valor_receber ?? cte.valor_frete))}
-      ${cell("Valor da carga", money(cte.valor_carga))}
-      ${cell("Valor para averbação", money(cte.valor_carga_averb ?? cte.valor_carga))}
+      ${slots.map((item, index) => cell(`Nome / valor ${index + 1}`, item ? `${item.xNome || item.nome || "FRETE"}  ${money(item.vComp ?? item.valor)}` : index === 0 ? `FRETE  ${money(cte.valor_frete)}` : "")).join("")}
+      <div>${cell("Valor total do serviço", money(cte.valor_frete))}${cell("Valor a receber", money(cte.valor_receber ?? cte.valor_frete))}</div>
     </div>`;
 }
 
@@ -275,6 +271,9 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
   const isService = cte.tipo_talao === "servico";
   const authorization = authorizationData(cte);
   const authorized = !isService && cte.status === "autorizado" && Boolean(authorization.key && authorization.protocol);
+  const consultationUrl = authorization.key ? `https://www.cte.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=completa&chaveAcesso=${authorization.key}` : "";
+  const qrCodeUrl = consultationUrl ? await QRCode.toDataURL(consultationUrl, { width: 180, margin: 0, errorCorrectionLevel: "M" }) : "";
+  const barcodeUrl = barcodeDataUrl(authorization.key);
   const number = cte.numero ?? cte.numero_interno ?? "—";
   const quantities = asArray<Quantity>(cte.info_quantidade);
   const quantitiesRows = quantities.length
@@ -282,47 +281,38 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     : `<tr><td>PESO BRUTO</td><td>KG</td><td class="right">${esc(decimal(cte.peso_bruto, 3))}</td></tr>`;
 
   const title = isService ? "DOCUMENTO AUXILIAR DE CT-e DE SERVIÇO" : "DOCUMENTO AUXILIAR DO CONHECIMENTO DE TRANSPORTE ELETRÔNICO";
+  const actorPairs = `<div class="actors">${actorSection(cte, "remetente", "Remetente")}${actorSection(cte, "destinatario", "Destinatário")}${actorSection(cte, "expedidor", "Expedidor")}${actorSection(cte, "recebedor", "Recebedor")}</div>`;
   const body = `<div class="dacte">
     ${!authorized ? `<div class="watermark">${isService ? "DOCUMENTO INTERNO — SEM VALOR FISCAL" : "DOCUMENTO NÃO AUTORIZADO — SEM VALOR FISCAL"}</div>` : ""}
     <div class="header">
-      <div class="issuer"><strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.nome_fantasia || "")}</span><span>${esc(emit?.endereco || "")}</span><span>CNPJ ${esc(emit?.cnpj || "—")} • IE ${esc(emit?.ie || "—")} • RNTRC ${esc(emit?.rntrc || cte.rntrc || "—")}</span></div>
-      <div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span><strong>MODAL RODOVIÁRIO</strong><span>Nº ${esc(number)} • SÉRIE ${esc(cte.serie ?? (isService ? "INTERNA" : "—"))}</span></div>
-      <div class="access"><span class="label center">Controle do fisco</span><div class="barcode"></div><div class="key">${esc(formatChave(authorization.key))}</div><div class="status">${esc(STATUS[cte.status || ""] || String(cte.status || "INTERNO").toUpperCase())}</div></div>
-    </div>
-    <div class="grid c5">
-      ${cell("Modelo", isService ? "Interno" : "57")}${cell("Série", cte.serie ?? "—")}${cell("Número", number)}${cell("Data e hora de emissão", dateTime(cte.data_emissao))}${cell("Protocolo de autorização", authorization.protocol)}
+      <div class="issuer"><div class="brand">SIME<small>TRANSPORTES</small></div><strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.endereco || "")}</span><span>CNPJ: ${esc(emit?.cnpj || "—")} IE: ${esc(emit?.ie || "—")}</span></div>
+      <div class="fiscal-head"><div class="title-row"><div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span></div><div class="modal"><span class="label">Modal</span><b>Rodoviário</b></div></div><div class="doc-meta"><div><span class="label">Modelo</span><b>${isService ? "—" : "57"}</b></div><div><span class="label">Série</span><b>${esc(cte.serie ?? "—")}</b></div><div><span class="label">Número</span><b>${esc(number)}</b></div><div><span class="label">Página</span><b>1/1</b></div><div><span class="label">Data e hora de emissão</span><b>${esc(dateTime(cte.data_emissao))}</b></div></div><div class="access">${barcodeUrl ? `<img class="barcode" src="${barcodeUrl}"/>` : ""}<span class="label">Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br</span><div class="key">${esc(formatChave(authorization.key))}</div></div></div>
+      <div class="qr">${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code para consulta do CT-e"/>` : `<b>${esc(STATUS[cte.status || ""] || "INTERNO")}</b>`}</div>
     </div>
     <div class="grid c4">
-      ${cell("CFOP", cte.cfop)}${cell("Natureza da operação", cte.natureza_operacao, "span2")}${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}
+      ${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}${cell("Tipo do serviço", TP_SERV[Number(cte.tp_serv)] || "Normal")}${cell("Indicador do CT-e globalizado", cte.globalizado ? "SIM" : "NÃO")}${cell("Nº protocolo", authorization.protocol ? `${authorization.protocol} ${dateTime(cte.data_autorizacao)}` : "")}
     </div>
-    <div class="grid c4">
-      ${cell("Tipo do serviço", TP_SERV[Number(cte.tp_serv)] || "Normal")}${cell("Tomador", TOMADOR[Number(cte.tomador_tipo)] || "—")}${cell("Início da prestação", cteOrigemLabel(cte))}${cell("Término da prestação", cteDestinoLabel(cte))}
+    <div class="grid c2">
+      ${cell("CFOP - Natureza da prestação", `${cte.cfop || ""} - ${cte.natureza_operacao || ""}`)}${cell("Insc. SUFRAMA do destinatário", cte.destinatario_suframa)}
     </div>
-    ${actorSection(cte, "remetente", "Remetente")}
-    ${actorSection(cte, "expedidor", "Expedidor")}
-    ${actorSection(cte, "destinatario", "Destinatário")}
-    ${actorSection(cte, "recebedor", "Recebedor")}
-    ${actorSection(cte, "tomador", "Tomador do serviço")}
-    <div class="section-title">Informações da carga</div>
-    <div class="grid c4">
-      ${cell("Produto predominante", cte.produto_predominante, "span2")}${cell("Outras características", cte.caracteristicas_adicionais_carga)}${cell("Valor da carga", money(cte.valor_carga))}
+    <div class="grid c2">${cell("Origem da prestação", cteOrigemLabel(cte))}${cell("Destino da prestação", cteDestinoLabel(cte))}</div>
+    ${actorPairs}
+    <div class="grid c2">${cell("Tomador do serviço", `${cte.tomador_nome || ""} | ${doc(cte.tomador_cnpj)} | IE ${cte.tomador_ie || ""} | ${cte.tomador_endereco || ""}`)}${cell("Município / UF", [cte.tomador_municipio_nome || cte.tomador_municipio_ibge, cte.tomador_uf].filter(Boolean).join(" - "))}</div>
+    <div class="grid c3">
+      ${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}
     </div>
-    <table><thead><tr><th>Tipo de medida</th><th style="width:20%">Unidade</th><th style="width:25%" class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows}</tbody></table>
-    ${documentsHtml(cte)}
+    <table><thead><tr><th>Qtd.</th><th>Tipo de medida</th><th>Unidade</th><th class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows.replaceAll("<tr><td>", "<tr><td>CARGA</td><td>")}</tbody></table>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
-    <div class="section-title">Dados do modal rodoviário</div>
-    <div class="grid c5">
-      ${cell("RNTRC", cte.rntrc || emit?.rntrc)}${cell("CIOT", cte.ciot)}${cell("Placa", cte.placa_veiculo)}${cell("Reboque 1", cte.reboque1_placa)}${cell("Reboque 2", cte.reboque2_placa)}
-    </div>
-    <div class="grid c3">${cell("Motorista", cte.motorista_nome)}${cell("Proprietário / contratado", cte.contratado_nome)}${cell("CNPJ / CPF", doc(cte.contratado_documento))}</div>
-    <div class="section-title">Seguro da carga</div>
-    <div class="grid c4">${cell("Responsável", Number(cte.seguro_responsavel) === 4 ? "Emitente do CT-e" : cte.seguro_responsavel)}${cell("Seguradora", cte.seguradora_nome)}${cell("CNPJ", doc(cte.seguradora_cnpj))}${cell("Apólice / averbação", [cte.apolice_numero, cte.averbacao_numero].filter(Boolean).join(" / "))}</div>
-    <div class="section-title">Dados adicionais</div><div class="notes">${esc(cte.observacoes || "")}</div>
+    ${documentsHtml(cte)}
+    <div class="section-title">Observações</div><div class="notes">${esc(cte.observacoes || "")}${cte.previsao_saida ? `\nDATA E HORA PREVISTAS PARA O INÍCIO DA VIAGEM ${esc(dateTime(cte.previsao_saida))}` : ""}</div>
+    <div class="section-title">Informações específicas do modal rodoviário</div>
+    <div class="grid c3">${cell("RNTRC da empresa", digits(cte.rntrc || emit?.rntrc).replace(/^0/, ""))}${cell("CIOT", cte.ciot)}${cell("Conjunto", [cte.placa_veiculo, cte.reboque1_placa, cte.reboque2_placa].filter(Boolean).join(" / "))}</div>
+    <div class="exclusive"><div>USO EXCLUSIVO DO EMISSOR DO CT-e<br><br>${esc(cte.informacoes_fisco || "")}</div><div>RESERVADO AO FISCO</div></div>
   </div>
   <div class="receipt">
-    <div class="receipt-head"><div><b>DECLARO QUE RECEBI OS VOLUMES DESTE CONHECIMENTO EM PERFEITO ESTADO.</b><br><span class="muted">Nome legível e documento do recebedor</span></div><div><b>CT-e Nº ${esc(number)}</b><br>Série ${esc(cte.serie ?? "—")}</div></div>
-    <div class="receipt-sign"><div>ASSINATURA / CARIMBO</div><div>DATA</div><div>HORA</div></div>
+    <div class="receipt-head"><div><b>DECLARO QUE RECEBI OS VOLUMES DO CONHECIMENTO DE TRANSPORTE ${esc(number)} EM PERFEITO ESTADO PELO QUE DOU POR CUMPRIDO O PRESENTE CONTRATO DE TRANSPORTE</b><br>CNPJ: ${esc(emit?.cnpj || "—")} &nbsp; EMPRESA: ${esc(emit?.razao_social || "SIME TRANSPORTE LTDA")}</div><div><b>CT-e Nº ${esc(number)}</b></div></div>
+    <div class="receipt-sign"><div>NOME COMPLETO<br><br>CPF/RG/DOC<br><br>ASSINATURA / CARIMBO</div><div>CHEGADA DATA / HORA</div><div>SAÍDA DATA / HORA</div></div>
   </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>DACTE ${esc(number)}</title>${STYLE}</head><body>${body}</body></html>`;
