@@ -1620,9 +1620,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             summary={form.produto_predominante ? `${form.produto_predominante}${form.peso_bruto ? ` · ${form.peso_bruto} kg` : ""}` : "produto não informado"}
           >
 
-            
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Buscar carga cadastrada ou cadastrar nova</Label>
+            <SubBlock title="Carga cadastrada" hint="Ao escolher uma carga, produto, peso, valor e cidades são preenchidos.">
               <div className="flex gap-2">
                 <div className="flex-1">
                   <CargaSearchInput
@@ -1651,56 +1649,56 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="shrink-0 h-10 w-10"
+                  className="h-8 w-8 shrink-0"
                   title="Cadastrar nova carga"
                   onClick={() => setShowCargaForm(true)}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </SubBlock>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs">Produto Predominante</Label>
-                <NaturezaCargaSearchInput
-                  value={form.produto_predominante || ""}
-                  onChange={(v) => set("produto_predominante", v)}
-                />
+            <SubBlock title="Produto e tipo de carga">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Produto predominante</Label>
+                  <NaturezaCargaSearchInput
+                    value={form.produto_predominante || ""}
+                    onChange={(v) => set("produto_predominante", v)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo da carga</Label>
+                  <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="granel_solido">Granel Sólido</SelectItem>
+                      <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
+                      <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
+                      <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
+                      <SelectItem value="carga_geral">Carga Geral</SelectItem>
+                      <SelectItem value="neogranel">Neogranel</SelectItem>
+                      <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo da Carga</Label>
-                <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="granel_solido">Granel Sólido</SelectItem>
-                    <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
-                    <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
-                    <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
-                    <SelectItem value="carga_geral">Carga Geral</SelectItem>
-                    <SelectItem value="neogranel">Neogranel</SelectItem>
-                    <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            </SubBlock>
 
-            {/* Quantidades */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Quantidades (infQ)</Label>
+            <SubBlock title="Quantidades (infQ)" hint={form.info_quantidade.length === 0 ? "nenhuma quantidade informada" : undefined}>
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs gap-1"
+                  className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("info_quantidade", [...form.info_quantidade, { cUnid: "01", tpMed: "", qCarga: 0 }])}
                 >
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> Adicionar quantidade
                 </Button>
               </div>
               {form.info_quantidade.map((q, i) => (
-                <div key={i} className="flex gap-2 items-center">
+                <div key={i} className="flex items-center gap-2">
                   <Select
                     value={q.cUnid}
                     onValueChange={(v) => {
@@ -1709,7 +1707,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                       set("info_quantidade", arr);
                     }}
                   >
-                    <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="00">00 - M3</SelectItem>
                       <SelectItem value="01">01 - KG</SelectItem>
@@ -1720,7 +1718,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     </SelectContent>
                   </Select>
                   <Input
-                    className="flex-1"
+                    className="h-8 flex-1 text-xs"
                     placeholder="Tipo medida (ex: PESO BRUTO)"
                     value={q.tpMed}
                     onChange={(e) => {
@@ -1730,7 +1728,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     }}
                   />
                   <Input
-                    className="w-28"
+                    className="h-8 w-28 text-xs"
                     type="number"
                     step="0.0001"
                     placeholder="Qtde"
@@ -1748,7 +1746,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </Button>
                 </div>
               ))}
-            </div>
+            </SubBlock>
+
           </FormBlock>
 
 
