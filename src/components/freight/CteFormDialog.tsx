@@ -1931,8 +1931,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Transporte */}
-          <section className="space-y-4">
-            <SectionHeader icon={Truck} title="Transporte" />
+          <FormBlock
+            icon={Truck}
+            title="Transporte"
+            summary={form.placa_veiculo ? [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ") : "veículo não definido"}
+          >
+
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Buscar motorista</Label>
               <PersonSearchInput
