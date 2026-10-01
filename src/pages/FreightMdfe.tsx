@@ -1,24 +1,122 @@
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
-import { Card, CardContent } from "@/components/ui/card";
-import { FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import { formatDateBR } from "@/lib/date";
+import { MdfeFormDialog } from "@/components/freight/MdfeFormDialog";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+
+const STATUS_LABEL: Record<string, string> = {
+  rascunho: "Rascunho", autorizado: "Autorizado", encerrado: "Encerrado", cancelado: "Cancelado", rejeitado: "Rejeitado", processando: "Processando",
+};
 
 export default function FreightMdfe() {
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirmDialog() as any;
+  const [params, setParams] = useSearchParams();
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [initialCteIds, setInitialCteIds] = useState<string[] | undefined>();
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from("mdfe").select("*").order("created_at", { ascending: false });
+    if (error) toast({ title: "Erro ao carregar", description: error.message, variant: "destructive" });
+    setRows(data || []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  // Abertura vinda do CT-e (?ctes=id1,id2)
+  useEffect(() => {
+    const ids = params.get("ctes");
+    if (ids) {
+      setEditing(null);
+      setInitialCteIds(ids.split(",").filter(Boolean));
+      setFormOpen(true);
+      params.delete("ctes");
+      setParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return rows;
+    return rows.filter((r) => [r.numero, r.placa_veiculo, r.motorista_nome, r.municipio_carregamento_nome, r.municipio_descarregamento_nome]
+      .some((v) => String(v ?? "").toLowerCase().includes(s)));
+  }, [rows, search]);
+
+  const single = selected.size === 1 ? rows.find((r) => selected.has(r.id)) : null;
+  const editable = single && ["rascunho", "rejeitado"].includes(single.status);
+
+  const handleDelete = async () => {
+    const ids = [...selected].filter((id) => ["rascunho", "rejeitado"].includes(rows.find((r) => r.id === id)?.status));
+    if (!ids.length) return toast({ title: "Só é possível excluir rascunhos ou rejeitados", variant: "destructive" });
+    const ok = confirm ? await confirm({ title: "Excluir manifesto(s)?", description: `${ids.length} manifesto(s) serão excluídos.` }) : window.confirm("Excluir?");
+    if (!ok) return;
+    const { error } = await supabase.from("mdfe").delete().in("id", ids);
+    if (error) return toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    setSelected(new Set());
+    load();
+  };
+
+  const columns: DataGridColumn<any>[] = [
+    { key: "numero", header: "Nº", width: 60, sortValue: (r) => r.numero ?? 0, cell: (r) => r.numero ?? "—" },
+    { key: "emissao", header: "Emissão", width: 90, sortValue: (r) => r.data_emissao || "", cell: (r) => formatDateBR(r.data_emissao) },
+    { key: "rota", header: "Percurso", cell: (r) => `${r.municipio_carregamento_nome || ""}/${r.uf_carregamento || ""} → ${r.municipio_descarregamento_nome || ""}/${r.uf_descarregamento || ""}` },
+    { key: "placa", header: "Placa", width: 90, cell: (r) => r.placa_veiculo },
+    { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
+    { key: "ctes", header: "CT-es", width: 60, cell: (r) => (r.lista_ctes || []).length },
+    { key: "peso", header: "Peso (kg)", width: 100, sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
+    { key: "status", header: "Situação", width: 100, sortValue: (r) => r.status, cell: (r) => STATUS_LABEL[r.status] || r.status },
+  ] as any;
+
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
         <BackButton to="/admin" label="Dashboard" />
-        <h1 className="text-3xl font-bold font-display mb-6">MDF-e</h1>
-        <Card className="border-border bg-card">
-          <CardContent className="py-16 text-center">
-            <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Em desenvolvimento</h3>
-            <p className="text-muted-foreground">
-              O módulo de MDF-e será implementado na próxima fase, após a conclusão do CT-e.
-            </p>
-          </CardContent>
-        </Card>
+        <h1 className="text-2xl font-bold font-display mb-4">MDF-e — Manifestos de Carga</h1>
+        <div className="relative max-w-sm mb-3">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="h-9 pl-8" placeholder="Buscar por número, placa, motorista ou cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <GlobalToolbar
+          actions={[
+            { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
+            { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable, onClick: () => { setEditing(single); setFormOpen(true); } },
+            { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0, onClick: handleDelete },
+          ] as any}
+          selectedCount={selected.size}
+        />
+        <div className="mt-3">
+          <DataGrid
+            rows={filtered}
+            columns={columns}
+            rowId={(r) => r.id}
+            selected={selected}
+            onSelectedChange={setSelected}
+            loading={loading}
+            minWidth={860}
+            rowClassName={(r) => rowToneClass(["autorizado", "encerrado"].includes(r.status) ? "resolved" : ["cancelado", "rejeitado"].includes(r.status) ? "overdue" : "pending")}
+            emptyMessage='Nenhum manifesto. Clique em "Novo MDF-e" ou gere a partir da tela de CT-e.'
+          />
+        </div>
+        <StatusLegend />
       </div>
+      <MdfeFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} initialCteIds={initialCteIds} onSaved={load} />
+      {ConfirmDialog && <ConfirmDialog />}
     </AdminLayout>
   );
 }
