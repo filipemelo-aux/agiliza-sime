@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Truck, Send, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Truck, Loader2, type LucideIcon } from "lucide-react";
+import { SefazIcon } from "@/components/icons/SefazIcon";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -600,15 +601,6 @@ export default function FreightCte() {
 
         <GlobalToolbar
           actions={[
-            { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", onClick: handleNew },
-            {
-              key: "inconsist", label: "Inconsistências", icon: AlertTriangle, mode: "always", variant: "outline",
-              onClick: () => setInconsistencyOpen(true),
-            },
-            {
-              key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
-              onClick: () => setBatchOpen(true),
-            },
             {
               key: "detail", label: "Detalhes", icon: Eye, mode: "single",
               disabled: !singleCte,
@@ -618,16 +610,6 @@ export default function FreightCte() {
               key: "edit", label: "Editar", icon: Pencil, mode: "single",
               disabled: !singleCte || !(singleCte.tipo_talao === "servico" || singleCte.status === "rascunho" || singleCte.status === "rejeitado"),
               onClick: () => singleCte && handleEdit(singleCte),
-            },
-            {
-              key: "transmit", label: transmitting ? "Emitindo..." : "Emitir SEFAZ", icon: transmitting ? Loader2 : Send, mode: "single", variant: "secondary",
-              disabled: transmitting || !canTransmit,
-              onClick: handleTransmit,
-            },
-            {
-              key: "mdfe", label: "Gerar MDF-e", icon: Truck, mode: "single+batch", variant: "outline",
-              disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
-              onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
             },
             {
               key: "print", label: printing ? "Gerando..." : "Imprimir", icon: Printer, mode: "single+batch", variant: "outline",
@@ -641,6 +623,25 @@ export default function FreightCte() {
                 if (singleCte && !isBulkDeletable(singleCte)) return handleDelete(singleCte);
                 handleBulkDelete();
               },
+            },
+            {
+              key: "inconsist", label: "Inconsistências", icon: AlertTriangle, mode: "always", variant: "outline",
+              onClick: () => setInconsistencyOpen(true),
+            },
+            {
+              key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
+              onClick: () => setBatchOpen(true),
+            },
+            { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
+            {
+              key: "transmit", label: transmitting ? "Emitindo..." : "Emitir SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: true,
+              disabled: transmitting || !canTransmit,
+              onClick: handleTransmit,
+            },
+            {
+              key: "mdfe", label: "Gerar MDF-e", icon: Truck, mode: "single+batch", variant: "outline",
+              disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
+              onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
             },
           ]}
           selectedCount={selectedIds.size}
