@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.fn_sync_establishment_profile() FROM PUBLIC, anon, authenticated;
