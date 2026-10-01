@@ -1161,13 +1161,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
         <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/25 px-4 py-3">
 
-          {/* Emitente + Tipo do documento */}
-          <div className="grid gap-2 lg:grid-cols-2">
-            <FormBlock
-              icon={Building2}
-              title="Emitente"
-              summary={estSelecionado ? maskCNPJ(estSelecionado.cnpj) : "não definido"}
-            >
+          {/* Emitente e data — linha compacta */}
+          <div className="grid gap-2 rounded-lg border border-border bg-card px-3 py-2.5 sm:grid-cols-[1fr_9rem]">
               <div className="space-y-1">
                 <Label className="text-[10px]">Estabelecimento *</Label>
                 <Select value={selectedEstId} onValueChange={setSelectedEstId}>
@@ -1190,575 +1185,15 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               {establishments.length === 0 && (
                 <p className="text-[11px] text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
               )}
-            </FormBlock>
-
-            <FormBlock icon={FileText} title="Tipo do Documento" summary={`Modal ${form.modal}`}>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tipo CT-e</Label>
-                  <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tipo Serviço</Label>
-                  <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Modal</Label>
-                  <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{MODAL_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Retira</Label>
-                  <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </FormBlock>
           </div>
 
-
-          {/* Envolvidos */}
-          <div className="grid gap-2 lg:grid-cols-2">
-            <ActorSection
-              title="Remetente"
-              prefix="remetente"
-              form={form}
-              set={set}
-              lookupCnpj={lookupCnpj}
-              cnpjLoading={!!cnpjLoading.remetente}
-              cnpjError={cnpjErrors.remetente || ""}
-              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
-              onCityResolved={onCityResolved}
-            />
-            <ActorSection
-              title="Destinatário"
-              prefix="destinatario"
-              form={form}
-              set={set}
-              lookupCnpj={lookupCnpj}
-              cnpjLoading={!!cnpjLoading.destinatario}
-              cnpjError={cnpjErrors.destinatario || ""}
-              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
-              onCityResolved={onCityResolved}
-            />
-            <ActorSection
-              title="Expedidor"
-              prefix="expedidor"
-              form={form}
-              set={set}
-              lookupCnpj={lookupCnpj}
-              cnpjLoading={!!cnpjLoading.expedidor}
-              cnpjError={cnpjErrors.expedidor || ""}
-              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
-              onCityResolved={onCityResolved}
-            />
-            <ActorSection
-              title="Recebedor"
-              prefix="recebedor"
-              form={form}
-              set={set}
-              lookupCnpj={lookupCnpj}
-              cnpjLoading={!!cnpjLoading.recebedor}
-              cnpjError={cnpjErrors.recebedor || ""}
-              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
-              onCityResolved={onCityResolved}
-            />
-          </div>
-
-
-          {/* Tomador — escolha por checkbox */}
-          <FormBlock
-            icon={Users}
-            title="Tomador do Serviço"
-            summary={TOMADOR_TIPO_OPTIONS.find((o) => String(form.tomador_tipo) === o.value)?.label}
-          >
-            <p className="text-[11px] text-muted-foreground">
-              Marque qual dos atores acima é o tomador do serviço (quem paga o frete).
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-              {TOMADOR_TIPO_OPTIONS.map((o) => {
-                const checked = String(form.tomador_tipo) === o.value;
-                return (
-                  <label
-                    key={o.value}
-                    className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${
-                      checked ? "border-primary bg-primary/5 font-semibold" : "border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) => { if (v) set("tomador_tipo", Number(o.value)); }}
-                    />
-                    <span>{o.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:max-w-sm">
-              <div className="space-y-1">
-                <Label className="text-[10px]">Ind. IE Tomador</Label>
-                <Select value={String(form.ind_ie_toma)} onValueChange={(v) => set("ind_ie_toma", Number(v))}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>{IND_IE_TOMA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            {showTomadorFields && (
-              <ActorSection
-                title="Dados do Tomador (Outros)"
-                prefix="tomador"
-                form={form}
-                set={set}
-                lookupCnpj={lookupCnpj}
-                cnpjLoading={!!cnpjLoading.tomador}
-                cnpjError={cnpjErrors.tomador || ""}
-                setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
-              />
-            )}
-          </FormBlock>
-
-
-          {/* Prestação — Origem / Destino / Envio */}
-          <FormBlock
-            icon={MapPin}
-            title="Prestação do Serviço"
-            summary={`${form.municipio_origem_nome || "origem"} → ${form.municipio_destino_nome || "destino"}`}
-          >
-            <div className="grid gap-2 sm:grid-cols-3">
-              <SubBlock title="Origem">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Município</Label>
-                  <Input className="h-8 text-xs" value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">IBGE</Label>
-                    <Input className="h-8 text-xs" value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">UF</Label>
-                    <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
-                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </SubBlock>
-              <SubBlock title="Destino">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Município</Label>
-                  <Input className="h-8 text-xs" value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">IBGE</Label>
-                    <Input className="h-8 text-xs" value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">UF</Label>
-                    <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
-                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </SubBlock>
-              <SubBlock title="Envio">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Município</Label>
-                  <Input className="h-8 text-xs" value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">IBGE</Label>
-                    <Input className="h-8 text-xs" value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">UF</Label>
-                    <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
-                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </SubBlock>
-            </div>
-          </FormBlock>
-
-
-          {/* Valores e Tributos */}
-          <FormBlock
-            icon={DollarSign}
-            title="Valores e Tributos"
-            summary={`frete ${formatBRL(form.valor_frete)} · IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}
-          >
-
-            <SubBlock title="Frete e Recebimento">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Valor Frete (vTPrest)</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input
-                      className="h-8 pl-8 text-xs"
-                      value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""}
-                      onChange={(e) => set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Valor a Receber (vRec)</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input
-                      className="h-8 pl-8 text-xs"
-                      value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""}
-                      onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Total de Tributos</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input
-                      className="h-8 pl-8 text-xs"
-                      value={form.valor_total_tributos ? maskCurrency(String(Math.round(form.valor_total_tributos * 100))) : ""}
-                      onChange={(e) => set("valor_total_tributos", Number(unmaskCurrency(e.target.value)) || 0)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </SubBlock>
-
-            <SubBlock title="ICMS e Operação">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Alíquota ICMS (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Base Cálculo ICMS</Label>
-                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Valor ICMS</Label>
-                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CST ICMS</Label>
-                  <Input className="h-8 text-xs" value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CFOP</Label>
-                  <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Natureza da Operação</Label>
-                  <Input className="h-8 text-xs" value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
-                </div>
-              </div>
-            </SubBlock>
-
-
-            {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
-            <SubBlock title="IBS / CBS — Reforma Tributária 2026">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Situação (CST)</Label>
-                  <Input className="h-8 text-xs" value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Classificação</Label>
-                  <Input className="h-8 text-xs" value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <Label className="text-[10px]">Base de cálculo</Label>
-                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">IBS Estadual (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_uf_valor)}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">IBS Municipal (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_mun_valor)}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CBS (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.cbs_valor)}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Total IBS + CBS</Label>
-                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
-                </div>
-              </div>
-            </SubBlock>
-
-
-            {/* Seguro da carga (obrigatório para emitir) */}
-            <SubBlock title="Seguro da Carga" hint="Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Responsável pelo seguro</Label>
-                  <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="4">Emitente do CT-e</SelectItem>
-                      <SelectItem value="5">Tomador do serviço</SelectItem>
-                      <SelectItem value="0">Remetente</SelectItem>
-                      <SelectItem value="1">Expedidor</SelectItem>
-                      <SelectItem value="2">Recebedor</SelectItem>
-                      <SelectItem value="3">Destinatário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Seguradora</Label>
-                  <Input className="h-8 text-xs" value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CNPJ da seguradora</Label>
-                  <Input className="h-8 text-xs" value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Nº da apólice</Label>
-                  <Input className="h-8 text-xs" value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-[10px]">Nº da averbação (opcional)</Label>
-                  <Input className="h-8 text-xs" value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
-                </div>
-              </div>
-            </SubBlock>
-
-
-            <SubBlock
-              title="Desconto (interno)"
-              hint="Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o 'Valor Frete' manualmente, se necessário."
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
-                <span className={`font-mono text-xs font-semibold ${calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
-                </span>
-              </div>
-              <CteDescontoFields value={desconto} onChange={setDesconto} />
-            </SubBlock>
-
-            <SubBlock
-              title="Componentes do Frete"
-              hint={form.componentes_frete.length === 0 ? "nenhum componente" : undefined}
-            >
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 px-2 text-[11px]"
-                  onClick={() => set("componentes_frete", [...form.componentes_frete, { xNome: "", vComp: 0 }])}
-                >
-                  <Plus className="w-3 h-3" /> Adicionar componente
-                </Button>
-              </div>
-              {form.componentes_frete.map((comp, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    className="h-8 flex-1 text-xs"
-                    placeholder="Nome (ex: FRETE VALOR)"
-                    value={comp.xNome}
-                    onChange={(e) => {
-                      const arr = [...form.componentes_frete];
-                      arr[i] = { ...arr[i], xNome: e.target.value };
-                      set("componentes_frete", arr);
-                    }}
-                  />
-                  <div className="relative w-32">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input
-                      className="h-8 pl-7 text-xs"
-                      value={comp.vComp ? maskCurrency(String(Math.round(comp.vComp * 100))) : ""}
-                      onChange={(e) => {
-                        const arr = [...form.componentes_frete];
-                        arr[i] = { ...arr[i], vComp: Number(unmaskCurrency(e.target.value)) || 0 };
-                        set("componentes_frete", arr);
-                      }}
-                    />
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
-                    set("componentes_frete", form.componentes_frete.filter((_, j) => j !== i));
-                  }}>
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </SubBlock>
-
-          </FormBlock>
-
-
-          {/* Carga */}
-          <FormBlock
-            icon={Package}
-            title="Informações da Carga"
-            summary={form.produto_predominante ? `${form.produto_predominante}${form.peso_bruto ? ` · ${form.peso_bruto} kg` : ""}` : "produto não informado"}
-          >
-
-            <SubBlock title="Carga cadastrada" hint="Ao escolher uma carga, produto, peso, valor e cidades são preenchidos.">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <CargaSearchInput
-                    placeholder="Buscar carga por produto..."
-                    selectedName={form.produto_predominante || undefined}
-                    onSelect={(carga) => {
-                      set("produto_predominante", carga.produto_predominante);
-                      set("peso_bruto", Number(carga.peso_bruto) || 0);
-                      set("valor_carga", Number(carga.valor_carga) || 0);
-                      if (carga.valor_carga_averb) set("valor_carga_averb", Number(carga.valor_carga_averb));
-                      if (carga.chaves_nfe_ref && carga.chaves_nfe_ref.length > 0) set("chaves_nfe_ref", carga.chaves_nfe_ref);
-                      if (carga.remetente_nome && !form.remetente_nome) set("remetente_nome", carga.remetente_nome);
-                      if (carga.destinatario_nome && !form.destinatario_nome) set("destinatario_nome", carga.destinatario_nome);
-                      if (carga.uf_origem && !form.uf_origem) set("uf_origem", carga.uf_origem);
-                      if (carga.uf_destino && !form.uf_destino) set("uf_destino", carga.uf_destino);
-                      if (carga.municipio_origem_nome && !form.municipio_origem_nome) set("municipio_origem_nome", carga.municipio_origem_nome);
-                      if (carga.municipio_destino_nome && !form.municipio_destino_nome) set("municipio_destino_nome", carga.municipio_destino_nome);
-                    }}
-                    onClear={() => {
-                      set("produto_predominante", "");
-                      set("peso_bruto", 0);
-                    }}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  title="Cadastrar nova carga"
-                  onClick={() => setShowCargaForm(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </SubBlock>
-
-            <SubBlock title="Produto e tipo de carga">
-              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-[10px]">Produto predominante</Label>
-                  <NaturezaCargaSearchInput
-                    value={form.produto_predominante || ""}
-                    onChange={(v) => set("produto_predominante", v)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tipo da carga</Label>
-                  <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="granel_solido">Granel Sólido</SelectItem>
-                      <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
-                      <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
-                      <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
-                      <SelectItem value="carga_geral">Carga Geral</SelectItem>
-                      <SelectItem value="neogranel">Neogranel</SelectItem>
-                      <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </SubBlock>
-
-            <SubBlock title="Quantidades (infQ)" hint={form.info_quantidade.length === 0 ? "nenhuma quantidade informada" : undefined}>
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 px-2 text-[11px]"
-                  onClick={() => set("info_quantidade", [...form.info_quantidade, { cUnid: "01", tpMed: "", qCarga: 0 }])}
-                >
-                  <Plus className="w-3 h-3" /> Adicionar quantidade
-                </Button>
-              </div>
-              {form.info_quantidade.map((q, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Select
-                    value={q.cUnid}
-                    onValueChange={(v) => {
-                      const arr = [...form.info_quantidade];
-                      arr[i] = { ...arr[i], cUnid: v };
-                      set("info_quantidade", arr);
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="00">00 - M3</SelectItem>
-                      <SelectItem value="01">01 - KG</SelectItem>
-                      <SelectItem value="02">02 - TON</SelectItem>
-                      <SelectItem value="03">03 - UN</SelectItem>
-                      <SelectItem value="04">04 - LT</SelectItem>
-                      <SelectItem value="05">05 - MMBTU</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="h-8 flex-1 text-xs"
-                    placeholder="Tipo medida (ex: PESO BRUTO)"
-                    value={q.tpMed}
-                    onChange={(e) => {
-                      const arr = [...form.info_quantidade];
-                      arr[i] = { ...arr[i], tpMed: e.target.value };
-                      set("info_quantidade", arr);
-                    }}
-                  />
-                  <Input
-                    className="h-8 w-28 text-xs"
-                    type="number"
-                    step="0.0001"
-                    placeholder="Qtde"
-                    value={q.qCarga || ""}
-                    onChange={(e) => {
-                      const arr = [...form.info_quantidade];
-                      arr[i] = { ...arr[i], qCarga: Number(e.target.value) };
-                      set("info_quantidade", arr);
-                    }}
-                  />
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
-                    set("info_quantidade", form.info_quantidade.filter((_, j) => j !== i));
-                  }}>
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </SubBlock>
-
-          </FormBlock>
-
-
-          {/* Notas fiscais da carga */}
+          {/* 1. Notas fiscais — ponto de partida */}
           <FormBlock
             icon={FileText}
-            title="Notas Fiscais da Carga"
-            summary={`${form.chaves_nfe_ref.filter(Boolean).length} ${form.chaves_nfe_ref.filter(Boolean).length === 1 ? "nota vinculada" : "notas vinculadas"}`}
+            title="1. Notas Fiscais"
+            summary={`${notasVinculadas} ${notasVinculadas === 1 ? "nota" : "notas"}${form.peso_bruto ? ` · ${form.peso_bruto.toLocaleString("pt-BR")} kg` : ""}${form.valor_carga ? ` · ${formatBRL(form.valor_carga)}` : ""}`}
           >
-
-
+            <p className="text-[11px] text-muted-foreground">Comece por aqui: a nota preenche remetente, destinatário, cidades, peso e valor da mercadoria.</p>
             <SubBlock
               title="Adicionar nota fiscal"
               hint="A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos."
@@ -1853,8 +1288,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 );
               })}
             </div>
-
-
             <SubBlock title="Totais da carga" hint="Somados automaticamente das notas vinculadas. Editável se necessário.">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="space-y-0.5">
@@ -1885,58 +1318,215 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
               </div>
             </SubBlock>
+          </FormBlock>
 
-
-            <SubBlock title="Outros documentos" hint="Para cargas sem NF-e.">
-              <div className="flex justify-end">
-                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
-                  onClick={() => set("outros_documentos", [...form.outros_documentos, { tipo: "99", descricao: "", numero: "", data_emissao: "", valor: 0 }])}>
-                  <Plus className="w-3 h-3" /> Adicionar documento
-                </Button>
-              </div>
-              {form.outros_documentos.map((o, i) => {
-                const upd = (patch: Partial<OutroDoc>) => {
-                  const arr = [...form.outros_documentos];
-                  arr[i] = { ...arr[i], ...patch };
-                  set("outros_documentos", arr);
-                };
+          {/* 2. Envolvidos + tomador */}
+          <FormBlock
+            icon={Users}
+            title="2. Envolvidos"
+            summary={[form.remetente_nome, form.destinatario_nome].filter(Boolean).join(" → ") || "preenchidos pela nota"}
+          >
+          <div className="grid gap-2 lg:grid-cols-2">
+            <ActorSection
+              title="Remetente"
+              prefix="remetente"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.remetente}
+              cnpjError={cnpjErrors.remetente || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Destinatário"
+              prefix="destinatario"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.destinatario}
+              cnpjError={cnpjErrors.destinatario || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Expedidor"
+              prefix="expedidor"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.expedidor}
+              cnpjError={cnpjErrors.expedidor || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Recebedor"
+              prefix="recebedor"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.recebedor}
+              cnpjError={cnpjErrors.recebedor || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
+              onCityResolved={onCityResolved}
+            />
+          </div>
+            <SubBlock title="Tomador (quem paga o frete)">
+            <p className="text-[11px] text-muted-foreground">
+              Marque qual dos atores acima é o tomador do serviço (quem paga o frete).
+            </p>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+              {TOMADOR_TIPO_OPTIONS.map((o) => {
+                const checked = String(form.tomador_tipo) === o.value;
                 return (
-                  <div key={i} className="grid grid-cols-2 items-end gap-2 rounded-md border border-border p-2 sm:grid-cols-6">
-
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Tipo</Label>
-                      <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="00">Declaração</SelectItem>
-                          <SelectItem value="10">Dutoviário</SelectItem>
-                          <SelectItem value="59">CF-e SAT</SelectItem>
-                          <SelectItem value="65">NFC-e</SelectItem>
-                          <SelectItem value="99">Outros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-0.5 sm:col-span-2"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
-                    <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={o.numero} onChange={(e) => upd({ numero: e.target.value })} /></div>
-                    <div className="space-y-0.5"><Label className="text-[10px]">Emissão</Label><Input type="date" className="h-7 text-xs" value={o.data_emissao} onChange={(e) => upd({ data_emissao: e.target.value })} /></div>
-                    <div className="flex gap-1 items-end">
-                      <div className="space-y-0.5 flex-1"><Label className="text-[10px]">Valor</Label><Input className="h-7 text-xs" value={o.valor ? maskCurrency(String(Math.round(o.valor * 100))) : ""} onChange={(e) => upd({ valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}>
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
+                  <label
+                    key={o.value}
+                    className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${
+                      checked ? "border-primary bg-primary/5 font-semibold" : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => { if (v) set("tomador_tipo", Number(o.value)); }}
+                    />
+                    <span>{o.label}</span>
+                  </label>
                 );
               })}
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:max-w-sm">
+              <div className="space-y-1">
+                <Label className="text-[10px]">Ind. IE Tomador</Label>
+                <Select value={String(form.ind_ie_toma)} onValueChange={(v) => set("ind_ie_toma", Number(v))}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{IND_IE_TOMA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            {showTomadorFields && (
+              <ActorSection
+                title="Dados do Tomador (Outros)"
+                prefix="tomador"
+                form={form}
+                set={set}
+                lookupCnpj={lookupCnpj}
+                cnpjLoading={!!cnpjLoading.tomador}
+                cnpjError={cnpjErrors.tomador || ""}
+                setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
+              />
+            )}
             </SubBlock>
           </FormBlock>
 
+          {/* 3. Prestação */}
+          <FormBlock icon={MapPin} title="3. Prestação do Serviço" summary={`${rotaOrigem} → ${rotaDestino}`}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <SubBlock title="Origem">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
+              <SubBlock title="Destino">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
+            </div>
+          </FormBlock>
 
+          {/* 4. Carga e frete */}
+          <FormBlock
+            icon={DollarSign}
+            title="4. Carga e Frete"
+            summary={`${form.produto_predominante || "produto não informado"} · frete ${formatBRL(form.valor_frete)}`}
+          >
+            <SubBlock title="Produto e tipo de carga">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Produto predominante</Label>
+                  <NaturezaCargaSearchInput
+                    value={form.produto_predominante || ""}
+                    onChange={(v) => set("produto_predominante", v)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo da carga</Label>
+                  <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="granel_solido">Granel Sólido</SelectItem>
+                      <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
+                      <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
+                      <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
+                      <SelectItem value="carga_geral">Carga Geral</SelectItem>
+                      <SelectItem value="neogranel">Neogranel</SelectItem>
+                      <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </SubBlock>
+            <SubBlock title="Valor do frete" hint={form.peso_bruto ? `peso da nota: ${form.peso_bruto.toLocaleString("pt-BR")} kg` : "importe a nota para usar a tarifa por tonelada"}>
+              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tarifa (R$ por tonelada)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input className="h-8 pl-8 text-xs" disabled={!form.peso_bruto} value={tarifa ? maskCurrency(String(Math.round(tarifa * 100))) : ""} onChange={(e) => aplicarTarifa(Number(unmaskCurrency(e.target.value)) || 0)} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor total do frete *</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input className="h-8 pl-8 text-xs font-semibold" value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""} onChange={(e) => { setTarifa(0); set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0); }} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor a receber</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input className="h-8 pl-8 text-xs" value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""} onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)} />
+                  </div>
+                </div>
+              </div>
+            </SubBlock>
+          </FormBlock>
 
+          {/* 5. Transporte */}
           {/* Transporte */}
           <FormBlock
             icon={Truck}
-            title="Transporte"
+            title="5. Transporte"
             summary={form.placa_veiculo ? [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ") : "veículo não definido"}
           >
 
@@ -2068,15 +1658,390 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
           </FormBlock>
 
-
-          {/* Observações */}
+          {/* Tributos e seguro — calculados/padrão */}
           <FormBlock
-            icon={FileText}
-            title="Observações"
+            icon={Building2}
+            title="Tributos e Seguro"
             defaultOpen={false}
-            summary={form.observacoes ? form.observacoes.slice(0, 70) : "sem observações"}
+            summary={`ICMS ${formatBRL(form.valor_icms)} · IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} · ${form.seguradora_nome || "sem seguradora"}`}
           >
-            <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} className="text-xs" placeholder="Informações complementares..." />
+            <p className="text-[11px] text-muted-foreground">Calculados automaticamente sobre o frete. Altere só se necessário.</p>
+            <SubBlock title="ICMS e Operação">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Alíquota ICMS (%)</Label>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Base Cálculo ICMS</Label>
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Valor ICMS</Label>
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CST ICMS</Label>
+                  <Input className="h-8 text-xs" value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CFOP</Label>
+                  <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Natureza da Operação</Label>
+                  <Input className="h-8 text-xs" value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
+                </div>
+              </div>
+            </SubBlock>
+            {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
+            <SubBlock title="IBS / CBS — Reforma Tributária 2026">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Situação (CST)</Label>
+                  <Input className="h-8 text-xs" value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Classificação</Label>
+                  <Input className="h-8 text-xs" value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-[10px]">Base de cálculo</Label>
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">IBS Estadual (%)</Label>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_uf_valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">IBS Municipal (%)</Label>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_mun_valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CBS (%)</Label>
+                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.cbs_valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Total IBS + CBS</Label>
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
+                </div>
+              </div>
+            </SubBlock>
+            <SubBlock title="Total aproximado de tributos">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Total de tributos</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input className="h-8 pl-8 text-xs" value={form.valor_total_tributos ? maskCurrency(String(Math.round(form.valor_total_tributos * 100))) : ""} onChange={(e) => set("valor_total_tributos", Number(unmaskCurrency(e.target.value)) || 0)} />
+                  </div>
+                </div>
+              </div>
+            </SubBlock>
+            {/* Seguro da carga (obrigatório para emitir) */}
+            <SubBlock title="Seguro da Carga" hint="Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Responsável pelo seguro</Label>
+                  <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4">Emitente do CT-e</SelectItem>
+                      <SelectItem value="5">Tomador do serviço</SelectItem>
+                      <SelectItem value="0">Remetente</SelectItem>
+                      <SelectItem value="1">Expedidor</SelectItem>
+                      <SelectItem value="2">Recebedor</SelectItem>
+                      <SelectItem value="3">Destinatário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Seguradora</Label>
+                  <Input className="h-8 text-xs" value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CNPJ da seguradora</Label>
+                  <Input className="h-8 text-xs" value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Nº da apólice</Label>
+                  <Input className="h-8 text-xs" value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Nº da averbação (opcional)</Label>
+                  <Input className="h-8 text-xs" value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
+                </div>
+              </div>
+            </SubBlock>
+          </FormBlock>
+
+          {/* Opções avançadas */}
+          <FormBlock
+            icon={Package}
+            title="Opções avançadas"
+            defaultOpen={false}
+            summary={`${tipoCteLabel} · observações, componentes, outros documentos`}
+          >
+            <SubBlock title="Tipo do documento">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo CT-e</Label>
+                  <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo Serviço</Label>
+                  <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Modal</Label>
+                  <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{MODAL_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Retira</Label>
+                  <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </SubBlock>
+              <SubBlock title="Envio">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Município</Label>
+                  <Input className="h-8 text-xs" value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">IBGE</Label>
+                    <Input className="h-8 text-xs" value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">UF</Label>
+                    <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SubBlock>
+            <SubBlock title="Carga cadastrada" hint="Ao escolher uma carga, produto, peso, valor e cidades são preenchidos.">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <CargaSearchInput
+                    placeholder="Buscar carga por produto..."
+                    selectedName={form.produto_predominante || undefined}
+                    onSelect={(carga) => {
+                      set("produto_predominante", carga.produto_predominante);
+                      set("peso_bruto", Number(carga.peso_bruto) || 0);
+                      set("valor_carga", Number(carga.valor_carga) || 0);
+                      if (carga.valor_carga_averb) set("valor_carga_averb", Number(carga.valor_carga_averb));
+                      if (carga.chaves_nfe_ref && carga.chaves_nfe_ref.length > 0) set("chaves_nfe_ref", carga.chaves_nfe_ref);
+                      if (carga.remetente_nome && !form.remetente_nome) set("remetente_nome", carga.remetente_nome);
+                      if (carga.destinatario_nome && !form.destinatario_nome) set("destinatario_nome", carga.destinatario_nome);
+                      if (carga.uf_origem && !form.uf_origem) set("uf_origem", carga.uf_origem);
+                      if (carga.uf_destino && !form.uf_destino) set("uf_destino", carga.uf_destino);
+                      if (carga.municipio_origem_nome && !form.municipio_origem_nome) set("municipio_origem_nome", carga.municipio_origem_nome);
+                      if (carga.municipio_destino_nome && !form.municipio_destino_nome) set("municipio_destino_nome", carga.municipio_destino_nome);
+                    }}
+                    onClear={() => {
+                      set("produto_predominante", "");
+                      set("peso_bruto", 0);
+                    }}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  title="Cadastrar nova carga"
+                  onClick={() => setShowCargaForm(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </SubBlock>
+            <SubBlock title="Quantidades (infQ)" hint={form.info_quantidade.length === 0 ? "nenhuma quantidade informada" : undefined}>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  onClick={() => set("info_quantidade", [...form.info_quantidade, { cUnid: "01", tpMed: "", qCarga: 0 }])}
+                >
+                  <Plus className="w-3 h-3" /> Adicionar quantidade
+                </Button>
+              </div>
+              {form.info_quantidade.map((q, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Select
+                    value={q.cUnid}
+                    onValueChange={(v) => {
+                      const arr = [...form.info_quantidade];
+                      arr[i] = { ...arr[i], cUnid: v };
+                      set("info_quantidade", arr);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="00">00 - M3</SelectItem>
+                      <SelectItem value="01">01 - KG</SelectItem>
+                      <SelectItem value="02">02 - TON</SelectItem>
+                      <SelectItem value="03">03 - UN</SelectItem>
+                      <SelectItem value="04">04 - LT</SelectItem>
+                      <SelectItem value="05">05 - MMBTU</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    className="h-8 flex-1 text-xs"
+                    placeholder="Tipo medida (ex: PESO BRUTO)"
+                    value={q.tpMed}
+                    onChange={(e) => {
+                      const arr = [...form.info_quantidade];
+                      arr[i] = { ...arr[i], tpMed: e.target.value };
+                      set("info_quantidade", arr);
+                    }}
+                  />
+                  <Input
+                    className="h-8 w-28 text-xs"
+                    type="number"
+                    step="0.0001"
+                    placeholder="Qtde"
+                    value={q.qCarga || ""}
+                    onChange={(e) => {
+                      const arr = [...form.info_quantidade];
+                      arr[i] = { ...arr[i], qCarga: Number(e.target.value) };
+                      set("info_quantidade", arr);
+                    }}
+                  />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
+                    set("info_quantidade", form.info_quantidade.filter((_, j) => j !== i));
+                  }}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </SubBlock>
+            <SubBlock
+              title="Componentes do Frete"
+              hint={form.componentes_frete.length === 0 ? "nenhum componente" : undefined}
+            >
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  onClick={() => set("componentes_frete", [...form.componentes_frete, { xNome: "", vComp: 0 }])}
+                >
+                  <Plus className="w-3 h-3" /> Adicionar componente
+                </Button>
+              </div>
+              {form.componentes_frete.map((comp, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    className="h-8 flex-1 text-xs"
+                    placeholder="Nome (ex: FRETE VALOR)"
+                    value={comp.xNome}
+                    onChange={(e) => {
+                      const arr = [...form.componentes_frete];
+                      arr[i] = { ...arr[i], xNome: e.target.value };
+                      set("componentes_frete", arr);
+                    }}
+                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
+                    <Input
+                      className="h-8 pl-7 text-xs"
+                      value={comp.vComp ? maskCurrency(String(Math.round(comp.vComp * 100))) : ""}
+                      onChange={(e) => {
+                        const arr = [...form.componentes_frete];
+                        arr[i] = { ...arr[i], vComp: Number(unmaskCurrency(e.target.value)) || 0 };
+                        set("componentes_frete", arr);
+                      }}
+                    />
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
+                    set("componentes_frete", form.componentes_frete.filter((_, j) => j !== i));
+                  }}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </SubBlock>
+            <SubBlock
+              title="Desconto (interno)"
+              hint="Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o 'Valor Frete' manualmente, se necessário."
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
+                <span className={`font-mono text-xs font-semibold ${calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
+                </span>
+              </div>
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+            </SubBlock>
+            <SubBlock title="Outros documentos" hint="Para cargas sem NF-e.">
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
+                  onClick={() => set("outros_documentos", [...form.outros_documentos, { tipo: "99", descricao: "", numero: "", data_emissao: "", valor: 0 }])}>
+                  <Plus className="w-3 h-3" /> Adicionar documento
+                </Button>
+              </div>
+              {form.outros_documentos.map((o, i) => {
+                const upd = (patch: Partial<OutroDoc>) => {
+                  const arr = [...form.outros_documentos];
+                  arr[i] = { ...arr[i], ...patch };
+                  set("outros_documentos", arr);
+                };
+                return (
+                  <div key={i} className="grid grid-cols-2 items-end gap-2 rounded-md border border-border p-2 sm:grid-cols-6">
+
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Tipo</Label>
+                      <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="00">Declaração</SelectItem>
+                          <SelectItem value="10">Dutoviário</SelectItem>
+                          <SelectItem value="59">CF-e SAT</SelectItem>
+                          <SelectItem value="65">NFC-e</SelectItem>
+                          <SelectItem value="99">Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-0.5 sm:col-span-2"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
+                    <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={o.numero} onChange={(e) => upd({ numero: e.target.value })} /></div>
+                    <div className="space-y-0.5"><Label className="text-[10px]">Emissão</Label><Input type="date" className="h-7 text-xs" value={o.data_emissao} onChange={(e) => upd({ data_emissao: e.target.value })} /></div>
+                    <div className="flex gap-1 items-end">
+                      <div className="space-y-0.5 flex-1"><Label className="text-[10px]">Valor</Label><Input className="h-7 text-xs" value={o.valor ? maskCurrency(String(Math.round(o.valor * 100))) : ""} onChange={(e) => upd({ valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </SubBlock>
+            <SubBlock title="Observações">
+              <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} className="text-xs" placeholder="Informações complementares..." />
+            </SubBlock>
           </FormBlock>
         </div>
 
