@@ -1305,8 +1305,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
     setFm({ distancia_km: data.km });
   };
+  // Recalcula a distância sempre que origem ou destino mudarem (ex.: troca de destinatário).
+  // Na abertura de um CT-e existente com distância já gravada, mantém o valor salvo.
+  const routeKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (open && !form.frete_minimo.distancia_km && form.municipio_origem_nome && form.municipio_destino_nome && form.uf_origem && form.uf_destino) calcularDistancia(true);
+    if (!open) { routeKeyRef.current = null; return; }
+    if (!form.municipio_origem_nome || !form.municipio_destino_nome || !form.uf_origem || !form.uf_destino) return;
+    const key = `${form.municipio_origem_nome}|${form.uf_origem}|${form.municipio_destino_nome}|${form.uf_destino}`.toUpperCase();
+    const prev = routeKeyRef.current;
+    routeKeyRef.current = key;
+    if (prev === key) return;
+    if (prev === null && form.frete_minimo.distancia_km) return;
+    const h = setTimeout(() => calcularDistancia(true), 500);
+    return () => clearTimeout(h);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.municipio_origem_nome, form.uf_origem, form.municipio_destino_nome, form.uf_destino, open]);
 
@@ -1449,7 +1460,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <FormBlock
             icon={Upload}
             title="3. Importar Nota Fiscal"
-            summary={`${notasVinculadas} ${notasVinculadas === 1 ? "nota" : "notas"}${form.peso_bruto ? ` · ${form.peso_bruto.toLocaleString("pt-BR")} kg` : ""}${form.valor_carga ? ` · ${formatBRL(form.valor_carga)}` : ""}`}
+            summary={`${notasVinculadas} ${notasVinculadas === 1 ? "nota" : "notas"}`}
           >
             <p className="text-[11px] text-muted-foreground">A nota preenche remetente, destinatário, cidades, produto, peso, valor da mercadoria e os documentos do CT-e. A busca pela chave encontra notas em que a Sime é transportadora ou destinatária.</p>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -1480,7 +1491,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             {notasVinculadas > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {form.chaves_nfe_ref.filter(Boolean).map((c) => { const d = getNfeDetalhe(c); return (
-                  <Badge key={c} variant="outline" className="gap-1 text-[10px] font-normal">NF {d.numero || "?"}{d.peso ? ` · ${d.peso.toLocaleString("pt-BR")} kg` : ""}</Badge>
+                  <Badge key={c} variant="outline" className="gap-1 text-[10px] font-normal">NF {d.numero || "?"}</Badge>
                 ); })}
               </div>
             )}
@@ -1512,11 +1523,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
               </div>
             </SubBlock>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div className="space-y-1"><Label className="text-[10px]">Peso bruto total (kg)</Label><Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} /></div>
-                <div className="space-y-1"><Label className="text-[10px]">Valor da mercadoria</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""} onChange={(e) => set("valor_carga", (Number(unmaskCurrency(e.target.value)) || 0))} /></div></div>
-                <div className="space-y-1"><Label className="text-[10px]">Valor averbado (seguro)</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""} onChange={(e) => set("valor_carga_averb", (Number(unmaskCurrency(e.target.value)) || 0))} /></div></div>
-              </div>
             </SubBlock>
           </FormBlock>
 
@@ -1967,6 +1973,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <Label className="text-[10px]">Regra</Label>
                 <Select value="padrao"><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="padrao">Padrão — tarifa × peso, ICMS por fora</SelectItem></SelectContent></Select>
               </div>
+              <div className="space-y-1"><Label className="text-[10px]">Peso bruto (kg)</Label><Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} /></div>
+              <div className="space-y-1"><Label className="text-[10px]">Valor da mercadoria</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""} onChange={(e) => set("valor_carga", (Number(unmaskCurrency(e.target.value)) || 0))} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Valor averbado (seguro)</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""} onChange={(e) => set("valor_carga_averb", (Number(unmaskCurrency(e.target.value)) || 0))} /></div></div>
               <div className="space-y-1"><Label className="text-[10px]">Tarifa final (R$/t)</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" disabled={!form.peso_bruto} value={comp.tarifa_final ? maskCurrency(String(Math.round(comp.tarifa_final * 100))) : ""} onChange={(e) => setComp({ tarifa_final: Number(unmaskCurrency(e.target.value)) || 0 })} /></div></div>
               <div className="space-y-1"><Label className="text-[10px]">Tarifa real (R$/t)</Label><Input className="h-8 bg-muted text-xs font-medium text-foreground/80" disabled value={formatBRL(tarifaReal)} /></div>
               <div className="space-y-1"><Label className="text-[10px]">Frete valor</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs font-semibold" value={comp.frete_valor ? maskCurrency(String(Math.round(comp.frete_valor * 100))) : ""} onChange={(e) => ((v: number) => setComp({ frete_valor: v, tarifa_final: 0 }))(Number(unmaskCurrency(e.target.value)) || 0)} /></div></div>
