@@ -19,7 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function FreightMdfe() {
   const { toast } = useToast();
-  const { confirm, ConfirmDialog } = useConfirmDialog() as any;
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [params, setParams] = useSearchParams();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +64,7 @@ export default function FreightMdfe() {
   const handleDelete = async () => {
     const ids = [...selected].filter((id) => ["rascunho", "rejeitado"].includes(rows.find((r) => r.id === id)?.status));
     if (!ids.length) return toast({ title: "Só é possível excluir rascunhos ou rejeitados", variant: "destructive" });
-    const ok = confirm ? await confirm({ title: "Excluir manifesto(s)?", description: `${ids.length} manifesto(s) serão excluídos.` }) : window.confirm("Excluir?");
+    const ok = await confirm({ title: "Excluir manifesto(s)?", description: `${ids.length} manifesto(s) serão excluídos.` });
     if (!ok) return;
     const { error } = await supabase.from("mdfe").delete().in("id", ids);
     if (error) return toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
@@ -116,7 +116,7 @@ export default function FreightMdfe() {
         <StatusLegend />
       </div>
       <MdfeFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} initialCteIds={initialCteIds} onSaved={load} />
-      {ConfirmDialog && <ConfirmDialog />}
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
