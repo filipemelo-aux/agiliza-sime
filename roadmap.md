@@ -34,3 +34,15 @@
 ## Pendente
 - [x] Aplicar regra de cadastro completo na criação de contas a pagar
 - [x] Conciliação bancária: despesa exige cadastro efetivo do beneficiário
+
+## Fase 6 — CT-e Talão de Produção (paridade com outro sistema, 01/10)
+- [x] 1. Bloco IBS/CBS 2026 (cálculo automático sobre o frete)
+- [x] 2. Seguro da carga (responsável, seguradora, apólice, averbação; padrão no emitente)
+- [x] 3. Importar NF-e da SEFAZ pela chave + envio de XML
+- [ ] 4. Detalhes por nota (número, série, data, valor, peso, espécie) + "Outros documentos"
+- [ ] 5. Carretas (Vinculado 01/02) e Contratado
+- [ ] 6. Criar/vincular MDF-e junto com o CT-e
+- [ ] 7. Revisar "Emitir contrato de frete" (já existe caixinha)
+- [ ] 8. Frete mínimo ANTT (aviso)
+- [ ] 9. Previsões de saída/chegada, Lotação, pedido/ordem, pedágio separado
+- [ ] Ligar "Transmitir" à Focus NFe com IBS/CBS + seguro
