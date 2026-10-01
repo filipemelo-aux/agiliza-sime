@@ -2059,14 +2059,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Observações */}
-          <section className="space-y-4">
-            <SectionHeader icon={FileText} title="Observações" />
-            <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} placeholder="Informações complementares..." />
-          </section>
+          <FormBlock
+            icon={FileText}
+            title="Observações"
+            defaultOpen={false}
+            summary={form.observacoes ? form.observacoes.slice(0, 70) : "sem observações"}
+          >
+            <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} className="text-xs" placeholder="Informações complementares..." />
+          </FormBlock>
         </div>
 
         {/* Footer fixo */}
-        <div className="shrink-0 border-t border-border px-6 py-4 flex flex-col gap-3 bg-background">
+        <div className="shrink-0 border-t border-border px-4 py-3 flex flex-col gap-2.5 bg-background">
+
           {!linkedContract && (
             <label className="flex items-start gap-2 cursor-pointer">
               <Checkbox
