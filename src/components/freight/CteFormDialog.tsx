@@ -223,6 +223,67 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
   );
 }
 
+function FormBlock({
+  icon: Icon,
+  title,
+  summary,
+  defaultOpen = true,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  summary?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 bg-card px-3 py-2 text-left transition-colors hover:bg-muted/60"
+      >
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+          <Icon className="h-3 w-3" />
+        </span>
+        <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">{title}</span>
+        <span className="ml-auto flex min-w-0 items-center gap-2">
+          {summary ? <span className="truncate text-[11px] text-muted-foreground">{summary}</span> : null}
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ${open ? "" : "-rotate-90"}`} />
+        </span>
+      </button>
+      <div className={open ? "space-y-2.5 border-t border-border bg-card px-3 pb-3 pt-2.5" : "hidden"}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SubBlock({
+  title,
+  hint,
+  className = "",
+  children,
+}: {
+  title: string;
+  hint?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`space-y-2 rounded-md border border-border bg-muted/40 px-2.5 py-2 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+        <Label className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{title}</Label>
+        {hint ? <p className="text-[10px] text-muted-foreground">{hint}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+
 function ActorSection({
   title,
   prefix,
