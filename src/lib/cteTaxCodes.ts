@@ -17,11 +17,11 @@ export const icmsCstMode = (cst: string): IcmsCstMode =>
 
 export const IBS_CBS_CST_OPTIONS: { value: string; label: string; isento: boolean; classTrib?: string; hint: string }[] = [
   { value: "000", label: "000 – Tributação integral", isento: false, classTrib: "000001", hint: "IBS e CBS calculados sobre o valor do frete." },
-  { value: "200", label: "200 – Alíquota reduzida", isento: false, hint: "Informe as alíquotas reduzidas e a classificação." },
-  { value: "400", label: "400 – Isenção", isento: true, hint: "Isento: alíquotas zeradas." },
-  { value: "410", label: "410 – Imunidade e não incidência", isento: true, hint: "Imune / não incide: alíquotas zeradas." },
-  { value: "510", label: "510 – Diferimento", isento: true, hint: "Diferido: alíquotas zeradas." },
-  { value: "550", label: "550 – Suspensão", isento: true, hint: "Suspenso: alíquotas zeradas." },
+  { value: "200", label: "200 – Alíquota reduzida", isento: false, classTrib: "200001", hint: "Informe as alíquotas reduzidas e a classificação." },
+  { value: "400", label: "400 – Isenção", isento: true, classTrib: "400001", hint: "Isento: alíquotas zeradas." },
+  { value: "410", label: "410 – Imunidade e não incidência", isento: true, classTrib: "410001", hint: "Imune / não incide: alíquotas zeradas." },
+  { value: "510", label: "510 – Diferimento", isento: true, classTrib: "510001", hint: "Diferido: alíquotas zeradas." },
+  { value: "550", label: "550 – Suspensão", isento: true, classTrib: "550001", hint: "Suspenso: alíquotas zeradas." },
 ];
 
 export const ibsCbsIsento = (cst: string) =>
