@@ -2054,9 +2054,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
               <p className="text-xs text-destructive">A previsão de chegada está antes da saída.</p>
             )}
-          </section>
+          </FormBlock>
 
-          <Separator />
 
           {/* Observações */}
           <FormBlock
