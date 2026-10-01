@@ -1382,7 +1382,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   placeholder="Cole ou digite a chave de acesso (44 dígitos)"
                   maxLength={44}
                   value={novaChave}
-                  onChange={(e) => setNovaChave(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setNovaChave(v); if (v.length === 44) buscarChave(v); }}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarChave(novaChave); } }}
                 />
                 <div className="flex gap-2">
