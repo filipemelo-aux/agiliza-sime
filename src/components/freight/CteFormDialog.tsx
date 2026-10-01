@@ -829,6 +829,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         ...p,
         [`${prefix}_nome`]: data.razao_social ? maskName(data.razao_social) : p[`${prefix}_nome` as keyof typeof p],
         [`${prefix}_uf`]: data.uf || p[`${prefix}_uf` as keyof typeof p],
+        [`${prefix}_ie`]: data.inscricao_estadual || p[`${prefix}_ie` as keyof typeof p],
         [`${prefix}_endereco`]: data.logradouro
           ? `${maskName(data.logradouro)}${data.numero ? `, ${data.numero}` : ""}${data.bairro ? ` - ${maskName(data.bairro)}` : ""}`
           : p[`${prefix}_endereco` as keyof typeof p],
