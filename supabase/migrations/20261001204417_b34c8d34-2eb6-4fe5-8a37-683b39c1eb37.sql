@@ -1,0 +1,1 @@
+ALTER TABLE public.ctes ADD COLUMN IF NOT EXISTS percentual_reducao_bc numeric NOT NULL DEFAULT 0;
