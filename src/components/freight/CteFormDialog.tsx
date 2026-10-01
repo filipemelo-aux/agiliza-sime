@@ -390,6 +390,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
   const [cnpjErrors, setCnpjErrors] = useState<Record<string, string>>({});
   const [nfeLoading, setNfeLoading] = useState(false);
+  const [novaChave, setNovaChave] = useState("");
   const xmlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -732,6 +733,30 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
     setNfeLoading(false);
     if (ok) toast({ title: "Dados importados da SEFAZ", description: `${ok} nota(s) aplicada(s). Confira remetente, destinatário, peso e valores.` });
+  };
+
+  const buscarChave = async (chave: string) => {
+    if (chave.length !== 44) {
+      toast({ title: "Chave inválida", description: "A chave da NF-e precisa ter 44 dígitos.", variant: "destructive" });
+      return;
+    }
+    const est = establishments.find((e) => e.id === selectedEstId);
+    if (!est) {
+      toast({ title: "Selecione o emitente", description: "Escolha o estabelecimento emissor antes de buscar a nota.", variant: "destructive" });
+      return;
+    }
+    setNfeLoading(true);
+    try {
+      applyNfe(await fetchNfeFromSefaz(chave, est.cnpj));
+      setNovaChave("");
+      toast({ title: "Nota importada", description: "Confira remetente, destinatário, peso e valores." });
+    } catch (e: any) {
+      setForm((p) => (p.chaves_nfe_ref.includes(chave) ? p : { ...p, chaves_nfe_ref: [...p.chaves_nfe_ref.filter(Boolean), chave] }));
+      setNovaChave("");
+      toast({ title: "Nota não encontrada na consulta", description: `${e.message} A chave foi adicionada; complete os dados ou importe o XML.`, variant: "destructive" });
+    } finally {
+      setNfeLoading(false);
+    }
   };
 
   const handleXmlFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1642,40 +1667,86 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               ))}
             </div>
 
-            {/* Chaves NF-e */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Label className="text-xs font-semibold">NF-e Referenciadas</Label>
-                <div className="flex gap-1">
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading} onClick={importFromSefaz}>
-                    {nfeLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Importar da SEFAZ
+          </section>
+
+          <Separator />
+
+          {/* Notas fiscais da carga */}
+          <section className="space-y-4">
+            <SectionHeader icon={FileText} title="Notas Fiscais da Carga" />
+
+            {/* Entrada: chave ou XML */}
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <Label className="text-xs font-semibold">Adicionar nota fiscal</Label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  className="flex-1 font-mono text-xs"
+                  placeholder="Cole ou digite a chave de acesso (44 dígitos)"
+                  maxLength={44}
+                  value={novaChave}
+                  onChange={(e) => setNovaChave(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarChave(novaChave); } }}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1" disabled={nfeLoading || novaChave.length !== 44} onClick={() => buscarChave(novaChave)}>
+                    {nfeLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Buscar pela chave
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => xmlInputRef.current?.click()}>
-                    <Upload className="w-3 h-3" /> Enviar XML
+                  <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1" onClick={() => xmlInputRef.current?.click()}>
+                    <Upload className="w-3 h-3" /> Importar XML
                   </Button>
                   <input ref={xmlInputRef} type="file" accept=".xml,text/xml" multiple className="hidden" onChange={handleXmlFiles} />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}
-                  >
-                    <Plus className="w-3 h-3" /> Adicionar
-                  </Button>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Digite a chave e clique em "Importar da SEFAZ" (a nota precisa ter a Sime como transportadora ou destinatária), ou envie o XML. Remetente, destinatário, peso e valor são preenchidos automaticamente.
-              </p>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-[10px] text-muted-foreground">
+                  A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos.
+                </p>
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                  onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>
+                  <Plus className="w-3 h-3" /> Digitar nota manualmente
+                </Button>
+              </div>
+            </div>
+
+            {/* Lista de notas */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Notas vinculadas ({form.chaves_nfe_ref.filter(Boolean).length})</Label>
+                {form.chaves_nfe_ref.filter((c) => c.length === 44).length > 1 && (
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading} onClick={importFromSefaz}>
+                    <Search className="w-3 h-3" /> Buscar todas novamente
+                  </Button>
+                )}
+              </div>
+              {form.chaves_nfe_ref.length === 0 && (
+                <p className="text-xs text-muted-foreground rounded-md border border-dashed border-border p-3 text-center">
+                  Nenhuma nota vinculada ainda.
+                </p>
+              )}
               {form.chaves_nfe_ref.map((chave, i) => {
                 const d = getNfeDetalhe(chave);
                 return (
-                  <div key={i} className="rounded-md border border-border p-2 space-y-2">
-                    <div className="flex gap-2 items-center">
+                  <div key={i} className="rounded-md border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold">
+                        Nota {i + 1}{d.numero ? ` — nº ${d.numero}${d.serie ? ` / série ${d.serie}` : ""}` : ""}
+                      </span>
+                      <div className="flex gap-1">
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading || chave.length !== 44} onClick={() => buscarChave(chave)}>
+                          <Search className="w-3 h-3" /> Buscar
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
+                          set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i));
+                        }}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Chave de acesso</Label>
                       <Input
-                        className="flex-1 font-mono text-xs"
-                        placeholder="Chave de acesso NF-e (44 dígitos)"
+                        className="h-7 font-mono text-xs"
+                        placeholder="44 dígitos"
                         maxLength={44}
                         value={chave}
                         onChange={(e) => {
@@ -1684,18 +1755,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                           set("chaves_nfe_ref", arr);
                         }}
                       />
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
-                        set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i));
-                      }}>
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
                     </div>
                     {chave.length === 44 && (
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                         <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={d.numero} onChange={(e) => setNfeDetalhe(chave, { numero: e.target.value.replace(/\D/g, "") })} /></div>
                         <div className="space-y-0.5"><Label className="text-[10px]">Série</Label><Input className="h-7 text-xs" value={d.serie} onChange={(e) => setNfeDetalhe(chave, { serie: e.target.value.replace(/\D/g, "") })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Emissão</Label><Input type="date" className="h-7 text-xs" value={d.data_emissao} onChange={(e) => setNfeDetalhe(chave, { data_emissao: e.target.value })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Valor</Label><Input className="h-7 text-xs" value={d.valor ? maskCurrency(String(Math.round(d.valor * 100))) : ""} onChange={(e) => setNfeDetalhe(chave, { valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Data de emissão</Label><Input type="date" className="h-7 text-xs" value={d.data_emissao} onChange={(e) => setNfeDetalhe(chave, { data_emissao: e.target.value })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Valor da nota</Label><Input className="h-7 text-xs" value={d.valor ? maskCurrency(String(Math.round(d.valor * 100))) : ""} onChange={(e) => setNfeDetalhe(chave, { valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
                         <div className="space-y-0.5"><Label className="text-[10px]">Peso (kg)</Label><Input type="number" className="h-7 text-xs" value={d.peso || ""} onChange={(e) => setNfeDetalhe(chave, { peso: Number(e.target.value) || 0 })} /></div>
                         <div className="space-y-0.5"><Label className="text-[10px]">Espécie</Label><Input className="h-7 text-xs" value={d.especie} onChange={(e) => setNfeDetalhe(chave, { especie: e.target.value.toUpperCase() })} /></div>
                       </div>
@@ -1704,6 +1770,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 );
               })}
             </div>
+
 
             {/* Outros documentos (carga sem NF-e) */}
             <div className="space-y-1.5">
