@@ -1857,13 +1857,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
 
-            {/* Totais da carga (somados das notas) */}
-            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Label className="text-xs font-semibold">Totais da carga</Label>
-                <p className="text-[10px] text-muted-foreground">Somados automaticamente das notas vinculadas. Editável se necessário.</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <SubBlock title="Totais da carga" hint="Somados automaticamente das notas vinculadas. Editável se necessário.">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="space-y-0.5">
                   <Label className="text-[10px]">Peso bruto total (kg)</Label>
                   <Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} />
@@ -1891,7 +1886,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </div>
                 </div>
               </div>
-            </div>
+            </SubBlock>
+
 
             <SubBlock title="Outros documentos" hint="Para cargas sem NF-e.">
               <div className="flex justify-end">
