@@ -183,12 +183,16 @@ Deno.serve(async (req) => {
           if (r.ok) razao = (await r.json())?.razao_social || "";
         } catch { /* ignore */ }
       }
+      // Schema emiDocAnt: CNPJ, (IE, UF) opcionais em par, xNome. UF sem IE é inválido.
       const emissor: Record<string, unknown> = {
-        cnpj: cnpjAnt, uf: UF_BY_CODE[chaveAnt.slice(0, 2)] || cte.uf_origem,
+        cnpj: cnpjAnt,
         razao_social: String(razao || "NAO INFORMADO").slice(0, 60),
         identificacoes_documentos: [{ documentos_eletronicos: [{ chave_cte: chaveAnt }] }],
       };
-      if (digits(ieAnt)) emissor.inscricao_estadual = digits(ieAnt);
+      if (digits(ieAnt)) {
+        emissor.inscricao_estadual = digits(ieAnt);
+        emissor.uf = UF_BY_CODE[chaveAnt.slice(0, 2)] || cte.uf_origem;
+      }
       ctePayload.emissores_documento_transporte_anterior = [emissor];
     }
     if (Number(cte.tp_cte) === 3 && chaveAnt.length === 44) ctePayload.chave_cte_original_sub = chaveAnt;
