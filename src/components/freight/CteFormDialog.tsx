@@ -1272,18 +1272,30 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
             {/* Chaves NF-e */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="text-xs font-semibold">NF-e Referenciadas</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}
-                >
-                  <Plus className="w-3 h-3" /> Adicionar
-                </Button>
+                <div className="flex gap-1">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading} onClick={importFromSefaz}>
+                    {nfeLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Importar da SEFAZ
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => xmlInputRef.current?.click()}>
+                    <Upload className="w-3 h-3" /> Enviar XML
+                  </Button>
+                  <input ref={xmlInputRef} type="file" accept=".xml,text/xml" multiple className="hidden" onChange={handleXmlFiles} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}
+                  >
+                    <Plus className="w-3 h-3" /> Adicionar
+                  </Button>
+                </div>
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Digite a chave e clique em "Importar da SEFAZ" (a nota precisa ter a Sime como transportadora ou destinatária), ou envie o XML. Remetente, destinatário, peso e valor são preenchidos automaticamente.
+              </p>
               {form.chaves_nfe_ref.map((chave, i) => (
                 <div key={i} className="flex gap-2 items-center">
                   <Input
