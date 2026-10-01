@@ -1113,7 +1113,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
     setSaving(true);
     try {
-      const { tipo_carga: _tc, ...formWithoutExtra } = form;
+      const { tipo_carga: _tc, contratado_locked: _cl, ...formWithoutExtra } = form;
       const payload: any = {
         ...formWithoutExtra,
         data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
