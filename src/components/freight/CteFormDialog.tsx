@@ -33,7 +33,7 @@ import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
-import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo } from "@/lib/vehicleDriverLookup";
+import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo, resolveProfileId } from "@/lib/vehicleDriverLookup";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
@@ -1056,9 +1056,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         status: "rascunho",
         establishment_id: selectedEstId,
         // Nullify empty fields to avoid FK violations
-        motorista_id: form.motorista_id || null,
+        motorista_id: await resolveProfileId(form.motorista_id),
         veiculo_id: form.veiculo_id || null,
-        tomador_id: form.tomador_id || null,
+        tomador_id: await resolveProfileId(form.tomador_id),
         expedidor_nome: form.expedidor_nome || null,
         recebedor_nome: form.recebedor_nome || null,
         tomador_nome: form.tomador_nome || null,
@@ -1068,7 +1068,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         apolice_numero: form.apolice_numero || null,
         reboque1_placa: unmaskPlate(form.reboque1_placa) || null,
         reboque2_placa: unmaskPlate(form.reboque2_placa) || null,
-        contratado_id: form.contratado_id || null,
+        contratado_id: await resolveProfileId(form.contratado_id),
         contratado_nome: form.contratado_nome || null,
         contratado_documento: form.contratado_documento ? form.contratado_documento.replace(/\D/g, "") : null,
         previsao_saida: form.previsao_saida || null,
@@ -1317,7 +1317,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       reboque1_placa: v.trailers[0] ? maskPlate(v.trailers[0]) : p.reboque1_placa,
       reboque2_placa: v.trailers[1] ? maskPlate(v.trailers[1]) : p.reboque2_placa,
       numero_eixos: p.numero_eixos ?? eixosPorTipo(v.vehicle_type),
-      ...(v.owner_id ? { contratado_id: v.owner_id, contratado_nome: v.owner_nome || "", contratado_documento: v.owner_documento ? maskDocument(v.owner_documento) : "" } : {}),
+      ...(v.owner_id ? { contratado_id: v.owner_id, contratado_nome: v.owner_nome || "", contratado_documento: v.owner_documento ? maskDocument(v.owner_documento) : "" } : { contratado_id: null, contratado_nome: "", contratado_documento: "" }),
     }));
   };
 

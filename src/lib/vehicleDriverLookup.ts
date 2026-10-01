@@ -51,7 +51,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
   const owner = await loadOwner(vehicle.owner_id);
   return {
     vehicle_id: vehicle.id,
-    owner_id: vehicle.owner_id || null,
+    owner_id: owner?.id ?? null,
     owner_nome: owner?.nome || null,
     owner_documento: owner?.documento || null,
     vehicle_type: vehicle.vehicle_type || null,
@@ -74,16 +74,30 @@ export interface VehicleByDriver {
   trailers: string[];
 }
 
-async function loadOwner(ownerId?: string | null): Promise<{ nome: string; documento: string } | null> {
+/**
+ * vehicles.owner_id pode guardar profiles.user_id (auth) ou profiles.id.
+ * Retorna sempre o profiles.id; se o proprietário for uma empresa emitente
+ * (frota própria da Sime), id volta nulo — não há contratado.
+ */
+async function loadOwner(ownerId?: string | null): Promise<{ id: string | null; nome: string; documento: string } | null> {
   if (!ownerId) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("full_name, razao_social, cnpj")
+    .select("id, full_name, razao_social, cnpj")
     .or(`id.eq.${ownerId},user_id.eq.${ownerId}`)
     .limit(1);
   const p: any = data?.[0];
-  if (!p) return null;
-  return { nome: p.razao_social || p.full_name || "", documento: p.cnpj || "" };
+  if (!p) return { id: null, nome: "", documento: "" };
+  const { data: est } = await supabase.from("fiscal_establishments").select("id").eq("profile_id", p.id).limit(1);
+  if (est && est.length > 0) return { id: null, nome: "", documento: "" };
+  return { id: p.id, nome: p.razao_social || p.full_name || "", documento: p.cnpj || "" };
+}
+
+/** Converte um id que pode ser profiles.user_id em profiles.id (FK válida). */
+export async function resolveProfileId(id?: string | null): Promise<string | null> {
+  if (!id) return null;
+  const { data } = await supabase.from("profiles").select("id").or(`id.eq.${id},user_id.eq.${id}`).limit(1);
+  return (data as any)?.[0]?.id ?? null;
 }
 
 /** Eixos carregados aproximados pelo tipo do veículo (conjunto completo). */
@@ -123,7 +137,7 @@ export async function lookupVehicleByDriver(
   const owner = await loadOwner(v.owner_id);
   return {
     vehicle_id: v.id, plate: v.plate, rntrc: v.antt_number || null,
-    owner_id: v.owner_id || null, owner_nome: owner?.nome || null, owner_documento: owner?.documento || null,
+    owner_id: owner?.id ?? null, owner_nome: owner?.nome || null, owner_documento: owner?.documento || null,
     vehicle_type: v.vehicle_type || null,
     trailers: [v.trailer_plate_1, v.trailer_plate_2].filter(Boolean),
   };
