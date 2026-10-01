@@ -1256,9 +1256,20 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const setFm = (patch: Partial<typeof defaultForm.frete_minimo>) => setForm((p) => ({ ...p, frete_minimo: { ...p.frete_minimo, ...patch } }));
   useEffect(() => {
     const t = TIPO_CARGA_TO_ANTT[form.tipo_carga];
-    if (t && !form.frete_minimo.tipo) setFm({ tipo: t });
+    if (t) setFm({ tipo: t });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.tipo_carga]);
+  // Puxa o tipo cadastrado na natureza da carga (seleção, digitação ou NF-e importada)
+  useEffect(() => {
+    const nome = (form.produto_predominante || "").trim();
+    if (nome.length < 2) return;
+    const h = setTimeout(async () => {
+      const { data } = await supabase.from("cargas").select("produto_predominante, tipo").ilike("produto_predominante", nome).not("tipo", "is", null).limit(1);
+      const k = tipoCargaKey((data as any)?.[0]?.tipo);
+      if (k) setForm((p) => (p.tipo_carga === k ? p : { ...p, tipo_carga: k }));
+    }, 400);
+    return () => clearTimeout(h);
+  }, [form.produto_predominante]);
   const piso = calcPisoMinimo({ tabela: fm.tabela, tipo: fm.tipo, eixos: form.numero_eixos, distanciaKm: fm.distancia_km, retornoVazio: fm.retorno_vazio });
   const [distLoading, setDistLoading] = useState(false);
   const calcularDistancia = async (silent?: boolean) => {
