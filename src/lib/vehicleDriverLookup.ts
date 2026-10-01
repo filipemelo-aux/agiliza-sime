@@ -142,6 +142,7 @@ export async function lookupVehicleByDriver(
   return {
     vehicle_id: v.id, plate: v.plate, rntrc: v.antt_number || null,
     owner_id: owner?.id ?? null, owner_nome: owner?.nome || null, owner_documento: owner?.documento || null,
+    owner_is_emitter: owner?.is_emitter ?? false,
     vehicle_type: v.vehicle_type || null,
     trailers: [v.trailer_plate_1, v.trailer_plate_2].filter(Boolean),
   };
