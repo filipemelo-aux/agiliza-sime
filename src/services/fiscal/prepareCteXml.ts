@@ -200,6 +200,7 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     motorista_cpf: motoristaCpf,
 
     observacoes: cte.observacoes || undefined,
+    chave_cte_subcontratacao: cte.chave_cte_subcontratacao || undefined,
   };
 
   // 7. Validar dados obrigatórios

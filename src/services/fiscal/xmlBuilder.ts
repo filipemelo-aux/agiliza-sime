@@ -100,6 +100,7 @@ export interface CteXmlData {
   tipo_carroceria?: "00" | "01" | "02" | "03" | "04" | "05"; // 00=Não aplicável, 01=Aberta, 02=Fechada/Baú, 03=Granelera, 04=Porta Container, 05=Sider
   rntrc?: string;
   ciot?: string; // Código Identificador da Operação de Transporte
+  chave_cte_subcontratacao?: string; // CT-e de subcontratação: chave do CT-e original
 
   // Motorista
   motorista_nome?: string;
@@ -557,7 +558,10 @@ export function buildCteXml(data: CteXmlData): { xml: string; chave_acesso: stri
             <CPF>${cleanDoc(data.motorista_cpf)}</CPF>
           </moto>
         </rodo>
-      </infModal>
+      </infModal>${data.chave_cte_subcontratacao ? `
+      <infCteSub>
+        <chCte>${escapeXml(data.chave_cte_subcontratacao)}</chCte>
+      </infCteSub>` : ""}
     </infCTeNorm>
   </infCte>
 </CTe>`;

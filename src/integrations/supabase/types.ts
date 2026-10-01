@@ -1149,6 +1149,7 @@ export type Database = {
           cbs_valor: number | null
           cfop: string
           chave_acesso: string | null
+          chave_cte_subcontratacao: string | null
           chaves_nfe_ref: string[] | null
           componentes_frete: Json | null
           composicao_frete: Json | null
@@ -1269,6 +1270,7 @@ export type Database = {
           cbs_valor?: number | null
           cfop?: string
           chave_acesso?: string | null
+          chave_cte_subcontratacao?: string | null
           chaves_nfe_ref?: string[] | null
           componentes_frete?: Json | null
           composicao_frete?: Json | null
@@ -1389,6 +1391,7 @@ export type Database = {
           cbs_valor?: number | null
           cfop?: string
           chave_acesso?: string | null
+          chave_cte_subcontratacao?: string | null
           chaves_nfe_ref?: string[] | null
           componentes_frete?: Json | null
           composicao_frete?: Json | null
