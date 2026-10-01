@@ -1102,7 +1102,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         municipio_envio_ibge: (estSelecionado as any)?.codigo_municipio_ibge || form.municipio_envio_ibge || null,
         uf_envio: (estSelecionado as any)?.endereco_uf || form.uf_envio || null,
         frete_minimo: piso ? { ...form.frete_minimo, eixos: form.numero_eixos, valor: piso.total } : form.frete_minimo,
-        chave_cte_subcontratacao: form.tp_cte === 1 ? (form.chave_cte_subcontratacao.replace(/\D/g, "") || null) : null,
+        chave_cte_subcontratacao: form.tp_serv === 1 ? (form.chave_cte_subcontratacao.replace(/\D/g, "") || null) : null,
       };
 
       let savedId: string;
@@ -1446,7 +1446,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                {form.tp_cte === 1 && (
+                {form.tp_serv === 1 && (
                   <div className="col-span-2 space-y-1 sm:col-span-4">
                     <Label className="text-[10px]">Chave do CT-e original (subcontratação)</Label>
                     <Input
