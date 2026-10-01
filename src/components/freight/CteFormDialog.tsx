@@ -1549,40 +1549,38 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </SubBlock>
 
 
-            {/* Desconto (registro interno — não afeta XML/Sefaz) */}
-            <div className="space-y-1.5 rounded-md border border-border bg-muted/10 p-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Desconto (interno)</Label>
-                {calcDescontoTotal(desconto) > 0 && (
-                  <span className="font-mono text-xs font-semibold text-destructive">
-                    − {calcDescontoTotal(desconto).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                )}
+            <SubBlock
+              title="Desconto (interno)"
+              hint="Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o 'Valor Frete' manualmente, se necessário."
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
+                <span className={cn("font-mono text-xs font-semibold", calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground")}>
+                  {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
+                </span>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o "Valor Frete" manualmente, se necessário.
-              </p>
               <CteDescontoFields value={desconto} onChange={setDesconto} />
-            </div>
+            </SubBlock>
 
-            {/* Componentes do Frete */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Componentes do Frete</Label>
+            <SubBlock
+              title="Componentes do Frete"
+              hint={form.componentes_frete.length === 0 ? "nenhum componente" : undefined}
+            >
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs gap-1"
+                  className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("componentes_frete", [...form.componentes_frete, { xNome: "", vComp: 0 }])}
                 >
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> Adicionar componente
                 </Button>
               </div>
               {form.componentes_frete.map((comp, i) => (
-                <div key={i} className="flex gap-2 items-center">
+                <div key={i} className="flex items-center gap-2">
                   <Input
-                    className="flex-1"
+                    className="h-8 flex-1 text-xs"
                     placeholder="Nome (ex: FRETE VALOR)"
                     value={comp.xNome}
                     onChange={(e) => {
@@ -1592,9 +1590,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     }}
                   />
                   <div className="relative w-32">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
                     <Input
-                      className="pl-8"
+                      className="h-8 pl-7 text-xs"
                       value={comp.vComp ? maskCurrency(String(Math.round(comp.vComp * 100))) : ""}
                       onChange={(e) => {
                         const arr = [...form.componentes_frete];
@@ -1610,7 +1608,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </Button>
                 </div>
               ))}
-            </div>
+            </SubBlock>
+
           </FormBlock>
 
 
