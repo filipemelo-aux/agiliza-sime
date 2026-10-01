@@ -1394,8 +1394,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Valores e Tributos */}
-          <section className="space-y-4">
-            <SectionHeader icon={DollarSign} title="Valores e Tributos" />
+          <FormBlock
+            icon={DollarSign}
+            title="Valores e Tributos"
+            summary={`frete ${formatBRL(form.valor_frete)} · IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}
+          >
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Valor Frete (vTPrest)</Label>
