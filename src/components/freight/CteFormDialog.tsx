@@ -1449,11 +1449,11 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Base Cálculo ICMS</Label>
-                  <Input className="h-8 bg-muted text-xs text-muted-foreground" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Valor ICMS</Label>
-                  <Input className="h-8 bg-muted text-xs text-muted-foreground" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CST ICMS</Label>
@@ -1487,26 +1487,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
                 <div className="space-y-1 col-span-2">
                   <Label className="text-[10px]">Base de cálculo</Label>
-                  <Input className="h-8 bg-muted text-xs text-muted-foreground" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Estadual (%)</Label>
                   <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_uf_valor)}</p>
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_uf_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Municipal (%)</Label>
                   <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_mun_valor)}</p>
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_mun_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CBS (%)</Label>
                   <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.cbs_valor)}</p>
+                  <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.cbs_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Total IBS + CBS</Label>
-                  <Input className="h-8 bg-muted text-xs text-muted-foreground" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
+                  <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
                 </div>
               </div>
             </SubBlock>
