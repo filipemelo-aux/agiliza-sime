@@ -469,6 +469,31 @@ export default function FreightCte() {
   const handleTransmit = async () => {
     if (!singleCte || !canTransmit) return;
     const isProcessing = singleCte.status === "processando";
+    if (!isProcessing) {
+      const { data: c } = await supabase
+        .from("ctes")
+        .select("remetente_nome,remetente_cnpj,remetente_ie,destinatario_nome,destinatario_cnpj,destinatario_ie,tomador_nome,tomador_cnpj,tomador_ie,expedidor_nome,expedidor_cnpj,expedidor_ie,recebedor_nome,recebedor_cnpj,recebedor_ie")
+        .eq("id", singleCte.id)
+        .maybeSingle();
+      if (c) {
+        const roles: [string, string][] = [["remetente", "Remetente"], ["destinatario", "Destinatário"], ["tomador", "Tomador"], ["expedidor", "Expedidor"], ["recebedor", "Recebedor"]];
+        const faltando = roles
+          .filter(([k]) => {
+            const doc = String((c as any)[`${k}_cnpj`] || "").replace(/\D/g, "");
+            const ie = String((c as any)[`${k}_ie`] || "").trim();
+            return doc.length === 14 && !ie;
+          })
+          .map(([k, label]) => `${label}: ${(c as any)[`${k}_nome`] || "—"}`);
+        if (faltando.length) {
+          const seguir = await confirm({
+            title: "Inscrição Estadual não informada",
+            description: `Falta a IE de: ${faltando.join("; ")}. A SEFAZ costuma rejeitar o CT-e sem ela (se a empresa for contribuinte). Preencha no cadastro da pessoa, selecione-a de novo no CT-e e salve. Deseja transmitir mesmo assim?`,
+            confirmLabel: "Transmitir mesmo assim",
+          });
+          if (!seguir) return;
+        }
+      }
+    }
     const ok = await confirm({
       title: isProcessing ? "Consultar situação na SEFAZ" : singleCte.status === "rejeitado" ? "Retransmitir CT-e" : "Emitir CT-e na SEFAZ",
       description: isProcessing
