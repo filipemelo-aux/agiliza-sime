@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle, Eye, Printer } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle, Eye, Printer, Truck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
@@ -98,6 +99,7 @@ export default function FreightCte() {
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -578,6 +580,11 @@ export default function FreightCte() {
               key: "edit", label: "Editar", icon: Pencil, mode: "single",
               disabled: !singleCte || !(singleCte.tipo_talao === "servico" || singleCte.status === "rascunho" || singleCte.status === "rejeitado"),
               onClick: () => singleCte && handleEdit(singleCte),
+            },
+            {
+              key: "mdfe", label: "Gerar MDF-e", icon: Truck, mode: "single+batch", variant: "outline",
+              disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
+              onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
             },
             {
               key: "print", label: printing ? "Gerando..." : "Imprimir", icon: Printer, mode: "single+batch", variant: "outline",
