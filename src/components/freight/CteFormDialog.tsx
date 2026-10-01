@@ -347,6 +347,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       peso_bruto: 0,
       info_quantidade: [],
       chaves_nfe_ref: [],
+      nfe_detalhes: [],
+      reboque1_placa: "",
+      reboque2_placa: "",
+      contratado_id: null,
+      contratado_nome: "",
+      contratado_documento: "",
       motorista_id: null,
       veiculo_id: null,
       observacoes: "",
@@ -508,6 +514,40 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   }, [cte, open]);
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
+
+  // Detalhe de cada NF-e (número/série derivados da chave quando não informados)
+  const getNfeDetalhe = (chave: string): NfeDetalhe => {
+    const found = form.nfe_detalhes.find((d) => d.chave === chave);
+    return found ?? {
+      chave,
+      numero: chave.length === 44 ? String(Number(chave.slice(25, 34))) : "",
+      serie: chave.length === 44 ? String(Number(chave.slice(22, 25))) : "",
+      data_emissao: "", valor: 0, peso: 0, especie: "",
+    };
+  };
+  const setNfeDetalhe = (chave: string, patch: Partial<NfeDetalhe>) =>
+    setForm((p) => {
+      const base = p.nfe_detalhes.find((d) => d.chave === chave) ?? {
+        chave,
+        numero: String(Number(chave.slice(25, 34))),
+        serie: String(Number(chave.slice(22, 25))),
+        data_emissao: "", valor: 0, peso: 0, especie: "",
+      };
+      return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...patch }] };
+    });
+
+  // Carretas do veículo selecionado (somente se ainda vazias)
+  useEffect(() => {
+    if (!form.veiculo_id) return;
+    supabase.from("trailers").select("plate").eq("vehicle_id", form.veiculo_id).order("created_at").then(({ data }) => {
+      if (!data?.length) return;
+      setForm((p) => ({
+        ...p,
+        reboque1_placa: p.reboque1_placa || (data[0]?.plate ? maskPlate(data[0].plate) : ""),
+        reboque2_placa: p.reboque2_placa || (data[1]?.plate ? maskPlate(data[1].plate) : ""),
+      }));
+    });
+  }, [form.veiculo_id]);
 
   const lookupCnpj = useCallback(async (raw: string, prefix: string) => {
     if (raw.length !== 14) return;
