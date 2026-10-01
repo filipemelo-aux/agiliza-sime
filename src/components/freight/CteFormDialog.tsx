@@ -1,3 +1,4 @@
+import { ICMS_CST_OPTIONS, IBS_CBS_CST_OPTIONS, IBS_CBS_DEFAULT, icmsCstMode, ibsCbsIsento } from "@/lib/cteTaxCodes";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ANTT_TABELAS, EIXOS_ANTT, TIPO_CARGA_TO_ANTT, calcPisoMinimo, eixosAntt } from "@/lib/anttPisoMinimo";
