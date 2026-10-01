@@ -1225,7 +1225,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
     setDistLoading(true);
     const { data, error } = await supabase.functions.invoke("route-distance", {
-      body: { origem: { cidade: form.municipio_origem_nome, uf: form.uf_origem }, destino: { cidade: form.municipio_destino_nome, uf: form.uf_destino } },
+      body: { origem: { cidade: form.municipio_origem_nome, uf: form.uf_origem, ibge: form.municipio_origem_ibge }, destino: { cidade: form.municipio_destino_nome, uf: form.uf_destino, ibge: form.municipio_destino_ibge } },
     });
     setDistLoading(false);
     if (error || !data?.km) {
