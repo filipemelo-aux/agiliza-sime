@@ -243,7 +243,10 @@ function valuesHtml(cte: CtePrintInput) {
   const slots = Array.from({ length: 3 }, (_, index) => items[index]);
   return `<div class="section-title">Componentes do valor da prestação</div>
     <div class="grid c4">
-      ${slots.map((item, index) => cell(`Nome / valor ${index + 1}`, item ? `${item.xNome || item.nome || "FRETE"}  ${money(item.vComp ?? item.valor)}` : index === 0 ? `FRETE  ${money(cte.valor_frete)}` : "")).join("")}
+      ${slots.map((item, index) => {
+        const component = item as Component | undefined;
+        return cell(`Nome / valor ${index + 1}`, component ? `${component.xNome || component.nome || "FRETE"}  ${money(component.vComp ?? component.valor)}` : index === 0 ? `FRETE  ${money(cte.valor_frete)}` : "");
+      }).join("")}
       <div>${cell("Valor total do serviço", money(cte.valor_frete))}${cell("Valor a receber", money(cte.valor_receber ?? cte.valor_frete))}</div>
     </div>`;
 }
@@ -301,7 +304,7 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     <div class="grid c3">
       ${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}
     </div>
-    <table><thead><tr><th>Qtd.</th><th>Tipo de medida</th><th>Unidade</th><th class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows.replaceAll("<tr><td>", "<tr><td>CARGA</td><td>")}</tbody></table>
+    <table><thead><tr><th>Qtd.</th><th>Tipo de medida</th><th>Unidade</th><th class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows.replace(/<tr><td>/g, "<tr><td>CARGA</td><td>")}</tbody></table>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
     ${documentsHtml(cte)}
