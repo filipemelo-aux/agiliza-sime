@@ -165,7 +165,33 @@ Deno.serve(async (req) => {
     if (cte.expedidor_nome) Object.assign(ctePayload, actor("expedidor", routeOrigin));
     if (cte.recebedor_nome) Object.assign(ctePayload, actor("recebedor", routeDestination));
     if (Number(cte.tomador_tipo) === 4) Object.assign(ctePayload, actor("tomador", cte.tomador_uf === cte.uf_origem ? routeOrigin : routeDestination));
-    if (Number(cte.tp_serv) === 1 && digits(cte.chave_cte_subcontratacao).length === 44) ctePayload.chave_cte_original_sub = digits(cte.chave_cte_subcontratacao);
+    // Subcontratação/Redespacho: SEFAZ exige o documento de transporte anterior (docAnt/emiDocAnt/idDocAntEle).
+    const chaveAnt = digits(cte.chave_cte_subcontratacao);
+    if ([1, 2, 3].includes(Number(cte.tp_serv)) && chaveAnt.length === 44) {
+      const UF_BY_CODE: Record<string, string> = { "11":"RO","12":"AC","13":"AM","14":"RR","15":"PA","16":"AP","17":"TO","21":"MA","22":"PI","23":"CE","24":"RN","25":"PB","26":"PE","27":"AL","28":"SE","29":"BA","31":"MG","32":"ES","33":"RJ","35":"SP","41":"PR","42":"SC","43":"RS","50":"MS","51":"MT","52":"GO","53":"DF" };
+      const cnpjAnt = chaveAnt.slice(6, 20);
+      let razao = "";
+      let ieAnt = "";
+      const { data: localAnt } = await supabase.from("ctes").select("*").eq("chave_acesso", chaveAnt).maybeSingle();
+      if (localAnt) {
+        const { data: estAnt } = await supabase.from("fiscal_establishments").select("razao_social, inscricao_estadual").eq("id", localAnt.establishment_id).maybeSingle();
+        razao = estAnt?.razao_social || ""; ieAnt = estAnt?.inscricao_estadual || "";
+      }
+      if (!razao) {
+        try {
+          const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjAnt}`);
+          if (r.ok) razao = (await r.json())?.razao_social || "";
+        } catch { /* ignore */ }
+      }
+      const emissor: Record<string, unknown> = {
+        cnpj: cnpjAnt, uf: UF_BY_CODE[chaveAnt.slice(0, 2)] || cte.uf_origem,
+        razao_social: String(razao || "NAO INFORMADO").slice(0, 60),
+        identificacoes_documentos: [{ documentos_eletronicos: [{ chave_cte: chaveAnt }] }],
+      };
+      if (digits(ieAnt)) emissor.inscricao_estadual = digits(ieAnt);
+      ctePayload.emissores_documento_transporte_anterior = [emissor];
+    }
+    if (Number(cte.tp_cte) === 3 && chaveAnt.length === 44) ctePayload.chave_cte_original_sub = chaveAnt;
 
     const emissionRef = `cte-${cteId}`;
     const emitResponse = await fetch(`${BASES.homologacao}/v2/cte?ref=${emissionRef}`, {
