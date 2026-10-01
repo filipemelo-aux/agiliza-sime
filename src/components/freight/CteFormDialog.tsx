@@ -1893,13 +1893,11 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
             </div>
 
-            {/* Outros documentos (carga sem NF-e) */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Outros documentos (carga sem NF-e)</Label>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+            <SubBlock title="Outros documentos" hint="Para cargas sem NF-e.">
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("outros_documentos", [...form.outros_documentos, { tipo: "99", descricao: "", numero: "", data_emissao: "", valor: 0 }])}>
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> Adicionar documento
                 </Button>
               </div>
               {form.outros_documentos.map((o, i) => {
@@ -1909,7 +1907,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   set("outros_documentos", arr);
                 };
                 return (
-                  <div key={i} className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end rounded-md border border-border p-2">
+                  <div key={i} className="grid grid-cols-2 items-end gap-2 rounded-md border border-border p-2 sm:grid-cols-6">
+
                     <div className="space-y-0.5">
                       <Label className="text-[10px]">Tipo</Label>
                       <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
