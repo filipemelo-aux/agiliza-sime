@@ -8,7 +8,7 @@ const cors = {
 const UA = "AgilizaERP/1.0 (admin@fsm.app.br)";
 
 async function geocode(cidade: string, uf: string): Promise<[number, number] | null> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&country=Brazil&city=${encodeURIComponent(cidade)}&state=${encodeURIComponent(uf)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(`${cidade}, ${uf}, Brasil`)}`;
   const r = await fetch(url, { headers: { "User-Agent": UA } });
   if (!r.ok) return null;
   const j = await r.json();
