@@ -1,4 +1,5 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const normRntrc = (v: unknown) => { const d = String(v ?? '').replace(/\D/g, ''); if (!d) return 'ISENTO'; return d.slice(-8).padStart(8, '0'); };
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Focus NFe connector (homologação by default). Admin/moderator only.
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
       icms_aliquota: money(cte.aliquota_icms), icms_valor: money(cte.valor_icms), valor_total_carga: money(cte.valor_carga),
       valor_carga_averbacao: money(cte.valor_carga_averb || cte.valor_carga), produto_predominante: cte.produto_predominante,
       quantidades: quantities, nfes: (cte.chaves_nfe_ref || []).map((chave: string) => ({ chave_nfe: digits(chave) })),
-      modal_rodoviario: { rntrc: digits(cte.rntrc || est.rntrc) }, observacao: cte.observacoes || undefined,
+      modal_rodoviario: { rntrc: normRntrc(cte.rntrc || est.rntrc) }, observacao: cte.observacoes || undefined,
       ibs_cbs_situacao_tributaria: cte.ibs_cbs_cst || "000", ibs_cbs_classificacao_tributaria: cte.ibs_cbs_class_trib || "000001",
       ibs_cbs_base_calculo: money(cte.ibs_cbs_base_calculo || cte.valor_frete), ibs_uf_aliquota: money(cte.ibs_uf_aliquota),
       ibs_uf_valor: money(cte.ibs_uf_valor), ibs_mun_aliquota: money(cte.ibs_mun_aliquota), ibs_mun_valor: money(cte.ibs_mun_valor),
