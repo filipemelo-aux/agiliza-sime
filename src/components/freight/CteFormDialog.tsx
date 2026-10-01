@@ -541,7 +541,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [novaChave, setNovaChave] = useState("");
   const xmlInputRef = useRef<HTMLInputElement>(null);
   const [cteSubLoading, setCteSubLoading] = useState(false);
-  const [cteSubInfo, setCteSubInfo] = useState<{ numero: string; data: string; tomador: string; valor: number } | null | "notfound">(null);
+  const [cteSubInfo, setCteSubInfo] = useState<{ numero: string; data: string; tomador: string; valor: number; emitente: string; fonte: "base" | "sefaz" | "chave" } | null>(null);
 
   useEffect(() => {
     supabase
@@ -1562,9 +1562,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <Input
                   className="h-8 flex-1 font-mono text-xs"
                   placeholder="Cole ou digite a chave de acesso (44 dígitos)"
-                  maxLength={44}
                   value={novaChave}
-                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setNovaChave(v); if (v.length === 44) buscarChave(v); }}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 44); setNovaChave(v); if (v.length === 44) buscarChave(v); }}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarChave(novaChave); } }}
                 />
                 <div className="flex gap-2">
