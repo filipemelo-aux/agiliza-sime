@@ -12,12 +12,14 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  onSelectTipo?: (tipo: string | null) => void;
 }
 
 export function NaturezaCargaSearchInput({
   value,
   onChange,
   placeholder = "Buscar ou digitar natureza da carga...",
+  onSelectTipo,
 }: Props) {
   const [query, setQuery] = useState(value);
   const [results, setResults] = useState<NaturezaResult[]>([]);
@@ -81,6 +83,7 @@ export function NaturezaCargaSearchInput({
   const handleSelect = (item: NaturezaResult) => {
     setQuery(item.produto_predominante);
     onChange(item.produto_predominante);
+    onSelectTipo?.(item.tipo);
     setShowDropdown(false);
   };
 

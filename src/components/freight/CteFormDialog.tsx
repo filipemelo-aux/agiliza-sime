@@ -1459,6 +1459,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   <NaturezaCargaSearchInput
                     value={form.produto_predominante || ""}
                     onChange={(v) => set("produto_predominante", v)}
+                    onSelectTipo={(t) => { const k = tipoCargaKey(t); if (k) set("tipo_carga", k); }}
                   />
                 </div>
                 <div className="space-y-1">

@@ -636,7 +636,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       ativo: true,
       created_by: user?.id,
     } as any);
-    if (error) throw new Error(`Falha ao cadastrar natureza "${nome}": ${error.message}`);
+    // 23505 = já existe com outra grafia (acentos/maiúsculas) — reaproveita o cadastro existente
+    if (error && (error as any).code !== "23505") throw new Error(`Falha ao cadastrar natureza "${nome}": ${error.message}`);
     cache.set(key, true);
   };
 
