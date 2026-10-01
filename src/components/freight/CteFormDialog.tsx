@@ -1126,14 +1126,17 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Emitente (Estabelecimento) */}
-          <section className="space-y-4">
-            <SectionHeader icon={Building2} title="Emitente" />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs">Estabelecimento *</Label>
+          {/* Emitente + Tipo do documento */}
+          <div className="grid gap-2 lg:grid-cols-2">
+            <FormBlock
+              icon={Building2}
+              title="Emitente"
+              summary={estSelecionado ? maskCNPJ(estSelecionado.cnpj) : "não definido"}
+            >
+              <div className="space-y-1">
+                <Label className="text-[10px]">Estabelecimento *</Label>
                 <Select value={selectedEstId} onValueChange={setSelectedEstId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
                   <SelectContent>
                     {establishments.map((est) => (
                       <SelectItem key={est.id} value={est.id}>
@@ -1143,19 +1146,51 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Data de emissão *</Label>
-                <Input
-                  type="date"
-                  value={form.data_emissao}
-                  onChange={(e) => set("data_emissao", e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Data de emissão *</Label>
+                  <Input type="date" className="h-8 text-xs" value={form.data_emissao} onChange={(e) => set("data_emissao", e.target.value)} />
+                </div>
               </div>
-            </div>
-            {establishments.length === 0 && (
-              <p className="text-xs text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
-            )}
-          </section>
+              {establishments.length === 0 && (
+                <p className="text-[11px] text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
+              )}
+            </FormBlock>
+
+            <FormBlock icon={FileText} title="Tipo do Documento" summary={`Modal ${form.modal}`}>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo CT-e</Label>
+                  <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo Serviço</Label>
+                  <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Modal</Label>
+                  <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{MODAL_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Retira</Label>
+                  <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </FormBlock>
+          </div>
+
 
           {/* Envolvidos */}
           <div className="grid gap-2 lg:grid-cols-2">
