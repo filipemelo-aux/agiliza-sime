@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { parseNfeXml, fetchNfeFromSefaz, type NfeData } from "@/lib/nfeImport";
+import { buscarCodigoIbgePorMunicipio } from "@/lib/ibgeLookup";
 import {
   Sheet,
   SheetContent,
@@ -232,6 +233,7 @@ function ActorSection({
   cnpjLoading,
   cnpjError,
   setCnpjError,
+  onCityResolved,
 }: {
   title: string;
   prefix: string;
@@ -242,6 +244,7 @@ function ActorSection({
   cnpjLoading: boolean;
   cnpjError: string;
   setCnpjError: (v: string) => void;
+  onCityResolved?: (prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => void;
 }) {
   return (
     <section className="space-y-4">
@@ -258,6 +261,19 @@ function ActorSection({
             set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
             set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
             set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
+            const cidade = person.address_city ? maskName(person.address_city) : "";
+            const uf = person.address_state || form[`${prefix}_uf`] || "";
+            if (cidade && uf) {
+              onCityResolved?.(prefix, { cidade, uf, ibge: "" });
+              buscarCodigoIbgePorMunicipio(uf, cidade).then((ibge) => {
+                if (ibge) {
+                  set(`${prefix}_municipio_ibge`, ibge);
+                  onCityResolved?.(prefix, { cidade, uf, ibge });
+                }
+              });
+            } else {
+              onCityResolved?.(prefix, null);
+            }
           }}
           onClear={() => {
             set(`${prefix}_nome`, "");
@@ -266,6 +282,7 @@ function ActorSection({
             set(`${prefix}_endereco`, "");
             set(`${prefix}_uf`, "");
             set(`${prefix}_municipio_ibge`, "");
+            onCityResolved?.(prefix, null);
           }}
         />
       </div>
@@ -515,6 +532,34 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
+  // Cidade resolvida de cada envolvido (seleção no cadastro, CNPJ ou NF-e importada)
+  const partyCitiesRef = useRef<Record<string, { cidade: string; uf: string; ibge: string }>>({});
+  const [routeTick, setRouteTick] = useState(0);
+  const onCityResolved = useCallback((prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => {
+    if (city) partyCitiesRef.current[prefix] = city;
+    else delete partyCitiesRef.current[prefix];
+    setRouteTick((t) => t + 1);
+  }, []);
+
+  // Preenche município/UF de origem e destino da prestação a partir dos envolvidos:
+  // origem = expedidor (se houver) senão remetente; destino = recebedor (se houver) senão destinatário.
+  useEffect(() => {
+    const pick = (main: string, alt: string) => {
+      const src = (form as any)[`${main}_nome`] ? main : alt;
+      const c = partyCitiesRef.current[src];
+      return c && c.cidade ? c : null;
+    };
+    const o = pick("expedidor", "remetente");
+    const d = pick("recebedor", "destinatario");
+    if (!o && !d) return;
+    setForm((p) => ({
+      ...p,
+      ...(o ? { municipio_origem_nome: o.cidade, municipio_origem_ibge: o.ibge || p.municipio_origem_ibge, uf_origem: o.uf || p.uf_origem } : {}),
+      ...(d ? { municipio_destino_nome: d.cidade, municipio_destino_ibge: d.ibge || p.municipio_destino_ibge, uf_destino: d.uf || p.uf_destino } : {}),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.expedidor_nome, form.remetente_nome, form.recebedor_nome, form.destinatario_nome, routeTick]);
+
   // Detalhe de cada NF-e (número/série derivados da chave quando não informados)
   const getNfeDetalhe = (chave: string): NfeDetalhe => {
     const found = form.nfe_detalhes.find((d) => d.chave === chave);
@@ -564,12 +609,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           ? `${maskName(data.logradouro)}${data.numero ? `, ${data.numero}` : ""}${data.bairro ? ` - ${maskName(data.bairro)}` : ""}`
           : p[`${prefix}_endereco` as keyof typeof p],
       }));
+      if (data.municipio && data.uf) {
+        const cidade = maskName(data.municipio);
+        const uf = data.uf;
+        onCityResolved(prefix, { cidade, uf, ibge: "" });
+        buscarCodigoIbgePorMunicipio(uf, cidade).then((ibge) => {
+          if (ibge) {
+            set(`${prefix}_municipio_ibge`, ibge);
+            onCityResolved(prefix, { cidade, uf, ibge });
+          }
+        });
+      }
     } catch {
       setCnpjErrors((p) => ({ ...p, [prefix]: "Erro ao consultar CNPJ" }));
     } finally {
       setCnpjLoading((p) => ({ ...p, [prefix]: false }));
     }
-  }, []);
+  }, [onCityResolved]);
 
   // Auto-calculate ICMS
   useEffect(() => {
@@ -604,6 +660,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   }, [selectedEstId, establishments]);
 
   const applyNfe = (n: NfeData) => {
+    if (!(form as any).remetente_nome && n.emitente.municipio) {
+      partyCitiesRef.current.remetente = { cidade: maskName(n.emitente.municipio), uf: n.emitente.uf, ibge: n.emitente.municipio_ibge };
+    }
+    if (!(form as any).destinatario_nome && n.destinatario.municipio) {
+      partyCitiesRef.current.destinatario = { cidade: maskName(n.destinatario.municipio), uf: n.destinatario.uf, ibge: n.destinatario.municipio_ibge };
+    }
+    setRouteTick((t) => t + 1);
     setForm((p) => {
       const chaves = p.chaves_nfe_ref.filter((c) => c && c !== n.chave);
       const emptyIdx = p.chaves_nfe_ref.indexOf("");
@@ -980,6 +1043,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             cnpjLoading={!!cnpjLoading.remetente}
             cnpjError={cnpjErrors.remetente || ""}
             setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
+          onCityResolved={onCityResolved}
           />
 
           <Separator />
@@ -994,6 +1058,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             cnpjLoading={!!cnpjLoading.destinatario}
             cnpjError={cnpjErrors.destinatario || ""}
             setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
+          onCityResolved={onCityResolved}
           />
 
           <Separator />
@@ -1008,6 +1073,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             cnpjLoading={!!cnpjLoading.expedidor}
             cnpjError={cnpjErrors.expedidor || ""}
             setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
+          onCityResolved={onCityResolved}
           />
 
           <Separator />
@@ -1022,6 +1088,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             cnpjLoading={!!cnpjLoading.recebedor}
             cnpjError={cnpjErrors.recebedor || ""}
             setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
+          onCityResolved={onCityResolved}
           />
 
           <Separator />
