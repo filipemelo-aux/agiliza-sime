@@ -1610,8 +1610,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Carga */}
-          <section className="space-y-4">
-            <SectionHeader icon={Package} title="Informações da Carga" />
+          <FormBlock
+            icon={Package}
+            title="Informações da Carga"
+            summary={form.produto_predominante ? `${form.produto_predominante}${form.peso_bruto ? ` · ${form.peso_bruto} kg` : ""}` : "produto não informado"}
+          >
+
             
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Buscar carga cadastrada ou cadastrar nova</Label>
