@@ -1513,26 +1513,85 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               <p className="text-[10px] text-muted-foreground">
                 Digite a chave e clique em "Importar da SEFAZ" (a nota precisa ter a Sime como transportadora ou destinatária), ou envie o XML. Remetente, destinatário, peso e valor são preenchidos automaticamente.
               </p>
-              {form.chaves_nfe_ref.map((chave, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <Input
-                    className="flex-1 font-mono text-xs"
-                    placeholder="Chave de acesso NF-e (44 dígitos)"
-                    maxLength={44}
-                    value={chave}
-                    onChange={(e) => {
-                      const arr = [...form.chaves_nfe_ref];
-                      arr[i] = e.target.value.replace(/\D/g, "");
-                      set("chaves_nfe_ref", arr);
-                    }}
-                  />
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
-                    set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i));
-                  }}>
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
+              {form.chaves_nfe_ref.map((chave, i) => {
+                const d = getNfeDetalhe(chave);
+                return (
+                  <div key={i} className="rounded-md border border-border p-2 space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        className="flex-1 font-mono text-xs"
+                        placeholder="Chave de acesso NF-e (44 dígitos)"
+                        maxLength={44}
+                        value={chave}
+                        onChange={(e) => {
+                          const arr = [...form.chaves_nfe_ref];
+                          arr[i] = e.target.value.replace(/\D/g, "");
+                          set("chaves_nfe_ref", arr);
+                        }}
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
+                        set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i));
+                      }}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    {chave.length === 44 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={d.numero} onChange={(e) => setNfeDetalhe(chave, { numero: e.target.value.replace(/\D/g, "") })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Série</Label><Input className="h-7 text-xs" value={d.serie} onChange={(e) => setNfeDetalhe(chave, { serie: e.target.value.replace(/\D/g, "") })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Emissão</Label><Input type="date" className="h-7 text-xs" value={d.data_emissao} onChange={(e) => setNfeDetalhe(chave, { data_emissao: e.target.value })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Valor</Label><Input className="h-7 text-xs" value={d.valor ? maskCurrency(String(Math.round(d.valor * 100))) : ""} onChange={(e) => setNfeDetalhe(chave, { valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Peso (kg)</Label><Input type="number" className="h-7 text-xs" value={d.peso || ""} onChange={(e) => setNfeDetalhe(chave, { peso: Number(e.target.value) || 0 })} /></div>
+                        <div className="space-y-0.5"><Label className="text-[10px]">Espécie</Label><Input className="h-7 text-xs" value={d.especie} onChange={(e) => setNfeDetalhe(chave, { especie: e.target.value.toUpperCase() })} /></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Outros documentos (carga sem NF-e) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Outros documentos (carga sem NF-e)</Label>
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                  onClick={() => set("outros_documentos", [...form.outros_documentos, { tipo: "99", descricao: "", numero: "", data_emissao: "", valor: 0 }])}>
+                  <Plus className="w-3 h-3" /> Adicionar
+                </Button>
+              </div>
+              {form.outros_documentos.map((o, i) => {
+                const upd = (patch: Partial<OutroDoc>) => {
+                  const arr = [...form.outros_documentos];
+                  arr[i] = { ...arr[i], ...patch };
+                  set("outros_documentos", arr);
+                };
+                return (
+                  <div key={i} className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end rounded-md border border-border p-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px]">Tipo</Label>
+                      <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="00">Declaração</SelectItem>
+                          <SelectItem value="10">Dutoviário</SelectItem>
+                          <SelectItem value="59">CF-e SAT</SelectItem>
+                          <SelectItem value="65">NFC-e</SelectItem>
+                          <SelectItem value="99">Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-0.5 sm:col-span-2"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
+                    <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={o.numero} onChange={(e) => upd({ numero: e.target.value })} /></div>
+                    <div className="space-y-0.5"><Label className="text-[10px]">Emissão</Label><Input type="date" className="h-7 text-xs" value={o.data_emissao} onChange={(e) => upd({ data_emissao: e.target.value })} /></div>
+                    <div className="flex gap-1 items-end">
+                      <div className="space-y-0.5 flex-1"><Label className="text-[10px]">Valor</Label><Input className="h-7 text-xs" value={o.valor ? maskCurrency(String(Math.round(o.valor * 100))) : ""} onChange={(e) => upd({ valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -1596,7 +1655,72 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <Label className="text-xs">RNTRC</Label>
                 <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Carreta 1</Label>
+                <Input value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" className="uppercase" onChange={(e) => set("reboque1_placa", maskPlate(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Carreta 2</Label>
+                <Input value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" className="uppercase" onChange={(e) => set("reboque2_placa", maskPlate(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nº de eixos</Label>
+                <Input type="number" min={2} max={12} value={form.numero_eixos ?? ""} onChange={(e) => set("numero_eixos", e.target.value ? Number(e.target.value) : null)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Lotação</Label>
+                <Select value={form.lotacao ? "1" : "0"} onValueChange={(v) => set("lotacao", v === "1")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Sim</SelectItem>
+                    <SelectItem value="0">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Contratado (dono do caminhão, quando de terceiro)</Label>
+              <PersonSearchInput
+                categories={["proprietario", "motorista"]}
+                placeholder="Buscar proprietário/contratado..."
+                selectedName={form.contratado_nome || undefined}
+                onSelect={(person) => {
+                  set("contratado_id", person.id);
+                  set("contratado_nome", person.razao_social || person.full_name);
+                  set("contratado_documento", person.cnpj ? maskDocument(person.cnpj) : "");
+                }}
+                onClear={() => {
+                  set("contratado_id", null);
+                  set("contratado_nome", "");
+                  set("contratado_documento", "");
+                }}
+              />
+              {form.contratado_documento && <p className="text-[10px] text-muted-foreground">Documento: {form.contratado_documento}</p>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Previsão de saída</Label>
+                <Input type="date" value={form.previsao_saida} onChange={(e) => set("previsao_saida", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Previsão de chegada</Label>
+                <Input type="date" value={form.previsao_chegada} onChange={(e) => set("previsao_chegada", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Pedido / Ordem carreg.</Label>
+                <Input value={form.pedido_numero} onChange={(e) => set("pedido_numero", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Pedágio</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <Input className="pl-10" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => set("valor_pedagio", Number(unmaskCurrency(e.target.value)) || 0)} />
+                </div>
+              </div>
+            </div>
+            {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
+              <p className="text-xs text-destructive">A previsão de chegada está antes da saída.</p>
+            )}
           </section>
 
           <Separator />
