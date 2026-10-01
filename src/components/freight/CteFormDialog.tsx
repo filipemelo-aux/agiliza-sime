@@ -1760,12 +1760,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           >
 
 
-            {/* Entrada: chave ou XML */}
-            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
-              <Label className="text-xs font-semibold">Adicionar nota fiscal</Label>
-              <div className="flex flex-col sm:flex-row gap-2">
+            <SubBlock
+              title="Adicionar nota fiscal"
+              hint="A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos."
+            >
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
-                  className="flex-1 font-mono text-xs"
+                  className="h-8 flex-1 font-mono text-xs"
                   placeholder="Cole ou digite a chave de acesso (44 dígitos)"
                   maxLength={44}
                   value={novaChave}
@@ -1773,25 +1774,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarChave(novaChave); } }}
                 />
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1" disabled={nfeLoading || novaChave.length !== 44} onClick={() => buscarChave(novaChave)}>
-                    {nfeLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Buscar pela chave
+                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={nfeLoading || novaChave.length !== 44} onClick={() => buscarChave(novaChave)}>
+                    {nfeLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />} Buscar pela chave
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1" onClick={() => xmlInputRef.current?.click()}>
-                    <Upload className="w-3 h-3" /> Importar XML
+                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => xmlInputRef.current?.click()}>
+                    <Upload className="h-3 w-3" /> Importar XML
                   </Button>
                   <input ref={xmlInputRef} type="file" accept=".xml,text/xml" multiple className="hidden" onChange={handleXmlFiles} />
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-[10px] text-muted-foreground">
-                  A busca pela chave só encontra notas em que a Sime é transportadora ou destinatária. Se não encontrar, importe o XML. Remetente, destinatário, peso, valor e cidades são preenchidos sozinhos.
-                </p>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>
                   <Plus className="w-3 h-3" /> Digitar nota manualmente
                 </Button>
               </div>
-            </div>
+            </SubBlock>
+
 
             {/* Lista de notas */}
             <div className="space-y-2">
