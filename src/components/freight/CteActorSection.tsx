@@ -52,6 +52,7 @@ export function CteActorSection({
       const data = await lookupCnpj(raw);
       if (data.razao_social) set(`${prefix}_nome`, maskName(data.razao_social));
       if (data.uf) set(`${prefix}_uf`, data.uf);
+      if (data.inscricao_estadual) set(`${prefix}_ie`, data.inscricao_estadual);
       if (data.logradouro) {
         const endereco = `${maskName(data.logradouro)}${data.numero ? `, ${data.numero}` : ""}${data.bairro ? ` - ${maskName(data.bairro)}` : ""}`;
         set(`${prefix}_endereco`, endereco);
