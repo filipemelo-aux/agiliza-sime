@@ -1151,6 +1151,9 @@ export type Database = {
           chave_acesso: string | null
           chaves_nfe_ref: string[] | null
           componentes_frete: Json | null
+          contratado_documento: string | null
+          contratado_id: string | null
+          contratado_nome: string | null
           created_at: string
           created_by: string
           cst_icms: string
@@ -1181,6 +1184,7 @@ export type Database = {
           id: string
           ind_ie_toma: number | null
           info_quantidade: Json | null
+          lotacao: boolean
           modal: string | null
           motivo_rejeicao: string | null
           motorista_id: string | null
@@ -1192,13 +1196,21 @@ export type Database = {
           municipio_origem_ibge: string | null
           municipio_origem_nome: string | null
           natureza_operacao: string
+          nfe_detalhes: Json
           numero: number | null
+          numero_eixos: number | null
           numero_interno: number | null
           observacoes: string | null
+          outros_documentos: Json
+          pedido_numero: string | null
           peso_bruto: number | null
           placa_veiculo: string | null
+          previsao_chegada: string | null
+          previsao_saida: string | null
           produto_predominante: string | null
           protocolo_autorizacao: string | null
+          reboque1_placa: string | null
+          reboque2_placa: string | null
           recebedor_cnpj: string | null
           recebedor_endereco: string | null
           recebedor_ie: string | null
@@ -1237,6 +1249,7 @@ export type Database = {
           valor_carga_averb: number | null
           valor_frete: number
           valor_icms: number
+          valor_pedagio: number
           valor_receber: number | null
           valor_tonelada: number | null
           valor_total_tributos: number | null
@@ -1255,6 +1268,9 @@ export type Database = {
           chave_acesso?: string | null
           chaves_nfe_ref?: string[] | null
           componentes_frete?: Json | null
+          contratado_documento?: string | null
+          contratado_id?: string | null
+          contratado_nome?: string | null
           created_at?: string
           created_by: string
           cst_icms?: string
@@ -1285,6 +1301,7 @@ export type Database = {
           id?: string
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
+          lotacao?: boolean
           modal?: string | null
           motivo_rejeicao?: string | null
           motorista_id?: string | null
@@ -1296,13 +1313,21 @@ export type Database = {
           municipio_origem_ibge?: string | null
           municipio_origem_nome?: string | null
           natureza_operacao?: string
+          nfe_detalhes?: Json
           numero?: number | null
+          numero_eixos?: number | null
           numero_interno?: number | null
           observacoes?: string | null
+          outros_documentos?: Json
+          pedido_numero?: string | null
           peso_bruto?: number | null
           placa_veiculo?: string | null
+          previsao_chegada?: string | null
+          previsao_saida?: string | null
           produto_predominante?: string | null
           protocolo_autorizacao?: string | null
+          reboque1_placa?: string | null
+          reboque2_placa?: string | null
           recebedor_cnpj?: string | null
           recebedor_endereco?: string | null
           recebedor_ie?: string | null
@@ -1341,6 +1366,7 @@ export type Database = {
           valor_carga_averb?: number | null
           valor_frete?: number
           valor_icms?: number
+          valor_pedagio?: number
           valor_receber?: number | null
           valor_tonelada?: number | null
           valor_total_tributos?: number | null
@@ -1359,6 +1385,9 @@ export type Database = {
           chave_acesso?: string | null
           chaves_nfe_ref?: string[] | null
           componentes_frete?: Json | null
+          contratado_documento?: string | null
+          contratado_id?: string | null
+          contratado_nome?: string | null
           created_at?: string
           created_by?: string
           cst_icms?: string
@@ -1389,6 +1418,7 @@ export type Database = {
           id?: string
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
+          lotacao?: boolean
           modal?: string | null
           motivo_rejeicao?: string | null
           motorista_id?: string | null
@@ -1400,13 +1430,21 @@ export type Database = {
           municipio_origem_ibge?: string | null
           municipio_origem_nome?: string | null
           natureza_operacao?: string
+          nfe_detalhes?: Json
           numero?: number | null
+          numero_eixos?: number | null
           numero_interno?: number | null
           observacoes?: string | null
+          outros_documentos?: Json
+          pedido_numero?: string | null
           peso_bruto?: number | null
           placa_veiculo?: string | null
+          previsao_chegada?: string | null
+          previsao_saida?: string | null
           produto_predominante?: string | null
           protocolo_autorizacao?: string | null
+          reboque1_placa?: string | null
+          reboque2_placa?: string | null
           recebedor_cnpj?: string | null
           recebedor_endereco?: string | null
           recebedor_ie?: string | null
@@ -1445,6 +1483,7 @@ export type Database = {
           valor_carga_averb?: number | null
           valor_frete?: number
           valor_icms?: number
+          valor_pedagio?: number
           valor_receber?: number | null
           valor_tonelada?: number | null
           valor_total_tributos?: number | null
@@ -1453,6 +1492,13 @@ export type Database = {
           xml_enviado?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ctes_contratado_id_fkey"
+            columns: ["contratado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ctes_establishment_id_fkey"
             columns: ["establishment_id"]

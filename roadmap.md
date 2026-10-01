@@ -39,10 +39,10 @@
 - [x] 1. Bloco IBS/CBS 2026 (cálculo automático sobre o frete)
 - [x] 2. Seguro da carga (responsável, seguradora, apólice, averbação; padrão no emitente)
 - [x] 3. Importar NF-e da SEFAZ pela chave + envio de XML
-- [ ] 4. Detalhes por nota (número, série, data, valor, peso, espécie) + "Outros documentos"
-- [ ] 5. Carretas (Vinculado 01/02) e Contratado
-- [ ] 6. Criar/vincular MDF-e junto com o CT-e
-- [ ] 7. Revisar "Emitir contrato de frete" (já existe caixinha)
+- [x] 4. Detalhes por nota (número, série, data, valor, peso, espécie) + "Outros documentos"
+- [x] 5. Carretas (Vinculado 01/02) e Contratado
+- [ ] 6. MDF-e junto ao CT-e — bloqueado: tela de MDF-e ainda não existe (construir antes)
+- [x] 7. Contrato de frete junto ao CT-e (já existia)
 - [ ] 8. Frete mínimo ANTT (aviso)
-- [ ] 9. Previsões de saída/chegada, Lotação, pedido/ordem, pedágio separado
+- [x] 9. Previsões de saída/chegada, Lotação, pedido/ordem, pedágio separado
 - [ ] Ligar "Transmitir" à Focus NFe com IBS/CBS + seguro
