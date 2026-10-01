@@ -184,6 +184,22 @@ const defaultForm = {
   ibs_uf_valor: 0,
   ibs_mun_aliquota: 0,
   ibs_mun_valor: 0,
+  // Notas / documentos
+  nfe_detalhes: [] as NfeDetalhe[],
+  outros_documentos: [] as OutroDoc[],
+  // Conjunto e contratado
+  reboque1_placa: "",
+  reboque2_placa: "",
+  numero_eixos: null as number | null,
+  lotacao: true,
+  contratado_id: null as string | null,
+  contratado_nome: "",
+  contratado_documento: "",
+  // Prazos / pedido / pedágio
+  previsao_saida: "",
+  previsao_chegada: "",
+  pedido_numero: "",
+  valor_pedagio: 0,
   cbs_aliquota: 0.9,
   cbs_valor: 0,
   // Seguro
@@ -448,6 +464,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         seguro_responsavel: (cte as any).seguro_responsavel ?? 4,
         seguradora_nome: (cte as any).seguradora_nome || "",
         seguradora_cnpj: (cte as any).seguradora_cnpj ? maskCNPJ((cte as any).seguradora_cnpj) : "",
+        nfe_detalhes: Array.isArray((cte as any).nfe_detalhes) ? (cte as any).nfe_detalhes : [],
+        outros_documentos: Array.isArray((cte as any).outros_documentos) ? (cte as any).outros_documentos : [],
+        reboque1_placa: (cte as any).reboque1_placa ? maskPlate((cte as any).reboque1_placa) : "",
+        reboque2_placa: (cte as any).reboque2_placa ? maskPlate((cte as any).reboque2_placa) : "",
+        numero_eixos: (cte as any).numero_eixos ?? null,
+        lotacao: (cte as any).lotacao ?? true,
+        contratado_id: (cte as any).contratado_id || null,
+        contratado_nome: (cte as any).contratado_nome || "",
+        contratado_documento: (cte as any).contratado_documento ? maskDocument((cte as any).contratado_documento) : "",
+        previsao_saida: (cte as any).previsao_saida || "",
+        previsao_chegada: (cte as any).previsao_chegada || "",
+        pedido_numero: (cte as any).pedido_numero || "",
+        valor_pedagio: Number((cte as any).valor_pedagio) || 0,
         apolice_numero: (cte as any).apolice_numero || "",
         averbacao_numero: (cte as any).averbacao_numero || "",
         data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
@@ -563,7 +592,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         uf_destino: p.uf_destino || n.destinatario.uf,
       };
     });
+    setNfeDetalhe(n.chave, {
+      numero: n.numero, serie: n.serie, data_emissao: n.data_emissao,
+      valor: n.valor, peso: n.peso_bruto, especie: n.especie.toUpperCase(),
+    });
   };
+
+
 
   const importFromSefaz = async () => {
     const est = establishments.find((e) => e.id === selectedEstId);
@@ -718,6 +753,16 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         seguradora_nome: form.seguradora_nome || null,
         seguradora_cnpj: unmaskCNPJ(form.seguradora_cnpj) || null,
         apolice_numero: form.apolice_numero || null,
+        nfe_detalhes: form.chaves_nfe_ref.filter((c) => c.length === 44).map((c) => getNfeDetalhe(c)),
+        outros_documentos: form.outros_documentos.filter((o) => o.numero || o.descricao),
+        reboque1_placa: unmaskPlate(form.reboque1_placa) || null,
+        reboque2_placa: unmaskPlate(form.reboque2_placa) || null,
+        contratado_id: form.contratado_id || null,
+        contratado_nome: form.contratado_nome || null,
+        contratado_documento: form.contratado_documento ? form.contratado_documento.replace(/\D/g, "") : null,
+        previsao_saida: form.previsao_saida || null,
+        previsao_chegada: form.previsao_chegada || null,
+        pedido_numero: form.pedido_numero || null,
         averbacao_numero: form.averbacao_numero || null,
         desconto: serializeDesconto(desconto),
       };
