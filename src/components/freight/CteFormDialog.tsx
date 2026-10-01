@@ -262,6 +262,7 @@ const defaultForm = {
   contratado_id: null as string | null,
   contratado_nome: "",
   contratado_documento: "",
+  contratado_locked: false,
   // Prazos / pedido / pedágio
   previsao_saida: "",
   previsao_chegada: "",
@@ -512,6 +513,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       contratado_id: null,
       contratado_nome: "",
       contratado_documento: "",
+      contratado_locked: false,
       motorista_id: null,
       veiculo_id: null,
       observacoes: "",
@@ -645,6 +647,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         contratado_id: (cte as any).contratado_id || null,
         contratado_nome: (cte as any).contratado_nome || "",
         contratado_documento: (cte as any).contratado_documento ? maskDocument((cte as any).contratado_documento) : "",
+        contratado_locked: false,
         previsao_saida: (cte as any).previsao_saida || "",
         previsao_chegada: (cte as any).previsao_chegada || "",
         pedido_numero: (cte as any).pedido_numero || "",
@@ -1308,7 +1311,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   }, [form.municipio_origem_nome, form.uf_origem, form.municipio_destino_nome, form.uf_destino, open]);
 
   // Veículo escolhido (pela placa ou pelo motorista) preenche conjunto, eixos e proprietário
-  const applyVehicle = (v: { vehicle_id: string; plate: string; rntrc: string | null; owner_id: string | null; owner_nome: string | null; owner_documento: string | null; vehicle_type: string | null; trailers: string[] }) => {
+  const applyVehicle = (v: { vehicle_id: string; plate: string; rntrc: string | null; owner_id: string | null; owner_nome: string | null; owner_documento: string | null; owner_is_emitter?: boolean; vehicle_type: string | null; trailers: string[] }) => {
     setForm((p) => ({
       ...p,
       veiculo_id: v.vehicle_id,
@@ -1317,7 +1320,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       reboque1_placa: v.trailers[0] ? maskPlate(v.trailers[0]) : p.reboque1_placa,
       reboque2_placa: v.trailers[1] ? maskPlate(v.trailers[1]) : p.reboque2_placa,
       numero_eixos: p.numero_eixos ?? eixosPorTipo(v.vehicle_type),
-      ...(v.owner_id ? { contratado_id: v.owner_id, contratado_nome: v.owner_nome || "", contratado_documento: v.owner_documento ? maskDocument(v.owner_documento) : "" } : { contratado_id: null, contratado_nome: "", contratado_documento: "" }),
+      // Frota própria (dona é uma empresa emitente): mostra a Sime e trava o campo;
+      // o contratado_id fica nulo porque frota própria não tem contratado.
+      contratado_id: v.owner_id,
+      contratado_nome: v.owner_nome || "",
+      contratado_documento: v.owner_documento ? maskDocument(v.owner_documento) : "",
+      contratado_locked: !!v.owner_is_emitter,
     }));
   };
 
@@ -1737,22 +1745,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
             </SubBlock>
 
-            <SubBlock title="Contratado" hint="Dono do caminhão, quando ele for de terceiro.">
-              <PersonSearchInput
-                categories={["proprietario", "motorista"]}
-                placeholder="Buscar proprietário/contratado..."
-                selectedName={form.contratado_nome || undefined}
-                onSelect={(person) => {
-                  set("contratado_id", person.id);
-                  set("contratado_nome", person.razao_social || person.full_name);
-                  set("contratado_documento", person.cnpj ? maskDocument(person.cnpj) : "");
-                }}
-                onClear={() => {
-                  set("contratado_id", null);
-                  set("contratado_nome", "");
-                  set("contratado_documento", "");
-                }}
-              />
+            <SubBlock title="Contratado" hint={form.contratado_locked ? "Frota própria: a dona do caminhão é a própria empresa." : "Dono do caminhão, quando ele for de terceiro."}>
+              {form.contratado_locked ? (
+                <Input className="h-8 text-xs" value={form.contratado_nome} disabled readOnly />
+              ) : (
+                <PersonSearchInput
+                  categories={["proprietario", "motorista"]}
+                  placeholder="Buscar proprietário/contratado..."
+                  selectedName={form.contratado_nome || undefined}
+                  onSelect={(person) => {
+                    set("contratado_id", person.id);
+                    set("contratado_nome", person.razao_social || person.full_name);
+                    set("contratado_documento", person.cnpj ? maskDocument(person.cnpj) : "");
+                  }}
+                  onClear={() => {
+                    set("contratado_id", null);
+                    set("contratado_nome", "");
+                    set("contratado_documento", "");
+                  }}
+                />
+              )}
               {form.contratado_documento && <p className="text-[10px] text-muted-foreground">Documento: {form.contratado_documento}</p>}
             </SubBlock>
 
