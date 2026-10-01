@@ -307,92 +307,114 @@ function ActorSection({
   setCnpjError: (v: string) => void;
   onCityResolved?: (prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => void;
 }) {
+  const nome = String(form[`${prefix}_nome`] || "");
+  const uf = String(form[`${prefix}_uf`] || "");
+  const doc = String(form[`${prefix}_cnpj`] || "");
+  const filled = nome.trim().length > 0;
+  const [expanded, setExpanded] = useState(filled);
+
   return (
-    <section className="space-y-4">
-      <SectionHeader icon={Building2} title={title} />
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Buscar no cadastro</Label>
-        <PersonSearchInput
-          categories={searchCategories}
-          placeholder={`Buscar ${title.toLowerCase()} cadastrado...`}
-          selectedName={form[`${prefix}_nome`] || undefined}
-          onSelect={(person) => {
-            set(`${prefix}_nome`, person.razao_social || person.full_name);
-            set(`${prefix}_cnpj`, person.cnpj ? maskDocument(person.cnpj) : form[`${prefix}_cnpj`]);
-            set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
-            set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
-            set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
-            const cidade = person.address_city ? maskName(person.address_city) : "";
-            const uf = person.address_state || form[`${prefix}_uf`] || "";
-            if (cidade && uf) {
-              onCityResolved?.(prefix, { cidade, uf, ibge: "" });
-              buscarCodigoIbgePorMunicipio(uf, cidade).then((ibge) => {
-                if (ibge) {
-                  set(`${prefix}_municipio_ibge`, ibge);
-                  onCityResolved?.(prefix, { cidade, uf, ibge });
-                }
-              });
-            } else {
+    <section className={`overflow-hidden rounded-lg border bg-card ${filled ? "border-border" : "border-dashed border-border"}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded((o) => !o)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 bg-card px-2.5 py-2 text-left transition-colors hover:bg-muted/60"
+      >
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${filled ? "bg-success" : "bg-muted-foreground/40"}`} />
+        <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">{title}</span>
+        <span className="ml-auto truncate text-[11px] text-muted-foreground">
+          {filled ? [nome, uf].filter(Boolean).join(" · ") : (doc || "não informado")}
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ${expanded ? "" : "-rotate-90"}`} />
+      </button>
+      <div className={expanded ? "space-y-2 border-t border-border bg-card px-2.5 pb-2.5 pt-2" : "hidden"}>
+        <div className="space-y-1">
+          <Label className="text-[10px] text-muted-foreground">Buscar no cadastro</Label>
+          <PersonSearchInput
+            categories={searchCategories}
+            placeholder={`Buscar ${title.toLowerCase()} cadastrado...`}
+            selectedName={form[`${prefix}_nome`] || undefined}
+            onSelect={(person) => {
+              set(`${prefix}_nome`, person.razao_social || person.full_name);
+              set(`${prefix}_cnpj`, person.cnpj ? maskDocument(person.cnpj) : form[`${prefix}_cnpj`]);
+              set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
+              set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
+              set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
+              const cidade = person.address_city ? maskName(person.address_city) : "";
+              const ufSel = person.address_state || form[`${prefix}_uf`] || "";
+              if (cidade && ufSel) {
+                onCityResolved?.(prefix, { cidade, uf: ufSel, ibge: "" });
+                buscarCodigoIbgePorMunicipio(ufSel, cidade).then((ibge) => {
+                  if (ibge) {
+                    set(`${prefix}_municipio_ibge`, ibge);
+                    onCityResolved?.(prefix, { cidade, uf: ufSel, ibge });
+                  }
+                });
+              } else {
+                onCityResolved?.(prefix, null);
+              }
+            }}
+            onClear={() => {
+              set(`${prefix}_nome`, "");
+              set(`${prefix}_cnpj`, "");
+              set(`${prefix}_ie`, "");
+              set(`${prefix}_endereco`, "");
+              set(`${prefix}_uf`, "");
+              set(`${prefix}_municipio_ibge`, "");
               onCityResolved?.(prefix, null);
-            }
-          }}
-          onClear={() => {
-            set(`${prefix}_nome`, "");
-            set(`${prefix}_cnpj`, "");
-            set(`${prefix}_ie`, "");
-            set(`${prefix}_endereco`, "");
-            set(`${prefix}_uf`, "");
-            set(`${prefix}_municipio_ibge`, "");
-            onCityResolved?.(prefix, null);
-          }}
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
-        <div className="sm:col-span-4 space-y-1.5">
-          <Label className="text-xs">Nome / Razão Social</Label>
-          <Input value={form[`${prefix}_nome`]} onChange={(e) => set(`${prefix}_nome`, maskName(e.target.value))} placeholder="Nome completo ou razão social" />
+            }}
+          />
         </div>
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label className="text-xs">UF</Label>
-          <Select value={form[`${prefix}_uf`] || undefined} onValueChange={(v) => set(`${prefix}_uf`, v)}>
-            <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-            <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">CNPJ / CPF</Label>
-          <div className="relative">
-            <Input
-              value={form[`${prefix}_cnpj`]}
-              onChange={(e) => {
-                setCnpjError("");
-                const masked = maskDocument(e.target.value);
-                set(`${prefix}_cnpj`, masked);
-                const raw = unmaskCNPJ(masked);
-                if (raw.length === 14) lookupCnpj(raw, prefix);
-              }}
-              maxLength={18}
-              placeholder="00.000.000/0000-00"
-            />
-            {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+        <div className="grid grid-cols-2 gap-x-2 gap-y-2">
+          <div className="col-span-2 space-y-1">
+            <Label className="text-[10px]">Nome / Razão Social</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_nome`]} onChange={(e) => set(`${prefix}_nome`, maskName(e.target.value))} placeholder="Nome completo ou razão social" />
           </div>
-          {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">Inscrição Estadual</Label>
-          <Input value={form[`${prefix}_ie`]} onChange={(e) => set(`${prefix}_ie`, e.target.value)} placeholder="IE" />
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">Cód. Município IBGE</Label>
-          <Input value={form[`${prefix}_municipio_ibge`]} onChange={(e) => set(`${prefix}_municipio_ibge`, e.target.value)} placeholder="0000000" />
-        </div>
-        <div className="sm:col-span-3 space-y-1.5">
-          <Label className="text-xs">Endereço</Label>
-          <Input value={form[`${prefix}_endereco`]} onChange={(e) => set(`${prefix}_endereco`, e.target.value)} placeholder="Logradouro, nº, bairro" />
+          <div className="space-y-1">
+            <Label className="text-[10px]">CNPJ / CPF</Label>
+            <div className="relative">
+              <Input
+                className="h-8 text-xs"
+                value={form[`${prefix}_cnpj`]}
+                onChange={(e) => {
+                  setCnpjError("");
+                  const masked = maskDocument(e.target.value);
+                  set(`${prefix}_cnpj`, masked);
+                  const raw = unmaskCNPJ(masked);
+                  if (raw.length === 14) lookupCnpj(raw, prefix);
+                }}
+                maxLength={18}
+                placeholder="00.000.000/0000-00"
+              />
+              {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            </div>
+            {cnpjError && <p className="text-[10px] text-destructive">{cnpjError}</p>}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">UF</Label>
+            <Select value={form[`${prefix}_uf`] || undefined} onValueChange={(v) => set(`${prefix}_uf`, v)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
+              <SelectContent>{UFS.map((ufItem) => <SelectItem key={ufItem} value={ufItem}>{ufItem}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">Inscrição Estadual</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_ie`]} onChange={(e) => set(`${prefix}_ie`, e.target.value)} placeholder="IE" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">Cód. Município IBGE</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_municipio_ibge`]} onChange={(e) => set(`${prefix}_municipio_ibge`, e.target.value)} placeholder="0000000" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label className="text-[10px]">Endereço</Label>
+            <Input className="h-8 text-xs" value={form[`${prefix}_endereco`]} onChange={(e) => set(`${prefix}_endereco`, e.target.value)} placeholder="Logradouro, nº, bairro" />
+          </div>
         </div>
       </div>
     </section>
   );
+
 }
 
 export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
