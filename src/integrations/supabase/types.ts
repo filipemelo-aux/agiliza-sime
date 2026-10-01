@@ -1142,7 +1142,11 @@ export type Database = {
       ctes: {
         Row: {
           aliquota_icms: number
+          apolice_numero: string | null
+          averbacao_numero: string | null
           base_calculo_icms: number
+          cbs_aliquota: number | null
+          cbs_valor: number | null
           cfop: string
           chave_acesso: string | null
           chaves_nfe_ref: string[] | null
@@ -1167,6 +1171,13 @@ export type Database = {
           expedidor_municipio_ibge: string | null
           expedidor_nome: string | null
           expedidor_uf: string | null
+          ibs_cbs_base_calculo: number | null
+          ibs_cbs_class_trib: string | null
+          ibs_cbs_cst: string | null
+          ibs_mun_aliquota: number | null
+          ibs_mun_valor: number | null
+          ibs_uf_aliquota: number | null
+          ibs_uf_valor: number | null
           id: string
           ind_ie_toma: number | null
           info_quantidade: Json | null
@@ -1202,6 +1213,9 @@ export type Database = {
           remetente_uf: string | null
           retira: number | null
           rntrc: string | null
+          seguradora_cnpj: string | null
+          seguradora_nome: string | null
+          seguro_responsavel: number | null
           serie: number
           status: string
           tipo_talao: string
@@ -1232,7 +1246,11 @@ export type Database = {
         }
         Insert: {
           aliquota_icms?: number
+          apolice_numero?: string | null
+          averbacao_numero?: string | null
           base_calculo_icms?: number
+          cbs_aliquota?: number | null
+          cbs_valor?: number | null
           cfop?: string
           chave_acesso?: string | null
           chaves_nfe_ref?: string[] | null
@@ -1257,6 +1275,13 @@ export type Database = {
           expedidor_municipio_ibge?: string | null
           expedidor_nome?: string | null
           expedidor_uf?: string | null
+          ibs_cbs_base_calculo?: number | null
+          ibs_cbs_class_trib?: string | null
+          ibs_cbs_cst?: string | null
+          ibs_mun_aliquota?: number | null
+          ibs_mun_valor?: number | null
+          ibs_uf_aliquota?: number | null
+          ibs_uf_valor?: number | null
           id?: string
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
@@ -1292,6 +1317,9 @@ export type Database = {
           remetente_uf?: string | null
           retira?: number | null
           rntrc?: string | null
+          seguradora_cnpj?: string | null
+          seguradora_nome?: string | null
+          seguro_responsavel?: number | null
           serie?: number
           status?: string
           tipo_talao?: string
@@ -1322,7 +1350,11 @@ export type Database = {
         }
         Update: {
           aliquota_icms?: number
+          apolice_numero?: string | null
+          averbacao_numero?: string | null
           base_calculo_icms?: number
+          cbs_aliquota?: number | null
+          cbs_valor?: number | null
           cfop?: string
           chave_acesso?: string | null
           chaves_nfe_ref?: string[] | null
@@ -1347,6 +1379,13 @@ export type Database = {
           expedidor_municipio_ibge?: string | null
           expedidor_nome?: string | null
           expedidor_uf?: string | null
+          ibs_cbs_base_calculo?: number | null
+          ibs_cbs_class_trib?: string | null
+          ibs_cbs_cst?: string | null
+          ibs_mun_aliquota?: number | null
+          ibs_mun_valor?: number | null
+          ibs_uf_aliquota?: number | null
+          ibs_uf_valor?: number | null
           id?: string
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
@@ -1382,6 +1421,9 @@ export type Database = {
           remetente_uf?: string | null
           retira?: number | null
           rntrc?: string | null
+          seguradora_cnpj?: string | null
+          seguradora_nome?: string | null
+          seguro_responsavel?: number | null
           serie?: number
           status?: string
           tipo_talao?: string
@@ -2264,6 +2306,7 @@ export type Database = {
         Row: {
           active: boolean | null
           ambiente: string | null
+          apolice_numero: string | null
           cnpj: string
           codigo_municipio_ibge: string | null
           contingency_activated_at: string | null
@@ -2283,6 +2326,8 @@ export type Database = {
           nome_fantasia: string | null
           razao_social: string
           rntrc: string | null
+          seguradora_cnpj: string | null
+          seguradora_nome: string | null
           serie_cte: number | null
           serie_mdfe: number | null
           type: Database["public"]["Enums"]["establishment_type"]
@@ -2295,6 +2340,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           ambiente?: string | null
+          apolice_numero?: string | null
           cnpj: string
           codigo_municipio_ibge?: string | null
           contingency_activated_at?: string | null
@@ -2314,6 +2360,8 @@ export type Database = {
           nome_fantasia?: string | null
           razao_social: string
           rntrc?: string | null
+          seguradora_cnpj?: string | null
+          seguradora_nome?: string | null
           serie_cte?: number | null
           serie_mdfe?: number | null
           type?: Database["public"]["Enums"]["establishment_type"]
@@ -2326,6 +2374,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           ambiente?: string | null
+          apolice_numero?: string | null
           cnpj?: string
           codigo_municipio_ibge?: string | null
           contingency_activated_at?: string | null
@@ -2345,6 +2394,8 @@ export type Database = {
           nome_fantasia?: string | null
           razao_social?: string
           rntrc?: string | null
+          seguradora_cnpj?: string | null
+          seguradora_nome?: string | null
           serie_cte?: number | null
           serie_mdfe?: number | null
           type?: Database["public"]["Enums"]["establishment_type"]
