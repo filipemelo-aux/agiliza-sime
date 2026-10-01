@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle, Eye, Printer, Truck } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Truck, Send, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
 
 
 export interface Cte {
@@ -105,6 +106,7 @@ export default function FreightCte() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [transmitting, setTransmitting] = useState(false);
 
   const handlePrintSelected = async () => {
     const ids = Array.from(selectedIds);
@@ -459,6 +461,42 @@ export default function FreightCte() {
     return arr.length === 1 ? arr[0] : null;
   })();
 
+  const canTransmit = !!singleCte
+    && singleCte.tipo_talao !== "servico"
+    && ["rascunho", "rejeitado"].includes(singleCte.status);
+
+  const handleTransmit = async () => {
+    if (!singleCte || !canTransmit) return;
+    const ok = await confirm({
+      title: singleCte.status === "rejeitado" ? "Retransmitir CT-e" : "Emitir CT-e na SEFAZ",
+      description: "O CT-e selecionado será enviado pela Focus NFe para autorização no ambiente fiscal configurado. Deseja continuar?",
+      confirmLabel: "Emitir SEFAZ",
+    });
+    if (!ok) return;
+
+    setTransmitting(true);
+    try {
+      const result = await emitirCteViaFocus(singleCte.id);
+      if (!result.success) {
+        toast({
+          title: result.status === "erro_autorizacao" ? "CT-e rejeitado" : "Erro na transmissão",
+          description: result.motivo_rejeicao || result.error || "Não foi possível emitir o CT-e.",
+          variant: "destructive",
+        });
+      } else if (result.status === "autorizado") {
+        toast({
+          title: "CT-e autorizado pela SEFAZ",
+          description: `Chave: ${result.chave_acesso || "—"}${result.protocolo ? ` | Protocolo: ${result.protocolo}` : ""}`,
+        });
+      } else {
+        toast({ title: "CT-e enviado", description: "A autorização está sendo processada pela SEFAZ." });
+      }
+      await fetchCtes();
+    } finally {
+      setTransmitting(false);
+    }
+  };
+
   const cteColumns: DataGridColumn<Cte>[] = [
     {
       key: "numero", header: "N.º", width: "90px",
@@ -580,6 +618,11 @@ export default function FreightCte() {
               key: "edit", label: "Editar", icon: Pencil, mode: "single",
               disabled: !singleCte || !(singleCte.tipo_talao === "servico" || singleCte.status === "rascunho" || singleCte.status === "rejeitado"),
               onClick: () => singleCte && handleEdit(singleCte),
+            },
+            {
+              key: "transmit", label: transmitting ? "Emitindo..." : "Emitir SEFAZ", icon: transmitting ? Loader2 : Send, mode: "single", variant: "secondary",
+              disabled: transmitting || !canTransmit,
+              onClick: handleTransmit,
             },
             {
               key: "mdfe", label: "Gerar MDF-e", icon: Truck, mode: "single+batch", variant: "outline",

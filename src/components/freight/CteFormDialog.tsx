@@ -28,9 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown, Send } from "lucide-react";
-import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
-import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate, formatCurrency } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
@@ -484,7 +482,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [saving, setSaving] = useState(false);
-  const [transmitting, setTransmitting] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
@@ -1354,46 +1351,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const canTransmit = !!cte && cte.tipo_talao !== "servico" && cte.status === "rascunho";
-
-  const handleTransmit = async () => {
-    if (!cte) return;
-    const ok = await confirm({
-      title: "Transmitir CT-e",
-      description: "O CT-e será enviado à SEFAZ para autorização. Deseja continuar?",
-      confirmLabel: "Transmitir",
-    });
-    if (!ok) return;
-    setTransmitting(true);
-    try {
-      const prep = await prepararCteParaTransmissao(cte.id);
-      if (!prep.success) {
-        toast({ title: "Erro na preparação do XML", description: prep.errors?.join("; ") || "Erro desconhecido", variant: "destructive" });
-        return;
-      }
-      const result = await emitirCteViaService(cte.id, { sync: true });
-      if (result.success && result.data?.success) {
-        const d = result.data;
-        if (d.status === "autorizado") {
-          toast({ title: "CT-e Autorizado!", description: `Chave: ${d.chave_acesso || "—"} | Protocolo: ${d.protocolo || "—"}` });
-        } else {
-          toast({ title: "CT-e transmitido", description: "Enviado com sucesso para processamento." });
-        }
-        onSaved();
-        onOpenChange(false);
-      } else {
-        const motivo = result.data?.motivo_rejeicao || result.error || "Erro desconhecido";
-        const cStat = result.data?.cStat;
-        toast({ title: cStat ? `Rejeitado (cStat: ${cStat})` : "Erro na transmissão", description: motivo, variant: "destructive" });
-        onSaved();
-      }
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally {
-      setTransmitting(false);
     }
   };
 
@@ -2292,13 +2249,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            {canTransmit && (
-              <Button variant="secondary" onClick={handleTransmit} disabled={saving || transmitting} title="Envia o CT-e à SEFAZ para autorização">
-                {transmitting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-1 h-3.5 w-3.5" />}
-                {transmitting ? "Transmitindo..." : "Transmitir"}
-              </Button>
-            )}
-            <Button onClick={() => handleSave(false)} disabled={saving || transmitting}>
+            <Button onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Salvando..." : "Salvar CT-e"}
             </Button>
           </div>
