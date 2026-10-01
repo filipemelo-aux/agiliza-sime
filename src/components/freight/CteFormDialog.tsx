@@ -214,14 +214,6 @@ const defaultForm = {
   averbacao_numero: "",
 };
 
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
-  return (
-    <div className="flex items-center gap-2 pb-1">
-      <Icon className="w-4 h-4 text-primary" />
-      <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">{title}</h3>
-    </div>
-  );
-}
 
 function FormBlock({
   icon: Icon,
