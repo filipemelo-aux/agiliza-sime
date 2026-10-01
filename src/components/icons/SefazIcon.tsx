@@ -20,13 +20,15 @@ export function SefazIcon({ size = 24, color = "currentColor", strokeWidth = 2, 
       aria-hidden="true"
       {...props}
     >
-      {/* chão e colunas do prédio */}
-      <path d="M2 22h20" />
-      <path d="M4 18v-6M8 18v-6M16 18v-6M20 18v-6" />
+      {/* mastro e bandeira da Fazenda */}
+      <path d="M12 5V2" />
+      <path d="M12 2h6l-2 2 2 2h-6" />
       {/* pedimento */}
       <path d="M3 12 12 5l9 7" />
-      {/* mastro */}
-      <path d="M12 5V2" />
+      {/* colunas */}
+      <path d="M4 18v-6M8 18v-6M16 18v-6M20 18v-6" />
+      {/* base */}
+      <path d="M2 22h20" />
       {/* carimbo de autorização */}
       <path d="M9.5 14.5l2 2 3.5-3.5" />
     </svg>
