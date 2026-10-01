@@ -93,6 +93,9 @@ interface Props {
   onSaved: () => void;
 }
 
+interface NfeDetalhe { chave: string; numero: string; serie: string; data_emissao: string; valor: number; peso: number; especie: string }
+interface OutroDoc { tipo: string; descricao: string; numero: string; data_emissao: string; valor: number }
+
 const defaultForm = {
   // Tipo e serviço
   tp_cte: 0,
