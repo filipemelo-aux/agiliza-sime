@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
+import QRCode from "qrcode";
+import JsBarcode from "jsbarcode";
 
 const esc = (value: unknown) =>
   String(value ?? "")
@@ -62,6 +64,13 @@ const authorizationData = (cte: CtePrintInput) => {
   return { key, protocol };
 };
 
+const barcodeDataUrl = (value: string) => {
+  if (!value || typeof document === "undefined") return "";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  JsBarcode(svg, value, { format: "CODE128", displayValue: false, margin: 0, height: 36, width: 1.25 });
+  return `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(svg))}`;
+};
+
 async function loadEmitente(establishmentId?: string | null) {
   if (!establishmentId) return null;
   const { data } = await supabase
@@ -112,42 +121,62 @@ const TOMADOR: Record<number, string> = { 0: "Remetente", 1: "Expedidor", 2: "Re
 const STATUS: Record<string, string> = { rascunho: "RASCUNHO", autorizado: "AUTORIZADO", cancelado: "CANCELADO", rejeitado: "REJEITADO", processando: "PROCESSANDO" };
 
 const STYLE = `<style>
-  @page { size: A4 portrait; margin: 12mm; }
+  @page { size: A4 portrait; margin: 8mm; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 7.7px; }
-  .dacte { width: 100%; border: 1.2px solid #111; }
-  .header { display: grid; grid-template-columns: 1.45fr .8fr 1.15fr; min-height: 82px; border-bottom: 1px solid #111; }
-  .header > div { padding: 5px; border-right: 1px solid #111; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 6.5px; }
+  .dacte { width: 100%; border: 1px solid #111; }
+  .header { display: grid; grid-template-columns: 1.2fr 1.4fr .42fr; min-height: 104px; border-bottom: 1px solid #111; }
+  .header > div { padding: 4px; border-right: 1px solid #111; }
   .header > div:last-child { border-right: 0; }
   .issuer { text-align: center; display: flex; flex-direction: column; justify-content: center; }
-  .issuer strong { font-size: 12px; text-transform: uppercase; }
-  .issuer span { margin-top: 3px; line-height: 1.25; }
-  .dacte-title { text-align: center; display: flex; flex-direction: column; justify-content: center; }
-  .dacte-title b { font-size: 18px; }
-  .dacte-title span { font-size: 7px; line-height: 1.25; }
-  .access { display: flex; flex-direction: column; justify-content: space-between; }
-  .key { font: 600 8px/1.35 'Courier New', monospace; text-align: center; word-break: break-word; }
-  .barcode { height: 25px; margin: 2px 5px; background: repeating-linear-gradient(90deg,#111 0,#111 1px,#fff 1px,#fff 2px,#111 2px,#111 4px,#fff 4px,#fff 6px); }
+  .brand { color: #17488d; font-size: 25px; line-height: .9; font-weight: 900; font-style: italic; }
+  .brand small { color: #e8ad09; font-size: 6px; display: block; letter-spacing: 2px; font-style: normal; margin-top: 4px; }
+  .issuer strong { font-size: 9px; text-transform: uppercase; margin-top: 5px; }
+  .issuer span { margin-top: 2px; line-height: 1.15; }
+  .fiscal-head { padding: 0 !important; display: flex; flex-direction: column; }
+  .title-row { display:grid; grid-template-columns: 1.5fr .55fr; border-bottom:1px solid #111; min-height:42px; }
+  .dacte-title { text-align: center; display: flex; flex-direction: column; justify-content: center; border-right:1px solid #111; padding:3px; }
+  .dacte-title b { font-size: 13px; }
+  .dacte-title span { font-size: 6px; line-height: 1.15; }
+  .modal { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:8px; }
+  .doc-meta { display:grid; grid-template-columns:.6fr .5fr .8fr .6fr 1.35fr; min-height:26px; border-bottom:1px solid #111; }
+  .doc-meta > div { padding:2px 3px; border-right:1px solid #111; }
+  .doc-meta > div:last-child { border:0; }
+  .access { display:flex; flex-direction:column; justify-content:center; text-align:center; padding:3px; }
+  .key { font: 600 7px/1.25 'Courier New', monospace; text-align: center; word-break: break-word; }
+  .barcode { display:block; width:96%; height:28px; margin:3px auto 1px; object-fit:fill; }
+  .qr { display:flex; align-items:center; justify-content:center; padding:5px !important; }
+  .qr img { width:82px; height:82px; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { background: #e7e7e7; border-top: 1px solid #111; border-bottom: 1px solid #111; padding: 2px 4px; font-weight: 700; text-transform: uppercase; }
+  .section-title { text-align:center; border-top: 1px solid #111; border-bottom: 1px solid #111; padding: 1px 3px; font-weight: 400; text-transform: uppercase; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
   .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .c3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .c4 { grid-template-columns: repeat(4,minmax(0,1fr)); } .c5 { grid-template-columns: repeat(5,minmax(0,1fr)); }
-  .cell { min-height: 27px; padding: 2px 4px; border-right: 1px solid #777; overflow-wrap: anywhere; }
+  .cell { min-height: 22px; padding: 2px 3px; border-right: 1px solid #777; overflow-wrap: anywhere; }
   .cell:last-child { border-right: 0; }
   .span2 { grid-column: span 2; } .span3 { grid-column: span 3; }
-  .label { display: block; color: #444; font-size: 6.3px; text-transform: uppercase; margin-bottom: 1px; }
-  .value { display: block; font-size: 8px; font-weight: 600; line-height: 1.2; }
+  .label { display: block; color: #222; font-size: 5.7px; text-transform: uppercase; margin-bottom: 1px; }
+  .value { display: block; font-size: 6.9px; font-weight: 600; line-height: 1.15; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { border-right: 1px solid #777; border-bottom: 1px solid #777; padding: 2px 3px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
   th:last-child, td:last-child { border-right: 0; } tr:last-child td { border-bottom: 0; }
-  th { background: #f0f0f0; font-size: 6.2px; text-transform: uppercase; }
-  td { font-size: 7.2px; }
+  th { font-size: 5.7px; font-weight:400; text-transform: uppercase; }
+  td { font-size: 6.5px; }
   .right { text-align: right; } .center { text-align: center; }
-  .notes { min-height: 38px; padding: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .receipt { margin-top: 7px; border: 1px solid #111; break-inside: avoid; }
+  .notes { min-height: 70px; padding: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
+  .actor { padding:3px; min-height:72px; border-right:1px solid #111; }
+  .actor:nth-child(even) { border-right:0; }
+  .actor-title { font-weight:700; font-size:6px; text-transform:uppercase; margin-bottom:2px; }
+  .actor-line { display:grid; grid-template-columns:44px 1fr; line-height:1.3; }
+  .actor-line b { font-size:5.6px; font-weight:400; }
+  .actor-pair { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:30px; border-top:1px solid #111; }
+  .exclusive > div { border-right:1px solid #111; padding:3px; text-align:center; }
+  .exclusive > div:last-child { border:0; }
+  .receipt { margin-top: 38px; border: 1px solid #111; break-inside: avoid; }
   .receipt-head { display: grid; grid-template-columns: 1fr 125px; }
   .receipt-head > div { padding: 4px; border-right: 1px solid #111; }
   .receipt-head > div:last-child { border-right: 0; }
@@ -166,18 +195,13 @@ function cell(label: string, value: unknown, className = "") {
 
 function actorSection(cte: CtePrintInput, prefix: ActorPrefix, title: string) {
   const name = cte[`${prefix}_nome`];
-  if (!name && prefix !== "tomador") return "";
-  return `<div class="section-title">${esc(title)}</div>
-    <div class="grid c4">
-      ${cell("Nome / Razão social", name, "span2")}
-      ${cell("CNPJ / CPF", doc(cte[`${prefix}_cnpj`]))}
-      ${cell("Inscrição Estadual", cte[`${prefix}_ie`] || "ISENTO")}
-    </div>
-    <div class="grid c4">
-      ${cell("Endereço", cte[`${prefix}_endereco`], "span2")}
-      ${cell("Município / código IBGE", [cte[`${prefix}_municipio_nome`], cte[`${prefix}_municipio_ibge`]].filter(Boolean).join(" • "))}
-      ${cell("UF", cte[`${prefix}_uf`])}
-    </div>`;
+  return `<div class="actor">
+    <div class="actor-title">${esc(title)} &nbsp; ${esc(name || "")}</div>
+    <div class="actor-line"><b>ENDEREÇO</b><span>${esc(cte[`${prefix}_endereco`] || "")}</span></div>
+    <div class="actor-pair"><div class="actor-line"><b>MUNICÍPIO</b><span>${esc(cte[`${prefix}_municipio_nome`] || cte[`${prefix}_municipio_ibge`] || "")}</span></div><div class="actor-line"><b>UF</b><span>${esc(cte[`${prefix}_uf`] || "")}</span></div></div>
+    <div class="actor-pair"><div class="actor-line"><b>CNPJ/CPF</b><span>${esc(doc(cte[`${prefix}_cnpj`]))}</span></div><div class="actor-line"><b>INSC. EST.</b><span>${esc(cte[`${prefix}_ie`] || "")}</span></div></div>
+    <div class="actor-line"><b>PAÍS</b><span>BRASIL</span></div>
+  </div>`;
 }
 
 function documentsHtml(cte: CtePrintInput) {
@@ -215,16 +239,15 @@ function valuesHtml(cte: CtePrintInput) {
         .filter(([key, value]) => key !== "regra" && key !== "tarifa_final" && Number(value) !== 0)
         .map(([key, value]) => ({ xNome: key.replace(/_/g, " ").toUpperCase(), vComp: Number(value) }))
     : [];
-  const rows = (components.length ? components : fallback).map((item) =>
-    `<tr><td>${esc(item.xNome || item.nome || "Componente")}</td><td class="right">${esc(money(item.vComp ?? item.valor))}</td></tr>`
-  ).join("") || `<tr><td>FRETE</td><td class="right">${esc(money(cte.valor_frete))}</td></tr>`;
+  const items = components.length ? components : fallback;
+  const slots = Array.from({ length: 3 }, (_, index) => items[index]);
   return `<div class="section-title">Componentes do valor da prestação</div>
-    <table><thead><tr><th>Nome do componente</th><th style="width:28%" class="right">Valor</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="grid c4">
-      ${cell("Valor total da prestação", money(cte.valor_frete))}
-      ${cell("Valor a receber", money(cte.valor_receber ?? cte.valor_frete))}
-      ${cell("Valor da carga", money(cte.valor_carga))}
-      ${cell("Valor para averbação", money(cte.valor_carga_averb ?? cte.valor_carga))}
+      ${slots.map((item, index) => {
+        const component = item as Component | undefined;
+        return cell(`Nome / valor ${index + 1}`, component ? `${component.xNome || component.nome || "FRETE"}  ${money(component.vComp ?? component.valor)}` : index === 0 ? `FRETE  ${money(cte.valor_frete)}` : "");
+      }).join("")}
+      <div>${cell("Valor total do serviço", money(cte.valor_frete))}${cell("Valor a receber", money(cte.valor_receber ?? cte.valor_frete))}</div>
     </div>`;
 }
 
@@ -251,6 +274,9 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
   const isService = cte.tipo_talao === "servico";
   const authorization = authorizationData(cte);
   const authorized = !isService && cte.status === "autorizado" && Boolean(authorization.key && authorization.protocol);
+  const consultationUrl = authorization.key ? `https://www.cte.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=completa&chaveAcesso=${authorization.key}` : "";
+  const qrCodeUrl = consultationUrl ? await QRCode.toDataURL(consultationUrl, { width: 180, margin: 0, errorCorrectionLevel: "M" }) : "";
+  const barcodeUrl = barcodeDataUrl(authorization.key);
   const number = cte.numero ?? cte.numero_interno ?? "—";
   const quantities = asArray<Quantity>(cte.info_quantidade);
   const quantitiesRows = quantities.length
@@ -258,47 +284,38 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     : `<tr><td>PESO BRUTO</td><td>KG</td><td class="right">${esc(decimal(cte.peso_bruto, 3))}</td></tr>`;
 
   const title = isService ? "DOCUMENTO AUXILIAR DE CT-e DE SERVIÇO" : "DOCUMENTO AUXILIAR DO CONHECIMENTO DE TRANSPORTE ELETRÔNICO";
+  const actorPairs = `<div class="actors">${actorSection(cte, "remetente", "Remetente")}${actorSection(cte, "destinatario", "Destinatário")}${actorSection(cte, "expedidor", "Expedidor")}${actorSection(cte, "recebedor", "Recebedor")}</div>`;
   const body = `<div class="dacte">
     ${!authorized ? `<div class="watermark">${isService ? "DOCUMENTO INTERNO — SEM VALOR FISCAL" : "DOCUMENTO NÃO AUTORIZADO — SEM VALOR FISCAL"}</div>` : ""}
     <div class="header">
-      <div class="issuer"><strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.nome_fantasia || "")}</span><span>${esc(emit?.endereco || "")}</span><span>CNPJ ${esc(emit?.cnpj || "—")} • IE ${esc(emit?.ie || "—")} • RNTRC ${esc(emit?.rntrc || cte.rntrc || "—")}</span></div>
-      <div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span><strong>MODAL RODOVIÁRIO</strong><span>Nº ${esc(number)} • SÉRIE ${esc(cte.serie ?? (isService ? "INTERNA" : "—"))}</span></div>
-      <div class="access"><span class="label center">Controle do fisco</span><div class="barcode"></div><div class="key">${esc(formatChave(authorization.key))}</div><div class="status">${esc(STATUS[cte.status || ""] || String(cte.status || "INTERNO").toUpperCase())}</div></div>
-    </div>
-    <div class="grid c5">
-      ${cell("Modelo", isService ? "Interno" : "57")}${cell("Série", cte.serie ?? "—")}${cell("Número", number)}${cell("Data e hora de emissão", dateTime(cte.data_emissao))}${cell("Protocolo de autorização", authorization.protocol)}
+      <div class="issuer"><div class="brand">SIME<small>TRANSPORTES</small></div><strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.endereco || "")}</span><span>CNPJ: ${esc(emit?.cnpj || "—")} IE: ${esc(emit?.ie || "—")}</span></div>
+      <div class="fiscal-head"><div class="title-row"><div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span></div><div class="modal"><span class="label">Modal</span><b>Rodoviário</b></div></div><div class="doc-meta"><div><span class="label">Modelo</span><b>${isService ? "—" : "57"}</b></div><div><span class="label">Série</span><b>${esc(cte.serie ?? "—")}</b></div><div><span class="label">Número</span><b>${esc(number)}</b></div><div><span class="label">Página</span><b>1/1</b></div><div><span class="label">Data e hora de emissão</span><b>${esc(dateTime(cte.data_emissao))}</b></div></div><div class="access">${barcodeUrl ? `<img class="barcode" src="${barcodeUrl}"/>` : ""}<span class="label">Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br</span><div class="key">${esc(formatChave(authorization.key))}</div></div></div>
+      <div class="qr">${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code para consulta do CT-e"/>` : `<b>${esc(STATUS[cte.status || ""] || "INTERNO")}</b>`}</div>
     </div>
     <div class="grid c4">
-      ${cell("CFOP", cte.cfop)}${cell("Natureza da operação", cte.natureza_operacao, "span2")}${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}
+      ${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}${cell("Tipo do serviço", TP_SERV[Number(cte.tp_serv)] || "Normal")}${cell("Indicador do CT-e globalizado", cte.globalizado ? "SIM" : "NÃO")}${cell("Nº protocolo", authorization.protocol ? `${authorization.protocol} ${dateTime(cte.data_autorizacao)}` : "")}
     </div>
-    <div class="grid c4">
-      ${cell("Tipo do serviço", TP_SERV[Number(cte.tp_serv)] || "Normal")}${cell("Tomador", TOMADOR[Number(cte.tomador_tipo)] || "—")}${cell("Início da prestação", cteOrigemLabel(cte))}${cell("Término da prestação", cteDestinoLabel(cte))}
+    <div class="grid c2">
+      ${cell("CFOP - Natureza da prestação", `${cte.cfop || ""} - ${cte.natureza_operacao || ""}`)}${cell("Insc. SUFRAMA do destinatário", cte.destinatario_suframa)}
     </div>
-    ${actorSection(cte, "remetente", "Remetente")}
-    ${actorSection(cte, "expedidor", "Expedidor")}
-    ${actorSection(cte, "destinatario", "Destinatário")}
-    ${actorSection(cte, "recebedor", "Recebedor")}
-    ${actorSection(cte, "tomador", "Tomador do serviço")}
-    <div class="section-title">Informações da carga</div>
-    <div class="grid c4">
-      ${cell("Produto predominante", cte.produto_predominante, "span2")}${cell("Outras características", cte.caracteristicas_adicionais_carga)}${cell("Valor da carga", money(cte.valor_carga))}
+    <div class="grid c2">${cell("Origem da prestação", cteOrigemLabel(cte))}${cell("Destino da prestação", cteDestinoLabel(cte))}</div>
+    ${actorPairs}
+    <div class="grid c2">${cell("Tomador do serviço", `${cte.tomador_nome || ""} | ${doc(cte.tomador_cnpj)} | IE ${cte.tomador_ie || ""} | ${cte.tomador_endereco || ""}`)}${cell("Município / UF", [cte.tomador_municipio_nome || cte.tomador_municipio_ibge, cte.tomador_uf].filter(Boolean).join(" - "))}</div>
+    <div class="grid c3">
+      ${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}
     </div>
-    <table><thead><tr><th>Tipo de medida</th><th style="width:20%">Unidade</th><th style="width:25%" class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows}</tbody></table>
-    ${documentsHtml(cte)}
+    <table><thead><tr><th>Qtd.</th><th>Tipo de medida</th><th>Unidade</th><th class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows.replace(/<tr><td>/g, "<tr><td>CARGA</td><td>")}</tbody></table>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
-    <div class="section-title">Dados do modal rodoviário</div>
-    <div class="grid c5">
-      ${cell("RNTRC", cte.rntrc || emit?.rntrc)}${cell("CIOT", cte.ciot)}${cell("Placa", cte.placa_veiculo)}${cell("Reboque 1", cte.reboque1_placa)}${cell("Reboque 2", cte.reboque2_placa)}
-    </div>
-    <div class="grid c3">${cell("Motorista", cte.motorista_nome)}${cell("Proprietário / contratado", cte.contratado_nome)}${cell("CNPJ / CPF", doc(cte.contratado_documento))}</div>
-    <div class="section-title">Seguro da carga</div>
-    <div class="grid c4">${cell("Responsável", Number(cte.seguro_responsavel) === 4 ? "Emitente do CT-e" : cte.seguro_responsavel)}${cell("Seguradora", cte.seguradora_nome)}${cell("CNPJ", doc(cte.seguradora_cnpj))}${cell("Apólice / averbação", [cte.apolice_numero, cte.averbacao_numero].filter(Boolean).join(" / "))}</div>
-    <div class="section-title">Dados adicionais</div><div class="notes">${esc(cte.observacoes || "")}</div>
+    ${documentsHtml(cte)}
+    <div class="section-title">Observações</div><div class="notes">${esc(cte.observacoes || "")}${cte.previsao_saida ? `\nDATA E HORA PREVISTAS PARA O INÍCIO DA VIAGEM ${esc(dateTime(cte.previsao_saida))}` : ""}</div>
+    <div class="section-title">Informações específicas do modal rodoviário</div>
+    <div class="grid c3">${cell("RNTRC da empresa", digits(cte.rntrc || emit?.rntrc).replace(/^0/, ""))}${cell("CIOT", cte.ciot)}${cell("Conjunto", [cte.placa_veiculo, cte.reboque1_placa, cte.reboque2_placa].filter(Boolean).join(" / "))}</div>
+    <div class="exclusive"><div>USO EXCLUSIVO DO EMISSOR DO CT-e<br><br>${esc(cte.informacoes_fisco || "")}</div><div>RESERVADO AO FISCO</div></div>
   </div>
   <div class="receipt">
-    <div class="receipt-head"><div><b>DECLARO QUE RECEBI OS VOLUMES DESTE CONHECIMENTO EM PERFEITO ESTADO.</b><br><span class="muted">Nome legível e documento do recebedor</span></div><div><b>CT-e Nº ${esc(number)}</b><br>Série ${esc(cte.serie ?? "—")}</div></div>
-    <div class="receipt-sign"><div>ASSINATURA / CARIMBO</div><div>DATA</div><div>HORA</div></div>
+    <div class="receipt-head"><div><b>DECLARO QUE RECEBI OS VOLUMES DO CONHECIMENTO DE TRANSPORTE ${esc(number)} EM PERFEITO ESTADO PELO QUE DOU POR CUMPRIDO O PRESENTE CONTRATO DE TRANSPORTE</b><br>CNPJ: ${esc(emit?.cnpj || "—")} &nbsp; EMPRESA: ${esc(emit?.razao_social || "SIME TRANSPORTE LTDA")}</div><div><b>CT-e Nº ${esc(number)}</b></div></div>
+    <div class="receipt-sign"><div>NOME COMPLETO<br><br>CPF/RG/DOC<br><br>ASSINATURA / CARIMBO</div><div>CHEGADA DATA / HORA</div><div>SAÍDA DATA / HORA</div></div>
   </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>DACTE ${esc(number)}</title>${STYLE}</head><body>${body}</body></html>`;
