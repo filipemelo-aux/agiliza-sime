@@ -648,6 +648,24 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }));
   }, [form.valor_frete, form.ibs_uf_aliquota, form.ibs_mun_aliquota, form.cbs_aliquota]);
 
+  // Totais da carga somados das notas fiscais vinculadas
+  useEffect(() => {
+    const detalhes = form.chaves_nfe_ref
+      .filter((c) => c.length === 44)
+      .map((c) => form.nfe_detalhes.find((d) => d.chave === c))
+      .filter(Boolean) as NfeDetalhe[];
+    if (detalhes.length === 0) return;
+    const peso = detalhes.reduce((s, d) => s + (Number(d.peso) || 0), 0);
+    const valor = detalhes.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+    if (peso === 0 && valor === 0) return;
+    setForm((p) => ({
+      ...p,
+      peso_bruto: peso > 0 ? peso : p.peso_bruto,
+      valor_carga: valor > 0 ? valor : p.valor_carga,
+      valor_carga_averb: valor > 0 ? valor : p.valor_carga_averb,
+    }));
+  }, [form.chaves_nfe_ref, form.nfe_detalhes]);
+
   // Seguro padrão do emitente (somente quando ainda vazio)
   useEffect(() => {
     const est: any = establishments.find((e) => e.id === selectedEstId);
