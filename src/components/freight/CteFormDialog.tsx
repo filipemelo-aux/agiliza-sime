@@ -698,25 +698,60 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     if (form.tp_serv !== 1 || chave.length !== 44) { setCteSubInfo(null); setCteSubLoading(false); return; }
     let cancelled = false;
     setCteSubLoading(true);
-    supabase
-      .from("ctes")
-      .select("numero, data_emissao, tomador_nome, valor_frete, chave_acesso")
-      .eq("chave_acesso", chave)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
+    // Dados extraídos da própria chave (sempre disponíveis)
+    const emitCnpj = chave.slice(6, 20);
+    const fromKey = {
+      numero: String(Number(chave.slice(25, 34))),
+      data: `${chave.slice(4, 6)}/20${chave.slice(2, 4)}`,
+      tomador: "",
+      valor: 0,
+      emitente: emitCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"),
+      fonte: "chave" as const,
+    };
+    (async () => {
+      const { data } = await supabase
+        .from("ctes")
+        .select("numero, data_emissao, tomador_nome, valor_frete, chave_acesso")
+        .eq("chave_acesso", chave)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
         setCteSubLoading(false);
-        if (data) {
-          setCteSubInfo({
-            numero: String(data.numero ?? ""),
-            data: data.data_emissao ? String(data.data_emissao).slice(0, 10).split("-").reverse().join("/") : "",
-            tomador: data.tomador_nome || "",
-            valor: Number(data.valor_frete) || 0,
-          });
-        } else {
-          setCteSubInfo("notfound");
+        setCteSubInfo({
+          numero: String(data.numero ?? ""),
+          data: data.data_emissao ? String(data.data_emissao).slice(0, 10).split("-").reverse().join("/") : "",
+          tomador: data.tomador_nome || "",
+          valor: Number(data.valor_frete) || 0,
+          emitente: fromKey.emitente,
+          fonte: "base",
+        });
+        return;
+      }
+      // Não está na base: tenta na SEFAZ (CT-es em que a Sime é envolvida)
+      let info: any = { ...fromKey };
+      try {
+        const { data: r } = await supabase.functions.invoke("focus-nfe", { body: { action: "cte_por_chave", chave } });
+        const xml = r?.ok && typeof r.data === "string" ? r.data : "";
+        if (xml.includes("<infCte")) {
+          const doc = new DOMParser().parseFromString(xml, "text/xml");
+          const tx = (tag: string, root: ParentNode = doc) => root.getElementsByTagName(tag)[0]?.textContent || "";
+          const dh = tx("dhEmi").slice(0, 10);
+          const emit = doc.getElementsByTagName("emit")[0];
+          const toma = doc.getElementsByTagName("toma4")[0];
+          info = {
+            numero: tx("nCT") || fromKey.numero,
+            data: dh ? dh.split("-").reverse().join("/") : fromKey.data,
+            tomador: toma ? tx("xNome", toma) : "",
+            valor: Number(tx("vTPrest")) || 0,
+            emitente: emit ? tx("xNome", emit) : fromKey.emitente,
+            fonte: "sefaz",
+          };
         }
-      });
+      } catch { /* mantém dados da chave */ }
+      if (cancelled) return;
+      setCteSubLoading(false);
+      setCteSubInfo(info);
+    })();
     return () => { cancelled = true; };
   }, [form.chave_cte_subcontratacao, form.tp_serv]);
 
