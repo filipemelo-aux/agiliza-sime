@@ -1747,8 +1747,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Notas fiscais da carga */}
-          <section className="space-y-4">
-            <SectionHeader icon={FileText} title="Notas Fiscais da Carga" />
+          <FormBlock
+            icon={FileText}
+            title="Notas Fiscais da Carga"
+            summary={`${form.chaves_nfe_ref.filter(Boolean).length} ${form.chaves_nfe_ref.filter(Boolean).length === 1 ? "nota vinculada" : "notas vinculadas"}`}
+          >
+
 
             {/* Entrada: chave ou XML */}
             <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
