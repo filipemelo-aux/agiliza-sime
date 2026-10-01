@@ -1592,10 +1592,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Peso Bruto (kg)</Label>
-                <Input type="number" step="0.01" value={form.peso_bruto} onChange={(e) => set("peso_bruto", Number(e.target.value))} />
-              </div>
             </div>
 
             {/* Quantidades */}
