@@ -146,6 +146,20 @@ const NFE_FIELDS: { k: keyof NfeDetalhe; label: string; kind: "text" | "num" | "
   { k: "valor", label: "Valor do documento", kind: "money" },
 ];
 
+/** Converte o tipo gravado na natureza da carga (ex.: "Granel Sólido") na chave do seletor do CT-e. */
+function tipoCargaKey(tipo?: string | null): string {
+  const t = (tipo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (!t) return "";
+  if (t.includes("perigos")) return "perigosa";
+  if (t.includes("granel") && t.includes("liquid")) return "granel_liquido";
+  if (t.includes("neogranel")) return "neogranel";
+  if (t.includes("granel")) return "granel_solido";
+  if (t.includes("frigor") || t.includes("refriger")) return "frigorificada";
+  if (t.includes("conteiner")) return "conteinerizada";
+  if (t.includes("geral")) return "carga_geral";
+  return "";
+}
+
 const defaultForm = {
   // Tipo e serviço
   tp_cte: 0,
