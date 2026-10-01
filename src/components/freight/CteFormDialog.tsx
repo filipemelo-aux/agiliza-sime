@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { parseNfeXml, fetchNfeFromSefaz, type NfeData } from "@/lib/nfeImport";
 import {
   Sheet,
   SheetContent,
@@ -23,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature } from "lucide-react";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
@@ -175,6 +176,22 @@ const defaultForm = {
   data_emissao: "",
   // Obs
   observacoes: "",
+  // IBS/CBS 2026
+  ibs_cbs_cst: "000",
+  ibs_cbs_class_trib: "000001",
+  ibs_cbs_base_calculo: 0,
+  ibs_uf_aliquota: 0.1,
+  ibs_uf_valor: 0,
+  ibs_mun_aliquota: 0,
+  ibs_mun_valor: 0,
+  cbs_aliquota: 0.9,
+  cbs_valor: 0,
+  // Seguro
+  seguro_responsavel: 4,
+  seguradora_nome: "",
+  seguradora_cnpj: "",
+  apolice_numero: "",
+  averbacao_numero: "",
 };
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
@@ -330,6 +347,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
   const [cnpjErrors, setCnpjErrors] = useState<Record<string, string>>({});
+  const [nfeLoading, setNfeLoading] = useState(false);
+  const xmlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase
@@ -417,6 +436,20 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         veiculo_id: cte.veiculo_id || null,
         tomador_id: cte.tomador_id || null,
         observacoes: cte.observacoes || "",
+        ibs_cbs_cst: (cte as any).ibs_cbs_cst || "000",
+        ibs_cbs_class_trib: (cte as any).ibs_cbs_class_trib || "000001",
+        ibs_cbs_base_calculo: Number((cte as any).ibs_cbs_base_calculo) || 0,
+        ibs_uf_aliquota: (cte as any).ibs_uf_aliquota ?? 0.1,
+        ibs_uf_valor: Number((cte as any).ibs_uf_valor) || 0,
+        ibs_mun_aliquota: (cte as any).ibs_mun_aliquota ?? 0,
+        ibs_mun_valor: Number((cte as any).ibs_mun_valor) || 0,
+        cbs_aliquota: (cte as any).cbs_aliquota ?? 0.9,
+        cbs_valor: Number((cte as any).cbs_valor) || 0,
+        seguro_responsavel: (cte as any).seguro_responsavel ?? 4,
+        seguradora_nome: (cte as any).seguradora_nome || "",
+        seguradora_cnpj: (cte as any).seguradora_cnpj ? maskCNPJ((cte as any).seguradora_cnpj) : "",
+        apolice_numero: (cte as any).apolice_numero || "",
+        averbacao_numero: (cte as any).averbacao_numero || "",
         data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
@@ -472,6 +505,110 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     const icms = base * (form.aliquota_icms / 100);
     setForm((p) => ({ ...p, base_calculo_icms: base, valor_icms: Math.round(icms * 100) / 100 }));
   }, [form.valor_frete, form.aliquota_icms]);
+
+  // Auto-calculate IBS/CBS sobre o valor total do frete
+  useEffect(() => {
+    const base = Number(form.valor_frete) || 0;
+    const r = (aliq: number) => Math.round(base * ((Number(aliq) || 0) / 100) * 100) / 100;
+    setForm((p) => ({
+      ...p,
+      ibs_cbs_base_calculo: base,
+      ibs_uf_valor: r(p.ibs_uf_aliquota),
+      ibs_mun_valor: r(p.ibs_mun_aliquota),
+      cbs_valor: r(p.cbs_aliquota),
+    }));
+  }, [form.valor_frete, form.ibs_uf_aliquota, form.ibs_mun_aliquota, form.cbs_aliquota]);
+
+  // Seguro padrão do emitente (somente quando ainda vazio)
+  useEffect(() => {
+    const est: any = establishments.find((e) => e.id === selectedEstId);
+    if (!est) return;
+    setForm((p) => ({
+      ...p,
+      seguradora_nome: p.seguradora_nome || est.seguradora_nome || "",
+      seguradora_cnpj: p.seguradora_cnpj || (est.seguradora_cnpj ? maskCNPJ(est.seguradora_cnpj) : ""),
+      apolice_numero: p.apolice_numero || est.apolice_numero || "",
+    }));
+  }, [selectedEstId, establishments]);
+
+  const applyNfe = (n: NfeData) => {
+    setForm((p) => {
+      const chaves = p.chaves_nfe_ref.filter((c) => c && c !== n.chave);
+      const emptyIdx = p.chaves_nfe_ref.indexOf("");
+      const isFirst = chaves.length === 0;
+      const fill = (prefix: string, party: NfeData["emitente"]) => ({
+        [`${prefix}_nome`]: (p as any)[`${prefix}_nome`] || maskName(party.nome),
+        [`${prefix}_cnpj`]: (p as any)[`${prefix}_cnpj`] || (party.documento ? maskDocument(party.documento) : ""),
+        [`${prefix}_ie`]: (p as any)[`${prefix}_ie`] || party.ie,
+        [`${prefix}_endereco`]: (p as any)[`${prefix}_endereco`] || party.endereco,
+        [`${prefix}_municipio_ibge`]: (p as any)[`${prefix}_municipio_ibge`] || party.municipio_ibge,
+        [`${prefix}_uf`]: (p as any)[`${prefix}_uf`] || party.uf,
+      });
+      void emptyIdx;
+      return {
+        ...p,
+        ...fill("remetente", n.emitente),
+        ...fill("destinatario", n.destinatario),
+        chaves_nfe_ref: [...chaves, n.chave],
+        // Peso e valor somam quando há mais de uma nota
+        peso_bruto: isFirst ? n.peso_bruto : (Number(p.peso_bruto) || 0) + n.peso_bruto,
+        valor_carga: isFirst ? n.valor : (Number(p.valor_carga) || 0) + n.valor,
+        valor_carga_averb: isFirst ? n.valor : (Number(p.valor_carga_averb) || 0) + n.valor,
+        produto_predominante: p.produto_predominante || maskName(n.produto),
+        municipio_origem_ibge: p.municipio_origem_ibge || n.emitente.municipio_ibge,
+        municipio_origem_nome: p.municipio_origem_nome || maskName(n.emitente.municipio),
+        uf_origem: p.uf_origem || n.emitente.uf,
+        municipio_destino_ibge: p.municipio_destino_ibge || n.destinatario.municipio_ibge,
+        municipio_destino_nome: p.municipio_destino_nome || maskName(n.destinatario.municipio),
+        uf_destino: p.uf_destino || n.destinatario.uf,
+      };
+    });
+  };
+
+  const importFromSefaz = async () => {
+    const est = establishments.find((e) => e.id === selectedEstId);
+    if (!est) {
+      toast({ title: "Selecione o emitente", description: "Escolha o estabelecimento emissor antes de buscar a nota.", variant: "destructive" });
+      return;
+    }
+    const pendentes = form.chaves_nfe_ref.filter((c) => c.length === 44);
+    if (pendentes.length === 0) {
+      toast({ title: "Informe a chave", description: "Adicione a chave de 44 dígitos da NF-e e clique novamente.", variant: "destructive" });
+      return;
+    }
+    setNfeLoading(true);
+    // Recomeça a soma de peso/valor a partir das notas importadas
+    setForm((p) => ({ ...p, chaves_nfe_ref: [] }));
+    let ok = 0;
+    for (const chave of pendentes) {
+      try {
+        applyNfe(await fetchNfeFromSefaz(chave, est.cnpj));
+        ok++;
+      } catch (e: any) {
+        setForm((p) => ({ ...p, chaves_nfe_ref: [...p.chaves_nfe_ref, chave] }));
+        toast({ title: `NF-e ${chave.slice(25, 34)}`, description: e.message, variant: "destructive" });
+      }
+    }
+    setNfeLoading(false);
+    if (ok) toast({ title: "Dados importados da SEFAZ", description: `${ok} nota(s) aplicada(s). Confira remetente, destinatário, peso e valores.` });
+  };
+
+  const handleXmlFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    let ok = 0;
+    for (const f of files) {
+      try {
+        applyNfe(parseNfeXml(await f.text()));
+        ok++;
+      } catch (err: any) {
+        toast({ title: f.name, description: err.message, variant: "destructive" });
+      }
+    }
+    if (ok) toast({ title: "XML importado", description: `${ok} nota(s) aplicada(s). Confira os dados preenchidos.` });
+  };
+
+  const formatBRL = (v: number) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   // Auto-fill valor_receber = valor_frete when changing
   useEffect(() => {
@@ -578,6 +715,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         recebedor_nome: form.recebedor_nome || null,
         tomador_nome: form.tomador_nome || null,
         valor_carga_averb: form.valor_carga_averb || null,
+        seguradora_nome: form.seguradora_nome || null,
+        seguradora_cnpj: unmaskCNPJ(form.seguradora_cnpj) || null,
+        apolice_numero: form.apolice_numero || null,
+        averbacao_numero: form.averbacao_numero || null,
         desconto: serializeDesconto(desconto),
       };
 
@@ -1067,6 +1208,82 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
             </div>
 
+            {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <Label className="text-xs font-semibold">IBS / CBS (Reforma Tributária 2026)</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Situação (CST)</Label>
+                  <Input value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Classificação</Label>
+                  <Input value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-[10px]">Base de cálculo</Label>
+                  <Input className="bg-muted text-muted-foreground" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">IBS Estadual (%)</Label>
+                  <Input type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_uf_valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">IBS Municipal (%)</Label>
+                  <Input type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.ibs_mun_valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CBS (%)</Label>
+                  <Input type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
+                  <p className="text-[10px] text-muted-foreground">{formatBRL(form.cbs_valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Total IBS + CBS</Label>
+                  <Input className="bg-muted text-muted-foreground" disabled value={formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Seguro da carga (obrigatório para emitir) */}
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <Label className="text-xs font-semibold">Seguro da Carga</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Responsável pelo seguro</Label>
+                  <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4">Emitente do CT-e</SelectItem>
+                      <SelectItem value="5">Tomador do serviço</SelectItem>
+                      <SelectItem value="0">Remetente</SelectItem>
+                      <SelectItem value="1">Expedidor</SelectItem>
+                      <SelectItem value="2">Recebedor</SelectItem>
+                      <SelectItem value="3">Destinatário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Seguradora</Label>
+                  <Input value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CNPJ da seguradora</Label>
+                  <Input value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Nº da apólice</Label>
+                  <Input value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Nº da averbação (opcional)</Label>
+                  <Input value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).</p>
+            </div>
+
             {/* Desconto (registro interno — não afeta XML/Sefaz) */}
             <div className="space-y-1.5 rounded-md border border-border bg-muted/10 p-3">
               <div className="flex items-center justify-between">
@@ -1272,18 +1489,30 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
             {/* Chaves NF-e */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="text-xs font-semibold">NF-e Referenciadas</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}
-                >
-                  <Plus className="w-3 h-3" /> Adicionar
-                </Button>
+                <div className="flex gap-1">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading} onClick={importFromSefaz}>
+                    {nfeLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Importar da SEFAZ
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => xmlInputRef.current?.click()}>
+                    <Upload className="w-3 h-3" /> Enviar XML
+                  </Button>
+                  <input ref={xmlInputRef} type="file" accept=".xml,text/xml" multiple className="hidden" onChange={handleXmlFiles} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}
+                  >
+                    <Plus className="w-3 h-3" /> Adicionar
+                  </Button>
+                </div>
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Digite a chave e clique em "Importar da SEFAZ" (a nota precisa ter a Sime como transportadora ou destinatária), ou envie o XML. Remetente, destinatário, peso e valor são preenchidos automaticamente.
+              </p>
               {form.chaves_nfe_ref.map((chave, i) => (
                 <div key={i} className="flex gap-2 items-center">
                   <Input
