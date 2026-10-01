@@ -1197,6 +1197,46 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
   };
 
+  const canTransmit = !!cte && cte.tipo_talao !== "servico" && cte.status === "rascunho";
+
+  const handleTransmit = async () => {
+    if (!cte) return;
+    const ok = await confirm({
+      title: "Transmitir CT-e",
+      description: "O CT-e será enviado à SEFAZ para autorização. Deseja continuar?",
+      confirmText: "Transmitir",
+    });
+    if (!ok) return;
+    setTransmitting(true);
+    try {
+      const prep = await prepararCteParaTransmissao(cte.id);
+      if (!prep.success) {
+        toast({ title: "Erro na preparação do XML", description: prep.errors?.join("; ") || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      const result = await emitirCteViaService(cte.id, { sync: true });
+      if (result.success && result.data?.success) {
+        const d = result.data;
+        if (d.status === "autorizado") {
+          toast({ title: "CT-e Autorizado!", description: `Chave: ${d.chave_acesso || "—"} | Protocolo: ${d.protocolo || "—"}` });
+        } else {
+          toast({ title: "CT-e transmitido", description: "Enviado com sucesso para processamento." });
+        }
+        onSaved();
+        onOpenChange(false);
+      } else {
+        const motivo = result.data?.motivo_rejeicao || result.error || "Erro desconhecido";
+        const cStat = result.data?.cStat;
+        toast({ title: cStat ? `Rejeitado (cStat: ${cStat})` : "Erro na transmissão", description: motivo, variant: "destructive" });
+        onSaved();
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setTransmitting(false);
+    }
+  };
+
   // Composição do frete (regra padrão): frete valor = tarifa × t; prestação = frete + adicionais
   const comp = form.composicao_frete;
   const setComp = (patch: Partial<typeof defaultForm.composicao_frete>) => setForm((p) => ({ ...p, composicao_frete: { ...p.composicao_frete, ...patch } }));
