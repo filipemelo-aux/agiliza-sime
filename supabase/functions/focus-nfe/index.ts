@@ -36,9 +36,12 @@ Deno.serve(async (req) => {
   const cnpj = (body.cnpj ?? "").replace(/\D/g, "");
   if (cnpj && cnpj.length !== 14) return json({ error: "CNPJ inválido" }, 400);
 
-  const token = Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO");
+  // Consultas de documentos recebidos usam produção (somente leitura). Emissão segue em homologação.
+  const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas";
+  const ambiente = isQuery && Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") ? "producao" : "homologacao";
+  const token = Deno.env.get(ambiente === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO");
   if (!token) return json({ error: "Token Focus NFe não configurado" }, 500);
-  const base = BASES.homologacao;
+  const base = BASES[ambiente];
 
   let path: string;
   switch (action) {
