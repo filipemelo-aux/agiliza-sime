@@ -46,3 +46,4 @@
 - [ ] 8. Frete mínimo ANTT (aviso)
 - [x] 9. Previsões de saída/chegada, Lotação, pedido/ordem, pedágio separado
 - [x] Ligar "Emitir SEFAZ" à Focus NFe com IBS/CBS + seguro somente pela toolbar
+- [ ] Corrigir numeração do CT-e: respeitar o próximo número configurado na Focus NFe (8785)
