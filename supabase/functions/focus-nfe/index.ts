@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
   if (cnpj && cnpj.length !== 14) return json({ error: "CNPJ inválido" }, 400);
 
   // Consultas de documentos recebidos usam produção (somente leitura). Emissão segue em homologação.
-  const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave";
+  const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave" || action === "cte_por_chave";
   const ambiente = isQuery && Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") ? "producao" : "homologacao";
   const token = Deno.env.get(ambiente === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO");
   if (!token) return json({ error: "Token Focus NFe não configurado" }, 500);
@@ -57,6 +57,12 @@ Deno.serve(async (req) => {
       if (!cnpj) return json({ error: "Informe o CNPJ" }, 400);
       path = `/v2/ctes_recebidas?cnpj=${cnpj}${body.versao ? `&versao=${Number(body.versao)}` : ""}`;
       break;
+    case "cte_por_chave": {
+      const chave = String((body as any).chave ?? "").replace(/\D/g, "");
+      if (chave.length !== 44) return json({ error: "Chave de CT-e inválida" }, 400);
+      path = `/v2/ctes_recebidas/${chave}.xml`;
+      break;
+    }
     case "nfe_por_chave": {
       const chave = String((body as any).chave ?? "").replace(/\D/g, "");
       if (chave.length !== 44) return json({ error: "Chave de NF-e inválida" }, 400);
