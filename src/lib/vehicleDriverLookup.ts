@@ -6,6 +6,7 @@ export interface DriverByPlate {
   owner_id: string | null;
   owner_nome: string | null;
   owner_documento: string | null;
+  owner_is_emitter: boolean;
   vehicle_type: string | null;
   trailers: string[];
   motorista_id: string | null;
@@ -54,6 +55,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
     owner_id: owner?.id ?? null,
     owner_nome: owner?.nome || null,
     owner_documento: owner?.documento || null,
+    owner_is_emitter: owner?.is_emitter ?? false,
     vehicle_type: vehicle.vehicle_type || null,
     trailers: [vehicle.trailer_plate_1, vehicle.trailer_plate_2].filter(Boolean) as string[],
     motorista_id,
@@ -70,6 +72,7 @@ export interface VehicleByDriver {
   owner_id: string | null;
   owner_nome: string | null;
   owner_documento: string | null;
+  owner_is_emitter: boolean;
   vehicle_type: string | null;
   trailers: string[];
 }
