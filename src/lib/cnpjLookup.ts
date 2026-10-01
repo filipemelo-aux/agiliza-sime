@@ -14,6 +14,31 @@ export interface CnpjData {
   cep: string | null;
   ddd_telefone_1: string | null;
   email: string | null;
+  inscricao_estadual: string | null;
+}
+
+/** Extrai a IE ativa do retorno do cnpj.ws (preferindo a do estado do estabelecimento). */
+function extractIeFromCnpjWs(data: any): string | null {
+  const lista: any[] = data?.estabelecimento?.inscricoes_estaduais ?? [];
+  const ativas = lista.filter((i) => i?.ativo && i?.inscricao_estadual);
+  if (ativas.length === 0) return null;
+  const uf = data?.estabelecimento?.estado?.sigla;
+  const match = ativas.find((i) => i?.estado?.sigla === uf) ?? ativas[0];
+  return String(match.inscricao_estadual).replace(/\D/g, "") || null;
+}
+
+/** Busca apenas a IE no cnpj.ws (BrasilAPI não retorna IE). Melhor esforço: falhas retornam null. */
+async function fetchIeOnly(rawCnpj: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`https://publica.cnpj.ws/cnpj/${rawCnpj}`, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    return extractIeFromCnpjWs(await res.json());
+  } catch {
+    return null;
+  }
 }
 
 async function tryFetch(url: string, signal?: AbortSignal): Promise<Response> {
