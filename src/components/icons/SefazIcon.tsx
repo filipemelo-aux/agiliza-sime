@@ -1,8 +1,8 @@
 import { LucideProps } from "lucide-react";
 
 /**
- * Ícone estilo Lucide representando a SEFAZ: prédio público da Fazenda
- * (pedimento + colunas) com carimbo de autorização (check).
+ * Ícone estilo Lucide representando a SEFAZ: a "fazendinha" — prédio público
+ * da Fazenda com colunas e bandeira no topo.
  */
 export function SefazIcon({ size = 24, color = "currentColor", strokeWidth = 2, className, ...props }: LucideProps) {
   return (
@@ -20,15 +20,16 @@ export function SefazIcon({ size = 24, color = "currentColor", strokeWidth = 2, 
       aria-hidden="true"
       {...props}
     >
-      {/* chão e colunas do prédio */}
-      <path d="M2 22h20" />
-      <path d="M4 18v-6M8 18v-6M16 18v-6M20 18v-6" />
+      {/* bandeira da Fazenda */}
+      <path d="M12 4V1" />
+      <path d="M12 1h5.5l-2 1.75 2 1.75H12" />
       {/* pedimento */}
-      <path d="M3 12 12 5l9 7" />
-      {/* mastro */}
-      <path d="M12 5V2" />
-      {/* carimbo de autorização */}
-      <path d="M9.5 14.5l2 2 3.5-3.5" />
+      <path d="M2 10 12 4l10 6" />
+      {/* colunas */}
+      <path d="M4 18v-8M8 18v-8M12 18v-8M16 18v-8M20 18v-8" />
+      {/* arquitrave e base */}
+      <path d="M2 18h20" />
+      <path d="M2 22h20" />
     </svg>
   );
 }

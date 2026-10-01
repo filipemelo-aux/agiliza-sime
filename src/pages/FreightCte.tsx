@@ -470,7 +470,7 @@ export default function FreightCte() {
     if (!singleCte || !canTransmit) return;
     const ok = await confirm({
       title: singleCte.status === "rejeitado" ? "Retransmitir CT-e" : "Emitir CT-e na SEFAZ",
-      description: "O CT-e selecionado será enviado pela Focus NFe para autorização no ambiente fiscal configurado. Deseja continuar?",
+      description: "O CT-e selecionado será transmitido à SEFAZ para autorização no ambiente fiscal configurado. Deseja continuar?",
       confirmLabel: "Emitir SEFAZ",
     });
     if (!ok) return;
