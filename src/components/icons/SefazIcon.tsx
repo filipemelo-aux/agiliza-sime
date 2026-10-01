@@ -1,8 +1,8 @@
 import { LucideProps } from "lucide-react";
 
 /**
- * Ícone estilo Lucide representando a SEFAZ: prédio público da Fazenda
- * (pedimento + colunas) com carimbo de autorização (check).
+ * Ícone estilo Lucide representando a SEFAZ: a "fazendinha" — prédio público
+ * da Fazenda com colunas e bandeira no topo.
  */
 export function SefazIcon({ size = 24, color = "currentColor", strokeWidth = 2, className, ...props }: LucideProps) {
   return (
