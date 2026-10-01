@@ -691,6 +691,35 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
+  // Reconhecimento automático da chave do CT-e original (subcontratação):
+  // ao completar 44 dígitos, busca o CT-e na base e mostra os dados dele.
+  useEffect(() => {
+    const chave = (form.chave_cte_subcontratacao || "").replace(/\D/g, "");
+    if (form.tp_serv !== 1 || chave.length !== 44) { setCteSubInfo(null); setCteSubLoading(false); return; }
+    let cancelled = false;
+    setCteSubLoading(true);
+    supabase
+      .from("ctes")
+      .select("numero, data_emissao, tomador_nome, valor_frete, chave_acesso")
+      .eq("chave_acesso", chave)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setCteSubLoading(false);
+        if (data) {
+          setCteSubInfo({
+            numero: String(data.numero ?? ""),
+            data: data.data_emissao ? String(data.data_emissao).slice(0, 10).split("-").reverse().join("/") : "",
+            tomador: data.tomador_nome || "",
+            valor: Number(data.valor_frete) || 0,
+          });
+        } else {
+          setCteSubInfo("notfound");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [form.chave_cte_subcontratacao, form.tp_serv]);
+
   // Cidade resolvida de cada envolvido (seleção no cadastro, CNPJ ou NF-e importada)
   const partyCitiesRef = useRef<Record<string, { cidade: string; uf: string; ibge: string }>>({});
   const [routeTick, setRouteTick] = useState(0);
