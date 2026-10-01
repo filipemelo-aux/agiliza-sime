@@ -1151,6 +1151,7 @@ export type Database = {
           chave_acesso: string | null
           chaves_nfe_ref: string[] | null
           componentes_frete: Json | null
+          composicao_frete: Json | null
           contratado_documento: string | null
           contratado_id: string | null
           contratado_nome: string | null
@@ -1174,6 +1175,8 @@ export type Database = {
           expedidor_municipio_ibge: string | null
           expedidor_nome: string | null
           expedidor_uf: string | null
+          frete_minimo: Json | null
+          gerar_previsao: boolean
           ibs_cbs_base_calculo: number | null
           ibs_cbs_class_trib: string | null
           ibs_cbs_cst: string | null
@@ -1268,6 +1271,7 @@ export type Database = {
           chave_acesso?: string | null
           chaves_nfe_ref?: string[] | null
           componentes_frete?: Json | null
+          composicao_frete?: Json | null
           contratado_documento?: string | null
           contratado_id?: string | null
           contratado_nome?: string | null
@@ -1291,6 +1295,8 @@ export type Database = {
           expedidor_municipio_ibge?: string | null
           expedidor_nome?: string | null
           expedidor_uf?: string | null
+          frete_minimo?: Json | null
+          gerar_previsao?: boolean
           ibs_cbs_base_calculo?: number | null
           ibs_cbs_class_trib?: string | null
           ibs_cbs_cst?: string | null
@@ -1385,6 +1391,7 @@ export type Database = {
           chave_acesso?: string | null
           chaves_nfe_ref?: string[] | null
           componentes_frete?: Json | null
+          composicao_frete?: Json | null
           contratado_documento?: string | null
           contratado_id?: string | null
           contratado_nome?: string | null
@@ -1408,6 +1415,8 @@ export type Database = {
           expedidor_municipio_ibge?: string | null
           expedidor_nome?: string | null
           expedidor_uf?: string | null
+          frete_minimo?: Json | null
+          gerar_previsao?: boolean
           ibs_cbs_base_calculo?: number | null
           ibs_cbs_class_trib?: string | null
           ibs_cbs_cst?: string | null

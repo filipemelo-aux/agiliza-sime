@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { ANTT_TABELAS, EIXOS_ANTT, TIPO_CARGA_TO_ANTT, calcPisoMinimo, eixosAntt } from "@/lib/anttPisoMinimo";
 import { parseNfeXml, fetchNfeFromSefaz, type NfeData } from "@/lib/nfeImport";
 import { buscarCodigoIbgePorMunicipio } from "@/lib/ibgeLookup";
 import {
@@ -29,7 +31,7 @@ import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
-import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
+import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo } from "@/lib/vehicleDriverLookup";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
@@ -96,8 +98,8 @@ const MODAL_OPTIONS = [
 ];
 
 const RETIRA_OPTIONS = [
-  { value: "0", label: "0 - Não" },
-  { value: "1", label: "1 - Sim" },
+  { value: "1", label: "Não" },
+  { value: "0", label: "Sim" },
 ];
 
 
@@ -109,8 +111,38 @@ interface Props {
   onSaved: () => void;
 }
 
-interface NfeDetalhe { chave: string; numero: string; serie: string; data_emissao: string; valor: number; peso: number; especie: string }
-interface OutroDoc { tipo: string; descricao: string; numero: string; data_emissao: string; valor: number }
+interface DocCampos { natureza: string; tipo: string; numero: string; serie: string; data_emissao: string; valor: number; peso: number; quantidade: number; especie: string; cubagem: number; marca: string; cfop: string; ncm: string; valor_produtos: number; bc_icms: number; bc_icms_st: number; outros: number }
+interface NfeDetalhe extends DocCampos { chave: string }
+interface OutroDoc extends DocCampos { tipo: string; descricao: string }
+const emptyDoc: DocCampos = { natureza: "", tipo: "1", numero: "", serie: "", data_emissao: "", valor: 0, peso: 0, quantidade: 0, especie: "", cubagem: 0, marca: "", cfop: "", ncm: "", valor_produtos: 0, bc_icms: 0, bc_icms_st: 0, outros: 0 };
+
+function DocInput({ kind, value, onChange }: { kind: "text" | "num" | "money" | "date"; value: any; onChange: (v: any) => void }) {
+  if (kind === "date") return <Input type="date" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value)} />;
+  if (kind === "num") return <Input type="number" step="0.001" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
+  if (kind === "money") return <Input className="h-7 text-xs" value={value ? maskCurrency(String(Math.round(Number(value) * 100))) : ""} onChange={(e) => onChange(Number(unmaskCurrency(e.target.value)) || 0)} />;
+  return <Input className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value.toUpperCase())} />;
+}
+
+
+const NFE_FIELDS: { k: keyof NfeDetalhe; label: string; kind: "text" | "num" | "money" | "date" }[] = [
+  { k: "natureza", label: "Natureza da carga", kind: "text" },
+  { k: "data_emissao", label: "Data de emissão", kind: "date" },
+  { k: "tipo", label: "Tipo", kind: "text" },
+  { k: "numero", label: "Número", kind: "text" },
+  { k: "serie", label: "Série", kind: "text" },
+  { k: "peso", label: "Peso (kg)", kind: "num" },
+  { k: "quantidade", label: "Quantidade", kind: "num" },
+  { k: "especie", label: "Espécie", kind: "text" },
+  { k: "cubagem", label: "Cubagem (m³)", kind: "num" },
+  { k: "marca", label: "Marca", kind: "text" },
+  { k: "cfop", label: "CFOP", kind: "text" },
+  { k: "ncm", label: "NCM", kind: "text" },
+  { k: "valor_produtos", label: "Valor do produto", kind: "money" },
+  { k: "bc_icms", label: "BC ICMS", kind: "money" },
+  { k: "bc_icms_st", label: "BC ICMS ST", kind: "money" },
+  { k: "outros", label: "Outros", kind: "money" },
+  { k: "valor", label: "Valor do documento", kind: "money" },
+];
 
 const defaultForm = {
   // Tipo e serviço
@@ -227,6 +259,9 @@ const defaultForm = {
   seguradora_cnpj: "",
   apolice_numero: "",
   averbacao_numero: "",
+  gerar_previsao: true,
+  composicao_frete: { regra: "padrao", tarifa_final: 0, frete_valor: 0, outros: 0, diaria: 0, seguro: 0 },
+  frete_minimo: { tabela: "A_2025_07", tipo: "", distancia_km: 0, retorno_vazio: false },
 };
 
 
@@ -469,6 +504,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa, peso e quantidades." });
   };
   const [form, setForm] = useState(defaultForm);
+  const [docMode, setDocMode] = useState<"nfe" | "outros">("nfe");
+  const [gerarMdfe, setGerarMdfe] = useState(false);
+  const navigate = useNavigate();
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
 
@@ -596,9 +634,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         valor_pedagio: Number((cte as any).valor_pedagio) || 0,
         apolice_numero: (cte as any).apolice_numero || "",
         averbacao_numero: (cte as any).averbacao_numero || "",
+        gerar_previsao: (cte as any).gerar_previsao ?? true,
+        composicao_frete: { ...defaultForm.composicao_frete, ...((cte as any).composicao_frete || { frete_valor: Number(cte.valor_frete) || 0 }) },
+        frete_minimo: { ...defaultForm.frete_minimo, ...((cte as any).frete_minimo || {}) },
         data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
+      const od = (cte as any).outros_documentos;
+      setDocMode(Array.isArray(od) && od.length > 0 && !(cte.chaves_nfe_ref || []).length ? "outros" : "nfe");
       setDesconto(deserializeDesconto((cte as any).desconto));
 
       // Load motorista name for display
@@ -616,6 +659,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       }
     } else {
       setForm(defaultForm);
+      setDocMode("nfe");
       setMotoristaNome(undefined);
       setDesconto(emptyDesconto);
     }
@@ -654,21 +698,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   // Detalhe de cada NF-e (número/série derivados da chave quando não informados)
   const getNfeDetalhe = (chave: string): NfeDetalhe => {
     const found = form.nfe_detalhes.find((d) => d.chave === chave);
-    return found ?? {
+    if (found) return { ...emptyDoc, ...found } as NfeDetalhe;
+    return {
       chave,
+      ...emptyDoc,
       numero: chave.length === 44 ? String(Number(chave.slice(25, 34))) : "",
       serie: chave.length === 44 ? String(Number(chave.slice(22, 25))) : "",
-      data_emissao: "", valor: 0, peso: 0, especie: "",
-    };
+    } as NfeDetalhe;
   };
   const setNfeDetalhe = (chave: string, patch: Partial<NfeDetalhe>) =>
     setForm((p) => {
       const base = p.nfe_detalhes.find((d) => d.chave === chave) ?? {
         chave,
+        ...emptyDoc,
         numero: String(Number(chave.slice(25, 34))),
         serie: String(Number(chave.slice(22, 25))),
-        data_emissao: "", valor: 0, peso: 0, especie: "",
-      };
+      } as NfeDetalhe;
       return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...patch }] };
     });
 
@@ -810,7 +855,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     setNfeDetalhe(n.chave, {
       numero: n.numero, serie: n.serie, data_emissao: n.data_emissao,
       valor: n.valor, peso: n.peso_bruto, especie: n.especie.toUpperCase(),
+      natureza: (n.produto || "").toUpperCase(), tipo: n.tipo || "1", quantidade: n.quantidade, marca: n.marca,
+      cfop: n.cfop, ncm: n.ncm, valor_produtos: n.valor_produtos, bc_icms: n.bc_icms, bc_icms_st: n.bc_icms_st, outros: n.outros,
     });
+    setDocMode("nfe");
   };
 
 
@@ -886,8 +934,17 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   // Auto-fill valor_receber = valor_frete when changing
   useEffect(() => {
-    setForm((p) => ({ ...p, valor_receber: p.valor_frete }));
-  }, [form.valor_frete]);
+    setForm((p) => ({ ...p, valor_receber: Math.round((p.valor_frete - calcDescontoTotal(desconto)) * 100) / 100 }));
+  }, [form.valor_frete, desconto]);
+
+  const pendingMdfeRef = useRef<string | null>(null);
+  const goToMdfe = () => {
+    const id = pendingMdfeRef.current;
+    pendingMdfeRef.current = null;
+    setGerarMdfe(false);
+    onOpenChange(false);
+    if (id) navigate(`/admin/freight/mdfe?ctes=${id}`);
+  };
 
   const handleSave = async (keepOpenForNext = false) => {
     if (!user) return;
@@ -992,8 +1049,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         seguradora_nome: form.seguradora_nome || null,
         seguradora_cnpj: unmaskCNPJ(form.seguradora_cnpj) || null,
         apolice_numero: form.apolice_numero || null,
-        nfe_detalhes: form.chaves_nfe_ref.filter((c) => c.length === 44).map((c) => getNfeDetalhe(c)),
-        outros_documentos: form.outros_documentos.filter((o) => o.numero || o.descricao),
         reboque1_placa: unmaskPlate(form.reboque1_placa) || null,
         reboque2_placa: unmaskPlate(form.reboque2_placa) || null,
         contratado_id: form.contratado_id || null,
@@ -1004,6 +1059,27 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         pedido_numero: form.pedido_numero || null,
         averbacao_numero: form.averbacao_numero || null,
         desconto: serializeDesconto(desconto),
+        valor_receber: form.valor_receber,
+        chaves_nfe_ref: docMode === "nfe" ? form.chaves_nfe_ref.filter(Boolean) : [],
+        nfe_detalhes: docMode === "nfe" ? form.chaves_nfe_ref.filter((c) => c.length === 44).map((c) => getNfeDetalhe(c)) : [],
+        outros_documentos: docMode === "outros" ? form.outros_documentos.filter((o) => o.numero || o.descricao) : [],
+        componentes_frete: [
+          { xNome: "FRETE VALOR", vComp: form.composicao_frete.frete_valor },
+          { xNome: "PEDAGIO", vComp: Number(form.valor_pedagio) || 0 },
+          { xNome: "DIARIA", vComp: form.composicao_frete.diaria },
+          { xNome: "SEGURO", vComp: form.composicao_frete.seguro },
+          { xNome: "OUTROS", vComp: form.composicao_frete.outros },
+        ].filter((c) => c.vComp > 0),
+        info_quantidade: [
+          { cUnid: "01", tpMed: "PESO BRUTO", qCarga: Number(form.peso_bruto) || 0 },
+          ...((docMode === "nfe" ? form.chaves_nfe_ref.map((c) => getNfeDetalhe(c).quantidade || 0) : form.outros_documentos.map((o) => o.quantidade || 0)).reduce((a, b) => a + b, 0) > 0
+            ? [{ cUnid: "03", tpMed: "UNIDADE", qCarga: (docMode === "nfe" ? form.chaves_nfe_ref.map((c) => getNfeDetalhe(c).quantidade || 0) : form.outros_documentos.map((o) => o.quantidade || 0)).reduce((a, b) => a + b, 0) }]
+            : []),
+        ],
+        municipio_envio_nome: (estSelecionado as any)?.endereco_municipio || form.municipio_envio_nome || null,
+        municipio_envio_ibge: (estSelecionado as any)?.codigo_municipio_ibge || form.municipio_envio_ibge || null,
+        uf_envio: (estSelecionado as any)?.endereco_uf || form.uf_envio || null,
+        frete_minimo: piso ? { ...form.frete_minimo, eixos: form.numero_eixos, valor: piso.total } : form.frete_minimo,
       };
 
       let savedId: string;
@@ -1033,7 +1109,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
 
       // Se valor do frete = 0, remove previsão existente e não cria nova (negativos são permitidos para lançamentos em lote)
-      if (Number(form.valor_frete) === 0) {
+      if (!form.gerar_previsao) {
+        await supabase.from("previsoes_recebimento").delete().eq("origem_tipo", "cte" as any).eq("origem_id", savedId).neq("status", "faturado" as any);
+      } else if (Number(form.valor_frete) === 0) {
         await supabase
           .from("previsoes_recebimento")
           .delete()
@@ -1096,11 +1174,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       }
 
       onSaved();
+      if (gerarMdfe) pendingMdfeRef.current = savedId;
 
       if (gerarContrato) {
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
         setKeepOpenAfterContract(keepOpenForNext && !cte);
         setSavedCteForContract(fresh as any);
+      } else if (pendingMdfeRef.current) {
+        goToMdfe();
       } else if (keepOpenForNext && !cte) {
         resetForNextCte();
       } else {
@@ -1113,17 +1194,64 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
   };
 
-  // Tarifa por tonelada → valor do frete (não é gravada; apenas auxilia o cálculo)
-  const [tarifa, setTarifa] = useState(0);
-  const aplicarTarifa = (t: number) => {
-    setTarifa(t);
-    setForm((p) => ({ ...p, valor_frete: Math.round(t * (p.peso_bruto / 1000) * 100) / 100 }));
+  // Composição do frete (regra padrão): frete valor = tarifa × t; prestação = frete + adicionais
+  const comp = form.composicao_frete;
+  const setComp = (patch: Partial<typeof defaultForm.composicao_frete>) => setForm((p) => ({ ...p, composicao_frete: { ...p.composicao_frete, ...patch } }));
+  useEffect(() => {
+    setForm((p) => {
+      const c = p.composicao_frete;
+      const fv = c.tarifa_final > 0 ? Math.round(c.tarifa_final * (p.peso_bruto / 1000) * 100) / 100 : c.frete_valor;
+      const total = Math.round((fv + c.outros + c.diaria + c.seguro + (Number(p.valor_pedagio) || 0)) * 100) / 100;
+      if (fv === c.frete_valor && total === p.valor_frete) return p;
+      return { ...p, valor_frete: total, composicao_frete: { ...c, frete_valor: fv } };
+    });
+  }, [comp.tarifa_final, comp.frete_valor, comp.outros, comp.diaria, comp.seguro, form.valor_pedagio, form.peso_bruto]);
+  const tarifaReal = form.peso_bruto ? Math.round((form.valor_frete / (form.peso_bruto / 1000)) * 100) / 100 : 0;
+
+  // Frete mínimo ANTT
+  const fm = form.frete_minimo;
+  const setFm = (patch: Partial<typeof defaultForm.frete_minimo>) => setForm((p) => ({ ...p, frete_minimo: { ...p.frete_minimo, ...patch } }));
+  useEffect(() => {
+    const t = TIPO_CARGA_TO_ANTT[form.tipo_carga];
+    if (t && !form.frete_minimo.tipo) setFm({ tipo: t });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.tipo_carga]);
+  const piso = calcPisoMinimo({ tabela: fm.tabela, tipo: fm.tipo, eixos: form.numero_eixos, distanciaKm: fm.distancia_km, retornoVazio: fm.retorno_vazio });
+  const [distLoading, setDistLoading] = useState(false);
+  const calcularDistancia = async (silent?: boolean) => {
+    if (!form.municipio_origem_nome || !form.uf_origem || !form.municipio_destino_nome || !form.uf_destino) {
+      if (silent !== true) toast({ title: "Origem e destino", description: "Preencha cidade e UF de origem e destino da prestação.", variant: "destructive" });
+      return;
+    }
+    setDistLoading(true);
+    const { data, error } = await supabase.functions.invoke("route-distance", {
+      body: { origem: { cidade: form.municipio_origem_nome, uf: form.uf_origem }, destino: { cidade: form.municipio_destino_nome, uf: form.uf_destino } },
+    });
+    setDistLoading(false);
+    if (error || !data?.km) {
+      if (silent !== true) toast({ title: "Distância não calculada", description: data?.error || error?.message || "Informe a distância manualmente.", variant: "destructive" });
+      return;
+    }
+    setFm({ distancia_km: data.km });
   };
   useEffect(() => {
-    if (tarifa > 0) setForm((p) => ({ ...p, valor_frete: Math.round(tarifa * (p.peso_bruto / 1000) * 100) / 100 }));
+    if (open && !form.frete_minimo.distancia_km && form.municipio_origem_nome && form.municipio_destino_nome && form.uf_origem && form.uf_destino) calcularDistancia(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.peso_bruto]);
-  useEffect(() => { if (open) setTarifa(0); }, [open]);
+  }, [form.municipio_origem_nome, form.uf_origem, form.municipio_destino_nome, form.uf_destino, open]);
+
+  // Veículo escolhido (pela placa ou pelo motorista) preenche conjunto, eixos e proprietário
+  const applyVehicle = (v: { vehicle_id: string; plate: string; rntrc: string | null; owner_id: string | null; owner_nome: string | null; owner_documento: string | null; vehicle_type: string | null; trailers: string[] }) => {
+    setForm((p) => ({
+      ...p,
+      veiculo_id: v.vehicle_id,
+      placa_veiculo: maskPlate(v.plate),
+      rntrc: v.rntrc || p.rntrc,
+      reboque1_placa: v.trailers[0] ? maskPlate(v.trailers[0]) : p.reboque1_placa,
+      reboque2_placa: v.trailers[1] ? maskPlate(v.trailers[1]) : p.reboque2_placa,
+      numero_eixos: p.numero_eixos ?? eixosPorTipo(v.vehicle_type),
+      ...(v.owner_id ? { contratado_id: v.owner_id, contratado_nome: v.owner_nome || "", contratado_documento: v.owner_documento ? maskDocument(v.owner_documento) : "" } : {}),
+    }));
+  };
 
   // Determine if tomador fields should show (toma=4 means "outros" → needs separate data)
   const showTomadorFields = form.tomador_tipo === 4;
@@ -1173,6 +1301,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
         <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/25 px-4 py-3">
 
+          {/* 1. Emitente e tipo do documento */}
+          <FormBlock icon={Building2} title="1. Emitente e Documento" summary={`${estSelecionado ? estSelecionado.razao_social : "emitente não definido"} · ${tipoCteLabel}`}>
           {/* Emitente e data — linha compacta */}
           <div className="grid gap-2 rounded-lg border border-border bg-card px-3 py-2.5 sm:grid-cols-[1fr_9rem]">
               <div className="space-y-1">
@@ -1196,18 +1326,56 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <p className="text-[11px] text-destructive sm:col-span-2">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
               )}
           </div>
+            <SubBlock title="Tipo do documento" hint="Retira: o destinatário busca a carga no terminal? Em lotação é sempre Não.">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo CT-e</Label>
+                  <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo Serviço</Label>
+                  <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Modal</Label>
+                  <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="01">01 - Rodoviário</SelectItem></SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Retira</Label>
+                  <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </SubBlock>
+          </FormBlock>
 
-          {/* 1. Notas fiscais — ponto de partida */}
+          {/* 2. Manifesto */}
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-card px-3 py-2.5">
+            <Checkbox checked={gerarMdfe} onCheckedChange={(v) => setGerarMdfe(!!v)} className="mt-0.5" />
+            <span className="text-[11px] leading-tight">
+              <span className="flex items-center gap-1 font-semibold"><Truck className="h-3.5 w-3.5" /> 2. Gerar manifesto (MDF-e)</span>
+              <span className="block text-muted-foreground">Ao salvar, abre a tela de MDF-e já preenchida com este CT-e.</span>
+            </span>
+          </label>
+
+          {/* 3. Importar nota fiscal */}
           <FormBlock
-            icon={FileText}
-            title="1. Notas Fiscais"
+            icon={Upload}
+            title="3. Importar Nota Fiscal"
             summary={`${notasVinculadas} ${notasVinculadas === 1 ? "nota" : "notas"}${form.peso_bruto ? ` · ${form.peso_bruto.toLocaleString("pt-BR")} kg` : ""}${form.valor_carga ? ` · ${formatBRL(form.valor_carga)}` : ""}`}
           >
-            <p className="text-[11px] text-muted-foreground">Comece por aqui: a nota preenche remetente, destinatário, cidades, peso e valor da mercadoria.</p>
-            <SubBlock
-              title="Adicionar nota fiscal"
-              hint="Busca encontra notas em que a Sime é transportadora ou destinatária; senão, use o XML."
-            >
+            <p className="text-[11px] text-muted-foreground">A nota preenche remetente, destinatário, cidades, produto, peso, valor da mercadoria e os documentos do CT-e. A busca pela chave encontra notas em que a Sime é transportadora ou destinatária.</p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   className="h-8 flex-1 font-mono text-xs"
@@ -1233,99 +1401,44 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   <Plus className="w-3 h-3" /> Digitar nota manualmente
                 </Button>
               </div>
-            </SubBlock>
-
-
-            {/* Lista de notas */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Notas vinculadas ({form.chaves_nfe_ref.filter(Boolean).length})</Label>
-                {form.chaves_nfe_ref.filter((c) => c.length === 44).length > 1 && (
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading} onClick={importFromSefaz}>
-                    <Search className="w-3 h-3" /> Buscar todas novamente
-                  </Button>
-                )}
+            {notasVinculadas > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {form.chaves_nfe_ref.filter(Boolean).map((c) => { const d = getNfeDetalhe(c); return (
+                  <Badge key={c} variant="outline" className="gap-1 text-[10px] font-normal">NF {d.numero || "?"}{d.peso ? ` · ${d.peso.toLocaleString("pt-BR")} kg` : ""}</Badge>
+                ); })}
               </div>
-              {form.chaves_nfe_ref.length === 0 && (
-                <p className="text-xs text-muted-foreground rounded-md border border-dashed border-border p-3 text-center">
-                  Nenhuma nota vinculada ainda.
-                </p>
-              )}
-              {form.chaves_nfe_ref.map((chave, i) => {
-                const d = getNfeDetalhe(chave);
-                return (
-                  <div key={i} className="rounded-md border border-border p-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold">
-                        Nota {i + 1}{d.numero ? ` — nº ${d.numero}${d.serie ? ` / série ${d.serie}` : ""}` : ""}
-                      </span>
-                      <div className="flex gap-1">
-                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" disabled={nfeLoading || chave.length !== 44} onClick={() => buscarChave(chave)}>
-                          <Search className="w-3 h-3" /> Buscar
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
-                          set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i));
-                        }}>
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Chave de acesso</Label>
-                      <Input
-                        className="h-7 font-mono text-xs"
-                        placeholder="44 dígitos"
-                        maxLength={44}
-                        value={chave}
-                        onChange={(e) => {
-                          const arr = [...form.chaves_nfe_ref];
-                          arr[i] = e.target.value.replace(/\D/g, "");
-                          set("chaves_nfe_ref", arr);
-                        }}
-                      />
-                    </div>
-                    {chave.length === 44 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-                        <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={d.numero} onChange={(e) => setNfeDetalhe(chave, { numero: e.target.value.replace(/\D/g, "") })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Série</Label><Input className="h-7 text-xs" value={d.serie} onChange={(e) => setNfeDetalhe(chave, { serie: e.target.value.replace(/\D/g, "") })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Data de emissão</Label><Input type="date" className="h-7 text-xs" value={d.data_emissao} onChange={(e) => setNfeDetalhe(chave, { data_emissao: e.target.value })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Valor da nota</Label><Input className="h-7 text-xs" value={d.valor ? maskCurrency(String(Math.round(d.valor * 100))) : ""} onChange={(e) => setNfeDetalhe(chave, { valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Peso (kg)</Label><Input type="number" className="h-7 text-xs" value={d.peso || ""} onChange={(e) => setNfeDetalhe(chave, { peso: Number(e.target.value) || 0 })} /></div>
-                        <div className="space-y-0.5"><Label className="text-[10px]">Espécie</Label><Input className="h-7 text-xs" value={d.especie} onChange={(e) => setNfeDetalhe(chave, { especie: e.target.value.toUpperCase() })} /></div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <SubBlock title="Totais da carga" hint="Somados automaticamente das notas vinculadas. Editável se necessário.">
+            )}
+            <SubBlock title="Carga" hint="Vem da nota; tipo da carga é usado no frete mínimo.">
+            <SubBlock title="Produto e tipo de carga">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Produto predominante</Label>
+                  <NaturezaCargaSearchInput
+                    value={form.produto_predominante || ""}
+                    onChange={(v) => set("produto_predominante", v)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Tipo da carga</Label>
+                  <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="granel_solido">Granel Sólido</SelectItem>
+                      <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
+                      <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
+                      <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
+                      <SelectItem value="carga_geral">Carga Geral</SelectItem>
+                      <SelectItem value="neogranel">Neogranel</SelectItem>
+                      <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </SubBlock>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div className="space-y-0.5">
-                  <Label className="text-[10px]">Peso bruto total (kg)</Label>
-                  <Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} />
-                </div>
-                <div className="space-y-0.5">
-                  <Label className="text-[10px]">Valor da mercadoria (vCarga)</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
-                    <Input
-                      className="h-8 text-xs pl-8"
-                      value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""}
-                      onChange={(e) => set("valor_carga", Number(unmaskCurrency(e.target.value)) || 0)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-0.5">
-                  <Label className="text-[10px]">Valor averbado (seguro)</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
-                    <Input
-                      className="h-8 text-xs pl-8"
-                      value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""}
-                      onChange={(e) => set("valor_carga_averb", Number(unmaskCurrency(e.target.value)) || 0)}
-                    />
-                  </div>
-                </div>
+                <div className="space-y-1"><Label className="text-[10px]">Peso bruto total (kg)</Label><Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} /></div>
+                <div className="space-y-1"><Label className="text-[10px]">Valor da mercadoria</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""} onChange={(e) => set("valor_carga", (Number(unmaskCurrency(e.target.value)) || 0))} /></div></div>
+                <div className="space-y-1"><Label className="text-[10px]">Valor averbado (seguro)</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""} onChange={(e) => set("valor_carga_averb", (Number(unmaskCurrency(e.target.value)) || 0))} /></div></div>
               </div>
             </SubBlock>
           </FormBlock>
@@ -1333,7 +1446,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           {/* 2. Envolvidos + tomador */}
           <FormBlock
             icon={Users}
-            title="2. Envolvidos"
+            title="4. Envolvidos"
             summary={[form.remetente_nome, form.destinatario_nome].filter(Boolean).join(" → ") || "preenchidos pela nota"}
           >
           <div className="grid gap-2 lg:grid-cols-2">
@@ -1429,8 +1542,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </SubBlock>
           </FormBlock>
 
-          {/* 3. Prestação */}
-          <FormBlock icon={MapPin} title="3. Prestação do Serviço" summary={`${rotaOrigem} → ${rotaDestino}`}>
+          <FormBlock defaultOpen={false} icon={MapPin} title="Prestação do Serviço" summary={`${rotaOrigem} → ${rotaDestino}`}>
             <div className="grid gap-2 sm:grid-cols-2">
               <SubBlock title="Origem">
                 <div className="space-y-1">
@@ -1473,74 +1585,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
           </FormBlock>
 
-          {/* 4. Carga e frete */}
-          <FormBlock
-            icon={DollarSign}
-            title="4. Carga e Frete"
-            summary={`${form.produto_predominante || "produto não informado"} · frete ${formatBRL(form.valor_frete)}`}
-          >
-            <SubBlock title="Produto e tipo de carga">
-              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-[10px]">Produto predominante</Label>
-                  <NaturezaCargaSearchInput
-                    value={form.produto_predominante || ""}
-                    onChange={(v) => set("produto_predominante", v)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tipo da carga</Label>
-                  <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="granel_solido">Granel Sólido</SelectItem>
-                      <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
-                      <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
-                      <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
-                      <SelectItem value="carga_geral">Carga Geral</SelectItem>
-                      <SelectItem value="neogranel">Neogranel</SelectItem>
-                      <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </SubBlock>
-            <SubBlock title="Valor do frete" hint={form.peso_bruto ? `peso da nota: ${form.peso_bruto.toLocaleString("pt-BR")} kg` : "importe a nota para usar a tarifa por tonelada"}>
-              <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tarifa (R$ por tonelada)</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input className="h-8 pl-8 text-xs" disabled={!form.peso_bruto} value={tarifa ? maskCurrency(String(Math.round(tarifa * 100))) : ""} onChange={(e) => aplicarTarifa(Number(unmaskCurrency(e.target.value)) || 0)} />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Valor total do frete *</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input className="h-8 pl-8 text-xs font-semibold" value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""} onChange={(e) => { setTarifa(0); set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0); }} />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Valor a receber</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input className="h-8 pl-8 text-xs" value={form.valor_receber ? maskCurrency(String(Math.round(form.valor_receber * 100))) : ""} onChange={(e) => set("valor_receber", Number(unmaskCurrency(e.target.value)) || 0)} />
-                  </div>
-                </div>
-              </div>
-            </SubBlock>
-          </FormBlock>
-
-          {/* 5. Transporte */}
-          {/* Transporte */}
+          {/* 5. Motorista e veículo */}
           <FormBlock
             icon={Truck}
-            title="5. Transporte"
-            summary={form.placa_veiculo ? [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ") : "veículo não definido"}
+            title="5. Motorista e Veículo"
+            summary={form.placa_veiculo ? [motoristaNome, [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ")].filter(Boolean).join(" · ") : "veículo não definido"}
           >
-
-            <SubBlock title="Motorista e veículo">
+            <SubBlock title="Motorista e veículo" hint="O motorista preenche a placa e o proprietário; a placa preenche motorista e proprietário.">
               <div className="space-y-1">
                 <Label className="text-[10px]">Buscar motorista</Label>
                 <PersonSearchInput
@@ -1553,10 +1604,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     // Auto-fill vehicle if driver is linked to one
                     try {
                       const v = await lookupVehicleByDriver(person.user_id, person.id);
-                      if (v) {
-                        set("placa_veiculo", maskPlate(v.plate));
-                        if (v.rntrc) set("rntrc", v.rntrc);
-                      }
+                      if (v) applyVehicle(v);
                     } catch {}
                   }}
                   onClear={() => {
@@ -1577,8 +1625,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                       if (unmaskPlate(masked).length === 7) {
                         lookupDriverByPlate(masked)
                           .then((r) => {
-                            if (!r) return;
-                            if (r.rntrc) set("rntrc", r.rntrc);
+                            if (!r) { set("veiculo_id", null); return; }
+                            applyVehicle({ ...r, plate: r.plate });
                             if (r.motorista_id) {
                               set("motorista_id", r.motorista_id);
                               setMotoristaNome(r.motorista_nome || undefined);
@@ -1640,7 +1688,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </SubBlock>
 
             <SubBlock title="Viagem">
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Previsão de saída</Label>
                   <Input className="h-8 text-xs" type="date" value={form.previsao_saida} onChange={(e) => set("previsao_saida", e.target.value)} />
@@ -1653,30 +1701,204 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   <Label className="text-[10px]">Pedido / Ordem carreg.</Label>
                   <Input className="h-8 text-xs" value={form.pedido_numero} onChange={(e) => set("pedido_numero", e.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Pedágio</Label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input className="h-8 pl-8 text-xs" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => set("valor_pedagio", Number(unmaskCurrency(e.target.value)) || 0)} />
-                  </div>
-                </div>
               </div>
               {form.previsao_saida && form.previsao_chegada && form.previsao_chegada < form.previsao_saida && (
                 <p className="text-[11px] text-destructive">A previsão de chegada está antes da saída.</p>
               )}
             </SubBlock>
-
           </FormBlock>
 
-          {/* Tributos e seguro — calculados/padrão */}
-          <FormBlock
-            icon={Building2}
-            title="Tributos e Seguro"
-            defaultOpen={false}
-            summary={`ICMS ${formatBRL(form.valor_icms)} · IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)} · ${form.seguradora_nome || "sem seguradora"}`}
-          >
-            <p className="text-[11px] text-muted-foreground">Calculados automaticamente sobre o frete. Altere só se necessário.</p>
-            <SubBlock title="ICMS e Operação">
+          {/* 6. Seguro */}
+          <FormBlock icon={Building2} title="6. Seguro da Carga" summary={form.seguradora_nome ? `${form.seguradora_nome}${form.apolice_numero ? ` · apólice ${form.apolice_numero}` : ""}` : "sem seguradora"}>
+            <p className="text-[11px] text-muted-foreground">Preenchido com a seguradora padrão do emitente (Configurações › Fiscal).</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Responsável pelo seguro</Label>
+                  <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4">Emitente do CT-e</SelectItem>
+                      <SelectItem value="5">Tomador do serviço</SelectItem>
+                      <SelectItem value="0">Remetente</SelectItem>
+                      <SelectItem value="1">Expedidor</SelectItem>
+                      <SelectItem value="2">Recebedor</SelectItem>
+                      <SelectItem value="3">Destinatário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Seguradora</Label>
+                  <Input className="h-8 text-xs" value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">CNPJ da seguradora</Label>
+                  <Input className="h-8 text-xs" value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Nº da apólice</Label>
+                  <Input className="h-8 text-xs" value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Nº da averbação (opcional)</Label>
+                  <Input className="h-8 text-xs" value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
+                </div>
+              </div>
+          </FormBlock>
+
+          {/* 7. Documentos */}
+          <FormBlock icon={FileText} title="7. Documentos" summary={docMode === "nfe" ? `NF-e · ${notasVinculadas}` : `Outros · ${form.outros_documentos.length}`}>
+            <div className="flex gap-1.5">
+              {(["nfe", "outros"] as const).map((m) => (
+                <label key={m} className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] ${docMode === m ? "border-primary bg-primary/5 font-semibold" : "border-border hover:bg-muted/40"}`}>
+                  <Checkbox checked={docMode === m} onCheckedChange={(v) => { if (v) setDocMode(m); }} />
+                  {m === "nfe" ? "NF-e" : "Outros"}
+                </label>
+              ))}
+            </div>
+            {docMode === "nfe" ? (
+              <div className="space-y-2">
+                {form.chaves_nfe_ref.length === 0 && (
+                  <p className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">Nenhuma nota. Importe no passo 3 ou <button type="button" className="underline" onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>digite manualmente</button>.</p>
+                )}
+                {form.chaves_nfe_ref.map((chave, i) => {
+                  const d = getNfeDetalhe(chave);
+                  return (
+                    <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1 space-y-0.5">
+                          <Label className="text-[10px]">Chave de acesso</Label>
+                          <Input className="h-7 font-mono text-xs" placeholder="44 dígitos" maxLength={44} value={chave} onChange={(e) => { const arr = [...form.chaves_nfe_ref]; arr[i] = e.target.value.replace(/\D/g, ""); set("chaves_nfe_ref", arr); }} />
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading || chave.length !== 44} onClick={() => buscarChave(chave)}><Search className="h-3 w-3" /> Buscar</Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
+                      </div>
+                      {chave.length === 44 && (
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+                          {NFE_FIELDS.map((f) => (
+                            <div key={f.k} className={`space-y-0.5 ${f.k === "natureza" ? "col-span-2" : ""}`}>
+                              <Label className="text-[10px]">{f.label}</Label>
+                              <DocInput kind={f.kind} value={(d as any)[f.k]} onChange={(v) => setNfeDetalhe(chave, { [f.k]: v } as any)} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {form.chaves_nfe_ref.filter((c) => c.length === 44).length > 1 && (
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading} onClick={importFromSefaz}><Search className="h-3 w-3" /> Buscar todas novamente</Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {form.outros_documentos.map((o, i) => {
+                  const upd = (patch: Partial<OutroDoc>) => { const arr = [...form.outros_documentos]; arr[i] = { ...arr[i], ...patch }; set("outros_documentos", arr); };
+                  return (
+                    <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
+                      <div className="flex items-end gap-2">
+                        <div className="w-32 space-y-0.5">
+                          <Label className="text-[10px]">Tipo</Label>
+                          <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="00">Declaração</SelectItem>
+                              <SelectItem value="10">Dutoviário</SelectItem>
+                              <SelectItem value="59">CF-e SAT</SelectItem>
+                              <SelectItem value="65">NFC-e</SelectItem>
+                              <SelectItem value="99">Outros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 space-y-0.5"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+                        {NFE_FIELDS.map((f) => (
+                          <div key={f.k} className={`space-y-0.5 ${f.k === "natureza" ? "col-span-2" : ""}`}>
+                            <Label className="text-[10px]">{f.label}</Label>
+                            <DocInput kind={f.kind} value={(o as any)[f.k]} onChange={(v) => upd({ [f.k]: v } as any)} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => set("outros_documentos", [...form.outros_documentos, { ...emptyDoc, tipo: "99", descricao: "" }])}>
+                  <Plus className="h-3 w-3" /> Adicionar documento
+                </Button>
+              </div>
+            )}
+          </FormBlock>
+
+          {/* 8. Frete mínimo ANTT */}
+          <FormBlock icon={MapPin} title="8. Frete Mínimo ANTT" summary={piso ? `piso ${formatBRL(piso.total)}` : "informe distância, carga e eixos"}>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+              <div className="col-span-2 space-y-1 sm:col-span-3">
+                <Label className="text-[10px]">Tabela</Label>
+                <Select value={fm.tabela} onValueChange={(v) => setFm({ tabela: v })}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ANTT_TABELAS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-1 sm:col-span-3">
+                <Label className="text-[10px]">Tipo de carga</Label>
+                <Select value={fm.tipo || undefined} onValueChange={(v) => setFm({ tipo: v })}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{(ANTT_TABELAS.find((t) => t.value === fm.tabela)?.tipos ?? []).map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Nº de eixos</Label>
+                <Select value={form.numero_eixos ? String(eixosAntt(form.numero_eixos)) : undefined} onValueChange={(v) => set("numero_eixos", Number(v))}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{EIXOS_ANTT.map((e) => <SelectItem key={e} value={String(e)}>{e}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-1 space-y-1 sm:col-span-2">
+                <Label className="text-[10px]">Distância (km)</Label>
+                <div className="flex gap-1">
+                  <Input type="number" className="h-8 text-xs" value={fm.distancia_km || ""} onChange={(e) => setFm({ distancia_km: Number(e.target.value) || 0 })} />
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Calcular pela rota" disabled={distLoading} onClick={() => calcularDistancia()}>
+                    {distLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                  </Button>
+                </div>
+              </div>
+              <label className="col-span-1 flex items-end gap-2 pb-2 text-[11px] sm:col-span-1">
+                <Checkbox checked={fm.retorno_vazio} onCheckedChange={(v) => setFm({ retorno_vazio: !!v })} /> Pago retorno
+              </label>
+              <div className="col-span-2 space-y-1 sm:col-span-2">
+                <Label className="text-[10px]">Frete mínimo</Label>
+                <Input className="h-8 bg-muted text-xs font-semibold text-foreground/80" disabled value={formatBRL(piso?.total ?? 0)} />
+              </div>
+            </div>
+            {piso && (
+              <p className="text-[10px] text-muted-foreground">{fm.distancia_km} km × R$ {piso.ccd.toLocaleString("pt-BR", { minimumFractionDigits: 4 })} + carga/descarga {formatBRL(piso.cc)}{piso.retorno ? ` + retorno vazio ${formatBRL(piso.retorno)}` : ""}</p>
+            )}
+            {piso && form.valor_frete > 0 && form.valor_frete < piso.total && (
+              <p className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[11px] font-medium text-destructive">O frete ({formatBRL(form.valor_frete)}) está abaixo do piso mínimo da ANTT. Multa prevista: R$ 550,00.</p>
+            )}
+          </FormBlock>
+
+          {/* 9. Composição do frete */}
+          <FormBlock icon={DollarSign} title="9. Composição do Frete" summary={`prestação ${formatBRL(form.valor_frete)} · a receber ${formatBRL(form.valor_receber)}`}>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="col-span-2 space-y-1">
+                <Label className="text-[10px]">Regra</Label>
+                <Select value="padrao"><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="padrao">Padrão — tarifa × peso, ICMS por fora</SelectItem></SelectContent></Select>
+              </div>
+              <div className="space-y-1"><Label className="text-[10px]">Tarifa final (R$/t)</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" disabled={!form.peso_bruto} value={comp.tarifa_final ? maskCurrency(String(Math.round(comp.tarifa_final * 100))) : ""} onChange={(e) => setComp({ tarifa_final: Number(unmaskCurrency(e.target.value)) || 0 })} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Tarifa real (R$/t)</Label><Input className="h-8 bg-muted text-xs font-medium text-foreground/80" disabled value={formatBRL(tarifaReal)} /></div>
+              <div className="space-y-1"><Label className="text-[10px]">Frete valor</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs font-semibold" value={comp.frete_valor ? maskCurrency(String(Math.round(comp.frete_valor * 100))) : ""} onChange={(e) => ((v: number) => setComp({ frete_valor: v, tarifa_final: 0 }))(Number(unmaskCurrency(e.target.value)) || 0)} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Outros</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={comp.outros ? maskCurrency(String(Math.round(comp.outros * 100))) : ""} onChange={(e) => ((v: number) => setComp({ outros: v }))(Number(unmaskCurrency(e.target.value)) || 0)} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Pedágio</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={form.valor_pedagio ? maskCurrency(String(Math.round(form.valor_pedagio * 100))) : ""} onChange={(e) => ((v: number) => set("valor_pedagio", v))(Number(unmaskCurrency(e.target.value)) || 0)} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Diária</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={comp.diaria ? maskCurrency(String(Math.round(comp.diaria * 100))) : ""} onChange={(e) => ((v: number) => setComp({ diaria: v }))(Number(unmaskCurrency(e.target.value)) || 0)} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Seguro</Label><div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span><Input className="h-8 pl-8 text-xs" value={comp.seguro ? maskCurrency(String(Math.round(comp.seguro * 100))) : ""} onChange={(e) => ((v: number) => setComp({ seguro: v }))(Number(unmaskCurrency(e.target.value)) || 0)} /></div></div>
+              <div className="space-y-1"><Label className="text-[10px]">Total do serviço</Label><Input className="h-8 bg-muted text-xs font-medium text-foreground/80" disabled value={formatBRL(form.valor_frete)} /></div>
+              <div className="space-y-1"><Label className="text-[10px]">Total da prestação</Label><Input className="h-8 bg-muted text-xs font-bold text-foreground/80" disabled value={formatBRL(form.valor_frete)} /></div>
+              <div className="space-y-1"><Label className="text-[10px]">Total a receber</Label><Input className="h-8 bg-muted text-xs font-bold text-foreground/80" disabled value={formatBRL(form.valor_receber)} /></div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Pedágio, diária, seguro e outros somam ao total da prestação enviado à SEFAZ. O desconto interno abaixo reduz apenas o total a receber.</p>
+            <SubBlock title="ICMS">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Alíquota ICMS (%)</Label>
@@ -1707,7 +1929,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
               </div>
             </SubBlock>
-            {/* IBS / CBS — Reforma Tributária 2026 (obrigatório no CT-e) */}
+            <SubBlock title="Desconto (interno)" hint="Não vai para a SEFAZ; reduz o total a receber.">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
+                <span className={`font-mono text-xs font-semibold ${calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
+                </span>
+              </div>
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+            </SubBlock>
+          </FormBlock>
+
+          {/* 10. IBS / CBS */}
+          <FormBlock icon={Building2} title="10. Impostos IBS e CBS" summary={`IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}>
             <SubBlock title="IBS / CBS — Reforma Tributária 2026">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
                 <div className="space-y-1">
@@ -1754,322 +1988,34 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
               </div>
             </SubBlock>
-            {/* Seguro da carga (obrigatório para emitir) */}
-            <SubBlock title="Seguro da Carga" hint="Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Responsável pelo seguro</Label>
-                  <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="4">Emitente do CT-e</SelectItem>
-                      <SelectItem value="5">Tomador do serviço</SelectItem>
-                      <SelectItem value="0">Remetente</SelectItem>
-                      <SelectItem value="1">Expedidor</SelectItem>
-                      <SelectItem value="2">Recebedor</SelectItem>
-                      <SelectItem value="3">Destinatário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Seguradora</Label>
-                  <Input className="h-8 text-xs" value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CNPJ da seguradora</Label>
-                  <Input className="h-8 text-xs" value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Nº da apólice</Label>
-                  <Input className="h-8 text-xs" value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-[10px]">Nº da averbação (opcional)</Label>
-                  <Input className="h-8 text-xs" value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
-                </div>
-              </div>
-            </SubBlock>
           </FormBlock>
 
-          {/* Opções avançadas */}
-          <FormBlock
-            icon={Package}
-            title="Opções avançadas"
-            defaultOpen={false}
-            summary={`${tipoCteLabel} · observações, componentes, outros documentos`}
-          >
-            <SubBlock title="Tipo do documento">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tipo CT-e</Label>
-                  <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Tipo Serviço</Label>
-                  <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Modal</Label>
-                  <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{MODAL_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Retira</Label>
-                  <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>{RETIRA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </SubBlock>
-              <SubBlock title="Envio">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Município</Label>
-                  <Input className="h-8 text-xs" value={form.municipio_envio_nome} onChange={(e) => set("municipio_envio_nome", maskName(e.target.value))} placeholder="Município de envio" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">IBGE</Label>
-                    <Input className="h-8 text-xs" value={form.municipio_envio_ibge} onChange={(e) => set("municipio_envio_ibge", e.target.value)} placeholder="0000000" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">UF</Label>
-                    <Select value={form.uf_envio || undefined} onValueChange={(v) => set("uf_envio", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF" /></SelectTrigger>
-                      <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </SubBlock>
-            <SubBlock title="Carga cadastrada" hint="Ao escolher uma carga, produto, peso, valor e cidades são preenchidos.">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <CargaSearchInput
-                    placeholder="Buscar carga por produto..."
-                    selectedName={form.produto_predominante || undefined}
-                    onSelect={(carga) => {
-                      set("produto_predominante", carga.produto_predominante);
-                      set("peso_bruto", Number(carga.peso_bruto) || 0);
-                      set("valor_carga", Number(carga.valor_carga) || 0);
-                      if (carga.valor_carga_averb) set("valor_carga_averb", Number(carga.valor_carga_averb));
-                      if (carga.chaves_nfe_ref && carga.chaves_nfe_ref.length > 0) set("chaves_nfe_ref", carga.chaves_nfe_ref);
-                      if (carga.remetente_nome && !form.remetente_nome) set("remetente_nome", carga.remetente_nome);
-                      if (carga.destinatario_nome && !form.destinatario_nome) set("destinatario_nome", carga.destinatario_nome);
-                      if (carga.uf_origem && !form.uf_origem) set("uf_origem", carga.uf_origem);
-                      if (carga.uf_destino && !form.uf_destino) set("uf_destino", carga.uf_destino);
-                      if (carga.municipio_origem_nome && !form.municipio_origem_nome) set("municipio_origem_nome", carga.municipio_origem_nome);
-                      if (carga.municipio_destino_nome && !form.municipio_destino_nome) set("municipio_destino_nome", carga.municipio_destino_nome);
-                    }}
-                    onClear={() => {
-                      set("produto_predominante", "");
-                      set("peso_bruto", 0);
-                    }}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  title="Cadastrar nova carga"
-                  onClick={() => setShowCargaForm(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </SubBlock>
-            <SubBlock title="Quantidades (infQ)" hint={form.info_quantidade.length === 0 ? "nenhuma quantidade informada" : undefined}>
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 px-2 text-[11px]"
-                  onClick={() => set("info_quantidade", [...form.info_quantidade, { cUnid: "01", tpMed: "", qCarga: 0 }])}
-                >
-                  <Plus className="w-3 h-3" /> Adicionar quantidade
-                </Button>
-              </div>
-              {form.info_quantidade.map((q, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Select
-                    value={q.cUnid}
-                    onValueChange={(v) => {
-                      const arr = [...form.info_quantidade];
-                      arr[i] = { ...arr[i], cUnid: v };
-                      set("info_quantidade", arr);
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="00">00 - M3</SelectItem>
-                      <SelectItem value="01">01 - KG</SelectItem>
-                      <SelectItem value="02">02 - TON</SelectItem>
-                      <SelectItem value="03">03 - UN</SelectItem>
-                      <SelectItem value="04">04 - LT</SelectItem>
-                      <SelectItem value="05">05 - MMBTU</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="h-8 flex-1 text-xs"
-                    placeholder="Tipo medida (ex: PESO BRUTO)"
-                    value={q.tpMed}
-                    onChange={(e) => {
-                      const arr = [...form.info_quantidade];
-                      arr[i] = { ...arr[i], tpMed: e.target.value };
-                      set("info_quantidade", arr);
-                    }}
-                  />
-                  <Input
-                    className="h-8 w-28 text-xs"
-                    type="number"
-                    step="0.0001"
-                    placeholder="Qtde"
-                    value={q.qCarga || ""}
-                    onChange={(e) => {
-                      const arr = [...form.info_quantidade];
-                      arr[i] = { ...arr[i], qCarga: Number(e.target.value) };
-                      set("info_quantidade", arr);
-                    }}
-                  />
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
-                    set("info_quantidade", form.info_quantidade.filter((_, j) => j !== i));
-                  }}>
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </SubBlock>
-            <SubBlock
-              title="Componentes do Frete"
-              hint={form.componentes_frete.length === 0 ? "nenhum componente" : undefined}
-            >
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 px-2 text-[11px]"
-                  onClick={() => set("componentes_frete", [...form.componentes_frete, { xNome: "", vComp: 0 }])}
-                >
-                  <Plus className="w-3 h-3" /> Adicionar componente
-                </Button>
-              </div>
-              {form.componentes_frete.map((comp, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    className="h-8 flex-1 text-xs"
-                    placeholder="Nome (ex: FRETE VALOR)"
-                    value={comp.xNome}
-                    onChange={(e) => {
-                      const arr = [...form.componentes_frete];
-                      arr[i] = { ...arr[i], xNome: e.target.value };
-                      set("componentes_frete", arr);
-                    }}
-                  />
-                  <div className="relative w-32">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">R$</span>
-                    <Input
-                      className="h-8 pl-7 text-xs"
-                      value={comp.vComp ? maskCurrency(String(Math.round(comp.vComp * 100))) : ""}
-                      onChange={(e) => {
-                        const arr = [...form.componentes_frete];
-                        arr[i] = { ...arr[i], vComp: Number(unmaskCurrency(e.target.value)) || 0 };
-                        set("componentes_frete", arr);
-                      }}
-                    />
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => {
-                    set("componentes_frete", form.componentes_frete.filter((_, j) => j !== i));
-                  }}>
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </SubBlock>
-            <SubBlock
-              title="Desconto (interno)"
-              hint="Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o 'Valor Frete' manualmente, se necessário."
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total do desconto</span>
-                <span className={`font-mono text-xs font-semibold ${calcDescontoTotal(desconto) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {calcDescontoTotal(desconto) > 0 ? `− ${formatBRL(calcDescontoTotal(desconto))}` : "nenhum"}
-                </span>
-              </div>
-              <CteDescontoFields value={desconto} onChange={setDesconto} />
-            </SubBlock>
-            <SubBlock title="Outros documentos" hint="Para cargas sem NF-e.">
-              <div className="flex justify-end">
-                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
-                  onClick={() => set("outros_documentos", [...form.outros_documentos, { tipo: "99", descricao: "", numero: "", data_emissao: "", valor: 0 }])}>
-                  <Plus className="w-3 h-3" /> Adicionar documento
-                </Button>
-              </div>
-              {form.outros_documentos.map((o, i) => {
-                const upd = (patch: Partial<OutroDoc>) => {
-                  const arr = [...form.outros_documentos];
-                  arr[i] = { ...arr[i], ...patch };
-                  set("outros_documentos", arr);
-                };
-                return (
-                  <div key={i} className="grid grid-cols-2 items-end gap-2 rounded-md border border-border p-2 sm:grid-cols-6">
-
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px]">Tipo</Label>
-                      <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="00">Declaração</SelectItem>
-                          <SelectItem value="10">Dutoviário</SelectItem>
-                          <SelectItem value="59">CF-e SAT</SelectItem>
-                          <SelectItem value="65">NFC-e</SelectItem>
-                          <SelectItem value="99">Outros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-0.5 sm:col-span-2"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
-                    <div className="space-y-0.5"><Label className="text-[10px]">Número</Label><Input className="h-7 text-xs" value={o.numero} onChange={(e) => upd({ numero: e.target.value })} /></div>
-                    <div className="space-y-0.5"><Label className="text-[10px]">Emissão</Label><Input type="date" className="h-7 text-xs" value={o.data_emissao} onChange={(e) => upd({ data_emissao: e.target.value })} /></div>
-                    <div className="flex gap-1 items-end">
-                      <div className="space-y-0.5 flex-1"><Label className="text-[10px]">Valor</Label><Input className="h-7 text-xs" value={o.valor ? maskCurrency(String(Math.round(o.valor * 100))) : ""} onChange={(e) => upd({ valor: Number(unmaskCurrency(e.target.value)) || 0 })} /></div>
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}>
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </SubBlock>
-            <SubBlock title="Observações">
+          <FormBlock icon={Package} title="Observações" defaultOpen={false} summary={form.observacoes ? form.observacoes.slice(0, 40) : "nenhuma"}>
               <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} className="text-xs" placeholder="Informações complementares..." />
-            </SubBlock>
           </FormBlock>
-        </div>
 
-        {/* Footer fixo */}
-        <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
-          {!linkedContract && (
+          {/* 11 e 12. Ao salvar */}
+          <div className="space-y-2 rounded-lg border border-border bg-card px-3 py-2.5">
             <label className="flex cursor-pointer items-start gap-2">
-              <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} className="mt-0.5" />
+              <Checkbox checked={form.gerar_previsao} onCheckedChange={(v) => set("gerar_previsao", !!v)} className="mt-0.5" />
               <span className="text-[11px] leading-tight">
-                <span className="flex items-center gap-1 font-semibold">
-                  <FileSignature className="h-3.5 w-3.5" /> Gerar contrato de frete
-                </span>
-                <span className="block text-muted-foreground">
-                  Após salvar, abre o contrato de fretamento (subcontratado) e gera conta a pagar à vista.
-                </span>
+                <span className="font-semibold">11. Gerar previsão de recebimento</span>
+                <span className="block text-muted-foreground">Cria a previsão a receber para o tomador com o valor da prestação.</span>
               </span>
             </label>
-          )}
+            {!linkedContract && (
+              <label className="flex cursor-pointer items-start gap-2">
+                <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} className="mt-0.5" />
+                <span className="text-[11px] leading-tight">
+                  <span className="flex items-center gap-1 font-semibold"><FileSignature className="h-3.5 w-3.5" /> 12. Gerar contrato de frete</span>
+                  <span className="block text-muted-foreground">Após salvar, abre o contrato de fretamento (subcontratado) e gera conta a pagar à vista.</span>
+                </span>
+              </label>
+            )}
+          </div>
+        </div>
+        {/* Footer fixo */}
+        <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             {!cte && (
@@ -2091,7 +2037,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           if (!o) {
             setSavedCteForContract(null);
             setGerarContrato(false);
-            if (keepOpenAfterContract) {
+            if (pendingMdfeRef.current) {
+              goToMdfe();
+            } else if (keepOpenAfterContract) {
               setKeepOpenAfterContract(false);
               resetForNextCte();
             } else {
