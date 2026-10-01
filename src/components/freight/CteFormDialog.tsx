@@ -1764,6 +1764,42 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
 
+            {/* Totais da carga (somados das notas) */}
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="text-xs font-semibold">Totais da carga</Label>
+                <p className="text-[10px] text-muted-foreground">Somados automaticamente das notas vinculadas. Editável se necessário.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Peso bruto total (kg)</Label>
+                  <Input type="number" step="0.01" className="h-8 text-xs" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value) || 0)} />
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Valor da mercadoria (vCarga)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                    <Input
+                      className="h-8 text-xs pl-8"
+                      value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""}
+                      onChange={(e) => set("valor_carga", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[10px]">Valor averbado (seguro)</Label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                    <Input
+                      className="h-8 text-xs pl-8"
+                      value={form.valor_carga_averb ? maskCurrency(String(Math.round(form.valor_carga_averb * 100))) : ""}
+                      onChange={(e) => set("valor_carga_averb", Number(unmaskCurrency(e.target.value)) || 0)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Outros documentos (carga sem NF-e) */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
