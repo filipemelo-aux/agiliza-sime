@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
+import QRCode from "qrcode";
+import JsBarcode from "jsbarcode";
 
 const esc = (value: unknown) =>
   String(value ?? "")
@@ -62,6 +64,13 @@ const authorizationData = (cte: CtePrintInput) => {
   return { key, protocol };
 };
 
+const barcodeDataUrl = (value: string) => {
+  if (!value || typeof document === "undefined") return "";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  JsBarcode(svg, value, { format: "CODE128", displayValue: false, margin: 0, height: 36, width: 1.25 });
+  return `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(svg))}`;
+};
+
 async function loadEmitente(establishmentId?: string | null) {
   if (!establishmentId) return null;
   const { data } = await supabase
@@ -112,42 +121,62 @@ const TOMADOR: Record<number, string> = { 0: "Remetente", 1: "Expedidor", 2: "Re
 const STATUS: Record<string, string> = { rascunho: "RASCUNHO", autorizado: "AUTORIZADO", cancelado: "CANCELADO", rejeitado: "REJEITADO", processando: "PROCESSANDO" };
 
 const STYLE = `<style>
-  @page { size: A4 portrait; margin: 12mm; }
+  @page { size: A4 portrait; margin: 8mm; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 7.7px; }
-  .dacte { width: 100%; border: 1.2px solid #111; }
-  .header { display: grid; grid-template-columns: 1.45fr .8fr 1.15fr; min-height: 82px; border-bottom: 1px solid #111; }
-  .header > div { padding: 5px; border-right: 1px solid #111; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 6.5px; }
+  .dacte { width: 100%; border: 1px solid #111; }
+  .header { display: grid; grid-template-columns: 1.2fr 1.4fr .42fr; min-height: 104px; border-bottom: 1px solid #111; }
+  .header > div { padding: 4px; border-right: 1px solid #111; }
   .header > div:last-child { border-right: 0; }
   .issuer { text-align: center; display: flex; flex-direction: column; justify-content: center; }
-  .issuer strong { font-size: 12px; text-transform: uppercase; }
-  .issuer span { margin-top: 3px; line-height: 1.25; }
-  .dacte-title { text-align: center; display: flex; flex-direction: column; justify-content: center; }
-  .dacte-title b { font-size: 18px; }
-  .dacte-title span { font-size: 7px; line-height: 1.25; }
-  .access { display: flex; flex-direction: column; justify-content: space-between; }
-  .key { font: 600 8px/1.35 'Courier New', monospace; text-align: center; word-break: break-word; }
-  .barcode { height: 25px; margin: 2px 5px; background: repeating-linear-gradient(90deg,#111 0,#111 1px,#fff 1px,#fff 2px,#111 2px,#111 4px,#fff 4px,#fff 6px); }
+  .brand { color: #17488d; font-size: 25px; line-height: .9; font-weight: 900; font-style: italic; }
+  .brand small { color: #e8ad09; font-size: 6px; display: block; letter-spacing: 2px; font-style: normal; margin-top: 4px; }
+  .issuer strong { font-size: 9px; text-transform: uppercase; margin-top: 5px; }
+  .issuer span { margin-top: 2px; line-height: 1.15; }
+  .fiscal-head { padding: 0 !important; display: flex; flex-direction: column; }
+  .title-row { display:grid; grid-template-columns: 1.5fr .55fr; border-bottom:1px solid #111; min-height:42px; }
+  .dacte-title { text-align: center; display: flex; flex-direction: column; justify-content: center; border-right:1px solid #111; padding:3px; }
+  .dacte-title b { font-size: 13px; }
+  .dacte-title span { font-size: 6px; line-height: 1.15; }
+  .modal { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:8px; }
+  .doc-meta { display:grid; grid-template-columns:.6fr .5fr .8fr .6fr 1.35fr; min-height:26px; border-bottom:1px solid #111; }
+  .doc-meta > div { padding:2px 3px; border-right:1px solid #111; }
+  .doc-meta > div:last-child { border:0; }
+  .access { display:flex; flex-direction:column; justify-content:center; text-align:center; padding:3px; }
+  .key { font: 600 7px/1.25 'Courier New', monospace; text-align: center; word-break: break-word; }
+  .barcode { display:block; width:96%; height:28px; margin:3px auto 1px; object-fit:fill; }
+  .qr { display:flex; align-items:center; justify-content:center; padding:5px !important; }
+  .qr img { width:82px; height:82px; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { background: #e7e7e7; border-top: 1px solid #111; border-bottom: 1px solid #111; padding: 2px 4px; font-weight: 700; text-transform: uppercase; }
+  .section-title { text-align:center; border-top: 1px solid #111; border-bottom: 1px solid #111; padding: 1px 3px; font-weight: 400; text-transform: uppercase; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
   .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .c3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .c4 { grid-template-columns: repeat(4,minmax(0,1fr)); } .c5 { grid-template-columns: repeat(5,minmax(0,1fr)); }
-  .cell { min-height: 27px; padding: 2px 4px; border-right: 1px solid #777; overflow-wrap: anywhere; }
+  .cell { min-height: 22px; padding: 2px 3px; border-right: 1px solid #777; overflow-wrap: anywhere; }
   .cell:last-child { border-right: 0; }
   .span2 { grid-column: span 2; } .span3 { grid-column: span 3; }
-  .label { display: block; color: #444; font-size: 6.3px; text-transform: uppercase; margin-bottom: 1px; }
-  .value { display: block; font-size: 8px; font-weight: 600; line-height: 1.2; }
+  .label { display: block; color: #222; font-size: 5.7px; text-transform: uppercase; margin-bottom: 1px; }
+  .value { display: block; font-size: 6.9px; font-weight: 600; line-height: 1.15; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { border-right: 1px solid #777; border-bottom: 1px solid #777; padding: 2px 3px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
   th:last-child, td:last-child { border-right: 0; } tr:last-child td { border-bottom: 0; }
-  th { background: #f0f0f0; font-size: 6.2px; text-transform: uppercase; }
-  td { font-size: 7.2px; }
+  th { font-size: 5.7px; font-weight:400; text-transform: uppercase; }
+  td { font-size: 6.5px; }
   .right { text-align: right; } .center { text-align: center; }
-  .notes { min-height: 38px; padding: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .receipt { margin-top: 7px; border: 1px solid #111; break-inside: avoid; }
+  .notes { min-height: 70px; padding: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
+  .actor { padding:3px; min-height:72px; border-right:1px solid #111; }
+  .actor:nth-child(even) { border-right:0; }
+  .actor-title { font-weight:700; font-size:6px; text-transform:uppercase; margin-bottom:2px; }
+  .actor-line { display:grid; grid-template-columns:44px 1fr; line-height:1.3; }
+  .actor-line b { font-size:5.6px; font-weight:400; }
+  .actor-pair { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:30px; border-top:1px solid #111; }
+  .exclusive > div { border-right:1px solid #111; padding:3px; text-align:center; }
+  .exclusive > div:last-child { border:0; }
+  .receipt { margin-top: 38px; border: 1px solid #111; break-inside: avoid; }
   .receipt-head { display: grid; grid-template-columns: 1fr 125px; }
   .receipt-head > div { padding: 4px; border-right: 1px solid #111; }
   .receipt-head > div:last-child { border-right: 0; }
@@ -166,18 +195,13 @@ function cell(label: string, value: unknown, className = "") {
 
 function actorSection(cte: CtePrintInput, prefix: ActorPrefix, title: string) {
   const name = cte[`${prefix}_nome`];
-  if (!name && prefix !== "tomador") return "";
-  return `<div class="section-title">${esc(title)}</div>
-    <div class="grid c4">
-      ${cell("Nome / Razão social", name, "span2")}
-      ${cell("CNPJ / CPF", doc(cte[`${prefix}_cnpj`]))}
-      ${cell("Inscrição Estadual", cte[`${prefix}_ie`] || "ISENTO")}
-    </div>
-    <div class="grid c4">
-      ${cell("Endereço", cte[`${prefix}_endereco`], "span2")}
-      ${cell("Município / código IBGE", [cte[`${prefix}_municipio_nome`], cte[`${prefix}_municipio_ibge`]].filter(Boolean).join(" • "))}
-      ${cell("UF", cte[`${prefix}_uf`])}
-    </div>`;
+  return `<div class="actor">
+    <div class="actor-title">${esc(title)} &nbsp; ${esc(name || "")}</div>
+    <div class="actor-line"><b>ENDEREÇO</b><span>${esc(cte[`${prefix}_endereco`] || "")}</span></div>
+    <div class="actor-pair"><div class="actor-line"><b>MUNICÍPIO</b><span>${esc(cte[`${prefix}_municipio_nome`] || cte[`${prefix}_municipio_ibge`] || "")}</span></div><div class="actor-line"><b>UF</b><span>${esc(cte[`${prefix}_uf`] || "")}</span></div></div>
+    <div class="actor-pair"><div class="actor-line"><b>CNPJ/CPF</b><span>${esc(doc(cte[`${prefix}_cnpj`]))}</span></div><div class="actor-line"><b>INSC. EST.</b><span>${esc(cte[`${prefix}_ie`] || "")}</span></div></div>
+    <div class="actor-line"><b>PAÍS</b><span>BRASIL</span></div>
+  </div>`;
 }
 
 function documentsHtml(cte: CtePrintInput) {
