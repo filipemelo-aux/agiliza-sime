@@ -1513,13 +1513,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
             {/* Seguro da carga (obrigatório para emitir) */}
-            <div className="space-y-2 rounded-md border border-border p-3">
-              <Label className="text-xs font-semibold">Seguro da Carga</Label>
+            <SubBlock title="Seguro da Carga" hint="Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Responsável pelo seguro</Label>
                   <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="4">Emitente do CT-e</SelectItem>
                       <SelectItem value="5">Tomador do serviço</SelectItem>
@@ -1532,23 +1531,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Seguradora</Label>
-                  <Input value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
+                  <Input className="h-8 text-xs" value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CNPJ da seguradora</Label>
-                  <Input value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
+                  <Input className="h-8 text-xs" value={form.seguradora_cnpj} maxLength={18} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Nº da apólice</Label>
-                  <Input value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
+                  <Input className="h-8 text-xs" value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <Label className="text-[10px]">Nº da averbação (opcional)</Label>
-                  <Input value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
+                  <Input className="h-8 text-xs" value={form.averbacao_numero} onChange={(e) => set("averbacao_numero", e.target.value)} />
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">Preenchido automaticamente com a seguradora padrão do emitente (Configurações › Fiscal).</p>
-            </div>
+            </SubBlock>
+
 
             {/* Desconto (registro interno — não afeta XML/Sefaz) */}
             <div className="space-y-1.5 rounded-md border border-border bg-muted/10 p-3">
