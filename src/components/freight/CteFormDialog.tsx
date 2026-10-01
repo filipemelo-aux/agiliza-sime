@@ -1157,67 +1157,54 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             )}
           </section>
 
-          <Separator />
+          {/* Envolvidos */}
+          <div className="grid gap-2 lg:grid-cols-2">
+            <ActorSection
+              title="Remetente"
+              prefix="remetente"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.remetente}
+              cnpjError={cnpjErrors.remetente || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Destinatário"
+              prefix="destinatario"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.destinatario}
+              cnpjError={cnpjErrors.destinatario || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Expedidor"
+              prefix="expedidor"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.expedidor}
+              cnpjError={cnpjErrors.expedidor || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
+              onCityResolved={onCityResolved}
+            />
+            <ActorSection
+              title="Recebedor"
+              prefix="recebedor"
+              form={form}
+              set={set}
+              lookupCnpj={lookupCnpj}
+              cnpjLoading={!!cnpjLoading.recebedor}
+              cnpjError={cnpjErrors.recebedor || ""}
+              setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
+              onCityResolved={onCityResolved}
+            />
+          </div>
 
-          {/* Remetente */}
-          <ActorSection
-            title="Remetente"
-            prefix="remetente"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.remetente}
-            cnpjError={cnpjErrors.remetente || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
-
-          {/* Destinatário */}
-          <ActorSection
-            title="Destinatário"
-            prefix="destinatario"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.destinatario}
-            cnpjError={cnpjErrors.destinatario || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
-
-          {/* Expedidor */}
-          <ActorSection
-            title="Expedidor"
-            prefix="expedidor"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.expedidor}
-            cnpjError={cnpjErrors.expedidor || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
-
-          {/* Recebedor */}
-          <ActorSection
-            title="Recebedor"
-            prefix="recebedor"
-            form={form}
-            set={set}
-            lookupCnpj={lookupCnpj}
-            cnpjLoading={!!cnpjLoading.recebedor}
-            cnpjError={cnpjErrors.recebedor || ""}
-            setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
-          onCityResolved={onCityResolved}
-          />
-
-          <Separator />
 
           {/* Tomador — escolha por checkbox */}
           <FormBlock
