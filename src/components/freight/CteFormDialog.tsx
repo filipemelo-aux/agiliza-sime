@@ -1,3 +1,4 @@
+import { ICMS_CST_OPTIONS, IBS_CBS_CST_OPTIONS, IBS_CBS_DEFAULT, icmsCstMode, ibsCbsIsento } from "@/lib/cteTaxCodes";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ANTT_TABELAS, EIXOS_ANTT, TIPO_CARGA_TO_ANTT, calcPisoMinimo, eixosAntt } from "@/lib/anttPisoMinimo";
@@ -214,6 +215,7 @@ const defaultForm = {
   valor_icms: 0,
   valor_total_tributos: 0,
   cst_icms: "00",
+  percentual_reducao_bc: 0,
   cfop: "6353",
   natureza_operacao: "PRESTACAO DE SERVICO DE TRANSPORTE",
   // Prestação
@@ -607,6 +609,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         valor_icms: Number(cte.valor_icms) || 0,
         valor_total_tributos: Number(cte.valor_total_tributos) || 0,
         cst_icms: cte.cst_icms || "00",
+        percentual_reducao_bc: Number((cte as any).percentual_reducao_bc) || 0,
         cfop: cte.cfop || "6353",
         natureza_operacao: cte.natureza_operacao || "PRESTACAO DE SERVICO DE TRANSPORTE",
         municipio_origem_ibge: cte.municipio_origem_ibge || "",
@@ -851,25 +854,60 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
   }, [onCityResolved]);
 
-  // Auto-calculate ICMS
+  // Auto-calculate ICMS conforme o CST escolhido
+  const icmsMode = icmsCstMode(form.cst_icms);
   useEffect(() => {
-    const base = form.valor_frete;
-    const icms = base * (form.aliquota_icms / 100);
+    if (icmsMode === "isento") {
+      setForm((p) => ({ ...p, aliquota_icms: 0, base_calculo_icms: 0, valor_icms: 0 }));
+      return;
+    }
+    const reducao = icmsMode === "reducao" || icmsMode === "outros" ? (Number(form.percentual_reducao_bc) || 0) : 0;
+    const base = Math.round((Number(form.valor_frete) || 0) * (1 - reducao / 100) * 100) / 100;
+    const icms = base * ((Number(form.aliquota_icms) || 0) / 100);
     setForm((p) => ({ ...p, base_calculo_icms: base, valor_icms: Math.round(icms * 100) / 100 }));
-  }, [form.valor_frete, form.aliquota_icms]);
+  }, [form.valor_frete, form.aliquota_icms, form.percentual_reducao_bc, icmsMode]);
+
+  const changeIcmsCst = (cst: string) => {
+    setForm((p) => {
+      const mode = icmsCstMode(cst);
+      return {
+        ...p,
+        cst_icms: cst,
+        aliquota_icms: mode === "isento" ? 0 : p.aliquota_icms,
+        percentual_reducao_bc: mode === "reducao" || mode === "outros" ? p.percentual_reducao_bc : 0,
+      };
+    });
+  };
 
   // Auto-calculate IBS/CBS sobre o valor total do frete
+  const ibsIsento = ibsCbsIsento(form.ibs_cbs_cst);
   useEffect(() => {
-    const base = Number(form.valor_frete) || 0;
+    const base = ibsIsento ? 0 : Number(form.valor_frete) || 0;
     const r = (aliq: number) => Math.round(base * ((Number(aliq) || 0) / 100) * 100) / 100;
     setForm((p) => ({
       ...p,
+      ...(ibsIsento ? { ibs_uf_aliquota: 0, ibs_mun_aliquota: 0, cbs_aliquota: 0 } : {}),
       ibs_cbs_base_calculo: base,
-      ibs_uf_valor: r(p.ibs_uf_aliquota),
-      ibs_mun_valor: r(p.ibs_mun_aliquota),
-      cbs_valor: r(p.cbs_aliquota),
+      ibs_uf_valor: ibsIsento ? 0 : r(p.ibs_uf_aliquota),
+      ibs_mun_valor: ibsIsento ? 0 : r(p.ibs_mun_aliquota),
+      cbs_valor: ibsIsento ? 0 : r(p.cbs_aliquota),
     }));
-  }, [form.valor_frete, form.ibs_uf_aliquota, form.ibs_mun_aliquota, form.cbs_aliquota]);
+  }, [form.valor_frete, form.ibs_uf_aliquota, form.ibs_mun_aliquota, form.cbs_aliquota, ibsIsento]);
+
+  const changeIbsCbsCst = (cst: string) => {
+    const opt = IBS_CBS_CST_OPTIONS.find((o) => o.value === cst);
+    setForm((p) => {
+      const wasIsento = ibsCbsIsento(p.ibs_cbs_cst);
+      const next: any = { ...p, ibs_cbs_cst: cst };
+      if (opt?.classTrib) next.ibs_cbs_class_trib = opt.classTrib;
+      if (opt?.isento) {
+        next.ibs_uf_aliquota = 0; next.ibs_mun_aliquota = 0; next.cbs_aliquota = 0;
+      } else if (wasIsento) {
+        next.ibs_uf_aliquota = IBS_CBS_DEFAULT.ibs_uf; next.ibs_mun_aliquota = IBS_CBS_DEFAULT.ibs_mun; next.cbs_aliquota = IBS_CBS_DEFAULT.cbs;
+      }
+      return next;
+    });
+  };
 
   // Totais da carga somados das notas fiscais vinculadas
   useEffect(() => {
@@ -1171,15 +1209,34 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         chave_cte_subcontratacao: form.tp_serv === 1 ? (form.chave_cte_subcontratacao.replace(/\D/g, "") || null) : null,
       };
 
+      // Campos usados só na tela nunca vão ao banco. Se mesmo assim o banco
+      // recusar um campo desconhecido, ele é retirado e o envio é refeito.
+      delete payload.contratado_locked;
+      delete payload.tipo_carga;
+      const writeCte = async () => {
+        for (let attempt = 0; attempt < 6; attempt++) {
+          const res: any = cte
+            ? await supabase.from("ctes").update(payload).eq("id", cte.id)
+            : await supabase.from("ctes").insert(payload).select("id").single();
+          const missing = res.error?.message?.match(/Could not find the '([^']+)' column/)?.[1];
+          if (missing && missing in payload) {
+            console.warn("Campo sem coluna no banco, removido do envio:", missing);
+            delete payload[missing];
+            continue;
+          }
+          if (res.error) throw res.error;
+          return res;
+        }
+        throw new Error("Não foi possível salvar o CT-e.");
+      };
+
       let savedId: string;
       if (cte) {
-        const { error } = await supabase.from("ctes").update(payload).eq("id", cte.id);
-        if (error) throw error;
+        await writeCte();
         toast({ title: "CT-e atualizado" });
         savedId = cte.id;
       } else {
-        const { data, error } = await supabase.from("ctes").insert(payload).select("id").single();
-        if (error) throw error;
+        const { data } = await writeCte();
         toast({ title: "CT-e criado", description: "Rascunho salvo com sucesso." });
         savedId = data.id;
       }
@@ -2081,9 +2138,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <p className="text-[10px] text-muted-foreground">Pedágio, diária, seguro e outros somam ao total da prestação enviado à SEFAZ. O desconto interno abaixo reduz apenas o total a receber.</p>
             <SubBlock title="ICMS">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
+                <div className="space-y-1 col-span-2 sm:col-span-3">
+                  <Label className="text-[10px]">CST ICMS</Label>
+                  <Select value={form.cst_icms} onValueChange={changeIcmsCst}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Escolha o CST" /></SelectTrigger>
+                    <SelectContent>{ICMS_CST_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">{ICMS_CST_OPTIONS.find((o) => o.value === form.cst_icms)?.hint}</p>
+                </div>
+                {(icmsMode === "reducao" || icmsMode === "outros") && (
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Redução da base (%)</Label>
+                    <Input className="h-8 text-xs" type="number" step="0.01" min={0} max={100} value={form.percentual_reducao_bc} onChange={(e) => set("percentual_reducao_bc", Math.min(100, Math.max(0, Number(e.target.value) || 0)))} />
+                  </div>
+                )}
                 <div className="space-y-1">
                   <Label className="text-[10px]">Alíquota ICMS (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={icmsMode === "isento"} value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Base Cálculo ICMS</Label>
@@ -2092,10 +2163,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <div className="space-y-1">
                   <Label className="text-[10px]">Valor ICMS</Label>
                   <Input className="h-8 bg-muted text-xs text-foreground/80" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">CST ICMS</Label>
-                  <Input className="h-8 text-xs" value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CFOP</Label>
@@ -2125,31 +2192,35 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <FormBlock icon={Building2} title="10. Impostos IBS e CBS" summary={`IBS+CBS ${formatBRL(form.ibs_uf_valor + form.ibs_mun_valor + form.cbs_valor)}`}>
             <SubBlock title="IBS / CBS — Reforma Tributária 2026">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2">
-                <div className="space-y-1">
+                <div className="space-y-1 col-span-2">
                   <Label className="text-[10px]">Situação (CST)</Label>
-                  <Input className="h-8 text-xs" value={form.ibs_cbs_cst} maxLength={3} onChange={(e) => set("ibs_cbs_cst", e.target.value.replace(/\D/g, ""))} />
+                  <Select value={form.ibs_cbs_cst} onValueChange={changeIbsCbsCst}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Escolha o CST" /></SelectTrigger>
+                    <SelectContent>{IBS_CBS_CST_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">{IBS_CBS_CST_OPTIONS.find((o) => o.value === form.ibs_cbs_cst)?.hint}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Classificação</Label>
                   <Input className="h-8 text-xs" value={form.ibs_cbs_class_trib} maxLength={6} onChange={(e) => set("ibs_cbs_class_trib", e.target.value.replace(/\D/g, ""))} />
                 </div>
-                <div className="space-y-1 col-span-2">
+                <div className="space-y-1">
                   <Label className="text-[10px]">Base de cálculo</Label>
                   <Input className="h-8 bg-muted text-xs text-foreground/80" disabled value={formatBRL(form.ibs_cbs_base_calculo)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Estadual (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={ibsIsento} value={form.ibs_uf_aliquota} onChange={(e) => set("ibs_uf_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_uf_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">IBS Municipal (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={ibsIsento} value={form.ibs_mun_aliquota} onChange={(e) => set("ibs_mun_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.ibs_mun_valor)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">CBS (%)</Label>
-                  <Input className="h-8 text-xs" type="number" step="0.01" value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
+                  <Input className="h-8 text-xs" type="number" step="0.01" disabled={ibsIsento} value={form.cbs_aliquota} onChange={(e) => set("cbs_aliquota", Number(e.target.value))} />
                   <p className="text-[10px] font-medium text-foreground/70">{formatBRL(form.cbs_valor)}</p>
                 </div>
                 <div className="space-y-1">

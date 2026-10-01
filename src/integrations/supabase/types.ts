@@ -1207,6 +1207,7 @@ export type Database = {
           observacoes: string | null
           outros_documentos: Json
           pedido_numero: string | null
+          percentual_reducao_bc: number
           peso_bruto: number | null
           placa_veiculo: string | null
           previsao_chegada: string | null
@@ -1328,6 +1329,7 @@ export type Database = {
           observacoes?: string | null
           outros_documentos?: Json
           pedido_numero?: string | null
+          percentual_reducao_bc?: number
           peso_bruto?: number | null
           placa_veiculo?: string | null
           previsao_chegada?: string | null
@@ -1449,6 +1451,7 @@ export type Database = {
           observacoes?: string | null
           outros_documentos?: Json
           pedido_numero?: string | null
+          percentual_reducao_bc?: number
           peso_bruto?: number | null
           placa_veiculo?: string | null
           previsao_chegada?: string | null
