@@ -48,6 +48,9 @@ const defaultForm = {
   codigo_municipio_ibge: "",
   ambiente: "homologacao",
   active: true,
+  seguradora_nome: "",
+  seguradora_cnpj: "",
+  apolice_numero: "",
 };
 
 interface Props {
@@ -115,6 +118,9 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
         codigo_municipio_ibge: establishment.codigo_municipio_ibge || "",
         ambiente: establishment.ambiente || "homologacao",
         active: establishment.active ?? true,
+        seguradora_nome: (establishment as any).seguradora_nome || "",
+        seguradora_cnpj: (establishment as any).seguradora_cnpj ? maskCNPJ((establishment as any).seguradora_cnpj) : "",
+        apolice_numero: (establishment as any).apolice_numero || "",
       });
     } else {
       setForm(defaultForm);
@@ -174,6 +180,9 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
         ...form,
         cnpj: unmaskCNPJ(form.cnpj) || form.cnpj,
         endereco_cep: unmaskCEP(form.endereco_cep) || form.endereco_cep,
+        seguradora_nome: form.seguradora_nome || null,
+        seguradora_cnpj: unmaskCNPJ(form.seguradora_cnpj) || null,
+        apolice_numero: form.apolice_numero || null,
       };
 
       let estId: string;
@@ -296,6 +305,18 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
             <div className="space-y-1.5">
               <Label className="text-xs">RNTRC</Label>
               <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Seguradora padrão</Label>
+              <Input value={form.seguradora_nome} onChange={(e) => set("seguradora_nome", e.target.value.toUpperCase())} placeholder="Ex.: SURA" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">CNPJ da seguradora</Label>
+              <Input value={form.seguradora_cnpj} onChange={(e) => set("seguradora_cnpj", maskCNPJ(e.target.value))} maxLength={18} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nº da apólice padrão</Label>
+              <Input value={form.apolice_numero} onChange={(e) => set("apolice_numero", e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Ambiente</Label>
