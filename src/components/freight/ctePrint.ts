@@ -184,6 +184,7 @@ const STYLE = `<style>
   th { font-size: 6.2px; font-weight:400; text-transform: uppercase; text-align:center; }
   td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
+  .service-component .value.right, td.right { text-align:center; }
   .notes { min-height: 82px; padding: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
   .actor { padding:3px; min-height:78px; border-right:1px solid #111; }
