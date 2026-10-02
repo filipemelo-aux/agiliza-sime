@@ -337,6 +337,36 @@
       width: auto !important;
     }
 
+    /* Emissor de Cheques: Vínculo mostra o texto inteiro; demais colunas no tamanho do conteúdo */
+    .checks-grid .data-grid-table th[data-column-key="numero"],
+    .checks-grid .data-grid-table td[data-column-key="numero"] {
+      width: 86px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="data"],
+    .checks-grid .data-grid-table td[data-column-key="data"] {
+      width: 78px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="vencimento"],
+    .checks-grid .data-grid-table td[data-column-key="vencimento"] {
+      width: 90px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="tipo"],
+    .checks-grid .data-grid-table td[data-column-key="tipo"] {
+      width: 300px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="empresa"],
+    .checks-grid .data-grid-table td[data-column-key="empresa"] {
+      width: 88px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="valor"],
+    .checks-grid .data-grid-table td[data-column-key="valor"] {
+      width: 96px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="favorecido"],
+    .checks-grid .data-grid-table td[data-column-key="favorecido"] {
+      width: auto !important;
+    }
+
     .data-grid-table td > span,
     .data-grid-table td > span > * {
       min-width: 0 !important;
