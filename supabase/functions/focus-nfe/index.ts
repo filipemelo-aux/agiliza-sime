@@ -233,6 +233,47 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Operações SEFAZ sobre um CT-e já emitido pelo sistema (mesmo ambiente da emissão).
+  if (["cancelar_cte_salvo", "cce_cte_salvo", "consultar_cte_salvo", "xml_cte_salvo"].includes(action)) {
+    const cteId = String(body.cte_id ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(cteId)) return json({ error: "CT-e inválido" }, 400);
+    const { data: cte } = await supabase.from("ctes").select("id,status").eq("id", cteId).maybeSingle();
+    if (!cte) return json({ error: "CT-e não encontrado" }, 404);
+    const hdr = { Authorization: "Basic " + btoa(token + ":"), "Content-Type": "application/json" };
+    const url = `${BASES.homologacao}/v2/cte/cte-${cteId}`;
+    const b = body as any;
+    if (action === "cancelar_cte_salvo") {
+      const just = String(b.justificativa ?? "").trim();
+      if (just.length < 15 || just.length > 255) return json({ error: "A justificativa deve ter entre 15 e 255 caracteres" }, 400);
+      if (cte.status !== "autorizado") return json({ error: "Só é possível cancelar CT-e autorizado" }, 409);
+      const r = await fetch(url, { method: "DELETE", headers: hdr, body: JSON.stringify({ justificativa: just }) });
+      const d: any = await r.json().catch(() => ({}));
+      if (d?.status === "cancelado") {
+        await supabase.from("ctes").update({ status: "cancelado", motivo_rejeicao: `Cancelado: ${just}` }).eq("id", cteId);
+        return json({ success: true, status: "cancelado", protocolo: d?.protocolo_cancelamento });
+      }
+      return json({ success: false, motivo: d?.mensagem_sefaz || d?.mensagem || "Cancelamento não aceito pela SEFAZ" });
+    }
+    if (action === "cce_cte_salvo") {
+      if (cte.status !== "autorizado") return json({ error: "Carta de correção exige CT-e autorizado" }, 409);
+      const payloadCce = { campo_corrigido: b.campo_corrigido, valor_corrigido: b.valor_corrigido, grupo_corrigido: b.grupo_corrigido };
+      if (!payloadCce.campo_corrigido || !payloadCce.valor_corrigido || !payloadCce.grupo_corrigido) return json({ error: "Informe grupo, campo e novo valor" }, 400);
+      const r = await fetch(`${url}/carta_correcao`, { method: "POST", headers: hdr, body: JSON.stringify(payloadCce) });
+      const d: any = await r.json().catch(() => ({}));
+      const ok = d?.status === "autorizado";
+      return json({ success: ok, motivo: ok ? undefined : d?.mensagem_sefaz || d?.mensagem || "Carta de correção não aceita" });
+    }
+    const r = await fetch(`${url}?completa=1`, { headers: hdr });
+    const d: any = await r.json().catch(() => ({}));
+    if (action === "xml_cte_salvo") {
+      const path = d?.caminho_xml || d?.caminho_xml_nota_fiscal;
+      if (!path) return json({ error: "XML ainda não disponível na SEFAZ" }, 404);
+      const x = await fetch(path.startsWith("http") ? path : BASES.homologacao + path, { headers: hdr });
+      return json({ success: true, xml: await x.text() });
+    }
+    return json({ success: true, status: d?.status, mensagem: d?.mensagem_sefaz || d?.mensagem, protocolo: d?.protocolo, chave: d?.chave_cte });
+  }
+
   switch (action) {
     case "ping":
     case "nfes_recebidas":

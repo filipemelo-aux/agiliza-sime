@@ -34,7 +34,9 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
-import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
+import { buildCteHtml } from "@/components/freight/ctePrint";
+import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
+import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
 
@@ -106,30 +108,33 @@ export default function FreightCte() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [printing, setPrinting] = useState(false);
+  const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
+  const [sefazOpen, setSefazOpen] = useState(false);
 
-  const handlePrintSelected = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
-    setPrinting(true);
-    try {
-      const { data, error } = await supabase.from("ctes").select("*").in("id", ids);
-      if (error) throw error;
-      const byId = new Map((data || []).map((c: any) => [c.id, c]));
-      const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as any[];
-      if (ordered.length === 0) {
-        toast({ title: "Nenhum CT-e encontrado", variant: "destructive" });
-        return;
-      }
-      const htmls: string[] = [];
-      for (const c of ordered) htmls.push(await buildCteHtml(c));
-      openPrintWindow(combineCtesHtml(htmls));
-    } catch (err: any) {
-      toast({ title: "Erro ao imprimir", description: err.message, variant: "destructive" });
-    } finally {
-      setPrinting(false);
-    }
+  const handleDownloadDacte = async (cteId: string) => {
+    const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
+    if (error || !data) throw new Error(error?.message || "CT-e não encontrado");
+    const html = await buildCteHtml(data as any);
+    const num = (data as any).numero ?? (data as any).numero_interno ?? "";
+    await downloadHtmlAsPdf(html, `DACTE-${num || cteId.slice(0, 8)}.pdf`);
+  };
+
+  const handlePrintSelected = () => {
+    const list = sorted.filter((c) => selectedIds.has(c.id));
+    if (!list.length) return;
+    const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+    const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const total = list.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
+    const rows = list.map((c) => `<tr><td>${esc(c.tipo_talao === "servico" ? c.numero_interno : c.numero)}</td><td>${c.tipo_talao === "servico" ? "Serviço" : "Produção"}</td><td>${esc(formatDateBR(getEmissaoDate(c)))}</td><td>${esc(getClienteTomador(c))}</td><td>${esc(c.municipio_origem_nome || "")}${c.uf_origem ? "/" + esc(c.uf_origem) : ""} → ${esc(c.municipio_destino_nome || "")}${c.uf_destino ? "/" + esc(c.uf_destino) : ""}</td><td>${esc(c.placa_veiculo || "—")}</td><td class="r">${brl(Number(c.valor_frete || 0))}</td><td>${esc(c.tipo_talao === "servico" ? "Interno" : statusLabels[c.status] || c.status)}</td></tr>`).join("");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Relação de CT-es</title><style>
+@page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;font-size:10px;color:#111}h1{font-size:14px;margin:0 0 4px}
+p{margin:0 0 8px;color:#555}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px 5px;text-align:left}
+th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head><body>
+<h1>Relação de CT-es</h1><p>${list.length} CT-e(s) · Emitido em ${new Date().toLocaleString("pt-BR")}</p>
+<table><thead><tr><th>Nº</th><th>Talão</th><th>Emissão</th><th>Cliente</th><th>Rota</th><th>Placa</th><th class="r">Valor</th><th>Status</th></tr></thead>
+<tbody>${rows}</tbody><tfoot><tr><td colspan="6">Total</td><td class="r">${brl(total)}</td><td></td></tr></tfoot></table></body></html>`;
+    openPrintWindow(html);
   };
 
   useEffect(() => {
@@ -640,7 +645,7 @@ export default function FreightCte() {
               onClick: () => singleCte && handleEdit(singleCte),
             },
             {
-              key: "print", label: printing ? "Gerando..." : "Imprimir", icon: Printer, mode: "single+batch", variant: "outline",
+              key: "print", label: "Imprimir lista", icon: Printer, mode: "single+batch", variant: "outline",
               disabled: printing || selectedIds.size === 0,
               onClick: handlePrintSelected,
             },
@@ -662,9 +667,9 @@ export default function FreightCte() {
             },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
             {
-              key: "transmit", label: transmitting ? "Emitindo..." : "Emitir SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: true,
-              disabled: transmitting || !canTransmit,
-              onClick: handleTransmit,
+              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: canTransmit,
+              disabled: transmitting || !singleCte,
+              onClick: () => setSefazOpen(true),
             },
             {
               key: "mdfe", label: "Gerar MDF-e", icon: Truck, mode: "single+batch", variant: "outline",
@@ -749,6 +754,14 @@ export default function FreightCte() {
         onSaved={fetchCtes}
       />
 
+      <CteSefazDialog
+        cte={singleCte}
+        open={sefazOpen}
+        onOpenChange={setSefazOpen}
+        onTransmit={handleTransmit}
+        onDownloadPdf={() => (singleCte ? handleDownloadDacte(singleCte.id) : Promise.resolve())}
+        onChanged={fetchCtes}
+      />
       {detailCte && (
         <CteDetailDialog
           open={!!detailCte}
