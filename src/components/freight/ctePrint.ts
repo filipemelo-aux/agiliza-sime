@@ -165,7 +165,7 @@ const STYLE = `<style>
   .qr img { width:82px; height:82px; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { height:15px; min-height:15px; display:flex; flex:none; align-items:center; justify-content:center; text-align:center; border-top:1px solid #111; border-bottom:1px solid #111; padding:3px; font-weight:400; font-size:5.7px; line-height:7px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
+  .section-title { height:17px; min-height:17px; display:flex; flex:none; align-items:center; justify-content:center; text-align:center; border:0; box-shadow:inset 0 1px #111, inset 0 -1px #111; padding:4px 3px 3px; font-weight:400; font-size:5.7px; line-height:7px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
   .section-title + .grid, .section-title + table, .section-title + .notes { border-top: 0; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
@@ -209,9 +209,9 @@ const STYLE = `<style>
   .cargo-main > .cell { min-height:31px; border-bottom:0; }
   .cargo-qty { display:grid; grid-template-columns:40px 1.15fr 1fr 1fr 1fr; border-bottom:1px solid #111; }
   .cargo-qty > .cell { min-height:26px; border-bottom:0; }
-  .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; }
+  .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; align-items:stretch; }
   .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
-  .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; }
+  .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; align-items:stretch; }
   .service-component:last-child { border-right:0; }
   .service-component > div { padding:2px 3px; min-height:40px; display:grid; grid-template-rows:8px minmax(9px,auto); align-content:start; }
   .service-component > div:first-child { border-right:1px solid #777; }
@@ -219,10 +219,10 @@ const STYLE = `<style>
   .service-total { min-height:27px; padding:2px 3px; display:grid; grid-template-rows:8px minmax(9px,auto); align-content:start; }
   .service-total + .service-total { border-top:1px solid #111; }
   .service-total .value { text-align:right; font-size:8px; }
-  .tax-row { display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .55fr; border-bottom:1px solid #111; }
+  .tax-row { display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .55fr; border-bottom:1px solid #111; align-items:stretch; }
   .tax-row > .cell { border-bottom:0; min-height:31px; }
   .origin-docs { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
-  .origin-doc-panel { min-height:48px; }
+  .origin-doc-panel { min-height:54px; }
   .origin-doc-panel:first-child { border-right:1px solid #111; }
   .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:.34fr 1.85fr 1.05fr .72fr; align-items:start; }
   .origin-doc-head > div, .origin-doc-row > div { padding:2px 3px; line-height:8px; overflow-wrap:anywhere; }
