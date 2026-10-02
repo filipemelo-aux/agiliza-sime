@@ -126,7 +126,7 @@ function drawGrid(pdf: jsPDF) {
   for (const [x1, x2, y] of H_LINES) pdf.line(x1, y + 0.5, x2 + 1, y + 0.5);
   for (const [x, y1, y2] of V_LINES) pdf.line(x + 0.5, y1, x + 0.5, y2 + 1);
   // Marcas laterais do código de barras.
-  pdf.setFillColor(0);
+  pdf.setFillColor(0, 0, 0);
   pdf.rect(233, 115, 12, 3, "F");
   pdf.rect(473, 115, 12, 3, "F");
   // Caixas SIM / NÃO.
