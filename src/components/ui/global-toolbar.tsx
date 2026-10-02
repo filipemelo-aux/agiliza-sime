@@ -21,13 +21,13 @@ import { quickPrintVisibleTable } from "@/lib/pdfDownload";
 
 /**
  * PADRÃO ÚNICO DAS TOOLBARS — não variar por tela.
- * Todos os botões de ação têm a mesma caixa externa e o mesmo ícone.
- * Glifos oficiais (SEFAZ, MDF-e) usam caixa maior porque o arquivo SVG traz
- * margem interna; o fator de cada arquivo faz a arte visível sair no padrão.
+ * Botões sem caixa: só o ícone, maior, com hover discreto (estilo sofisticado,
+ * inspirado em barras de ferramentas clássicas). Todos com a mesma medida.
  */
-export const TOOLBAR_BUTTON_CLASS = "h-9 w-9 p-0 justify-center gap-0 md:h-8 md:w-8";
+export const TOOLBAR_BUTTON_CLASS =
+  "h-9 w-9 p-0 justify-center gap-0 md:h-9 md:w-9 border-0 bg-transparent text-foreground shadow-none hover:bg-muted/70 hover:text-foreground rounded-md";
 /** Ícone padrão de todos os botões. `!` é necessário: o botão base força tamanho nos ícones ([&_svg]:size-4). */
-export const TOOLBAR_ICON_CLASS = "!h-5 !w-5 md:!h-[18px] md:!w-[18px]";
+export const TOOLBAR_ICON_CLASS = "!h-6 !w-6 md:!h-[22px] md:!w-[22px]";
 
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
 
@@ -177,6 +177,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           className={cn(
             "text-xs disabled:opacity-40",
             Icon ? TOOLBAR_BUTTON_CLASS : "h-9 md:h-8 px-2.5 gap-1.5",
+            a.variant === "destructive" && "text-destructive hover:text-destructive",
             isPending && "ring-2 ring-ring",
             a.className,
           )}
@@ -362,13 +363,14 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         className={cn(
           TOOLBAR_BUTTON_CLASS,
           showLabel && "lg:w-auto lg:px-2 lg:gap-1.5",
+          active && "bg-muted",
           pending && "ring-2 ring-ring",
           className,
         )}
       >
         <Icon className={TOOLBAR_ICON_CLASS} />
         {showLabel ? (
-          <span className={cn("hidden lg:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
+          <span className={cn("hidden lg:inline text-[10px] font-normal", active ? "text-foreground" : "text-muted-foreground/80")}>{label}</span>
         ) : (
           <span className="sr-only">{label}</span>
         )}
