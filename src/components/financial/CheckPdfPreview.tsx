@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+// Build "legacy": inclui polyfills (ex.: Map.getOrInsertComputed) ausentes em Safari/Chrome mais antigos.
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 interface Props {
   bytes: Uint8Array | null;
@@ -22,7 +23,7 @@ export function CheckPdfPreview({ bytes, className }: Props) {
     const render = async () => {
       setLoading(true);
       try {
-        const pdfjs = await import("pdfjs-dist");
+        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
         pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
         loadingTask = pdfjs.getDocument({ data: bytes.slice() });
         const pdf = await loadingTask.promise;
