@@ -1294,6 +1294,20 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       // recusar um campo desconhecido, ele é retirado e o envio é refeito.
       delete payload.contratado_locked;
       delete payload.tipo_carga;
+
+      // Reserva o próximo número do talão já no rascunho: o número fica preso
+      // a este CT-e e a transmissão reutiliza o mesmo número (sem gerar outro).
+      if (!cte && !payload.numero) {
+        const { data: nextNum, error: numErr } = await supabase.rpc("next_cte_number", {
+          _establishment_id: selectedEstId,
+        });
+        if (numErr || !nextNum) {
+          toast({ title: "Falha ao reservar número", description: numErr?.message ?? "Não foi possível gerar o número do CT-e.", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
+        payload.numero = nextNum as number;
+      }
       const writeCte = async () => {
         for (let attempt = 0; attempt < 6; attempt++) {
           const res: any = cte
