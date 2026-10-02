@@ -10,9 +10,9 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso } from "@/lib/valorExtenso";
-import { buildCheckPdf, downloadPdfBytes, printPdfBytes } from "@/lib/checkPdf";
+import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
-import { Printer, AlertTriangle, Download, X } from "lucide-react";
+import { AlertTriangle, Download, X } from "lucide-react";
 
 
 export interface CheckIssueData {
@@ -107,6 +107,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const blobUrl = URL.createObjectURL(new Blob([bytes.slice()], { type: "application/pdf" }));
       setPdfBytes(bytes);
       setPdfBlobUrl(blobUrl);
+      downloadPdfBytes(bytes, `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`);
 
       localStorage.setItem("cheque_cruzado", cruzado ? "1" : "0");
       localStorage.setItem("cheque_canhoto", imprimirCanhoto ? "1" : "0");
@@ -191,11 +192,6 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     downloadPdfBytes(pdfBytes, `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`);
   };
 
-  const handlePrint = () => {
-    if (!pdfBytes) return;
-    printPdfBytes(pdfBytes);
-  };
-
 
 
 
@@ -215,23 +211,19 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         onEscapeKeyDown={(e) => { if (pdfBlobUrl || generating) e.preventDefault(); }}
       >
         <DialogHeader>
-          <DialogTitle>{pdfBlobUrl ? "Visualização de Impressão" : "Emissão de Cheque"}</DialogTitle>
+          <DialogTitle>{pdfBlobUrl ? "Pré-visualização do cheque" : "Emissão de Cheque"}</DialogTitle>
         </DialogHeader>
 
         {pdfBlobUrl ? (
           <div className="space-y-4">
             <CheckPdfPreview bytes={pdfBytes} />
             <p className="text-[11px] text-muted-foreground">
-              Baixe o PDF e imprima pelo leitor de PDF, mantendo "Tamanho real / Escala 100%" e desativando "Ajustar à página".
+              O PDF do cheque foi baixado. Para imprimir com fidelidade, abra o arquivo no leitor de PDF e use "Tamanho real / Escala 100%".
             </p>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <Button variant="default" size="sm" onClick={handlePrint} className="gap-1.5">
-                <Printer className="h-4 w-4" />
-                Imprimir
-              </Button>
               <Button variant="secondary" size="sm" onClick={handleDownload} className="gap-1.5">
                 <Download className="h-4 w-4" />
-                Baixar PDF
+                Baixar novamente
               </Button>
               <Button variant="outline" size="sm" onClick={handleClose} className="gap-1.5">
                 <X className="h-4 w-4" />
