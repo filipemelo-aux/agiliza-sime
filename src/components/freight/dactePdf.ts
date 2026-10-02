@@ -90,7 +90,7 @@ class Painter {
     this.font(size, bold);
     if (!maxW || this.pdf.getTextWidth(text) <= maxW) return { text, size };
     let s = size;
-    while (s > size * 0.78) {
+    while (s > size * 0.62) {
       s -= 0.2;
       this.font(s, bold);
       if (this.pdf.getTextWidth(text) <= maxW) return { text, size: s };
@@ -205,10 +205,15 @@ async function loadEmitente(id?: string | null) {
   if (!id) return null;
   const { data } = await supabase
     .from("fiscal_establishments")
-    .select("razao_social, cnpj, inscricao_estadual, rntrc, telefone, endereco_logradouro, endereco_numero, endereco_complemento, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
+    .select("razao_social, cnpj, inscricao_estadual, rntrc, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, profile_id")
     .eq("id", id)
     .maybeSingle();
-  return (data as Dict) || null;
+  const emit = (data as Dict) || null;
+  if (emit?.profile_id) {
+    const { data: prof } = await supabase.from("profiles").select("phone").eq("id", emit.profile_id).maybeSingle();
+    emit.telefone = (prof as Dict | null)?.phone || "";
+  }
+  return emit;
 }
 
 async function loadProfilesByDoc(docs: string[]) {
@@ -334,7 +339,6 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   P.text(emit?.razao_social || "Sime Transporte Ltda", 133.4, 73, 7, { bold: true, align: "center", maxW: 200 });
   const address = [
     [emit?.endereco_logradouro, emit?.endereco_numero].filter(Boolean).join(", "),
-    emit?.endereco_complemento,
     emit?.endereco_bairro ? `BAIRRO ${emit.endereco_bairro}` : "",
     [emit?.endereco_municipio, emit?.endereco_uf].filter(Boolean).join(" - "),
     emit?.endereco_cep ? `CEP ${maskCEP(digits(emit.endereco_cep))}` : "",
@@ -369,7 +373,7 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
 
   // ---------- Código de barras / chave / QR ----------
   drawBarcode(pdf, auth.key);
-  P.text("Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br", 361.5, 112, 5, { align: "center" });
+  P.text("Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br", 361.5, 112, 5, { align: "center", maxW: 226 });
   P.text(auth.key, 361.5, 120, 7, { align: "center", maxW: 236 });
   if (auth.key.length === 44) {
     const tpAmb = auth.ambiente === "2" ? 2 : 1;
@@ -382,7 +386,7 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   P.text("TIPO DO CT-E", 29.8, 114, 5);
   P.text(TP_CTE[Number(cte.tp_cte)] || "Normal", 70.8, 113, 6, { maxW: 58 });
   P.text("TIPO DO SERVIÇO", 135.8, 114, 5);
-  P.text(TP_SERV[Number(cte.tp_serv)] || "Normal", 185.8, 113, 6, { maxW: 46 });
+  P.text(TP_SERV[Number(cte.tp_serv)] || "Normal", 183.5, 113, 6, { maxW: 48 });
 
   // ---------- Globalizado / protocolo ----------
   P.text("INDICADOR DO CT-E GLOBALIZADO", 29.8, 130, 5);
