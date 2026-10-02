@@ -152,7 +152,7 @@ function drawBarcode(pdf: jsPDF, key: string) {
   if (!data) return;
   const x0 = 241, width = 236.8, top = 79, height = 26;
   const module = width / data.length;
-  pdf.setFillColor(0);
+  pdf.setFillColor(0, 0, 0);
   let i = 0;
   while (i < data.length) {
     if (data[i] === "1") {
@@ -170,7 +170,7 @@ function drawQr(pdf: jsPDF, url: string) {
   const size = qr.modules.size;
   const box = 80, x0 = 486, y0 = 37;
   const cell = box / size;
-  pdf.setFillColor(0);
+  pdf.setFillColor(0, 0, 0);
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       if (qr.modules.get(r, c)) pdf.rect(x0 + c * cell, y0 + r * cell, cell + 0.05, cell + 0.05, "F");
