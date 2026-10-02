@@ -262,7 +262,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
   ];
 
   const chequeRowTone = (row: CheckRow): RowTone => {
-    if (row.status === "cancelado") return "overdue"; // Cancelado
+    if (row.status === "cancelado") return "cancelled"; // Cancelado (cinza, separado de vencido)
     if (row.status === "compensado") return "resolved"; // Cheque pago / compensado
     const info = links[row.id];
     const hasLink = !!(info && info.expenseIds.length);
