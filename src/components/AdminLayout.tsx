@@ -1,6 +1,7 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
+import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,7 +78,7 @@ export const allMenuItems = [
     children: [
       { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
       { title: "Contratos de Frete", url: "/admin/freight/contracts", icon: FileSignature },
-      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
+      { title: "MDF-e", url: "/admin/freight/mdfe", icon: MdfeIcon },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
       { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Relatórios", url: "/admin/freight/reports", icon: FileSpreadsheet },
