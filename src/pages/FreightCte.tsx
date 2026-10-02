@@ -15,8 +15,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Truck, Loader2, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
+import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
