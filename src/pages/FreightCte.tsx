@@ -33,7 +33,7 @@ import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
-import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { GlobalToolbar, TOOLBAR_ICON_OFFICIAL_CLASS } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { downloadDactePdf } from "@/components/freight/dactePdf";
@@ -673,7 +673,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => setSefazOpen(true),
             },
             {
-              key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: "h-[26px] w-[26px] md:h-[26px] md:w-[26px]",
+              key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: TOOLBAR_ICON_OFFICIAL_CLASS.mdfe,
               disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
               onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
             },
