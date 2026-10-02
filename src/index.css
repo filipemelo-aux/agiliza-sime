@@ -352,11 +352,11 @@
     }
     .checks-grid .data-grid-table th[data-column-key="tipo"],
     .checks-grid .data-grid-table td[data-column-key="tipo"] {
-      width: 300px !important;
+      width: 326px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="empresa"],
     .checks-grid .data-grid-table td[data-column-key="empresa"] {
-      width: 88px !important;
+      width: 62px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="valor"],
     .checks-grid .data-grid-table td[data-column-key="valor"] {
