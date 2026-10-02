@@ -557,6 +557,7 @@ export type Database = {
           freight_contract_id: string | null
           historico: string | null
           id: string
+          imprimir_canhoto: boolean | null
           layout_id: string | null
           movimentacao_id: string | null
           numero_cheque: string | null
@@ -585,6 +586,7 @@ export type Database = {
           freight_contract_id?: string | null
           historico?: string | null
           id?: string
+          imprimir_canhoto?: boolean | null
           layout_id?: string | null
           movimentacao_id?: string | null
           numero_cheque?: string | null
@@ -613,6 +615,7 @@ export type Database = {
           freight_contract_id?: string | null
           historico?: string | null
           id?: string
+          imprimir_canhoto?: boolean | null
           layout_id?: string | null
           movimentacao_id?: string | null
           numero_cheque?: string | null
