@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ANTT_TABELAS, EIXOS_ANTT, TIPO_CARGA_TO_ANTT, calcPisoMinimo, eixosAntt } from "@/lib/anttPisoMinimo";
 import { parseNfeXml, fetchNfeFromSefaz, type NfeData } from "@/lib/nfeImport";
 import { buscarCodigoIbgePorMunicipio } from "@/lib/ibgeLookup";
+import { resolveCteCfop } from "@/lib/cteCfop";
 import {
   Sheet,
   SheetContent,
@@ -1173,8 +1174,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     setSaving(true);
     try {
       const { tipo_carga: _tc, contratado_locked: _cl, ...formWithoutExtra } = form;
+      const routeCfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
       const payload: any = {
         ...formWithoutExtra,
+        cfop: routeCfop || form.cfop,
         data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj,
         destinatario_cnpj: unmaskCNPJ(form.destinatario_cnpj) || form.destinatario_cnpj,
@@ -1383,6 +1386,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     if (t) setFm({ tipo: t });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.tipo_carga]);
+  // A operação é interna quando origem e destino pertencem à mesma UF;
+  // caso contrário, é interestadual. Mantém a finalidade atual do CFOP.
+  useEffect(() => {
+    const cfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
+    if (cfop && cfop !== form.cfop) setForm((p) => ({ ...p, cfop }));
+  }, [form.uf_origem, form.uf_destino, form.tp_serv, form.cfop]);
   // Puxa o tipo cadastrado na natureza da carga (seleção, digitação ou NF-e importada)
   useEffect(() => {
     const nome = (form.produto_predominante || "").trim();
@@ -2161,6 +2170,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                   </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Selecionado automaticamente pela UF de origem e destino.
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Natureza da Operação</Label>
