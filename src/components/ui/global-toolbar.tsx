@@ -31,6 +31,8 @@ export interface ToolbarAction {
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary";
   /** classes extras aplicadas ao botão (ex.: cores de destaque por tipo de match) */
   className?: string;
+  /** classes extras aplicadas só ao ícone da ação (ex.: ícones oficiais que devem preencher o botão) */
+  iconClassName?: string;
   /** desabilita mesmo quando a seleção permitiria */
   disabled?: boolean;
   hidden?: boolean;
@@ -169,7 +171,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
             a.className,
           )}
         >
-          {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+          {Icon && <Icon className={cn("h-4 w-4 md:h-3.5 md:w-3.5", a.iconClassName)} />}
           {Icon ? <span className="sr-only">{a.label}</span> : <span>{a.label}</span>}
         </Button>
       </div>
