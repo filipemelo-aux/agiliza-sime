@@ -33,7 +33,7 @@ import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
-import { GlobalToolbar, TOOLBAR_ICON_OFFICIAL_CLASS } from "@/components/ui/global-toolbar";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { downloadDactePdf } from "@/components/freight/dactePdf";
