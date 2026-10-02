@@ -14,9 +14,11 @@ import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
-import { Banknote, CalendarDays, CheckCircle2, Download, Plus, RefreshCw, Search, Trash2, WalletCards, XCircle } from "lucide-react";
+import { Banknote, CalendarDays, CheckCircle2, Download, Plus, Printer, RefreshCw, Search, Trash2, WalletCards, X, XCircle } from "lucide-react";
 import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CheckPdfPreview } from "./CheckPdfPreview";
 
 interface CheckRow {
   id: string;
@@ -184,6 +186,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [busy, setBusy] = useState(false);
+  const [reprint, setReprint] = useState<{ bytes: Uint8Array; name: string } | null>(null);
 
   const reprintSelected = async () => {
     const row = selectedRows[0];
@@ -213,10 +216,9 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         predatado: isPre,
         dataVencimentoISO: isPre ? row.data_vencimento : null,
       } as any);
-      downloadPdfBytes(bytes, `cheque_${(row.numero_cheque || "sem_numero").trim()}.pdf`);
-      toast.success("PDF do cheque baixado");
+      setReprint({ bytes, name: `cheque_${(row.numero_cheque || "sem_numero").trim()}.pdf` });
     } catch (e: any) {
-      toast.error("Não foi possível baixar o cheque", { description: e?.message });
+      toast.error("Não foi possível gerar o cheque", { description: e?.message });
     } finally {
       setBusy(false);
     }
@@ -243,7 +245,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: Banknote, mode: "single" as const, priority: true, className: "bg-success text-success-foreground hover:bg-success/90 border-transparent", onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione um cheque em aberto (emitido)"); if (alvo.length > 1) return toast.info("Pague um cheque por vez"); setPayOpen(true); } }] : []),
     ...(!reportMode ? [{ key: "new", label: "Novo cheque", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setDialogOpen(true) }] : []),
     { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", className: "border-border text-muted-foreground hover:bg-muted", onClick: () => { void load(); } },
-    ...(!reportMode ? [{ key: "download", label: "Baixar cheque (PDF)", icon: Download, mode: "single" as const, disabled: busy, onClick: () => { void reprintSelected(); } }] : []),
+    ...(!reportMode ? [{ key: "reprint", label: "Reimprimir cheque", icon: Printer, mode: "single" as const, disabled: busy, onClick: () => { void reprintSelected(); } }] : []),
     ...(!reportMode ? [{ key: "cancel", label: "Cancelar cheque", icon: XCircle, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void cancelSelected(); } }] : []),
     ...(!reportMode ? [{ key: "delete", label: "Excluir cheque", icon: Trash2, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void deleteSelected(); } }] : []),
   ];
@@ -288,6 +290,21 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
       {ConfirmDialog}
       <CheckPayDialog open={payOpen} onOpenChange={setPayOpen} cheques={selectedRows.filter((r) => r.status === "emitido")} onPaid={() => { void load(); }} />
       <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { void load(); }} />
+      <Dialog open={!!reprint} onOpenChange={(v) => { if (!v) setReprint(null); }}>
+        <DialogContent className="max-w-4xl w-[95vw]" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader><DialogTitle>Reimprimir cheque</DialogTitle></DialogHeader>
+          {reprint && (
+            <div className="space-y-4">
+              <CheckPdfPreview bytes={reprint.bytes} />
+              <p className="text-[11px] text-muted-foreground">Para imprimir com fidelidade, abra o arquivo no leitor de PDF e use "Tamanho real / Escala 100%".</p>
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => downloadPdfBytes(reprint.bytes, reprint.name)}><Download className="h-4 w-4" />Baixar PDF</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setReprint(null)}><X className="h-4 w-4" />Fechar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
