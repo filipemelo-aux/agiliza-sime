@@ -118,6 +118,19 @@ interface NfeDetalhe extends DocCampos { chave: string }
 interface OutroDoc extends DocCampos { tipo: string; descricao: string }
 const emptyDoc: DocCampos = { natureza: "", tipo: "1", numero: "", serie: "", data_emissao: "", valor: 0, peso: 0, quantidade: 0, especie: "", cubagem: 0, marca: "", cfop: "", ncm: "", valor_produtos: 0, bc_icms: 0, bc_icms_st: 0, outros: 0 };
 
+/**
+ * Ao preencher o peso do documento, espelha o mesmo valor na quantidade enquanto
+ * ela estiver vazia ou igual ao peso anterior (ou seja, ainda sincronizada).
+ * Uma quantidade digitada manualmente é preservada.
+ */
+function syncQuantidade<T extends { peso: number; quantidade: number }>(base: T, patch: Partial<T>): Partial<T> {
+  if (!("peso" in patch) || "quantidade" in patch) return patch;
+  const peso = Number(patch.peso) || 0;
+  const quantidade = Number(base.quantidade) || 0;
+  const sincronizada = quantidade === 0 || quantidade === (Number(base.peso) || 0);
+  return sincronizada ? { ...patch, quantidade: peso } : patch;
+}
+
 function DocInput({ kind, value, onChange }: { kind: "text" | "num" | "money" | "date"; value: any; onChange: (v: any) => void }) {
   if (kind === "date") return <Input type="date" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value)} />;
   if (kind === "num") return <Input type="number" step="0.001" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
@@ -805,7 +818,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         numero: String(Number(chave.slice(25, 34))),
         serie: String(Number(chave.slice(22, 25))),
       } as NfeDetalhe;
-      return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...patch }] };
+      return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...syncQuantidade(base, patch) }] };
     });
 
   // Carretas do veículo selecionado (somente se ainda vazias)
@@ -2027,7 +2040,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             ) : (
               <div className="space-y-2">
                 {form.outros_documentos.map((o, i) => {
-                  const upd = (patch: Partial<OutroDoc>) => { const arr = [...form.outros_documentos]; arr[i] = { ...arr[i], ...patch }; set("outros_documentos", arr); };
+                  const upd = (patch: Partial<OutroDoc>) => { const arr = [...form.outros_documentos]; arr[i] = { ...arr[i], ...syncQuantidade(arr[i], patch) }; set("outros_documentos", arr); };
                   return (
                     <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
                       <div className="flex items-end gap-2">
