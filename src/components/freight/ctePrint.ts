@@ -165,7 +165,7 @@ const STYLE = `<style>
   .qr img { width:82px; height:82px; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { height:16px; min-height:16px; display:block; flex:none; text-align:center; border-top:1px solid #111; border-bottom:1px solid #111; padding:0 3px; line-height:14px !important; font-weight:400; font-size:6.2px; line-height:7px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
+  .section-title { height:16px; min-height:16px; display:block; flex:none; text-align:center; border-top:1px solid #111; border-bottom:1px solid #111; padding:0 3px; line-height:14px !important; font-weight:400; font-size:6.4px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
   .section-title + .grid, .section-title + table, .section-title + .notes { border-top: 0; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
