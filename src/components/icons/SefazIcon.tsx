@@ -1,35 +1,26 @@
 import { LucideProps } from "lucide-react";
 
 /**
- * Ícone estilo Lucide representando a SEFAZ: a "fazendinha" — prédio público
- * da Fazenda com colunas e bandeira no topo.
+ * Ícone no padrão visual da SEFAZ / Portal Nacional do DF-e:
+ * folha de documento fiscal com o selo circular verde-amarelo-azul.
  */
-export function SefazIcon({ size = 24, color = "currentColor", strokeWidth = 2, className, ...props }: LucideProps) {
+export function SefazIcon({ size = 24, className, ...props }: LucideProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
       className={className}
       aria-hidden="true"
-      {...props}
+      {...(props as any)}
     >
-      {/* bandeira da Fazenda */}
-      <path d="M12 4V1" />
-      <path d="M12 1h5.5l-2 1.75 2 1.75H12" />
-      {/* pedimento */}
-      <path d="M2 10 12 4l10 6" />
-      {/* colunas */}
-      <path d="M4 18v-8M8 18v-8M12 18v-8M16 18v-8M20 18v-8" />
-      {/* arquitrave e base */}
-      <path d="M2 18h20" />
-      <path d="M2 22h20" />
+      <path d="M5 2h10l4 4v16H5z" fill="#ffffff" stroke="#1f5e2e" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M15 2v4h4" fill="none" stroke="#1f5e2e" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M8 7h5M8 9.5h7" stroke="#1f5e2e" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="12" cy="16" r="4.6" fill="#009c3b" />
+      <path d="M12 12.6 16.2 16 12 19.4 7.8 16z" fill="#ffdf00" />
+      <circle cx="12" cy="16" r="1.8" fill="#002776" />
     </svg>
   );
 }
