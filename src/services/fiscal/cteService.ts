@@ -87,13 +87,15 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
       fetchFiscalSettings(),
     ]);
 
-    // 3. Obter próximo número do estabelecimento
-    const { data: nextNum, error: numError } = await supabase.rpc("next_cte_number", {
-      _establishment_id: cte.establishment_id,
-    });
-    if (numError) throw new Error(`Erro ao gerar número: ${numError.message}`);
-
-    const numero = nextNum as number;
+    // 3. Reusar número reservado no rascunho; só gerar novo se não houver
+    let numero = cte.numero as number | null;
+    if (!numero) {
+      const { data: nextNum, error: numError } = await supabase.rpc("next_cte_number", {
+        _establishment_id: cte.establishment_id,
+      });
+      if (numError) throw new Error(`Erro ao gerar número: ${numError.message}`);
+      numero = nextNum as number;
+    }
 
     // 4. Montar dados para XML (usando dados do establishment)
     const xmlData: CteXmlData = {
