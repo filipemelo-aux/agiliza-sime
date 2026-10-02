@@ -243,6 +243,26 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
+  // Acordeão: apenas um grupo de menu aberto por vez
+  const findActiveTopLevel = () =>
+    (baseMenuItems as any[]).find((i) => i.children?.some((c: any) =>
+      c.submenu ? c.submenu.some((s: any) => isActive(s.url)) : isActive(c.url)
+    ))?.title ?? null;
+  const [openMenu, setOpenMenu] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem("sidebar-open-menu");
+      if (stored) return stored;
+    } catch {}
+    return findActiveTopLevel();
+  });
+  const handleMenuOpenChange = (title: string, v: boolean) => {
+    setOpenMenu(v ? title : null);
+    try {
+      if (v) localStorage.setItem("sidebar-open-menu", title);
+      else localStorage.removeItem("sidebar-open-menu");
+    } catch {}
+  };
+
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart" || location.pathname.startsWith("/admin/reports");
   
