@@ -264,7 +264,7 @@ function SidebarNav() {
       {/* Branding no topo da sidebar */}
         <div className="h-16 flex items-center px-3 border-b border-sidebar-border/60 shrink-0">
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
-          SIME <span className="text-accent">TRANSPORTES</span>
+          ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
         </span>
       </div>
 
@@ -396,7 +396,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
           <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
-          <img src={logo} alt="SIME" className="h-9 w-auto" />
+          <img src={logo} alt="ERP Agiliza Transporte" className="h-9 w-auto" />
         </div>
         {user && (
           <div className="flex items-center gap-2 sm:gap-4">
