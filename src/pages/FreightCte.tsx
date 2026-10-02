@@ -754,6 +754,14 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         onSaved={fetchCtes}
       />
 
+      <CteSefazDialog
+        cte={singleCte}
+        open={sefazOpen}
+        onOpenChange={setSefazOpen}
+        onTransmit={handleTransmit}
+        onDownloadPdf={() => (singleCte ? handleDownloadDacte(singleCte.id) : Promise.resolve())}
+        onChanged={fetchCtes}
+      />
       {detailCte && (
         <CteDetailDialog
           open={!!detailCte}
