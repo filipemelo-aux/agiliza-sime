@@ -805,7 +805,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         numero: String(Number(chave.slice(25, 34))),
         serie: String(Number(chave.slice(22, 25))),
       } as NfeDetalhe;
-      return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...patch }] };
+      return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...syncQuantidade(base, patch) }] };
     });
 
   // Carretas do veículo selecionado (somente se ainda vazias)
@@ -2027,7 +2027,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             ) : (
               <div className="space-y-2">
                 {form.outros_documentos.map((o, i) => {
-                  const upd = (patch: Partial<OutroDoc>) => { const arr = [...form.outros_documentos]; arr[i] = { ...arr[i], ...patch }; set("outros_documentos", arr); };
+                  const upd = (patch: Partial<OutroDoc>) => { const arr = [...form.outros_documentos]; arr[i] = { ...arr[i], ...syncQuantidade(arr[i], patch) }; set("outros_documentos", arr); };
                   return (
                     <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
                       <div className="flex items-end gap-2">
