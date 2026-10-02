@@ -212,7 +212,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         cidade: row.cidade || localStorage.getItem("cheque_cidade") || "Araguaína",
         dataISO: row.data_emissao,
         cruzado: row.cruzado ?? true,
-        imprimirCanhoto: localStorage.getItem("cheque_canhoto") !== "0",
+        imprimirCanhoto: (row as any).imprimir_canhoto ?? (localStorage.getItem("cheque_canhoto") !== "0"),
         predatado: isPre,
         dataVencimentoISO: isPre ? row.data_vencimento : null,
       } as any);
