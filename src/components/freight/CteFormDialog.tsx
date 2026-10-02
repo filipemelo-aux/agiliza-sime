@@ -138,7 +138,6 @@ function syncQuantidade<T extends { peso: number; quantidade: number }>(base: T,
  */
 function syncDoc<T extends DocCampos>(base: T, patch: Partial<T>, manual: Set<string>, docId: string): Partial<T> {
   let p: Partial<T> = syncQuantidade(base, patch);
-  console.log("[syncDoc]", docId, JSON.stringify(patch), "manual:", [...manual].join(","));
   for (const [a, b] of [["valor_produtos", "valor"], ["valor", "valor_produtos"]] as const) {
     if (a in patch) manual.add(`${docId}:${a}`);
     if (a in p && !(b in p) && !manual.has(`${docId}:${b}`)) {
@@ -168,7 +167,7 @@ function syncAverbado<F extends { valor_carga_averb: number }>(form: F, base: Do
 function DocInput({ kind, value, onChange }: { kind: "text" | "num" | "money" | "date"; value: any; onChange: (v: any) => void }) {
   if (kind === "date") return <Input type="date" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value)} />;
   if (kind === "num") return <Input type="number" step="0.001" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
-  if (kind === "money") return <Input className="h-7 text-xs" value={value ? maskCurrency(String(Math.round(Number(value) * 100))) : ""} onChange={(e) => { console.log("[DocInput money]", e.target.value); onChange(Number(unmaskCurrency(e.target.value)) || 0); }} />;
+  if (kind === "money") return <Input className="h-7 text-xs" value={value ? maskCurrency(String(Math.round(Number(value) * 100))) : ""} onChange={(e) => onChange(Number(unmaskCurrency(e.target.value)) || 0)} />;
   return <Input className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value.toUpperCase())} />;
 }
 
