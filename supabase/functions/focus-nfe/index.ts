@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
           status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso || cte.chave_acesso,
           protocolo_autorizacao: sync?.protocolo || cte.protocolo_autorizacao,
           data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
+          data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00",
         }).eq("id", cteId);
         return json({ success: true, status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso, protocolo: sync?.protocolo });
       }
@@ -233,6 +234,7 @@ Deno.serve(async (req) => {
       chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || cte.chave_acesso,
       protocolo_autorizacao: focusData?.protocolo || cte.protocolo_autorizacao,
       data_autorizacao: authorized ? new Date().toISOString() : cte.data_autorizacao,
+      ...(authorized ? { data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00" } : {}),
       motivo_rejeicao: authorized ? null : reason,
     }).eq("id", cteId);
     return json({
