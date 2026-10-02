@@ -139,7 +139,7 @@ const STATUS: Record<string, string> = { rascunho: "RASCUNHO", autorizado: "AUTO
 const STYLE = `<style>
   @page { size: A4 portrait; margin: 8mm; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 6.5px; line-height: 1.15; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 7px; line-height: 1.15; }
   .dacte { width: 100%; border: 1px solid #111; }
   .header { display: grid; grid-template-columns: 1.18fr 1.42fr .42fr; min-height: 104px; border-bottom: 1px solid #111; }
   .header > div { padding: 4px; border-right: 1px solid #111; min-width: 0; overflow: hidden; }
@@ -165,34 +165,34 @@ const STYLE = `<style>
   .qr img { width:82px; height:82px; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { height:17px; min-height:17px; display:flex; flex:none; align-items:center; justify-content:center; text-align:center; border:0; box-shadow:inset 0 1px #111, inset 0 -1px #111; padding:4px 3px 3px; font-weight:400; font-size:5.7px; line-height:7px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
+  .section-title { height:17px; min-height:17px; display:flex; flex:none; align-items:center; justify-content:center; text-align:center; border:0; box-shadow:inset 0 1px #111, inset 0 -1px #111; padding:4px 3px 3px; font-weight:400; font-size:6.2px; line-height:7px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
   .section-title + .grid, .section-title + table, .section-title + .notes { border-top: 0; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
   .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .c3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .c4 { grid-template-columns: repeat(4,minmax(0,1fr)); } .c5 { grid-template-columns: repeat(5,minmax(0,1fr)); }
-  .cell { min-height:23px; padding:2px 3px; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:grid; grid-template-rows:8px minmax(9px,auto); align-content:start; }
+  .cell { min-height:23px; padding:2px 3px; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:grid; grid-template-rows:8px minmax(9px,auto); align-content:start; text-align:center; }
   .cell:last-child { border-right: 0; }
   .grid > .cell { border-bottom: 0; }
   .grid.c2 > .cell:nth-child(2n), .grid.c3 > .cell:nth-child(3n), .grid.c4 > .cell:nth-child(4n), .grid.c5 > .cell:nth-child(5n) { border-right: 0; }
   .span2 { grid-column: span 2; } .span3 { grid-column: span 3; }
-  .label { display:block; color:#222; font-size:5.7px; line-height:6px; text-transform:uppercase; margin:0; }
-  .value { display:block; font-size:6.9px; font-weight:600; line-height:8px; min-height:8px; }
+  .label { display:block; color:#222; font-size:6.2px; line-height:6px; text-transform:uppercase; margin:0; text-align:center; }
+  .value { display:block; font-size:7.6px; font-weight:600; line-height:8px; min-height:8px; text-align:center; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { border-right:1px solid #777; border-bottom:1px solid #777; padding:2px 3px; text-align:left; vertical-align:top; line-height:1.15; overflow-wrap:anywhere; }
   th:last-child, td:last-child { border-right: 0; } tr:last-child td { border-bottom: 0; }
-  th { font-size: 5.7px; font-weight:400; text-transform: uppercase; }
-  td { font-size: 6.5px; }
+  th { font-size: 6.2px; font-weight:400; text-transform: uppercase; text-align:center; }
+  td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
   .notes { min-height: 82px; padding: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
   .actor { padding:3px; min-height:78px; border-right:1px solid #111; }
   .actor:nth-child(even) { border-right:0; }
   .actor:nth-child(-n+2) { border-bottom:1px solid #111; }
-  .actor-title { min-height:10px; font-weight:700; font-size:6px; line-height:8px; text-transform:uppercase; margin-bottom:1px; }
+  .actor-title { min-height:10px; font-weight:700; font-size:6.5px; line-height:8px; text-transform:uppercase; margin-bottom:1px; }
   .actor-line { display:grid; grid-template-columns:44px minmax(0,1fr); align-items:start; min-height:10px; line-height:8px; }
-  .actor-line b { font-size:5.6px; line-height:8px; font-weight:400; }
-  .actor-line span { min-width:0; line-height:8px; overflow-wrap:anywhere; }
+  .actor-line b { font-size:6px; line-height:8px; font-weight:400; }
+  .actor-line span { min-width:0; line-height:8px; overflow-wrap:anywhere; font-size:6.5px; }
   .actor-pair { display:grid; grid-template-columns:1fr 1fr; }
   .actor-pair > div { padding-right:3px; }
   .actor-pair > div + div { padding-left:3px; padding-right:0; }
@@ -226,8 +226,8 @@ const STYLE = `<style>
   .origin-doc-panel:first-child { border-right:1px solid #111; }
   .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:.34fr 1.85fr 1.05fr .72fr; align-items:start; }
   .origin-doc-head > div, .origin-doc-row > div { padding:2px 3px; line-height:8px; overflow-wrap:anywhere; }
-  .origin-doc-head > div { font-size:5.7px; text-transform:uppercase; }
-  .origin-doc-row > div { font-size:6.2px; }
+  .origin-doc-head > div { font-size:6.2px; text-transform:uppercase; text-align:center; }
+  .origin-doc-row > div { font-size:6.8px; text-align:center; }
   .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:30px; border-top:1px solid #111; }
   .exclusive > div { border-right:1px solid #111; padding:3px; text-align:center; }
   .exclusive > div:last-child { border:0; }
