@@ -14,7 +14,7 @@ import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
-import { Banknote, CalendarDays, CheckCircle2, Download, Plus, Printer, RefreshCw, Search, Trash2, WalletCards, X, XCircle } from "lucide-react";
+import { Banknote, CheckCircle2, Download, Plus, Printer, RefreshCw, Search, Trash2, WalletCards, X, XCircle } from "lucide-react";
 import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
