@@ -185,7 +185,7 @@ const STYLE = `<style>
   td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
   .service-component .value.right, td.right { text-align:center; }
-  .notes { min-height: 82px; padding: 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .notes { min-height: 82px; padding: 4px; border-bottom:1px solid #111; white-space: pre-wrap; overflow-wrap: anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
   .actor { padding:3px; min-height:78px; border-right:1px solid #111; }
   .actor:nth-child(even) { border-right:0; }
@@ -232,7 +232,7 @@ const STYLE = `<style>
   .origin-doc-head > div, .origin-doc-row > div { padding:3px; line-height:9px; overflow-wrap:anywhere; text-align:center; }
   .origin-doc-head > div { font-size:6.2px; text-transform:uppercase; text-align:center; }
   .origin-doc-row > div { font-size:6.8px; text-align:center; }
-  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:30px; border-top:1px solid #111; }
+  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:30px; border-top:0; }
   .exclusive > div { border-right:1px solid #111; padding:2px 4px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .exclusive > div:last-child { border:0; }
   .receipt { margin-top: 40px; border: 1px solid #111; break-inside: avoid; position:relative; }
