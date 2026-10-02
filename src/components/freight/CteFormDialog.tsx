@@ -989,7 +989,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }));
   }, [selectedEstId, establishments]);
 
-  const applyNfe = (n: NfeData) => {
+  const applyNfe = (n: NfeData): boolean => {
+    if (n.chave && form.chaves_nfe_ref.includes(n.chave)) {
+      const numero = n.chave.length === 44 ? String(Number(n.chave.slice(25, 34))) : n.chave;
+      setNfeImportNotice({ tone: "neutral", text: `A nota ${numero} já foi importada neste CT-e. A mesma chave não pode ser adicionada duas vezes.` });
+      return false;
+    }
     if (!(form as any).remetente_nome && n.emitente.municipio) {
       partyCitiesRef.current.remetente = { cidade: maskName(n.emitente.municipio), uf: n.emitente.uf, ibge: n.emitente.municipio_ibge };
     }
@@ -1035,6 +1040,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       cfop: n.cfop, ncm: n.ncm, valor_produtos: n.valor_produtos, bc_icms: n.bc_icms, bc_icms_st: n.bc_icms_st, outros: n.outros,
     });
     setDocMode("nfe");
+    return true;
   };
 
 
@@ -1056,8 +1062,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     let ok = 0;
     for (const chave of pendentes) {
       try {
-        applyNfe(await fetchNfeFromSefaz(chave, est.cnpj));
-        ok++;
+        if (applyNfe(await fetchNfeFromSefaz(chave, est.cnpj))) ok++;
       } catch (e: any) {
         setForm((p) => ({ ...p, chaves_nfe_ref: [...p.chaves_nfe_ref, chave] }));
         toast({ title: `NF-e ${chave.slice(25, 34)}`, description: e.message, variant: "destructive" });
@@ -1072,6 +1077,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       setNfeImportNotice({ tone: "neutral", text: `A chave da NF-e precisa ter 44 dígitos (${chave.length}/44).` });
       return;
     }
+    if (form.chaves_nfe_ref.includes(chave)) {
+      setNfeImportNotice({ tone: "neutral", text: `A nota ${String(Number(chave.slice(25, 34)))} já foi importada neste CT-e. A mesma chave não pode ser adicionada duas vezes.` });
+      return;
+    }
     const est = establishments.find((e) => e.id === selectedEstId);
     if (!est) {
       setNfeImportNotice({ tone: "neutral", text: "Selecione o estabelecimento emitente antes de buscar a nota fiscal." });
@@ -1080,7 +1089,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     setNfeImportNotice({ tone: "neutral", text: "Consultando a nota fiscal..." });
     setNfeLoading(true);
     try {
-      applyNfe(await fetchNfeFromSefaz(chave, est.cnpj));
+      if (!applyNfe(await fetchNfeFromSefaz(chave, est.cnpj))) return;
       setNovaChave("");
       setNfeImportNotice({
         tone: "success",
@@ -1118,8 +1127,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     let ok = 0;
     for (const f of files) {
       try {
-        applyNfe(parseNfeXml(await f.text()));
-        ok++;
+        if (applyNfe(parseNfeXml(await f.text()))) ok++;
       } catch (err: any) {
         toast({ title: f.name, description: err.message, variant: "destructive" });
       }
