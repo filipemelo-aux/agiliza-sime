@@ -337,34 +337,42 @@
       width: auto !important;
     }
 
-    /* Emissor de Cheques: Vínculo mostra o texto inteiro; demais colunas no tamanho do conteúdo */
+    /* Emissor de Cheques: colunas amplas, sem espaços entre datas, tipo e vínculo separados */
     .checks-grid .data-grid-table th[data-column-key="numero"],
     .checks-grid .data-grid-table td[data-column-key="numero"] {
-      width: 86px !important;
+      width: 94px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="data"],
     .checks-grid .data-grid-table td[data-column-key="data"] {
-      width: 78px !important;
+      width: 86px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="vencimento"],
     .checks-grid .data-grid-table td[data-column-key="vencimento"] {
-      width: 90px !important;
+      width: 96px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="tipo"],
     .checks-grid .data-grid-table td[data-column-key="tipo"] {
-      width: 250px !important;
+      width: 132px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="vinculo"],
+    .checks-grid .data-grid-table td[data-column-key="vinculo"] {
+      width: 280px !important;
+    }
+    .checks-grid .data-grid-table th[data-column-key="situacao"],
+    .checks-grid .data-grid-table td[data-column-key="situacao"] {
+      width: 104px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="empresa"],
     .checks-grid .data-grid-table td[data-column-key="empresa"] {
-      width: 62px !important;
+      width: 76px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="valor"],
     .checks-grid .data-grid-table td[data-column-key="valor"] {
-      width: 96px !important;
+      width: 110px !important;
     }
     .checks-grid .data-grid-table th[data-column-key="favorecido"],
     .checks-grid .data-grid-table td[data-column-key="favorecido"] {
-      width: auto !important;
+      width: 210px !important;
     }
 
     .data-grid-table td > span,
