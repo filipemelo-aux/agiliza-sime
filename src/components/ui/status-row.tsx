@@ -12,6 +12,8 @@ export function rowToneClass(tone: RowTone): string {
       return "bg-success/10 hover:bg-success/20";
     case "overdue":
       return "bg-destructive/10 hover:bg-destructive/20 text-destructive";
+    case "cancelled":
+      return "bg-muted/70 hover:bg-muted text-muted-foreground";
     default:
       return "";
   }
