@@ -668,12 +668,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
             {
-              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: !!singleCte, iconClassName: TOOLBAR_ICON_OFFICIAL_CLASS.sefaz,
+              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: !!singleCte,
               disabled: transmitting || !singleCte,
               onClick: () => setSefazOpen(true),
             },
             {
-              key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: TOOLBAR_ICON_OFFICIAL_CLASS.mdfe,
+              key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0,
               disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
               onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
             },
