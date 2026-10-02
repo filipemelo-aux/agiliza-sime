@@ -165,13 +165,13 @@ const STYLE = `<style>
   .qr img { width:25mm; height:25mm; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { height:3.6mm; display:flex; align-items:center; justify-content:center; flex:none; text-align:center; border-top:0; border-bottom:1px solid #111; padding:.7mm; line-height:1; font-weight:400; font-size:5.9px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
+  .section-title { min-height:3mm; display:flex; align-items:center; justify-content:center; flex:none; text-align:center; border-top:0; border-bottom:1px solid #111; padding:.55mm 1mm .45mm; line-height:1; font-weight:400; font-size:5.9px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
   .section-title + .grid, .section-title + table, .section-title + .notes { border-top: 0; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
   .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .c3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .c4 { grid-template-columns: repeat(4,minmax(0,1fr)); } .c5 { grid-template-columns: repeat(5,minmax(0,1fr)); }
-  .cell { min-height:7mm; padding:.8mm 1mm; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.25mm; text-align:left; }
+  .cell { min-height:5.4mm; padding:.7mm 1mm .55mm; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
   .cell:last-child { border-right: 0; }
   .grid > .cell { border-bottom: 0; }
   .grid.c2 > .cell:nth-child(2n), .grid.c3 > .cell:nth-child(3n), .grid.c4 > .cell:nth-child(4n), .grid.c5 > .cell:nth-child(5n) { border-right: 0; }
@@ -185,21 +185,21 @@ const STYLE = `<style>
   td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
   .service-component .value.right, td.right { text-align:right; }
-  .notes { height:27mm; padding:1.2mm 1.5mm; border-bottom:1px solid #111; line-height:1.08; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .notes { min-height:17mm; padding:1.3mm 1.5mm 1mm; border-bottom:1px solid #111; line-height:1.12; white-space:pre-wrap; overflow-wrap:anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
-  .actor { padding:.9mm 1.2mm; height:21mm; border-right:1px solid #111; overflow:hidden; }
+  .actor { padding:.75mm 1.2mm .6mm; min-height:16mm; border-right:1px solid #111; overflow:hidden; }
   .actor:nth-child(even) { border-right:0; }
   .actor:nth-child(-n+2) { border-bottom:1px solid #111; }
-  .actor-title { min-height:2.6mm; font-weight:700; font-size:6.6px; line-height:1.05; text-transform:uppercase; margin-bottom:.25mm; text-align:left; border:0; padding:0; }
-  .actor-line { display:grid; grid-template-columns:15mm minmax(0,1fr); align-items:center; min-height:3mm; line-height:1; }
+  .actor-title { min-height:2.2mm; font-weight:700; font-size:6.6px; line-height:1.05; text-transform:uppercase; margin-bottom:.15mm; text-align:left; border:0; padding:0; }
+  .actor-line { display:grid; grid-template-columns:15mm minmax(0,1fr); align-items:center; min-height:2.65mm; line-height:1; }
   .actor-line b { font-size:6px; line-height:10px; font-weight:400; color:#333; }
   .actor-line span { min-width:0; line-height:10px; overflow-wrap:anywhere; font-size:6.8px; font-weight:600; }
   .actor-pair { display:grid; grid-template-columns:1fr 1fr; }
   .actor-pair > div { padding-right:3px; }
   .actor-pair > div + div { padding-left:3px; padding-right:0; }
-  .compact-row { display:grid; min-height:5.5mm; border-bottom:1px solid #111; }
+  .compact-row { display:grid; min-height:4.6mm; border-bottom:1px solid #111; }
   .compact-row:last-child { border-bottom:0; }
-  .compact-field { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; padding:.8mm 1mm; min-width:0; text-align:left; border-right:1px solid #777; }
+  .compact-field { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.15mm; padding:.65mm 1mm .5mm; min-width:0; text-align:left; border-right:1px solid #777; }
   .compact-field:last-child { border-right:0; }
   .compact-field .label { margin:0; }
   .compact-field .value { min-width:0; }
@@ -208,34 +208,36 @@ const STYLE = `<style>
   .taker-address { grid-template-columns:2.05fr .95fr; }
   .taker-docs { grid-template-columns:1.15fr 1.15fr .7fr; }
   .cargo-main { display:grid; grid-template-columns:1.05fr 1.02fr .7fr; border-bottom:1px solid #111; }
-  .cargo-main > .cell { min-height:7.5mm; border-bottom:0; }
-  .cargo-qty { display:grid; grid-template-columns:40px 1.15fr 1fr 1fr 1fr; border-bottom:1px solid #111; }
-  .cargo-qty > .cell { min-height:7mm; border-bottom:0; }
+  .cargo-main > .cell { min-height:5.7mm; border-bottom:0; }
+  .cargo-qty { display:grid; grid-template-columns:40mm minmax(0,1fr); border-bottom:1px solid #111; }
+  .cargo-qty > .cell { min-height:5.7mm; border-bottom:0; }
   .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; align-items:stretch; }
   .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
+  .service-components.items-1 { grid-template-columns:1fr; }
+  .service-components.items-2 { grid-template-columns:repeat(2, 1fr); }
   .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; align-items:stretch; }
   .service-component:last-child { border-right:0; }
-  .service-component > div { padding:.9mm 1mm; min-height:11mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:.25mm; text-align:left; }
+  .service-component > div { padding:.75mm 1mm .6mm; min-height:7mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
   .service-component > div:first-child { border-right:1px solid #777; }
   .service-totals { border-left:1px solid #111; }
-  .service-total { min-height:5.5mm; padding:.8mm 1mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
+  .service-total { min-height:3.5mm; padding:.55mm 1mm .45mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.15mm; text-align:left; }
   .service-total + .service-total { border-top:1px solid #111; }
   .service-total .value { text-align:center; font-size:8.4px; }
   .tax-row { display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .55fr; border-bottom:1px solid #111; align-items:stretch; }
-  .tax-row > .cell { border-bottom:0; min-height:7.5mm; }
+  .tax-row > .cell { border-bottom:0; min-height:5.6mm; }
   .origin-docs { border-bottom:1px solid #111; }
-  .origin-doc-panel { min-height:14mm; overflow:hidden; }
+  .origin-doc-panel { overflow:hidden; }
   .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:10mm 30mm minmax(0,1fr) 33mm 20mm; align-items:center; }
   .origin-doc-head { border-bottom:1px solid #bbb; }
   .origin-doc-row .right { text-align:center; }
-  .origin-doc-head > div, .origin-doc-row > div { padding:.8mm 1mm; line-height:1.02; text-align:center; border-right:1px solid #bbb; }
+  .origin-doc-head > div, .origin-doc-row > div { padding:.65mm 1mm .5mm; line-height:1.02; text-align:center; border-right:1px solid #bbb; }
   .origin-doc-head > div:last-child, .origin-doc-row > div:last-child { border-right:0; }
   .origin-doc-row + .origin-doc-row { border-top:1px solid #bbb; }
   .origin-doc-head > div { font-size:6.2px; text-transform:uppercase; text-align:center; }
   .origin-doc-row > div { min-width:0; font-size:6.8px; text-align:center; }
   .origin-doc-row .key { font-size:6.7px; letter-spacing:0; white-space:nowrap; }
-  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; height:13mm; border-top:0; }
-  .exclusive > div { border-right:1px solid #111; padding:1mm; text-align:left; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; }
+  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:8mm; border-top:0; }
+  .exclusive > div { border-right:1px solid #111; padding:1mm 1.2mm .8mm; text-align:left; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; }
   .exclusive > div:last-child { border:0; }
   .receipt { margin-top: 17mm; border: 1px solid #111; break-inside: avoid; position:relative; }
   .receipt:before { content:""; position:absolute; left:-1px; right:-1px; top:-7px; border-top:1px dashed #555; }
@@ -303,13 +305,12 @@ function valuesHtml(cte: CtePrintInput) {
         .map(([key, value]) => ({ xNome: key.replace(/_/g, " ").toUpperCase(), vComp: Number(value) }))
     : [];
   const items = components.length ? components : fallback;
-  const slots = Array.from({ length: 3 }, (_, index) => items[index]);
-  return `<div class="section-title">Componentes do valor da prestação de serviço</div><div class="service-values"><div class="service-components">
-      ${slots.map((item, index) => {
-        const component = item as Component | undefined;
-        const name = component?.xNome || component?.nome || (index === 0 ? "FRETE VALOR" : "");
-        const value = component ? component.vComp ?? component.valor : index === 0 ? cte.valor_frete : "";
-        return `<div class="service-component"><div><span class="label">Nome</span><span class="value">${esc(name)}</span></div><div><span class="label">Valor</span><span class="value right">${value === "" ? "" : esc(money(value))}</span></div></div>`;
+  const visibleItems = items.length ? items.slice(0, 3) : [{ xNome: "FRETE VALOR", vComp: cte.valor_frete }];
+  return `<div class="section-title">Componentes do valor da prestação de serviço</div><div class="service-values"><div class="service-components items-${visibleItems.length}">
+      ${visibleItems.map((component) => {
+        const name = component.xNome || component.nome || "FRETE VALOR";
+        const value = component.vComp ?? component.valor ?? cte.valor_frete;
+        return `<div class="service-component"><div><span class="label">Nome</span><span class="value">${esc(name)}</span></div><div><span class="label">Valor</span><span class="value right">${esc(money(value))}</span></div></div>`;
       }).join("")}</div><div class="service-totals"><div class="service-total"><span class="label">Valor total do serviço</span><span class="value">${esc(money(cte.valor_frete))}</span></div><div class="service-total"><span class="label">Valor a receber</span><span class="value">${esc(money(cte.valor_receber ?? cte.valor_frete))}</span></div></div></div>`;
 }
 
@@ -354,7 +355,7 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     ${actorPairs}
     <div class="taker"><div class="compact-row taker-main"><div class="compact-field"><span class="label">Tomador do serviço</span><span class="value">${esc(cte.tomador_nome || "—")}</span></div><div class="compact-field"><span class="label">Município</span><span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "—")}</span></div><div class="compact-field"><span class="label">UF</span><span class="value">${esc(cte.tomador_uf || "—")}</span></div><div class="compact-field"><span class="label">CEP</span><span class="value">${esc(cte.tomador_cep || "—")}</span></div></div><div class="compact-row taker-address"><div class="compact-field"><span class="label">Endereço</span><span class="value">${esc(cte.tomador_endereco || "—")}</span></div><div class="compact-field"><span class="label">País</span><span class="value">BRASIL</span></div></div><div class="compact-row taker-docs"><div class="compact-field"><span class="label">CNPJ/CPF</span><span class="value">${esc(doc(cte.tomador_cnpj))}</span></div><div class="compact-field"><span class="label">Inscrição estadual</span><span class="value">${esc(cte.tomador_ie || "—")}</span></div><div class="compact-field"><span class="label">Fone</span><span class="value">${esc(cte.tomador_telefone || "—")}</span></div></div></div>
     <div class="cargo-main">${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}</div>
-    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}${cell("", "")}${cell("", "")}${cell("", "")}</div>
+    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}</div>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
     ${documentsHtml(cte)}
