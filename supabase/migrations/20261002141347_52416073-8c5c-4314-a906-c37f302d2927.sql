@@ -1,0 +1,1 @@
+ALTER TABLE public.cheques ADD COLUMN IF NOT EXISTS imprimir_canhoto boolean;

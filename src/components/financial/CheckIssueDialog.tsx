@@ -139,6 +139,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         data_vencimento: predatado ? dataVencimento : null,
         predatado,
         cruzado,
+        imprimir_canhoto: imprimirCanhoto,
         cidade: cidade.trim() || null,
         historico: data.historico?.trim() || null,
         vinculo_tipo: data.vinculoTipo || (linkedExpenseIds.length ? "conta_pagar" : "avulso"),
