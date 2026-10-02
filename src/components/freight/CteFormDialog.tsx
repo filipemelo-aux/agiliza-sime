@@ -538,6 +538,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [cnpjErrors, setCnpjErrors] = useState<Record<string, string>>({});
   const [nfeLoading, setNfeLoading] = useState(false);
   const [novaChave, setNovaChave] = useState("");
+  const [nfeImportNotice, setNfeImportNotice] = useState<{ tone: "success" | "neutral"; text: string } | null>(null);
   const xmlInputRef = useRef<HTMLInputElement>(null);
   const [cteSubLoading, setCteSubLoading] = useState(false);
   const [cteSubInfo, setCteSubInfo] = useState<{ numero: string; data: string; tomador: string; valor: number; emitente: string; fonte: "base" | "sefaz" | "chave" } | null>(null);
@@ -687,6 +688,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       setMotoristaNome(undefined);
       setDesconto(emptyDesconto);
     }
+    setNfeImportNotice(null);
   }, [cte, open]);
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
@@ -1017,20 +1019,24 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   const buscarChave = async (chave: string) => {
     if (chave.length !== 44) {
-      toast({ title: "Chave inválida", description: "A chave da NF-e precisa ter 44 dígitos.", variant: "destructive" });
+      setNfeImportNotice({ tone: "neutral", text: `A chave da NF-e precisa ter 44 dígitos (${chave.length}/44).` });
       return;
     }
     const est = establishments.find((e) => e.id === selectedEstId);
     if (!est) {
-      toast({ title: "Selecione o emitente", description: "Escolha o estabelecimento emissor antes de buscar a nota.", variant: "destructive" });
+      setNfeImportNotice({ tone: "neutral", text: "Selecione o estabelecimento emitente antes de buscar a nota fiscal." });
       return;
     }
+    setNfeImportNotice({ tone: "neutral", text: "Consultando a nota fiscal..." });
     setNfeLoading(true);
     try {
       applyNfe(await fetchNfeFromSefaz(chave, est.cnpj));
       setNovaChave("");
-      toast({ title: "Nota importada", description: "Confira remetente, destinatário, peso e valores." });
-    } catch (e: any) {
+      setNfeImportNotice({
+        tone: "success",
+        text: "Nota importada. Foram preenchidos os dados da nota, emitente, destinatário, municípios, produto, peso, quantidades e valores. Confira as informações antes de salvar.",
+      });
+    } catch {
       // Sem acesso ao conteúdo: aproveita tudo que a própria chave informa
       const emitCnpj = chave.slice(6, 20);
       const modelo = chave.slice(20, 22);
@@ -1047,9 +1053,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         remetentePreenchido = true;
       }
       setNovaChave("");
-      toast({
-        title: "Conteúdo da nota não liberado pela SEFAZ",
-        description: `${e.message} Preenchi pela chave: número, série${remetentePreenchido ? " e o remetente (emitente da nota, pelo CNPJ)" : ""}. Complete peso, valor e data ou importe o XML.`,
+      setNfeImportNotice({
+        tone: "neutral",
+        text: `Esta NF-e não está disponível para consulta vinculada à transportadora. Foram importados somente os dados básicos da chave: modelo, série, número e CNPJ do emitente${remetentePreenchido ? ", com consulta dos dados cadastrais do remetente" : ""}. Preencha a data de emissão, natureza/produto, peso, quantidade e valores, ou importe o XML para completar os demais campos.`,
       });
     } finally {
       setNfeLoading(false);
@@ -1597,7 +1603,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   className="h-8 flex-1 font-mono text-xs"
                   placeholder="Cole ou digite a chave de acesso (44 dígitos)"
                   value={novaChave}
-                  onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 44); setNovaChave(v); if (v.length === 44) buscarChave(v); }}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 44); setNovaChave(v); setNfeImportNotice(null); if (v.length === 44) buscarChave(v); }}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarChave(novaChave); } }}
                 />
                 <div className="flex gap-2">
@@ -1610,6 +1616,11 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   <input ref={xmlInputRef} type="file" accept=".xml,text/xml" multiple className="hidden" onChange={handleXmlFiles} />
                 </div>
               </div>
+              {nfeImportNotice && (
+                <p className={`text-[10px] leading-relaxed ${nfeImportNotice.tone === "success" ? "text-success" : "text-muted-foreground"}`}>
+                  {nfeImportNotice.text}
+                </p>
+              )}
               <div className="flex justify-end">
                 <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px]"
                   onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>
