@@ -29,6 +29,7 @@ const SWATCH: Record<RowTone, string> = {
   pending: "bg-warning/40 border-warning",
   resolved: "bg-success/40 border-success",
   overdue: "bg-destructive/40 border-destructive",
+  cancelled: "bg-muted-foreground/25 border-muted-foreground/60",
   neutral: "bg-muted border-border",
 };
 
