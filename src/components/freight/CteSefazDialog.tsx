@@ -1,3 +1,4 @@
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
 
   return (
     <Dialog open={open} onOpenChange={close}>
+      <ProcessingOverlay open={!!busy} label={({status:"Consultando a SEFAZ...",pdf:"Gerando DACTE (PDF)...",xml:"Baixando XML...",cancel:"Cancelando na SEFAZ...",cce:"Enviando Carta de Correção..."} as Record<string,string>)[busy||""] || "Processando na SEFAZ..."} />
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2"><SefazIcon size={22} /> SEFAZ — CT-e {cte.numero ?? cte.numero_interno ?? ""}</DialogTitle>

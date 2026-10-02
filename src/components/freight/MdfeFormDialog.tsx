@@ -1,3 +1,4 @@
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -258,6 +259,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <ProcessingOverlay open={saving} label="Salvando MDF-e..." />
       <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-4 sm:p-5">
         <DialogHeader><DialogTitle>{editing ? "Editar manifesto (MDF-e)" : "Novo manifesto (MDF-e)"}</DialogTitle></DialogHeader>
 
