@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -12,6 +12,8 @@ import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { formatDateBR } from "@/lib/date";
 import { MdfeFormDialog } from "@/components/freight/MdfeFormDialog";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { buildMdfeHtml } from "@/components/freight/mdfePrint";
+import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho", autorizado: "Autorizado", encerrado: "Encerrado", cancelado: "Cancelado", rejeitado: "Rejeitado", processando: "Processando",
@@ -28,6 +30,7 @@ export default function FreightMdfe() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [initialCteIds, setInitialCteIds] = useState<string[] | undefined>();
+  const [printing, setPrinting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -72,6 +75,19 @@ export default function FreightMdfe() {
     load();
   };
 
+  const handlePrint = async () => {
+    if (!single) return;
+    setPrinting(true);
+    try {
+      const html = await buildMdfeHtml(single);
+      await downloadHtmlAsPdf(html, `DAMDFE-${single.numero || single.id.slice(0, 8)}.pdf`);
+    } catch (error) {
+      toast({ title: "Erro ao gerar DAMDFE", description: error instanceof Error ? error.message : "Não foi possível gerar o PDF.", variant: "destructive" });
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const columns: DataGridColumn<any>[] = [
     { key: "numero", header: "Nº", width: "60px", sortValue: (r) => r.numero ?? 0, cell: (r) => r.numero ?? "—" },
     { key: "emissao", header: "Emissão", width: "90px", sortValue: (r) => r.data_emissao || "", cell: (r) => formatDateBR(r.data_emissao) },
@@ -96,6 +112,7 @@ export default function FreightMdfe() {
           actions={[
             { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
             { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable, onClick: () => { setEditing(single); setFormOpen(true); } },
+            { key: "print", label: printing ? "Gerando PDF" : "Baixar DAMDFE", icon: printing ? Loader2 : FileDown, mode: "single", disabled: !single || printing, onClick: handlePrint },
             { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0, onClick: handleDelete },
           ] as any}
           selectedCount={selected.size}

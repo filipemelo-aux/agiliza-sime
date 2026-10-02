@@ -5,4 +5,5 @@
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
 - Production and service CT-es use one shared complete DACTE HTML template so print fields and pagination stay consistent.
+- MDF-e printing uses its own complete DAMDFE HTML template and the same direct PDF renderer as DACTE, because each fiscal model has a distinct official layout.
 - SEFAZ operations on a CT-e (transmit, status, DACTE PDF, XML, CC-e, cancel) are grouped in one dialog opened by the toolbar SEFAZ button; the focus-nfe function exposes them per saved CT-e id so the emission environment stays consistent.

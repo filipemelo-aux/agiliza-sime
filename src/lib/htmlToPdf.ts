@@ -25,18 +25,13 @@ export async function downloadHtmlAsPdf(html: string, filename: string): Promise
     let first = true;
     for (const el of targets) {
       const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794 });
-      const pxPerMm = canvas.width / usableW;
-      const slicePx = Math.floor(usableH * pxPerMm);
-      for (let y = 0; y < canvas.height; y += slicePx) {
-        const h = Math.min(slicePx, canvas.height - y);
-        const part = document.createElement("canvas");
-        part.width = canvas.width;
-        part.height = h;
-        part.getContext("2d")!.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
-        if (!first) pdf.addPage();
-        first = false;
-        pdf.addImage(part.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, usableW, h / pxPerMm);
-      }
+      const naturalHeight = usableW * canvas.height / canvas.width;
+      const renderHeight = Math.min(naturalHeight, usableH);
+      const renderWidth = renderHeight === naturalHeight ? usableW : usableH * canvas.width / canvas.height;
+      const x = (pageW - renderWidth) / 2;
+      if (!first) pdf.addPage();
+      first = false;
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", x, margin, renderWidth, renderHeight);
     }
     pdf.save(filename);
   } finally {
