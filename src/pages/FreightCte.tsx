@@ -34,7 +34,9 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
-import { buildCteHtml, combineCtesHtml } from "@/components/freight/ctePrint";
+import { buildCteHtml } from "@/components/freight/ctePrint";
+import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
+import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
 
@@ -106,8 +108,9 @@ export default function FreightCte() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [printing, setPrinting] = useState(false);
+  const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
+  const [sefazOpen, setSefazOpen] = useState(false);
 
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
