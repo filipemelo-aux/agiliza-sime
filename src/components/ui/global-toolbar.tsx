@@ -19,6 +19,21 @@ import { isWriteActionLabel, isPrintActionLabel } from "@/lib/readOnlyGuard";
 import { Printer } from "lucide-react";
 import { quickPrintVisibleTable } from "@/lib/pdfDownload";
 
+/**
+ * PADRÃO ÚNICO DAS TOOLBARS — não variar por tela.
+ * Todos os botões de ação têm a mesma caixa externa e o mesmo ícone.
+ * Glifos oficiais (SEFAZ, MDF-e) usam caixa maior porque o arquivo SVG traz
+ * margem interna; o fator de cada arquivo faz a arte visível sair no padrão.
+ */
+export const TOOLBAR_BUTTON_CLASS = "h-9 w-9 p-0 justify-center gap-0 md:h-8 md:w-8";
+export const TOOLBAR_ICON_CLASS = "h-5 w-5 md:h-[18px] md:w-[18px]";
+export const TOOLBAR_ICON_OFFICIAL_CLASS = {
+  /** receita.svg: arte ocupa ~77% da caixa */
+  sefaz: "h-[26px] w-[26px] md:h-[23px] md:w-[23px]",
+  /** mdfe.svg: arte ocupa ~92% da caixa */
+  mdfe: "h-[22px] w-[22px] md:h-[20px] md:w-[20px]",
+} as const;
+
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
 
 export interface ToolbarAction {
@@ -165,13 +180,13 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           title={iconOnly ? undefined : a.label}
           aria-label={a.label}
           className={cn(
-            "h-9 md:h-8 text-xs gap-1.5 disabled:opacity-40",
-            iconOnly && "px-2 gap-0 max-md:h-9 max-md:w-9 max-md:px-0 max-md:justify-center",
+            "text-xs disabled:opacity-40",
+            Icon ? TOOLBAR_BUTTON_CLASS : "h-9 md:h-8 px-2.5 gap-1.5",
             isPending && "ring-2 ring-ring",
             a.className,
           )}
         >
-          {Icon && <Icon className={cn("h-4 w-4 md:h-3.5 md:w-3.5", a.iconClassName)} />}
+          {Icon && <Icon className={cn(TOOLBAR_ICON_CLASS, a.iconClassName)} />}
           {Icon ? <span className="sr-only">{a.label}</span> : <span>{a.label}</span>}
         </Button>
       </div>
