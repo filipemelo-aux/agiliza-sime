@@ -27,7 +27,7 @@ const key = (value: unknown) => {
   const clean = digits(value);
   return clean.length === 44 ? clean.match(/.{1,4}/g)?.join(" ") || clean : shown(value);
 };
-const document = (value: unknown) => {
+const documentValue = (value: unknown) => {
   const clean = digits(value);
   if (clean.length === 14) return maskCNPJ(clean);
   if (clean.length === 11) return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
@@ -61,7 +61,7 @@ async function emitente(id: unknown) {
   const item = data as Record<string, unknown>;
   return {
     nome: item.razao_social,
-    cnpj: document(item.cnpj),
+    cnpj: documentValue(item.cnpj),
     ie: item.inscricao_estadual,
     rntrc: item.rntrc,
     endereco: [[item.endereco_logradouro, item.endereco_numero].filter(Boolean).join(", "), item.endereco_bairro, [item.endereco_municipio, item.endereco_uf].filter(Boolean).join(" - "), item.endereco_cep ? `CEP ${maskCEP(String(item.endereco_cep))}` : ""].filter(Boolean).join(" • "),
@@ -94,8 +94,8 @@ export async function buildMdfeHtml(mdfe: MdfePrintInput): Promise<string> {
     <div class="grid c4">${field("TIPO DE CARGA", mdfe.tipo_carga)}${field("QUANTIDADE TOTAL", Number(mdfe.quantidade_total || 0).toLocaleString("pt-BR"))}${field("NCM", mdfe.ncm)}${field("KM INICIAL", mdfe.km_inicial)}</div>
     <div class="section">DOCUMENTOS FISCAIS VINCULADOS</div><div class="keys"><div class="key-head"><div>TIPO</div><div>CHAVE DE ACESSO</div><div>MUNICÍPIO DE DESCARREGAMENTO</div></div>${ctes.map((item) => `<div class="key-row"><div>CT-E</div><div>${esc(key(item))}</div><div>${esc(shown(mdfe.municipio_descarregamento_nome))}/${esc(shown(mdfe.uf_descarregamento))}</div></div>`).join("")}</div>
     <div class="section">INFORMAÇÕES DO MODAL RODOVIÁRIO</div><div class="grid c4">${field("RNTRC", digits(mdfe.rntrc).replace(/^0/, "") || issuer?.rntrc)}${field("PLACA DO VEÍCULO", mdfe.placa_veiculo)}${field("REBOQUES", trailers || "—")}${field("CIOT", mdfe.ciot_numero)}</div>
-    <div class="grid c2">${field("CONDUTOR(ES)", condutores.filter((item) => item.nome).map((item) => `${shown(item.nome)} — CPF ${document(item.cpf)}`).join(" • ") || "—")}${field("CONTRATADO", `${shown(mdfe.contratado_nome)} — ${document(mdfe.contratado_documento)}`)}</div>
-    <div class="section">SEGURO DA CARGA</div><div class="grid c4">${field("SEGURADORA", mdfe.seguradora_nome)}${field("CNPJ", document(mdfe.seguradora_cnpj))}${field("APÓLICE", mdfe.apolice_numero)}${field("AVERBAÇÃO", mdfe.averbacao_numero)}</div>
+    <div class="grid c2">${field("CONDUTOR(ES)", condutores.filter((item) => item.nome).map((item) => `${shown(item.nome)} — CPF ${documentValue(item.cpf)}`).join(" • ") || "—")}${field("CONTRATADO", `${shown(mdfe.contratado_nome)} — ${documentValue(mdfe.contratado_documento)}`)}</div>
+    <div class="section">SEGURO DA CARGA</div><div class="grid c4">${field("SEGURADORA", mdfe.seguradora_nome)}${field("CNPJ", documentValue(mdfe.seguradora_cnpj))}${field("APÓLICE", mdfe.apolice_numero)}${field("AVERBAÇÃO", mdfe.averbacao_numero)}</div>
     <div class="section">OBSERVAÇÕES</div><div class="notes">${esc(mdfe.observacoes || "")}</div><div class="footer"><div>USO EXCLUSIVO DO EMISSOR DO MDF-E</div><div>RESERVADO AO FISCO</div></div>
   </div>`;
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>DAMDFE ${esc(mdfe.numero || "")}</title>${STYLE}</head><body>${body}</body></html>`;
