@@ -131,10 +131,44 @@ function syncQuantidade<T extends { peso: number; quantidade: number }>(base: T,
   return sincronizada ? { ...patch, quantidade: peso } : patch;
 }
 
+/**
+ * Espelha valor do produto ↔ valor do documento: o primeiro preenchido replica
+ * no outro enquanto ele estiver vazio ou ainda sincronizado com o valor anterior.
+ * Um valor digitado manualmente é preservado (todos continuam editáveis).
+ */
+function syncDoc<T extends DocCampos>(base: T, patch: Partial<T>, manual: Set<string>, docId: string): Partial<T> {
+  let p: Partial<T> = syncQuantidade(base, patch);
+  console.log("[syncDoc]", docId, JSON.stringify(patch), "manual:", [...manual].join(","));
+  for (const [a, b] of [["valor_produtos", "valor"], ["valor", "valor_produtos"]] as const) {
+    if (a in patch) manual.add(`${docId}:${a}`);
+    if (a in p && !(b in p) && !manual.has(`${docId}:${b}`)) {
+      const v = Number(p[a]) || 0;
+      const outro = Number(base[b]) || 0;
+      if (outro === 0 || outro === (Number(base[a]) || 0)) p = { ...p, [b]: v } as Partial<T>;
+    }
+  }
+  return p;
+}
+
+/**
+ * Acompanha o valor averbado (seguro) do formulário: quando um documento recebe
+ * valor e o averbado está vazio ou ainda igual ao valor anterior do documento,
+ * replica o novo valor. Valor averbado editado manualmente é preservado.
+ */
+function syncAverbado<F extends { valor_carga_averb: number }>(form: F, base: DocCampos, patch: Partial<DocCampos>, merged: DocCampos): Partial<F> {
+  if (!("valor" in patch) && !("valor_produtos" in patch)) return {};
+  const novo = Number(merged.valor) || Number(merged.valor_produtos) || 0;
+  if (!novo) return {};
+  const antigo = Number(base.valor) || Number(base.valor_produtos) || 0;
+  const atual = Number(form.valor_carga_averb) || 0;
+  if (atual === 0 || atual === antigo) return { valor_carga_averb: novo } as Partial<F>;
+  return {};
+}
+
 function DocInput({ kind, value, onChange }: { kind: "text" | "num" | "money" | "date"; value: any; onChange: (v: any) => void }) {
   if (kind === "date") return <Input type="date" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value)} />;
   if (kind === "num") return <Input type="number" step="0.001" className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
-  if (kind === "money") return <Input className="h-7 text-xs" value={value ? maskCurrency(String(Math.round(Number(value) * 100))) : ""} onChange={(e) => onChange(Number(unmaskCurrency(e.target.value)) || 0)} />;
+  if (kind === "money") return <Input className="h-7 text-xs" value={value ? maskCurrency(String(Math.round(Number(value) * 100))) : ""} onChange={(e) => { console.log("[DocInput money]", e.target.value); onChange(Number(unmaskCurrency(e.target.value)) || 0); }} />;
   return <Input className="h-7 text-xs" value={value || ""} onChange={(e) => onChange(e.target.value.toUpperCase())} />;
 }
 
@@ -810,6 +844,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       serie: chave.length === 44 ? String(Number(chave.slice(22, 25))) : "",
     } as NfeDetalhe;
   };
+  /** Marca campos de valor editados manualmente por documento, para o espelhamento não sobrescrevê-los. */
+  const manualDocFields = useRef(new Set<string>());
   const setNfeDetalhe = (chave: string, patch: Partial<NfeDetalhe>) =>
     setForm((p) => {
       const base = p.nfe_detalhes.find((d) => d.chave === chave) ?? {
@@ -818,7 +854,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         numero: String(Number(chave.slice(25, 34))),
         serie: String(Number(chave.slice(22, 25))),
       } as NfeDetalhe;
-      return { ...p, nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), { ...base, ...syncQuantidade(base, patch) }] };
+      const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `nfe:${chave}`) };
+      return { ...p, ...syncAverbado(p, base, patch, merged), nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), merged] };
     });
 
   // Carretas do veículo selecionado (somente se ainda vazias)
@@ -2040,7 +2077,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             ) : (
               <div className="space-y-2">
                 {form.outros_documentos.map((o, i) => {
-                  const upd = (patch: Partial<OutroDoc>) => { const arr = [...form.outros_documentos]; arr[i] = { ...arr[i], ...syncQuantidade(arr[i], patch) }; set("outros_documentos", arr); };
+                  const upd = (patch: Partial<OutroDoc>) => setForm((p) => { const arr = [...p.outros_documentos]; const base = arr[i]; const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `out:${i}`) }; arr[i] = merged; return { ...p, ...syncAverbado(p, base, patch, merged), outros_documentos: arr }; });
                   return (
                     <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
                       <div className="flex items-end gap-2">
