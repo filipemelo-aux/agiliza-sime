@@ -171,7 +171,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
             a.className,
           )}
         >
-          {Icon && <Icon className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+          {Icon && <Icon className={cn("h-4 w-4 md:h-3.5 md:w-3.5", a.iconClassName)} />}
           {Icon ? <span className="sr-only">{a.label}</span> : <span>{a.label}</span>}
         </Button>
       </div>
