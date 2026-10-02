@@ -70,6 +70,8 @@ interface DataGridProps<T> {
   loading?: boolean;
   emptyMessage?: string;
   minWidth?: number;
+  /** "fixed" respeita exatamente a largura declarada em cada coluna */
+  tableLayout?: "auto" | "fixed";
   footer?: React.ReactNode;
   rowClassName?: (row: T) => string;
   maxHeight?: string;
