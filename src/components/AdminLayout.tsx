@@ -318,17 +318,13 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
-                  const itemActive = item.children.some((child: any) => {
-                    if (child.submenu) return child.submenu.some((s: any) => isActive(s.url));
-                    return isActive(child.url);
-                  });
                   return (
                     <CollapsibleMenu
                       key={item.title}
                       title={item.title}
                       Icon={item.icon}
-                      defaultOpen={itemActive}
-                      forceOpen={!!q}
+                      open={!!q || openMenu === item.title}
+                      onOpenChange={(v) => handleMenuOpenChange(item.title, v)}
                     >
                       {item.children.map((child: any) => {
                         if (child.submenu) {
