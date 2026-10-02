@@ -110,38 +110,23 @@ export const allMenuItems = [
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
-function usePersistedOpen(key: string, defaultOpen: boolean) {
-  const [open, setOpen] = useState(() => {
-    if (typeof window === "undefined") return !!defaultOpen;
-    const stored = localStorage.getItem(key);
-    if (stored !== null) return stored === "true";
-    return !!defaultOpen;
-  });
-  const handleOpenChange = (v: boolean) => {
-    setOpen(v);
-    try { localStorage.setItem(key, String(v)); } catch {}
-  };
-  return [open, handleOpenChange] as const;
-}
 
 function CollapsibleMenu({
   title,
   Icon,
-  defaultOpen,
-  forceOpen,
+  open,
+  onOpenChange,
   children,
 }: {
   title: string;
   Icon: React.ComponentType<{ className?: string }>;
-  defaultOpen?: boolean;
-  forceOpen?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
 }) {
-  const [stored, setOpen] = usePersistedOpen(`menu-open-${title}`, !!defaultOpen);
-  const open = forceOpen || stored;
   return (
     <SidebarMenuItem>
-      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
+      <Collapsible open={open} onOpenChange={onOpenChange} className="w-full">
         <CollapsibleTrigger asChild>
           <SidebarMenuButton tooltip={title} className="h-9 text-[13px] font-medium px-2.5 gap-3 w-full">
             <Icon className="!h-4 !w-4 text-foreground/80" />
