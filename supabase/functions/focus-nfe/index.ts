@@ -63,8 +63,11 @@ Deno.serve(async (req) => {
 
     // CT-e parado em "processando": consulta a situação real antes de qualquer reenvio.
     if (cte.status === "processando") {
-      const syncRes = await fetch(`${BASES.homologacao}/v2/cte/cte-${cteId}?completa=1`, {
-        headers: { Authorization: "Basic " + btoa(token + ":") },
+      const { data: estSync } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
+      const syncAmb = String(estSync?.ambiente) === "producao" ? "producao" : "homologacao";
+      const syncToken = Deno.env.get(syncAmb === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO") || token;
+      const syncRes = await fetch(`${BASES[syncAmb]}/v2/cte/cte-${cteId}?completa=1`, {
+        headers: { Authorization: "Basic " + btoa(syncToken + ":") },
       });
       let sync: any = null;
       try { sync = await syncRes.json(); } catch { /* ignore */ }
@@ -90,6 +93,12 @@ Deno.serve(async (req) => {
     }
     const { data: est, error: estError } = await supabase.from("fiscal_establishments").select("*").eq("id", cte.establishment_id).single();
     if (estError || !est) return json({ error: "Emitente fiscal não encontrado" }, 422);
+
+    // Ambiente da emissão segue o cadastro do estabelecimento emitente (matriz=produção, filial=homologação).
+    const emitAmb: keyof typeof BASES = String(est.ambiente) === "producao" ? "producao" : "homologacao";
+    const emitToken = Deno.env.get(emitAmb === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO");
+    if (!emitToken) return json({ error: `Token de ${emitAmb === "producao" ? "produção" : "homologação"} não configurado no backend` }, 500);
+    const emitBase = BASES[emitAmb];
 
     let numero = cte.numero;
     if (!numero) {
