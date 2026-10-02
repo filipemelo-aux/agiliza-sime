@@ -14,8 +14,8 @@ import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
-import { Banknote, CalendarDays, CheckCircle2, Plus, Printer, RefreshCw, Search, Trash2, WalletCards, XCircle } from "lucide-react";
-import { buildCheckPdf, printPdfBytes } from "@/lib/checkPdf";
+import { Banknote, CalendarDays, CheckCircle2, Download, Plus, RefreshCw, Search, Trash2, WalletCards, XCircle } from "lucide-react";
+import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface CheckRow {
@@ -213,9 +213,10 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         predatado: isPre,
         dataVencimentoISO: isPre ? row.data_vencimento : null,
       } as any);
-      printPdfBytes(bytes);
+      downloadPdfBytes(bytes, `cheque_${(row.numero_cheque || "sem_numero").trim()}.pdf`);
+      toast.success("PDF do cheque baixado");
     } catch (e: any) {
-      toast.error("Não foi possível reimprimir o cheque", { description: e?.message });
+      toast.error("Não foi possível baixar o cheque", { description: e?.message });
     } finally {
       setBusy(false);
     }
@@ -242,7 +243,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: Banknote, mode: "single" as const, priority: true, className: "bg-success text-success-foreground hover:bg-success/90 border-transparent", onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione um cheque em aberto (emitido)"); if (alvo.length > 1) return toast.info("Pague um cheque por vez"); setPayOpen(true); } }] : []),
     ...(!reportMode ? [{ key: "new", label: "Novo cheque", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setDialogOpen(true) }] : []),
     { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", className: "border-border text-muted-foreground hover:bg-muted", onClick: () => { void load(); } },
-    ...(!reportMode ? [{ key: "reprint", label: "Reimprimir cheque", icon: Printer, mode: "single" as const, disabled: busy, onClick: () => { void reprintSelected(); } }] : []),
+    ...(!reportMode ? [{ key: "download", label: "Baixar cheque (PDF)", icon: Download, mode: "single" as const, disabled: busy, onClick: () => { void reprintSelected(); } }] : []),
     ...(!reportMode ? [{ key: "cancel", label: "Cancelar cheque", icon: XCircle, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void cancelSelected(); } }] : []),
     ...(!reportMode ? [{ key: "delete", label: "Excluir cheque", icon: Trash2, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void deleteSelected(); } }] : []),
   ];
