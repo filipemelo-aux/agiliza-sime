@@ -1036,7 +1036,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         tone: "success",
         text: "Nota importada. Foram preenchidos os dados da nota, emitente, destinatário, municípios, produto, peso, quantidades e valores. Confira as informações antes de salvar.",
       });
-    } catch (e: any) {
+    } catch {
       // Sem acesso ao conteúdo: aproveita tudo que a própria chave informa
       const emitCnpj = chave.slice(6, 20);
       const modelo = chave.slice(20, 22);
