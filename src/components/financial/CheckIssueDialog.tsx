@@ -312,8 +312,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
             <DialogFooter className="gap-2">
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
               <Button size="sm" onClick={handleGerar} disabled={generating} className="gap-1.5">
-                <Printer className="h-4 w-4" />
-                {generating ? "Gerando..." : "Gerar Cheque"}
+                <Download className="h-4 w-4" />
+                {generating ? "Gerando..." : "Gerar e baixar PDF"}
               </Button>
             </DialogFooter>
           </>
