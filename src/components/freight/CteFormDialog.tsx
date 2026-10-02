@@ -709,7 +709,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         gerar_previsao: (cte as any).gerar_previsao ?? true,
         composicao_frete: { ...defaultForm.composicao_frete, ...((cte as any).composicao_frete || { frete_valor: Number(cte.valor_frete) || 0 }) },
         frete_minimo: { ...defaultForm.frete_minimo, ...((cte as any).frete_minimo || {}) },
-        data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
+        data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })),
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
       const od = (cte as any).outros_documentos;
@@ -730,7 +730,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         setMotoristaNome(undefined);
       }
     } else {
-      setForm(defaultForm);
+      setForm({ ...defaultForm, data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) });
       setDocMode("nfe");
       setMotoristaNome(undefined);
       setDesconto(emptyDesconto);
