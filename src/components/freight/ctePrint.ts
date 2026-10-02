@@ -91,7 +91,7 @@ async function loadEmitente(establishmentId?: string | null) {
   if (!establishmentId) return null;
   const { data } = await supabase
     .from("fiscal_establishments")
-    .select("razao_social, nome_fantasia, cnpj, inscricao_estadual, rntrc, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
+    .select("razao_social, nome_fantasia, cnpj, inscricao_estadual, rntrc, telefone, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
     .eq("id", establishmentId)
     .maybeSingle();
   if (!data) return null;
@@ -102,6 +102,7 @@ async function loadEmitente(establishmentId?: string | null) {
     cnpj: item.cnpj ? maskCNPJ(item.cnpj) : "",
     ie: item.inscricao_estadual || "",
     rntrc: item.rntrc || "",
+    telefone: item.telefone || "",
     endereco: [
       [item.endereco_logradouro, item.endereco_numero].filter(Boolean).join(", "),
       item.endereco_bairro,
@@ -184,7 +185,7 @@ const STYLE = `<style>
   th { font-size: 6.2px; font-weight:400; text-transform: uppercase; text-align:center; }
   td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
-  .service-component .value.right, td.right { text-align:center; }
+  .service-component .value.right, td.right { text-align:right; }
   .notes { height: 31mm; padding: 1.5mm; border-bottom:1px solid #111; white-space: pre-wrap; overflow-wrap: anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
   .actor { padding:1mm; height:23mm; border-right:1px solid #111; overflow:hidden; }
@@ -238,7 +239,7 @@ const STYLE = `<style>
   .receipt { margin-top: 17mm; border: 1px solid #111; break-inside: avoid; position:relative; }
   .receipt:before { content:""; position:absolute; left:-1px; right:-1px; top:-7px; border-top:1px dashed #555; }
   .receipt-head { display: grid; grid-template-columns: 1fr 125px; }
-  .receipt-head > div { padding: 4px; border-right: 1px solid #111; line-height:10px; text-align:center; display:flex; flex-direction:column; justify-content:center; }
+  .receipt-head > div { padding: 1mm; border-right: 1px solid #111; line-height:1.1; text-align:left; display:flex; flex-direction:column; justify-content:center; }
   .receipt-head > div:last-child { border-right: 0; }
   .receipt-sign { display: grid; grid-template-columns: 1.4fr .5fr .5fr; border-top: 1px solid #111; min-height: 37px; }
   .receipt-sign > div { padding: 4px; border-right: 1px solid #111; }
@@ -340,7 +341,7 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
   const body = `<div class="dacte">
     ${!authorized ? `<div class="watermark">${isService ? "DOCUMENTO INTERNO — SEM VALOR FISCAL" : "DOCUMENTO NÃO AUTORIZADO — SEM VALOR FISCAL"}</div>` : ""}
     <div class="header">
-      <div class="issuer">${logoSrc ? `<img class="issuer-logo" src="${esc(logoSrc)}" alt="SIME Transportes"/>` : ""}<strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.endereco || "")}</span><span>CNPJ: ${esc(emit?.cnpj || "—")} IE: ${esc(emit?.ie || "—")}</span></div>
+      <div class="issuer">${logoSrc ? `<img class="issuer-logo" src="${esc(logoSrc)}" alt="SIME Transportes"/>` : ""}<strong>${esc(emit?.razao_social || "Sime Transporte Ltda")}</strong><span>${esc(emit?.endereco || "")}${emit?.telefone ? ` FONE: ${esc(emit.telefone)}` : ""}</span><span>CNPJ: ${esc(emit?.cnpj || "—")} IE: ${esc(emit?.ie || "—")}</span></div>
       <div class="fiscal-head"><div class="title-row"><div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span></div><div class="modal"><span class="label">Modal</span><b>Rodoviário</b></div></div><div class="doc-meta"><div><span class="label">Modelo</span><b>${isService ? "—" : "57"}</b></div><div><span class="label">Série</span><b>${esc(cte.serie ?? "—")}</b></div><div><span class="label">Número</span><b>${esc(number)}</b></div><div><span class="label">Página</span><b>1/1</b></div><div><span class="label">Data e hora de emissão</span><b>${esc(dateTime(cte.data_emissao))}</b></div></div><div class="access">${barcodeUrl ? `<img class="barcode" src="${barcodeUrl}"/>` : ""}<span class="label">Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br</span><div class="key">${esc(formatChave(authorization.key))}</div></div></div>
       <div class="qr">${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code para consulta do CT-e"/>` : `<b>${esc(STATUS[cte.status || ""] || "INTERNO")}</b>`}</div>
     </div>
