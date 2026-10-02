@@ -1,3 +1,4 @@
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useState } from "react";
 import {
   Sheet,
@@ -467,6 +468,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
   return (
     <>
+      <ProcessingOverlay open={saving} label="Salvando CT-e..." />
     {ConfirmDialog}
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">

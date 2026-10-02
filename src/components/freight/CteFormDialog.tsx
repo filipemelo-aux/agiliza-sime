@@ -1,3 +1,4 @@
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { ICMS_CST_OPTIONS, IBS_CBS_CST_OPTIONS, IBS_CBS_DEFAULT, icmsCstMode, ibsCbsIsento } from "@/lib/cteTaxCodes";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -1538,6 +1539,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   return (
   <>
+      <ProcessingOverlay open={saving} label="Salvando CT-e..." />
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
