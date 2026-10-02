@@ -6,3 +6,4 @@
 - [x] Confirmar build sem erros
 - [x] Compactar todos os campos do DACTE conforme as marcações dos prints
 - [x] Reconstruir o DACTE pela geometria exata do modelo oficial reenviado
+- [x] Corrigir o download do DACTE em navegadores desktop
