@@ -31,6 +31,8 @@ export interface ToolbarAction {
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary";
   /** classes extras aplicadas ao botão (ex.: cores de destaque por tipo de match) */
   className?: string;
+  /** classes extras aplicadas só ao ícone da ação (ex.: ícones oficiais que devem preencher o botão) */
+  iconClassName?: string;
   /** desabilita mesmo quando a seleção permitiria */
   disabled?: boolean;
   hidden?: boolean;
