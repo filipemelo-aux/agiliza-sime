@@ -110,38 +110,23 @@ export const allMenuItems = [
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
-function usePersistedOpen(key: string, defaultOpen: boolean) {
-  const [open, setOpen] = useState(() => {
-    if (typeof window === "undefined") return !!defaultOpen;
-    const stored = localStorage.getItem(key);
-    if (stored !== null) return stored === "true";
-    return !!defaultOpen;
-  });
-  const handleOpenChange = (v: boolean) => {
-    setOpen(v);
-    try { localStorage.setItem(key, String(v)); } catch {}
-  };
-  return [open, handleOpenChange] as const;
-}
 
 function CollapsibleMenu({
   title,
   Icon,
-  defaultOpen,
-  forceOpen,
+  open,
+  onOpenChange,
   children,
 }: {
   title: string;
   Icon: React.ComponentType<{ className?: string }>;
-  defaultOpen?: boolean;
-  forceOpen?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
 }) {
-  const [stored, setOpen] = usePersistedOpen(`menu-open-${title}`, !!defaultOpen);
-  const open = forceOpen || stored;
   return (
     <SidebarMenuItem>
-      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
+      <Collapsible open={open} onOpenChange={onOpenChange} className="w-full">
         <CollapsibleTrigger asChild>
           <SidebarMenuButton tooltip={title} className="h-9 text-[13px] font-medium px-2.5 gap-3 w-full">
             <Icon className="!h-4 !w-4 text-foreground/80" />
@@ -258,6 +243,26 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
+  // Acordeão: apenas um grupo de menu aberto por vez
+  const findActiveTopLevel = () =>
+    (baseMenuItems as any[]).find((i) => i.children?.some((c: any) =>
+      c.submenu ? c.submenu.some((s: any) => isActive(s.url)) : isActive(c.url)
+    ))?.title ?? null;
+  const [openMenu, setOpenMenu] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem("sidebar-open-menu");
+      if (stored) return stored;
+    } catch {}
+    return findActiveTopLevel();
+  });
+  const handleMenuOpenChange = (title: string, v: boolean) => {
+    setOpenMenu(v ? title : null);
+    try {
+      if (v) localStorage.setItem("sidebar-open-menu", title);
+      else localStorage.removeItem("sidebar-open-menu");
+    } catch {}
+  };
+
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart" || location.pathname.startsWith("/admin/reports");
   
@@ -313,17 +318,13 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
-                  const itemActive = item.children.some((child: any) => {
-                    if (child.submenu) return child.submenu.some((s: any) => isActive(s.url));
-                    return isActive(child.url);
-                  });
                   return (
                     <CollapsibleMenu
                       key={item.title}
                       title={item.title}
                       Icon={item.icon}
-                      defaultOpen={itemActive}
-                      forceOpen={!!q}
+                      open={!!q || openMenu === item.title}
+                      onOpenChange={(v) => handleMenuOpenChange(item.title, v)}
                     >
                       {item.children.map((child: any) => {
                         if (child.submenu) {
