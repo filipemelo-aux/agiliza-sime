@@ -204,7 +204,7 @@ const STYLE = `<style>
   .ident-field:last-child { border-right:0; }
   .inline-value { margin-left:2mm; font-size:5.8px; }
   .taker { height:12.4mm; border-bottom:.25mm solid #000; padding:.6mm .8mm; display:grid; grid-template-rows:repeat(3,1fr); }
-  .taker-line { display:grid; align-items:start; column-gap:1mm; }
+  .taker-line { display:grid; align-items:center; column-gap:1mm; padding-top:.35mm; }
   .taker-line.one { grid-template-columns:2.15fr .85fr .2fr .45fr; }
   .taker-line.two { grid-template-columns:2.15fr .85fr; }
   .taker-line.three { grid-template-columns:1fr 1fr .7fr; }
@@ -238,7 +238,7 @@ const STYLE = `<style>
   .service-total .value { text-align:right; font-size:6.4px; }
   .tax-row { height:7.8mm; display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .8fr; border-bottom:.25mm solid #000; align-items:stretch; }
   .tax-row > .cell { border-bottom:0; min-height:0; }
-  .origin-docs { height:38.1mm; border-bottom:.25mm solid #000; display:grid; grid-template-columns:1fr 1fr; }
+  .origin-docs { height:35.5mm; border-bottom:.25mm solid #000; display:grid; grid-template-columns:1fr 1fr; }
   .origin-doc-panel { overflow:hidden; }
   .origin-doc-panel:first-child { border-right:.25mm solid #000; }
   .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:10mm 1fr 28mm 17mm; align-items:center; }
@@ -345,8 +345,7 @@ function taxesHtml(cte: CtePrintInput) {
       ${cell("Alíquota ICMS", `${decimal(cte.aliquota_icms, 2)}%`)}
       ${cell("Valor ICMS", money(cte.valor_icms))}
       ${cell("% Red. BC Calc.", `${decimal(cte.percentual_reducao_bc, 2)}%`)}
-    </div>
-    ${cte.ibs_cbs_cst ? `<div class="grid c5">${cell("CST IBS/CBS", cte.ibs_cbs_cst)}${cell("Classificação tributária", cte.ibs_cbs_class_trib)}${cell("Base IBS/CBS", money(cte.ibs_cbs_base_calculo))}${cell("IBS", money(Number(cte.ibs_uf_valor || 0) + Number(cte.ibs_mun_valor || 0)))}${cell("CBS", money(cte.cbs_valor))}</div>` : ""}`;
+    </div>`;
 }
 
 export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
