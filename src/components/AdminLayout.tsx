@@ -287,8 +287,11 @@ function SidebarNav() {
       {/* Branding no topo da sidebar */}
       <div className="h-16 flex items-center justify-between gap-2 px-3 shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <div className="min-w-0 leading-none group-data-[collapsible=icon]:hidden">
-          <span className="block text-[16px] font-extrabold tracking-tight text-foreground">
-            SIME <span className="text-muted-foreground font-semibold">TRANSPORTES</span>
+          <span
+            className="block text-base text-primary whitespace-nowrap"
+            style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
+          >
+            SIME <span className="text-accent">TRANSPORTES</span>
           </span>
         </div>
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
