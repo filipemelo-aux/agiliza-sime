@@ -213,6 +213,8 @@ const STYLE = `<style>
   .cargo-qty > .cell { min-height:5.7mm; border-bottom:0; }
   .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; align-items:stretch; }
   .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
+  .service-components.items-1 { grid-template-columns:1fr; }
+  .service-components.items-2 { grid-template-columns:repeat(2, 1fr); }
   .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; align-items:stretch; }
   .service-component:last-child { border-right:0; }
   .service-component > div { padding:.75mm 1mm .6mm; min-height:7mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
@@ -303,13 +305,12 @@ function valuesHtml(cte: CtePrintInput) {
         .map(([key, value]) => ({ xNome: key.replace(/_/g, " ").toUpperCase(), vComp: Number(value) }))
     : [];
   const items = components.length ? components : fallback;
-  const slots = Array.from({ length: 3 }, (_, index) => items[index]);
-  return `<div class="section-title">Componentes do valor da prestação de serviço</div><div class="service-values"><div class="service-components">
-      ${slots.map((item, index) => {
-        const component = item as Component | undefined;
-        const name = component?.xNome || component?.nome || (index === 0 ? "FRETE VALOR" : "");
-        const value = component ? component.vComp ?? component.valor : index === 0 ? cte.valor_frete : "";
-        return `<div class="service-component"><div><span class="label">Nome</span><span class="value">${esc(name)}</span></div><div><span class="label">Valor</span><span class="value right">${value === "" ? "" : esc(money(value))}</span></div></div>`;
+  const visibleItems = items.length ? items.slice(0, 3) : [{ xNome: "FRETE VALOR", vComp: cte.valor_frete }];
+  return `<div class="section-title">Componentes do valor da prestação de serviço</div><div class="service-values"><div class="service-components items-${visibleItems.length}">
+      ${visibleItems.map((component) => {
+        const name = component.xNome || component.nome || "FRETE VALOR";
+        const value = component.vComp ?? component.valor ?? cte.valor_frete;
+        return `<div class="service-component"><div><span class="label">Nome</span><span class="value">${esc(name)}</span></div><div><span class="label">Valor</span><span class="value right">${esc(money(value))}</span></div></div>`;
       }).join("")}</div><div class="service-totals"><div class="service-total"><span class="label">Valor total do serviço</span><span class="value">${esc(money(cte.valor_frete))}</span></div><div class="service-total"><span class="label">Valor a receber</span><span class="value">${esc(money(cte.valor_receber ?? cte.valor_frete))}</span></div></div></div>`;
 }
 
