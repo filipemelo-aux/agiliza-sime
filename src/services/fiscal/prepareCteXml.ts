@@ -52,13 +52,16 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     return { success: false, errors: ["Estabelecimento inativo."] };
   }
 
-  // 3. Gerar próximo número
-  const { data: numero, error: numErr } = await supabase.rpc("next_cte_number", {
-    _establishment_id: cte.establishment_id,
-  });
-
-  if (numErr || !numero) {
-    return { success: false, errors: [`Erro ao gerar número: ${numErr?.message}`] };
+  // 3. Reusar número reservado no rascunho; só gerar novo se não houver
+  let numero = (cte as any).numero as number | null;
+  if (!numero) {
+    const { data: nextNum, error: numErr } = await supabase.rpc("next_cte_number", {
+      _establishment_id: cte.establishment_id,
+    });
+    if (numErr || !nextNum) {
+      return { success: false, errors: [`Erro ao gerar número: ${numErr?.message}`] };
+    }
+    numero = nextNum as number;
   }
 
   // 4. Buscar motorista (nome + CPF) se houver motorista_id
