@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso } from "@/lib/valorExtenso";
-import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
+import { buildCheckPdf, downloadPdfBytes, printPdfBytes } from "@/lib/checkPdf";
 import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
 import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
@@ -145,6 +145,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         freight_contract_id: data.freightContractId || null,
         conta_bancaria_id: data.contaBancariaId || null,
         plano_contas_id: data.planoContasId || null,
+        layout_id: layout.id,
+        banco_nome: layout.banco_nome || null,
         status: "emitido",
       };
       const chequeQuery = supabase.from("cheques" as any) as any;
@@ -189,6 +191,11 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     downloadPdfBytes(pdfBytes, `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`);
   };
 
+  const handlePrint = () => {
+    if (!pdfBytes) return;
+    printPdfBytes(pdfBytes);
+  };
+
 
 
 
@@ -201,8 +208,12 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={pdfBlobUrl ? "max-w-4xl w-[95vw]" : "max-w-lg"}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
+      <DialogContent
+        className={pdfBlobUrl ? "max-w-4xl w-[95vw]" : "max-w-lg"}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => { if (pdfBlobUrl || generating) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>{pdfBlobUrl ? "Visualização de Impressão" : "Emissão de Cheque"}</DialogTitle>
         </DialogHeader>
@@ -214,11 +225,15 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
               Baixe o PDF e imprima pelo leitor de PDF, mantendo "Tamanho real / Escala 100%" e desativando "Ajustar à página".
             </p>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="default" size="sm" onClick={handlePrint} className="gap-1.5">
+                <Printer className="h-4 w-4" />
+                Imprimir
+              </Button>
               <Button variant="secondary" size="sm" onClick={handleDownload} className="gap-1.5">
                 <Download className="h-4 w-4" />
                 Baixar PDF
               </Button>
-              <Button size="sm" onClick={handleClose} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={handleClose} className="gap-1.5">
                 <X className="h-4 w-4" />
                 Fechar
               </Button>

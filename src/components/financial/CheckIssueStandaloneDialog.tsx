@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,6 +154,8 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
     [selectedRows],
   );
 
+  const savedRef = useRef(false);
+
   const handleContinue = () => {
     if (!empresaId) return toast.error("Selecione a empresa / unidade");
     if (linkType === "conta_pagar" && rowIds.length === 0) return toast.error("Selecione ao menos uma parcela");
@@ -306,7 +308,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
       />
       <CheckIssueDialog
         open={issueOpen}
-        onOpenChange={setIssueOpen}
+        onOpenChange={(v) => { setIssueOpen(v); if (!v && savedRef.current) { savedRef.current = false; onOpenChange(false); } }}
         data={{
           expenseId: linkType === "conta_pagar" ? (expenseIds[0] ?? null) : null,
           expenseIds: linkType === "conta_pagar" ? expenseIds : [],
@@ -321,7 +323,7 @@ export function CheckIssueStandaloneDialog({ open, onOpenChange, onSaved }: Prop
           contaBancariaId: linkType === "movimentacao" ? (accounts.find((a) => a.empresa_id === empresaId)?.id ?? accounts[0]?.id ?? null) : null,
           vinculoTipo: linkType,
         }}
-        onSaved={() => { setIssueOpen(false); onSaved(); }}
+        onSaved={() => { savedRef.current = true; onSaved(); }}
       />
     </>
   );
