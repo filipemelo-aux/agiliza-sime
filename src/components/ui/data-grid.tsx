@@ -153,7 +153,7 @@ export function DataGrid<T>({
         style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
       >
         <table
-          className="data-grid-table w-full table-auto border-collapse text-xs"
+          className={cn("data-grid-table w-full border-collapse text-xs", tableLayout === "fixed" ? "table-fixed" : "table-auto")}
           style={{ "--data-grid-min-width": `${minWidth}px` } as React.CSSProperties}
         >
           <thead className="sticky top-0 z-10 bg-muted/60">
