@@ -70,6 +70,8 @@ interface DataGridProps<T> {
   loading?: boolean;
   emptyMessage?: string;
   minWidth?: number;
+  /** "fixed" respeita exatamente a largura declarada em cada coluna */
+  tableLayout?: "auto" | "fixed";
   footer?: React.ReactNode;
   rowClassName?: (row: T) => string;
   maxHeight?: string;
@@ -85,6 +87,7 @@ export function DataGrid<T>({
   loading,
   emptyMessage = "Nenhum registro encontrado",
   minWidth = 900,
+  tableLayout = "auto",
   footer,
   rowClassName,
   maxHeight,
@@ -150,7 +153,7 @@ export function DataGrid<T>({
         style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
       >
         <table
-          className="data-grid-table w-full table-auto border-collapse text-xs"
+          className={cn("data-grid-table w-full border-collapse text-xs", tableLayout === "fixed" ? "table-fixed" : "table-auto")}
           style={{ "--data-grid-min-width": `${minWidth}px` } as React.CSSProperties}
         >
           <thead className="sticky top-0 z-10 bg-muted/60">

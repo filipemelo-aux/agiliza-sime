@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /** Tonalidades padrão de linha de lista em todo o sistema */
-export type RowTone = "pending" | "resolved" | "overdue" | "neutral";
+export type RowTone = "pending" | "resolved" | "overdue" | "cancelled" | "neutral";
 
 /** Classe de fundo aplicada à linha da lista conforme a situação do registro */
 export function rowToneClass(tone: RowTone): string {
@@ -12,6 +12,8 @@ export function rowToneClass(tone: RowTone): string {
       return "bg-success/10 hover:bg-success/20";
     case "overdue":
       return "bg-destructive/10 hover:bg-destructive/20 text-destructive";
+    case "cancelled":
+      return "bg-muted/70 hover:bg-muted text-muted-foreground";
     default:
       return "";
   }
@@ -27,6 +29,7 @@ const SWATCH: Record<RowTone, string> = {
   pending: "bg-warning/40 border-warning",
   resolved: "bg-success/40 border-success",
   overdue: "bg-destructive/40 border-destructive",
+  cancelled: "bg-muted-foreground/25 border-muted-foreground/60",
   neutral: "bg-muted border-border",
 };
 
