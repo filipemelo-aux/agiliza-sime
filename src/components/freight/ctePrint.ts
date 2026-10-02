@@ -193,7 +193,39 @@ const STYLE = `<style>
   .actor-line b { font-size:5.6px; font-weight:400; }
   .actor-pair { display:grid; grid-template-columns:1fr 1fr; }
   .actor-pair > div { padding-right:3px; }
-  .actor-pair > div + div { border-left:1px solid #777; padding-left:3px; padding-right:0; }
+  .actor-pair > div + div { padding-left:3px; padding-right:0; }
+  .compact-row { display:grid; min-height:20px; border-bottom:1px solid #111; }
+  .compact-row:last-child { border-bottom:0; }
+  .compact-field { display:flex; gap:7px; align-items:flex-start; padding:2px 3px; min-width:0; }
+  .compact-field .label { flex:0 0 auto; margin:0; }
+  .compact-field .value { min-width:0; }
+  .taker { border-bottom:1px solid #111; }
+  .taker-main { grid-template-columns:2.05fr .95fr .42fr .28fr .6fr; }
+  .taker-address { grid-template-columns:2.05fr .95fr; }
+  .taker-docs { grid-template-columns:1.15fr 1.15fr .7fr; }
+  .cargo-main { display:grid; grid-template-columns:1.05fr 1.02fr .7fr; border-bottom:1px solid #111; }
+  .cargo-main > .cell { min-height:29px; border-bottom:0; }
+  .cargo-qty { display:grid; grid-template-columns:40px 1fr 1.15fr 1fr 1fr; border-bottom:1px solid #111; }
+  .cargo-qty > .cell { min-height:24px; border-bottom:0; }
+  .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; }
+  .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
+  .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; }
+  .service-component:last-child { border-right:0; }
+  .service-component > div { padding:2px 3px; min-height:40px; }
+  .service-component > div:first-child { border-right:1px solid #777; }
+  .service-totals { border-left:1px solid #111; }
+  .service-total { min-height:27px; padding:2px 3px; }
+  .service-total + .service-total { border-top:1px solid #111; }
+  .service-total .value { text-align:right; font-size:8px; }
+  .tax-row { display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .55fr; border-bottom:1px solid #111; }
+  .tax-row > .cell { border-bottom:0; min-height:31px; }
+  .origin-docs { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
+  .origin-doc-panel { min-height:48px; }
+  .origin-doc-panel:first-child { border-right:1px solid #111; }
+  .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:.34fr 1.85fr 1.05fr .72fr; }
+  .origin-doc-head > div, .origin-doc-row > div { padding:2px 3px; overflow-wrap:anywhere; }
+  .origin-doc-head > div { font-size:5.7px; text-transform:uppercase; }
+  .origin-doc-row > div { font-size:6.2px; }
   .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:30px; border-top:1px solid #111; }
   .exclusive > div { border-right:1px solid #111; padding:3px; text-align:center; }
   .exclusive > div:last-child { border:0; }
@@ -233,20 +265,23 @@ function documentsHtml(cte: CtePrintInput) {
   const byKey = new Map(details.map((item) => [digits(item.chave), item]));
   const nfeRows = keys.map((key) => {
     const item = byKey.get(digits(key)) || details.find((detail) => detail.numero && digits(key).slice(25, 34) === String(detail.numero).padStart(9, "0")) || {};
-    return `<tr><td>NFe</td><td class="key">${esc(formatChave(key))}</td><td>${esc([item.serie, item.numero ? `NF: ${String(item.numero).padStart(9, "0")}` : ""].filter(Boolean).join(" / ") || "—")}</td><td class="right">${esc(item.valor || item.valor_produtos ? money(item.valor || item.valor_produtos) : "")}</td></tr>`;
-  }).join("");
+    return { type: "NFe", issuer: formatChave(key), number: [item.serie, item.numero ? `NF: ${String(item.numero).padStart(9, "0")}` : ""].filter(Boolean).join(" / ") || "—", value: item.valor || item.valor_produtos ? money(item.valor || item.valor_produtos) : "" };
+  });
   const otherRows = others.map((item) => `<tr>
     <td>${esc(item.tipo || "Outros")}</td><td>${esc(item.descricao || item.natureza || "—")}</td>
     <td>${esc(item.numero || "—")}</td><td>${esc(item.serie || "—")}</td>
     <td>${esc(item.data_emissao ? formatDateBR(item.data_emissao) : "—")}</td>
     <td class="right">${esc(decimal(item.peso, 3))}</td><td class="right">${esc(money(item.valor || item.valor_produtos))}</td>
   </tr>`).join("");
-  if (!nfeRows && !otherRows && !cte.chave_cte_subcontratacao) return "";
+  const transportRow = cte.chave_cte_subcontratacao
+    ? [{ type: "CT-e", issuer: formatChave(cte.chave_cte_subcontratacao), number: cte.cte_anterior_numero || "", value: "" }]
+    : [];
+  const fiscalRows = [...nfeRows, ...transportRow];
+  if (!fiscalRows.length && !otherRows) return "";
+  const panels = [fiscalRows.filter((_, index) => index % 2 === 0), fiscalRows.filter((_, index) => index % 2 === 1)];
+  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tp doc.</div><div>CNPJ / CPF emitente</div><div>Série/Nro.documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div class="key">${esc(row.issuer)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
   return `<div class="section-title">Documentos originários</div>
-    <table><thead><tr><th style="width:9%">Tp doc.</th><th style="width:55%">CNPJ / CPF emitente / chave</th><th>Série/Nro. documento</th><th style="width:16%">Valor nota</th></tr></thead><tbody>
-    ${nfeRows}
-    ${cte.chave_cte_subcontratacao ? `<tr><td>CT-e</td><td class="key">${esc(formatChave(cte.chave_cte_subcontratacao))}</td><td>${esc(cte.cte_anterior_numero || "")}</td><td></td></tr>` : ""}
-    </tbody></table>
+    <div class="origin-docs">${panelHtml(panels[0])}${panelHtml(panels[1])}</div>
     ${otherRows ? `<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Número</th><th>Série</th><th>Emissão</th><th>Peso kg</th><th>Valor</th></tr></thead><tbody>${otherRows}</tbody></table>` : ""}`;
 }
 
@@ -259,19 +294,18 @@ function valuesHtml(cte: CtePrintInput) {
     : [];
   const items = components.length ? components : fallback;
   const slots = Array.from({ length: 3 }, (_, index) => items[index]);
-  return `<div class="section-title">Componentes do valor da prestação de serviço</div>
-    <table><thead><tr><th>Nome</th><th>Valor</th><th>Nome</th><th>Valor</th><th>Nome</th><th>Valor</th><th>Valor total do serviço</th></tr></thead><tbody><tr>
+  return `<div class="section-title">Componentes do valor da prestação de serviço</div><div class="service-values"><div class="service-components">
       ${slots.map((item, index) => {
         const component = item as Component | undefined;
         const name = component?.xNome || component?.nome || (index === 0 ? "FRETE VALOR" : "");
         const value = component ? component.vComp ?? component.valor : index === 0 ? cte.valor_frete : "";
-        return `<td>${esc(name)}</td><td class="right">${value === "" ? "" : esc(money(value))}</td>`;
-      }).join("")}<td class="right">${esc(money(cte.valor_frete))}</td></tr><tr><td colspan="6"></td><td><span class="label">Valor a receber</span><b>${esc(money(cte.valor_receber ?? cte.valor_frete))}</b></td></tr></tbody></table>`;
+        return `<div class="service-component"><div><span class="label">Nome</span><span class="value">${esc(name)}</span></div><div><span class="label">Valor</span><span class="value right">${value === "" ? "" : esc(money(value))}</span></div></div>`;
+      }).join("")}</div><div class="service-totals"><div class="service-total"><span class="label">Valor total do serviço</span><span class="value">${esc(money(cte.valor_frete))}</span></div><div class="service-total"><span class="label">Valor a receber</span><span class="value">${esc(money(cte.valor_receber ?? cte.valor_frete))}</span></div></div></div>`;
 }
 
 function taxesHtml(cte: CtePrintInput) {
   return `<div class="section-title">Informações relativas ao imposto</div>
-    <div class="grid c5">
+    <div class="tax-row">
       ${cell("Situação tributária", cte.cst_icms)}
       ${cell("Base de cálculo", money(cte.base_calculo_icms))}
       ${cell("Alíquota ICMS", `${decimal(cte.aliquota_icms, 2)}%`)}
@@ -311,11 +345,9 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     </div>
     <div class="grid c2">${cell("Origem da prestação", cteOrigemLabel(cte))}${cell("Destino da prestação", cteDestinoLabel(cte))}</div>
     ${actorPairs}
-    <div class="grid c3">${cell("Tomador do serviço", cte.tomador_nome, "span2")}${cell("Município / UF / CEP", [cte.tomador_municipio_nome || cte.tomador_municipio_ibge, cte.tomador_uf, cte.tomador_cep].filter(Boolean).join(" - "))}${cell("Endereço", cte.tomador_endereco, "span2")}${cell("País", "BRASIL")}${cell("CNPJ/CPF", doc(cte.tomador_cnpj))}${cell("Inscrição estadual", cte.tomador_ie)}${cell("Fone", cte.tomador_telefone)}</div>
-    <div class="grid c3">
-      ${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}
-    </div>
-    <table><thead><tr><th style="width:9%">Qtd.</th><th>Tipo de medida</th><th>Unidade</th><th class="right">Quantidade</th></tr></thead><tbody>${quantitiesRows.replace(/<tr><td>/g, "<tr><td>CARGA</td><td>")}</tbody></table>
+    <div class="taker"><div class="compact-row taker-main"><div class="compact-field"><span class="label">Tomador do serviço</span><span class="value">${esc(cte.tomador_nome || "—")}</span></div><div class="compact-field"><span class="label">Município</span><span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "—")}</span></div><div class="compact-field"><span class="label">UF</span><span class="value">${esc(cte.tomador_uf || "—")}</span></div><div class="compact-field"><span class="label">CEP</span><span class="value">${esc(cte.tomador_cep || "—")}</span></div></div><div class="compact-row taker-address"><div class="compact-field"><span class="label">Endereço</span><span class="value">${esc(cte.tomador_endereco || "—")}</span></div><div class="compact-field"><span class="label">País</span><span class="value">BRASIL</span></div></div><div class="compact-row taker-docs"><div class="compact-field"><span class="label">CNPJ/CPF</span><span class="value">${esc(doc(cte.tomador_cnpj))}</span></div><div class="compact-field"><span class="label">Inscrição estadual</span><span class="value">${esc(cte.tomador_ie || "—")}</span></div><div class="compact-field"><span class="label">Fone</span><span class="value">${esc(cte.tomador_telefone || "—")}</span></div></div></div>
+    <div class="cargo-main">${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}</div>
+    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Tipo de medida", quantities[0]?.tpMed || "PESO BRUTO")}${cell("Unidade", quantities[0]?.cUnid || "KG")}${cell("Quantidade", decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3))}${cell("Peso bruto", `${decimal(cte.peso_bruto, 3)} KG`)}</div>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
     ${documentsHtml(cte)}
