@@ -189,7 +189,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
       <div className="max-w-md w-full mx-auto">
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="SIME Transportes" className="h-28 w-auto mb-4" />
+          <img src={logo} alt="ERP Agiliza Transporte" className="h-28 w-auto mb-4" />
           <p className="text-sm text-muted-foreground">
             {isSignup ? "Crie sua conta" : "Acesse sua conta"}
           </p>
