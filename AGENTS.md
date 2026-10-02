@@ -1,6 +1,6 @@
 # Project architecture rules
 
-- Standard list/report printing opens lightweight printable HTML and invokes browser printing; the DACTE PDF must always use the immutable vector renderer and approved A4 geometry in `src/components/freight/dactePdf.ts`—never HTML/canvas—because browser layout varied per machine; cheque printing stays isolated because it needs exact physical positioning.
+- Standard list/report printing opens lightweight printable HTML and invokes browser printing; the DACTE PDF must always use the immutable vector renderer and approved A4 geometry in `src/components/freight/dactePdf.ts`—never HTML/canvas—because browser layout varied per machine; cheque output is delivered only as a downloaded PDF built from the stored layout in `src/lib/checkPdf.ts` (never direct browser printing, which silently skipped on some machines) and needs exact physical positioning, so it stays isolated from the other printers.
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
