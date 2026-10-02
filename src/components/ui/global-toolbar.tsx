@@ -177,6 +177,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
           className={cn(
             "text-xs disabled:opacity-40",
             Icon ? TOOLBAR_BUTTON_CLASS : "h-9 md:h-8 px-2.5 gap-1.5",
+            a.variant === "destructive" && "text-destructive hover:text-destructive",
             isPending && "ring-2 ring-ring",
             a.className,
           )}
