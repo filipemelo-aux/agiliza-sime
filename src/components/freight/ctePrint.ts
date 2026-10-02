@@ -137,47 +137,47 @@ const TOMADOR: Record<number, string> = { 0: "Remetente", 1: "Expedidor", 2: "Re
 const STATUS: Record<string, string> = { rascunho: "RASCUNHO", autorizado: "AUTORIZADO", cancelado: "CANCELADO", rejeitado: "REJEITADO", processando: "PROCESSANDO" };
 
 const STYLE = `<style>
-  @page { size: A4 portrait; margin: 8mm; }
+  @page { size: A4 portrait; margin: 8.5mm 9mm; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 6.5px; line-height: 1.06; text-transform: uppercase; }
-  .dacte { width: 100%; border: 1px solid #111; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 5.4px; line-height: 1; text-transform: uppercase; }
+  .dacte { width: 100%; height:239.2mm; border: .35mm solid #000; overflow:hidden; }
   .header { display: grid; grid-template-columns: 38% 47% 15%; height: 36mm; border-bottom: 1px solid #111; }
-  .header > div { padding: 1.2mm; border-right: 1px solid #111; min-width: 0; overflow: hidden; }
+  .header > div { padding: .8mm; border-right: .25mm solid #000; min-width: 0; overflow: hidden; }
   .header > div:last-child { border-right: 0; }
   .issuer { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items:center; }
-  .issuer-logo { display:block; width:auto; height:12mm; object-fit:contain; margin:0 auto .5mm; }
-  .issuer strong { font-size: 9px; text-transform: uppercase; margin-top: .5mm; }
-  .issuer span { margin-top: .3mm; line-height: 1.08; }
+  .issuer-logo { display:block; width:auto; height:13mm; object-fit:contain; margin:0 auto .3mm; }
+  .issuer strong { font-size: 7.5px; text-transform: uppercase; margin-top: .25mm; }
+  .issuer span { margin-top: .25mm; line-height: 1.05; font-size:4.7px; }
   .fiscal-head { padding: 0 !important; display: flex; flex-direction: column; }
-  .title-row { display:grid; grid-template-columns: 72% 28%; border-bottom:1px solid #111; height:13mm; }
+  .title-row { display:grid; grid-template-columns: 72% 28%; border-bottom:.25mm solid #000; height:9.5mm; }
   .dacte-title { text-align: center; display: flex; flex-direction: column; justify-content: center; border-right:1px solid #111; padding:3px; }
-  .dacte-title b { font-size: 13px; line-height:15px; margin-bottom:2px; }
-  .dacte-title span { font-size: 6px; line-height: 1.15; }
-  .modal { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:8px; }
-  .doc-meta { display:grid; grid-template-columns:.6fr .5fr .8fr .6fr 1.35fr; height:9mm; border-bottom:1px solid #111; }
-  .doc-meta > div { padding:.7mm; border-right:1px solid #111; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.15mm; text-align:center; }
+  .dacte-title b { font-size: 10px; line-height:10px; margin-bottom:.2mm; }
+  .dacte-title span { font-size: 5px; line-height: 1; }
+  .modal { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:6px; }
+  .doc-meta { display:grid; grid-template-columns:.6fr .5fr .8fr .6fr 1.35fr; height:6.4mm; border-bottom:.25mm solid #000; }
+  .doc-meta > div { padding:.35mm; border-right:.2mm solid #000; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.1mm; text-align:center; }
   .doc-meta > div:last-child { border:0; }
-  .doc-meta b { display:block; line-height:10px; font-size:7.6px; }
-  .access { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:.4mm; gap:.2mm; }
-  .key { font: 600 7px/1.05 'Courier New', monospace; text-align:center; white-space:nowrap; }
-  .barcode { display:block; width:96%; height:6mm; margin:.2mm auto; object-fit:fill; }
-  .qr { display:flex; align-items:center; justify-content:center; padding:2mm !important; }
-  .qr img { width:25mm; height:25mm; object-fit:contain; }
+  .doc-meta b { display:block; line-height:6px; font-size:6px; }
+  .access { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:.3mm; gap:.15mm; }
+  .key { font: 600 5.5px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:0; text-align:center; white-space:nowrap; }
+  .barcode { display:block; width:96%; height:9.5mm; margin:.1mm auto; object-fit:fill; }
+  .qr { display:flex; align-items:center; justify-content:center; padding:1.4mm !important; }
+  .qr img { width:26mm; height:26mm; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { min-height:3mm; display:flex; align-items:center; justify-content:center; flex:none; text-align:center; border-top:0; border-bottom:1px solid #111; padding:.55mm 1mm .45mm; line-height:1; font-weight:400; font-size:5.9px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
+  .section-title { height:2.5mm; display:flex; align-items:center; justify-content:center; flex:none; text-align:center; border-top:0; border-bottom:.25mm solid #000; padding:0 .5mm; line-height:1; font-weight:400; font-size:5px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
   .section-title + .grid, .section-title + table, .section-title + .notes { border-top: 0; }
-  .grid { display: grid; border-bottom: 1px solid #111; }
+  .grid { display: grid; border-bottom: .25mm solid #000; }
   .grid:last-child { border-bottom: 0; }
   .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .c3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .c4 { grid-template-columns: repeat(4,minmax(0,1fr)); } .c5 { grid-template-columns: repeat(5,minmax(0,1fr)); }
-  .cell { min-height:5.4mm; padding:.7mm 1mm .55mm; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
+  .cell { min-height:6.6mm; padding:.55mm .65mm .4mm; border-right:.2mm solid #000; border-bottom:.2mm solid #000; overflow-wrap:anywhere; min-width:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:.3mm; text-align:left; }
   .cell:last-child { border-right: 0; }
   .grid > .cell { border-bottom: 0; }
   .grid.c2 > .cell:nth-child(2n), .grid.c3 > .cell:nth-child(3n), .grid.c4 > .cell:nth-child(4n), .grid.c5 > .cell:nth-child(5n) { border-right: 0; }
   .span2 { grid-column: span 2; } .span3 { grid-column: span 3; }
-  .label { display:block; color:#222; font-size:5.6px; line-height:1; text-transform:uppercase; margin:0; text-align:left; }
-  .value { display:block; font-size:7.1px; font-weight:600; line-height:1.05; min-height:1.8mm; text-align:left; width:100%; }
+  .label { display:block; color:#000; font-size:4.7px; line-height:1; text-transform:uppercase; margin:0; text-align:left; font-weight:400; }
+  .value { display:block; font-size:6px; font-weight:400; line-height:1; min-height:1.6mm; text-align:left; width:100%; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { border-right:1px solid #777; border-bottom:1px solid #777; padding:.8mm 1mm; text-align:center; vertical-align:middle; line-height:1.05; overflow-wrap:anywhere; }
   th:last-child, td:last-child { border-right: 0; } tr:last-child td { border-bottom: 0; }
@@ -185,18 +185,31 @@ const STYLE = `<style>
   td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
   .service-component .value.right, td.right { text-align:right; }
-  .notes { min-height:17mm; padding:1.3mm 1.5mm 1mm; border-bottom:1px solid #111; line-height:1.12; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .notes { height:25.6mm; padding:1mm .8mm; border-bottom:.25mm solid #000; font-size:4.9px; line-height:1.08; white-space:pre-wrap; overflow-wrap:anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
-  .actor { padding:.75mm 1.2mm .6mm; min-height:16mm; border-right:1px solid #111; overflow:hidden; }
+  .actor { padding:.65mm .8mm .4mm; height:21.6mm; border-right:.25mm solid #000; overflow:hidden; }
   .actor:nth-child(even) { border-right:0; }
   .actor:nth-child(-n+2) { border-bottom:1px solid #111; }
-  .actor-title { min-height:2.2mm; font-weight:700; font-size:6.6px; line-height:1.05; text-transform:uppercase; margin-bottom:.15mm; text-align:left; border:0; padding:0; }
-  .actor-line { display:grid; grid-template-columns:15mm minmax(0,1fr); align-items:center; min-height:2.65mm; line-height:1; }
-  .actor-line b { font-size:6px; line-height:10px; font-weight:400; color:#333; }
-  .actor-line span { min-width:0; line-height:10px; overflow-wrap:anywhere; font-size:6.8px; font-weight:600; }
+  .actor-title { height:3mm; font-weight:400; font-size:5px; line-height:1; text-transform:uppercase; margin:0; text-align:left; border:0; padding:0; }
+  .actor-title .actor-name { font-size:6px; margin-left:2mm; }
+  .actor-line { display:grid; grid-template-columns:14mm minmax(0,1fr); align-items:start; min-height:3.25mm; line-height:1; }
+  .actor-line b { font-size:4.7px; line-height:1; font-weight:400; color:#000; }
+  .actor-line span { min-width:0; line-height:1; overflow-wrap:anywhere; font-size:5.4px; font-weight:400; }
   .actor-pair { display:grid; grid-template-columns:1fr 1fr; }
   .actor-pair > div { padding-right:3px; }
   .actor-pair > div + div { padding-left:3px; padding-right:0; }
+  .identification { height:7.8mm; display:grid; grid-template-columns:38% 14% 48%; border-bottom:.25mm solid #000; }
+  .globalized { height:7.8mm; display:grid; grid-template-columns:20% 33.4% 46.6%; border-bottom:.25mm solid #000; }
+  .ident-field { padding:.6mm .65mm; border-right:.2mm solid #000; min-width:0; }
+  .ident-field:last-child { border-right:0; }
+  .inline-value { margin-left:2mm; font-size:5.8px; }
+  .taker { height:12.4mm; border-bottom:.25mm solid #000; padding:.6mm .8mm; display:grid; grid-template-rows:repeat(3,1fr); }
+  .taker-line { display:grid; align-items:center; column-gap:1mm; padding-top:.35mm; }
+  .taker-line.one { grid-template-columns:2.15fr .85fr .2fr .45fr; }
+  .taker-line.two { grid-template-columns:2.15fr .85fr; }
+  .taker-line.three { grid-template-columns:1fr 1fr .7fr; }
+  .inline-field { min-width:0; white-space:nowrap; overflow:hidden; }
+  .inline-field .value { display:inline; margin-left:1.8mm; font-size:5.5px; }
   .compact-row { display:grid; min-height:4.6mm; border-bottom:1px solid #111; }
   .compact-row:last-child { border-bottom:0; }
   .compact-field { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.15mm; padding:.65mm 1mm .5mm; min-width:0; text-align:left; border-right:1px solid #777; }
@@ -207,45 +220,55 @@ const STYLE = `<style>
   .taker-main { grid-template-columns:2.05fr .95fr .28fr .6fr; }
   .taker-address { grid-template-columns:2.05fr .95fr; }
   .taker-docs { grid-template-columns:1.15fr 1.15fr .7fr; }
-  .cargo-main { display:grid; grid-template-columns:1.05fr 1.02fr .7fr; border-bottom:1px solid #111; }
-  .cargo-main > .cell { min-height:5.7mm; border-bottom:0; }
-  .cargo-qty { display:grid; grid-template-columns:40mm minmax(0,1fr); border-bottom:1px solid #111; }
-  .cargo-qty > .cell { min-height:5.7mm; border-bottom:0; }
-  .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; align-items:stretch; }
+  .cargo-main { height:6.9mm; display:grid; grid-template-columns:38% 37% 25%; border-bottom:.25mm solid #000; }
+  .cargo-main > .cell { min-height:0; border-bottom:0; }
+  .cargo-qty { height:6.4mm; display:grid; grid-template-columns:23.5mm 26.5mm minmax(0,1fr); border-bottom:.25mm solid #000; }
+  .cargo-qty > .cell { min-height:0; border-bottom:0; }
+  .service-values { height:12.7mm; display:grid; grid-template-columns:3fr .9fr; border-bottom:.25mm solid #000; align-items:stretch; }
   .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
   .service-components.items-1 { grid-template-columns:1fr; }
   .service-components.items-2 { grid-template-columns:repeat(2, 1fr); }
   .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; align-items:stretch; }
   .service-component:last-child { border-right:0; }
-  .service-component > div { padding:.75mm 1mm .6mm; min-height:7mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
+  .service-component > div { padding:.7mm .65mm; min-height:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:.6mm; text-align:left; }
   .service-component > div:first-child { border-right:1px solid #777; }
   .service-totals { border-left:1px solid #111; }
-  .service-total { min-height:3.5mm; padding:.55mm 1mm .45mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.15mm; text-align:left; }
+  .service-total { height:6.35mm; padding:.6mm .65mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:.3mm; text-align:left; }
   .service-total + .service-total { border-top:1px solid #111; }
-  .service-total .value { text-align:center; font-size:8.4px; }
-  .tax-row { display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .55fr; border-bottom:1px solid #111; align-items:stretch; }
-  .tax-row > .cell { border-bottom:0; min-height:5.6mm; }
-  .origin-docs { border-bottom:1px solid #111; }
+  .service-total .value { text-align:right; font-size:6.4px; }
+  .tax-row { height:7.8mm; display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .8fr; border-bottom:.25mm solid #000; align-items:stretch; }
+  .tax-row > .cell { border-bottom:0; min-height:0; }
+  .origin-docs { height:35.5mm; border-bottom:.25mm solid #000; display:grid; grid-template-columns:1fr 1fr; }
   .origin-doc-panel { overflow:hidden; }
-  .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:10mm 30mm minmax(0,1fr) 33mm 20mm; align-items:center; }
-  .origin-doc-head { border-bottom:1px solid #bbb; }
+  .origin-doc-panel:first-child { border-right:.25mm solid #000; }
+  .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:10mm 1fr 28mm 17mm; align-items:center; }
+  .origin-doc-head { height:3.2mm; }
   .origin-doc-row .right { text-align:center; }
-  .origin-doc-head > div, .origin-doc-row > div { padding:.65mm 1mm .5mm; line-height:1.02; text-align:center; border-right:1px solid #bbb; }
+  .origin-doc-head > div, .origin-doc-row > div { padding:.4mm .6mm; line-height:1; text-align:left; border:0; }
   .origin-doc-head > div:last-child, .origin-doc-row > div:last-child { border-right:0; }
   .origin-doc-row + .origin-doc-row { border-top:1px solid #bbb; }
-  .origin-doc-head > div { font-size:6.2px; text-transform:uppercase; text-align:center; }
-  .origin-doc-row > div { min-width:0; font-size:6.8px; text-align:center; }
-  .origin-doc-row .key { font-size:6.7px; letter-spacing:0; white-space:nowrap; }
-  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; min-height:8mm; border-top:0; }
+  .origin-doc-head > div { font-size:4.6px; text-transform:uppercase; text-align:left; white-space:nowrap; }
+  .origin-doc-row > div { min-width:0; font-size:4.6px; text-align:left; }
+  .origin-doc-row .key { font-size:4.5px; letter-spacing:0; white-space:nowrap; }
+  .exclusive { display:grid; grid-template-columns:1.3fr .7fr; height:7.1mm; border-top:0; }
   .exclusive > div { border-right:1px solid #111; padding:1mm 1.2mm .8mm; text-align:left; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; }
   .exclusive > div:last-child { border:0; }
-  .receipt { margin-top: 17mm; border: 1px solid #111; break-inside: avoid; position:relative; }
+  .modal-specific { height:3.6mm; }
+  .rntrc-row { height:3.6mm; }
+  .receipt { margin-top: 16mm; height:26mm; border: .25mm solid #000; break-inside: avoid; position:relative; }
   .receipt:before { content:""; position:absolute; left:-1px; right:-1px; top:-7px; border-top:1px dashed #555; }
-  .receipt-head { display: grid; grid-template-columns: 1fr 125px; }
-  .receipt-head > div { padding: 1mm; border-right: 1px solid #111; line-height:1.1; text-align:left; display:flex; flex-direction:column; justify-content:center; }
+  .receipt-head { height:8mm; display: grid; grid-template-columns: 1fr 29mm; }
+  .receipt-head > div { padding: .7mm; border-right: .25mm solid #000; line-height:1.05; text-align:left; display:flex; flex-direction:column; justify-content:center; }
   .receipt-head > div:last-child { border-right: 0; }
-  .receipt-sign { display: grid; grid-template-columns: 1.4fr .5fr .5fr; border-top: 1px solid #111; min-height: 37px; }
-  .receipt-sign > div { padding: 4px; border-right: 1px solid #111; }
+  .receipt-sign { height:18mm; display: grid; grid-template-columns: 33% 51% 16%; border-top: .25mm solid #000; }
+  .receipt-sign > div { padding: .7mm; border-right: .25mm solid #000; }
+  .receipt-person { display:grid; grid-template-rows:1fr 1fr; padding:0 !important; }
+  .receipt-person > div { padding:.7mm; }
+  .receipt-person > div + div { border-top:.2mm solid #000; }
+  .receipt-middle { display:flex; align-items:flex-end; justify-content:center; }
+  .receipt-times { display:grid; grid-template-rows:1fr 1fr; padding:0 !important; text-align:center; }
+  .receipt-times > div { padding:.7mm; }
+  .receipt-times > div + div { border-top:.2mm solid #000; }
   .receipt-sign > div:last-child { border-right: 0; }
   .muted { color: #555; font-weight: 400; }
   .doc-page { page-break-after: always; break-after: page; }
@@ -260,7 +283,7 @@ function cell(label: string, value: unknown, className = "") {
 function actorSection(cte: CtePrintInput, prefix: ActorPrefix, title: string) {
   const name = cte[`${prefix}_nome`];
   return `<div class="actor">
-    <div class="actor-title">${esc(title)} &nbsp; ${esc(name || "")}</div>
+    <div class="actor-title">${esc(title)}<span class="actor-name">${esc(name || "")}</span></div>
     <div class="actor-line"><b>ENDEREÇO</b><span>${esc(cte[`${prefix}_endereco`] || "")}</span></div>
     <div class="actor-pair"><div class="actor-line"><b>MUNICÍPIO</b><span>${esc(cte[`${prefix}_municipio_nome`] || cte[`${prefix}_municipio_ibge`] || "")} ${esc(cte[`${prefix}_uf`] ? `- ${cte[`${prefix}_uf`]}` : "")}</span></div><div class="actor-line"><b>CEP</b><span>${esc(cte[`${prefix}_cep`] || "")}</span></div></div>
     <div class="actor-pair"><div class="actor-line"><b>CNPJ/CPF</b><span>${esc(doc(cte[`${prefix}_cnpj`]))}</span></div><div class="actor-line"><b>INSC. EST.</b><span>${esc(cte[`${prefix}_ie`] || "")}</span></div></div>
@@ -291,9 +314,9 @@ function documentsHtml(cte: CtePrintInput) {
     : [];
   const fiscalRows = [...nfeRows, ...transportRow];
   if (!fiscalRows.length && !otherRows) return "";
-  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tipo</div><div>CNPJ/CPF emitente</div><div>Chave de acesso</div><div>Série/Nro. documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div>${esc(row.issuer)}</div><div class="key">${esc(row.key)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
+  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>TP DOC.</div><div>CNPJ / CPF EMITENTE</div><div>SÉRIE/NRO.DOCUMENTO</div><div>VALOR NOTA</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div class="key">${esc(row.key)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
   return `<div class="section-title">Documentos originários</div>
-    <div class="origin-docs">${panelHtml(fiscalRows)}</div>
+    <div class="origin-docs">${panelHtml(fiscalRows)}${panelHtml([])}</div>
     ${otherRows ? `<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Número</th><th>Série</th><th>Emissão</th><th>Peso kg</th><th>Valor</th></tr></thead><tbody>${otherRows}</tbody></table>` : ""}`;
 }
 
@@ -322,8 +345,7 @@ function taxesHtml(cte: CtePrintInput) {
       ${cell("Alíquota ICMS", `${decimal(cte.aliquota_icms, 2)}%`)}
       ${cell("Valor ICMS", money(cte.valor_icms))}
       ${cell("% Red. BC Calc.", `${decimal(cte.percentual_reducao_bc, 2)}%`)}
-    </div>
-    ${cte.ibs_cbs_cst ? `<div class="grid c5">${cell("CST IBS/CBS", cte.ibs_cbs_cst)}${cell("Classificação tributária", cte.ibs_cbs_class_trib)}${cell("Base IBS/CBS", money(cte.ibs_cbs_base_calculo))}${cell("IBS", money(Number(cte.ibs_uf_valor || 0) + Number(cte.ibs_mun_valor || 0)))}${cell("CBS", money(cte.cbs_valor))}</div>` : ""}`;
+    </div>`;
 }
 
 export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
@@ -346,27 +368,27 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
       <div class="fiscal-head"><div class="title-row"><div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span></div><div class="modal"><span class="label">Modal</span><b>Rodoviário</b></div></div><div class="doc-meta"><div><span class="label">Modelo</span><b>${isService ? "—" : "57"}</b></div><div><span class="label">Série</span><b>${esc(cte.serie ?? "—")}</b></div><div><span class="label">Número</span><b>${esc(number)}</b></div><div><span class="label">Página</span><b>1/1</b></div><div><span class="label">Data e hora de emissão</span><b>${esc(dateTime(cte.data_emissao))}</b></div></div><div class="access">${barcodeUrl ? `<img class="barcode" src="${barcodeUrl}"/>` : ""}<span class="label">Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br</span><div class="key">${esc(formatChave(authorization.key))}</div></div></div>
       <div class="qr">${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code para consulta do CT-e"/>` : `<b>${esc(STATUS[cte.status || ""] || "INTERNO")}</b>`}</div>
     </div>
-    <div class="grid c2">${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}${cell("Tipo do serviço", TP_SERV[Number(cte.tp_serv)] || "Normal")}</div>
-    <div class="grid c3">${cell("Indicador do CT-e globalizado", cte.globalizado ? "SIM" : "NÃO")}${cell("Informações do CT-e globalizado", cte.informacoes_cte_globalizado)}${cell("Nº protocolo", authorization.protocol ? `${authorization.protocol} ${dateTime(cte.data_autorizacao)}` : "")}</div>
+    <div class="identification"><div class="ident-field"><span class="label">Tipo do CT-e <span class="inline-value">${esc(TP_CTE[Number(cte.tp_cte)] || "Normal")}</span></span></div><div class="ident-field"><span class="label">Tipo do serviço</span></div><div class="ident-field"><span class="inline-value">${esc(TP_SERV[Number(cte.tp_serv)] || "Normal")}</span></div></div>
+    <div class="globalized"><div class="ident-field"><span class="label">Indicador do CT-e globalizado</span><div class="value">SIM □ &nbsp;&nbsp; NÃO ${cte.globalizado ? "□" : "☒"}</div></div><div class="ident-field"><span class="label">Informações do CT-e globalizado</span><span class="value">${esc(cte.informacoes_cte_globalizado || "")}</span></div><div class="ident-field"><span class="label">Nº protocolo</span><span class="value">${esc(authorization.protocol ? `${authorization.protocol} ${dateTime(cte.data_autorizacao)}` : "")}</span></div></div>
     <div class="grid c2">
       ${cell("CFOP - Natureza da prestação", `${cte.cfop || ""} - ${cte.natureza_operacao || ""}`)}${cell("Insc. SUFRAMA do destinatário", cte.destinatario_suframa)}
     </div>
     <div class="grid c2">${cell("Origem da prestação", cteOrigemLabel(cte))}${cell("Destino da prestação", cteDestinoLabel(cte))}</div>
     ${actorPairs}
-    <div class="taker"><div class="compact-row taker-main"><div class="compact-field"><span class="label">Tomador do serviço</span><span class="value">${esc(cte.tomador_nome || "—")}</span></div><div class="compact-field"><span class="label">Município</span><span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "—")}</span></div><div class="compact-field"><span class="label">UF</span><span class="value">${esc(cte.tomador_uf || "—")}</span></div><div class="compact-field"><span class="label">CEP</span><span class="value">${esc(cte.tomador_cep || "—")}</span></div></div><div class="compact-row taker-address"><div class="compact-field"><span class="label">Endereço</span><span class="value">${esc(cte.tomador_endereco || "—")}</span></div><div class="compact-field"><span class="label">País</span><span class="value">BRASIL</span></div></div><div class="compact-row taker-docs"><div class="compact-field"><span class="label">CNPJ/CPF</span><span class="value">${esc(doc(cte.tomador_cnpj))}</span></div><div class="compact-field"><span class="label">Inscrição estadual</span><span class="value">${esc(cte.tomador_ie || "—")}</span></div><div class="compact-field"><span class="label">Fone</span><span class="value">${esc(cte.tomador_telefone || "—")}</span></div></div></div>
+    <div class="taker"><div class="taker-line one"><div class="inline-field"><span class="label">Tomador do serviço<span class="value">${esc(cte.tomador_nome || "")}</span></span></div><div class="inline-field"><span class="label">Município<span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "")}</span></span></div><div class="inline-field"><span class="label">UF<span class="value">${esc(cte.tomador_uf || "")}</span></span></div><div class="inline-field"><span class="label">CEP<span class="value">${esc(cte.tomador_cep || "")}</span></span></div></div><div class="taker-line two"><div class="inline-field"><span class="label">Endereço<span class="value">${esc(cte.tomador_endereco || "")}</span></span></div><div class="inline-field"><span class="label">País<span class="value">BRASIL</span></span></div></div><div class="taker-line three"><div class="inline-field"><span class="label">CNPJ/CPF<span class="value">${esc(doc(cte.tomador_cnpj))}</span></span></div><div class="inline-field"><span class="label">Inscrição estadual<span class="value">${esc(cte.tomador_ie || "")}</span></span></div><div class="inline-field"><span class="label">Fone<span class="value">${esc(cte.tomador_telefone || "")}</span></span></div></div></div>
     <div class="cargo-main">${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}</div>
-    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}</div>
+    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}${cell("", "")}</div>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
     ${documentsHtml(cte)}
     <div class="section-title">Observações</div><div class="notes">${esc(cte.observacoes || "")}${cte.previsao_saida ? `\nDATA E HORA PREVISTAS PARA O INÍCIO DA VIAGEM ${esc(dateTime(cte.previsao_saida))}` : ""}</div>
-    <div class="section-title">Informações específicas do modal rodoviário</div>
-    <div class="grid c3">${cell("RNTRC da empresa", digits(cte.rntrc || emit?.rntrc).replace(/^0/, ""))}${cell("CIOT", cte.ciot)}${cell("Conjunto", [cte.placa_veiculo, cte.reboque1_placa, cte.reboque2_placa].filter(Boolean).join(" / "))}</div>
+    <div class="section-title modal-specific">Informações específicas do modal rodoviário</div>
+    <div class="grid c3 rntrc-row">${cell("RNTRC da empresa", digits(cte.rntrc || emit?.rntrc).replace(/^0/, ""))}${cell("CIOT", cte.ciot)}${cell("Conjunto", [cte.placa_veiculo, cte.reboque1_placa, cte.reboque2_placa].filter(Boolean).join(" / "))}</div>
     <div class="exclusive"><div>USO EXCLUSIVO DO EMISSOR DO CT-e<br><br>${esc(cte.informacoes_fisco || (cte.valor_total_tributos ? `Total aprox. tributos: ${money(cte.valor_total_tributos)}.` : ""))}</div><div>RESERVADO AO FISCO</div></div>
   </div>
   <div class="receipt">
     <div class="receipt-head"><div><b>DECLARO QUE RECEBI OS VOLUMES DO CONHECIMENTO DE TRANSPORTE ${esc(number)} EM PERFEITO ESTADO PELO QUE DOU POR CUMPRIDO O PRESENTE CONTRATO DE TRANSPORTE</b><br>CNPJ: ${esc(emit?.cnpj || "—")} &nbsp; EMPRESA: ${esc(emit?.razao_social || "SIME TRANSPORTE LTDA")}</div><div><b>CT-e Nº ${esc(number)}</b></div></div>
-    <div class="receipt-sign"><div>NOME COMPLETO<br><br>CPF/RG/DOC<br><br>ASSINATURA / CARIMBO</div><div>CHEGADA DATA / HORA</div><div>SAÍDA DATA / HORA</div></div>
+    <div class="receipt-sign"><div class="receipt-person"><div>NOME COMPLETO</div><div>CPF/RG/DOC</div></div><div class="receipt-middle">ASSINATURA / CARIMBO</div><div class="receipt-times"><div>CHEGADA DATA / HORA</div><div>SAÍDA DATA / HORA</div></div></div>
   </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>DACTE ${esc(number)}</title>${STYLE}</head><body>${body}</body></html>`;
