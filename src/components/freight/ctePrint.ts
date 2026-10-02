@@ -27,8 +27,7 @@ const doc = (value?: string | null) => {
 
 const formatChave = (value?: string | null) => {
   const clean = digits(value);
-  const groups = clean.length === 44 ? clean.match(/.{1,4}/g) : null;
-  return groups ? groups.join(" ") : value || "—";
+  return clean || value || "—";
 };
 
 const dateTime = (value?: string | null) => {
@@ -140,7 +139,7 @@ const STATUS: Record<string, string> = { rascunho: "RASCUNHO", autorizado: "AUTO
 const STYLE = `<style>
   @page { size: A4 portrait; margin: 8mm; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 6.4px; line-height: 1.12; text-transform: uppercase; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 6.5px; line-height: 1.06; text-transform: uppercase; }
   .dacte { width: 100%; border: 1px solid #111; }
   .header { display: grid; grid-template-columns: 38% 47% 15%; height: 36mm; border-bottom: 1px solid #111; }
   .header > div { padding: 1.2mm; border-right: 1px solid #111; min-width: 0; overflow: hidden; }
@@ -148,7 +147,7 @@ const STYLE = `<style>
   .issuer { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items:center; }
   .issuer-logo { display:block; width:auto; height:12mm; object-fit:contain; margin:0 auto .5mm; }
   .issuer strong { font-size: 9px; text-transform: uppercase; margin-top: .5mm; }
-  .issuer span { margin-top: .4mm; line-height: 1.12; }
+  .issuer span { margin-top: .3mm; line-height: 1.08; }
   .fiscal-head { padding: 0 !important; display: flex; flex-direction: column; }
   .title-row { display:grid; grid-template-columns: 72% 28%; border-bottom:1px solid #111; height:13mm; }
   .dacte-title { text-align: center; display: flex; flex-direction: column; justify-content: center; border-right:1px solid #111; padding:3px; }
@@ -156,51 +155,51 @@ const STYLE = `<style>
   .dacte-title span { font-size: 6px; line-height: 1.15; }
   .modal { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:8px; }
   .doc-meta { display:grid; grid-template-columns:.6fr .5fr .8fr .6fr 1.35fr; height:9mm; border-bottom:1px solid #111; }
-  .doc-meta > div { padding:.5mm; border-right:1px solid #111; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.3mm; text-align:center; }
+  .doc-meta > div { padding:.7mm; border-right:1px solid #111; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.15mm; text-align:center; }
   .doc-meta > div:last-child { border:0; }
   .doc-meta b { display:block; line-height:10px; font-size:7.6px; }
   .access { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:.4mm; gap:.2mm; }
-  .key { font: 600 7px/1.25 'Courier New', monospace; padding-bottom:3px; text-align: center; word-break: break-word; }
+  .key { font: 600 7px/1.05 'Courier New', monospace; text-align:center; white-space:nowrap; }
   .barcode { display:block; width:96%; height:6mm; margin:.2mm auto; object-fit:fill; }
   .qr { display:flex; align-items:center; justify-content:center; padding:2mm !important; }
   .qr img { width:25mm; height:25mm; object-fit:contain; }
   .status { padding: 3px; border: 1px solid #111; text-align: center; font-weight: 700; font-size: 8px; }
   .watermark { font-size: 8px; font-weight: 700; text-align: center; padding: 3px; border-bottom: 1px solid #111; background: #eee; }
-  .section-title { height:4mm; display:flex; align-items:center; justify-content:center; flex:none; text-align:center; border-top:0; border-bottom:1px solid #111; padding:.5mm; line-height:1; font-weight:400; font-size:5.8px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
+  .section-title { height:3.6mm; display:flex; align-items:center; justify-content:center; flex:none; text-align:center; border-top:0; border-bottom:1px solid #111; padding:.7mm; line-height:1; font-weight:400; font-size:5.9px; text-transform:uppercase; background:#fff; position:relative; z-index:1; }
   .section-title + .grid, .section-title + table, .section-title + .notes { border-top: 0; }
   .grid { display: grid; border-bottom: 1px solid #111; }
   .grid:last-child { border-bottom: 0; }
   .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .c3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .c4 { grid-template-columns: repeat(4,minmax(0,1fr)); } .c5 { grid-template-columns: repeat(5,minmax(0,1fr)); }
-  .cell { min-height:8mm; padding:1mm; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.5mm; text-align:left; }
+  .cell { min-height:7mm; padding:.8mm 1mm; border-right:1px solid #777; border-bottom:1px solid #777; overflow-wrap:anywhere; min-width:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.25mm; text-align:left; }
   .cell:last-child { border-right: 0; }
   .grid > .cell { border-bottom: 0; }
   .grid.c2 > .cell:nth-child(2n), .grid.c3 > .cell:nth-child(3n), .grid.c4 > .cell:nth-child(4n), .grid.c5 > .cell:nth-child(5n) { border-right: 0; }
   .span2 { grid-column: span 2; } .span3 { grid-column: span 3; }
   .label { display:block; color:#222; font-size:5.6px; line-height:1; text-transform:uppercase; margin:0; text-align:left; }
-  .value { display:block; font-size:7px; font-weight:600; line-height:1.1; min-height:2mm; text-align:left; width:100%; }
+  .value { display:block; font-size:7.1px; font-weight:600; line-height:1.05; min-height:1.8mm; text-align:left; width:100%; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  th, td { border-right:1px solid #777; border-bottom:1px solid #777; padding:3px; text-align:center; vertical-align:middle; line-height:1.15; overflow-wrap:anywhere; }
+  th, td { border-right:1px solid #777; border-bottom:1px solid #777; padding:.8mm 1mm; text-align:center; vertical-align:middle; line-height:1.05; overflow-wrap:anywhere; }
   th:last-child, td:last-child { border-right: 0; } tr:last-child td { border-bottom: 0; }
   th { font-size: 6.2px; font-weight:400; text-transform: uppercase; text-align:center; }
   td { font-size: 7px; text-align:center; }
   .right { text-align: right; } .center { text-align: center; }
   .service-component .value.right, td.right { text-align:right; }
-  .notes { height: 31mm; padding: 1.5mm; border-bottom:1px solid #111; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .notes { height:27mm; padding:1.2mm 1.5mm; border-bottom:1px solid #111; line-height:1.08; white-space:pre-wrap; overflow-wrap:anywhere; }
   .actors { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
-  .actor { padding:1mm; height:23mm; border-right:1px solid #111; overflow:hidden; }
+  .actor { padding:.9mm 1.2mm; height:21mm; border-right:1px solid #111; overflow:hidden; }
   .actor:nth-child(even) { border-right:0; }
   .actor:nth-child(-n+2) { border-bottom:1px solid #111; }
-  .actor-title { min-height:3mm; font-weight:700; font-size:6.5px; line-height:1.1; text-transform:uppercase; margin-bottom:.5mm; text-align:left; border:0; padding:0; }
-  .actor-line { display:grid; grid-template-columns:15mm minmax(0,1fr); align-items:center; min-height:3.4mm; line-height:1.05; }
+  .actor-title { min-height:2.6mm; font-weight:700; font-size:6.6px; line-height:1.05; text-transform:uppercase; margin-bottom:.25mm; text-align:left; border:0; padding:0; }
+  .actor-line { display:grid; grid-template-columns:15mm minmax(0,1fr); align-items:center; min-height:3mm; line-height:1; }
   .actor-line b { font-size:6px; line-height:10px; font-weight:400; color:#333; }
   .actor-line span { min-width:0; line-height:10px; overflow-wrap:anywhere; font-size:6.8px; font-weight:600; }
   .actor-pair { display:grid; grid-template-columns:1fr 1fr; }
   .actor-pair > div { padding-right:3px; }
   .actor-pair > div + div { padding-left:3px; padding-right:0; }
-  .compact-row { display:grid; min-height:6mm; border-bottom:1px solid #111; }
+  .compact-row { display:grid; min-height:5.5mm; border-bottom:1px solid #111; }
   .compact-row:last-child { border-bottom:0; }
-  .compact-field { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.4mm; padding:1mm; min-width:0; text-align:left; border-right:1px solid #777; }
+  .compact-field { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; padding:.8mm 1mm; min-width:0; text-align:left; border-right:1px solid #777; }
   .compact-field:last-child { border-right:0; }
   .compact-field .label { margin:0; }
   .compact-field .value { min-width:0; }
@@ -209,30 +208,32 @@ const STYLE = `<style>
   .taker-address { grid-template-columns:2.05fr .95fr; }
   .taker-docs { grid-template-columns:1.15fr 1.15fr .7fr; }
   .cargo-main { display:grid; grid-template-columns:1.05fr 1.02fr .7fr; border-bottom:1px solid #111; }
-  .cargo-main > .cell { min-height:9mm; border-bottom:0; }
+  .cargo-main > .cell { min-height:7.5mm; border-bottom:0; }
   .cargo-qty { display:grid; grid-template-columns:40px 1.15fr 1fr 1fr 1fr; border-bottom:1px solid #111; }
-  .cargo-qty > .cell { min-height:8mm; border-bottom:0; }
+  .cargo-qty > .cell { min-height:7mm; border-bottom:0; }
   .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; align-items:stretch; }
   .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
   .service-component { display:grid; grid-template-columns:1fr .55fr; border-right:1px solid #111; align-items:stretch; }
   .service-component:last-child { border-right:0; }
-  .service-component > div { padding:1mm; min-height:13mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:.5mm; text-align:left; }
+  .service-component > div { padding:.9mm 1mm; min-height:11mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:.25mm; text-align:left; }
   .service-component > div:first-child { border-right:1px solid #777; }
   .service-totals { border-left:1px solid #111; }
-  .service-total { min-height:6.5mm; padding:1mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.4mm; text-align:left; }
+  .service-total { min-height:5.5mm; padding:.8mm 1mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.2mm; text-align:left; }
   .service-total + .service-total { border-top:1px solid #111; }
   .service-total .value { text-align:center; font-size:8.4px; }
   .tax-row { display:grid; grid-template-columns:2.7fr .65fr .42fr .68fr .55fr; border-bottom:1px solid #111; align-items:stretch; }
-  .tax-row > .cell { border-bottom:0; min-height:9mm; }
-  .origin-docs { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #111; }
-  .origin-doc-panel { height:42mm; overflow:hidden; }
-  .origin-doc-panel:first-child { border-right:1px solid #111; }
-  .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:.34fr 1.85fr 1.05fr .72fr; align-items:center; }
+  .tax-row > .cell { border-bottom:0; min-height:7.5mm; }
+  .origin-docs { border-bottom:1px solid #111; }
+  .origin-doc-panel { min-height:14mm; overflow:hidden; }
+  .origin-doc-head, .origin-doc-row { display:grid; grid-template-columns:10mm 30mm minmax(0,1fr) 33mm 20mm; align-items:center; }
   .origin-doc-head { border-bottom:1px solid #bbb; }
   .origin-doc-row .right { text-align:center; }
-  .origin-doc-head > div, .origin-doc-row > div { padding:1mm; line-height:1.1; overflow-wrap:anywhere; text-align:left; }
+  .origin-doc-head > div, .origin-doc-row > div { padding:.8mm 1mm; line-height:1.02; text-align:center; border-right:1px solid #bbb; }
+  .origin-doc-head > div:last-child, .origin-doc-row > div:last-child { border-right:0; }
+  .origin-doc-row + .origin-doc-row { border-top:1px solid #bbb; }
   .origin-doc-head > div { font-size:6.2px; text-transform:uppercase; text-align:center; }
-  .origin-doc-row > div { font-size:6.8px; text-align:center; }
+  .origin-doc-row > div { min-width:0; font-size:6.8px; text-align:center; }
+  .origin-doc-row .key { font-size:6.7px; letter-spacing:0; white-space:nowrap; }
   .exclusive { display:grid; grid-template-columns:1.3fr .7fr; height:13mm; border-top:0; }
   .exclusive > div { border-right:1px solid #111; padding:1mm; text-align:left; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; }
   .exclusive > div:last-child { border:0; }
@@ -274,7 +275,7 @@ function documentsHtml(cte: CtePrintInput) {
     const item = byKey.get(digits(key)) || details.find((detail) => detail.numero && digits(key).slice(25, 34) === String(detail.numero).padStart(9, "0")) || {};
     const cleanKey = digits(key);
     const issuer = cleanKey.length === 44 ? doc(cleanKey.slice(6, 20)) : "—";
-    return { type: "NFe", issuer: `${issuer}<br>${formatChave(key)}`, number: [item.serie, item.numero ? `NF: ${String(item.numero).padStart(9, "0")}` : ""].filter(Boolean).join(" / ") || "—", value: item.valor || item.valor_produtos ? money(item.valor || item.valor_produtos) : "" };
+    return { type: "NFe", issuer, key: formatChave(key), number: [item.serie, item.numero ? `NF: ${String(item.numero).padStart(9, "0")}` : ""].filter(Boolean).join(" / ") || "—", value: item.valor || item.valor_produtos ? money(item.valor || item.valor_produtos) : "" };
   });
   const otherRows = others.map((item) => `<tr>
     <td>${esc(item.tipo || "Outros")}</td><td>${esc(item.descricao || item.natureza || "—")}</td>
@@ -284,14 +285,13 @@ function documentsHtml(cte: CtePrintInput) {
   </tr>`).join("");
   const transportKey = digits(cte.chave_cte_subcontratacao);
   const transportRow = cte.chave_cte_subcontratacao
-    ? [{ type: "CT-e", issuer: `${transportKey.length === 44 ? doc(transportKey.slice(6, 20)) : "—"}<br>${formatChave(cte.chave_cte_subcontratacao)}`, number: cte.cte_anterior_numero || "", value: "" }]
+    ? [{ type: "CT-e", issuer: transportKey.length === 44 ? doc(transportKey.slice(6, 20)) : "—", key: formatChave(cte.chave_cte_subcontratacao), number: cte.cte_anterior_numero || "", value: "" }]
     : [];
   const fiscalRows = [...nfeRows, ...transportRow];
   if (!fiscalRows.length && !otherRows) return "";
-  const panels = [fiscalRows.filter((_, index) => index % 2 === 0), fiscalRows.filter((_, index) => index % 2 === 1)];
-  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tp doc.</div><div>CNPJ / CPF emitente</div><div>Série/Nro.documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div class="key">${row.issuer.split("<br>").map(esc).join("<br>")}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
+  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tipo</div><div>CNPJ/CPF emitente</div><div>Chave de acesso</div><div>Série/Nro. documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div>${esc(row.issuer)}</div><div class="key">${esc(row.key)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
   return `<div class="section-title">Documentos originários</div>
-    <div class="origin-docs">${panelHtml(panels[0])}${panelHtml(panels[1])}</div>
+    <div class="origin-docs">${panelHtml(fiscalRows)}</div>
     ${otherRows ? `<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Número</th><th>Série</th><th>Emissão</th><th>Peso kg</th><th>Valor</th></tr></thead><tbody>${otherRows}</tbody></table>` : ""}`;
 }
 
