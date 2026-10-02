@@ -283,7 +283,7 @@ function cell(label: string, value: unknown, className = "") {
 function actorSection(cte: CtePrintInput, prefix: ActorPrefix, title: string) {
   const name = cte[`${prefix}_nome`];
   return `<div class="actor">
-    <div class="actor-title">${esc(title)} &nbsp; ${esc(name || "")}</div>
+    <div class="actor-title">${esc(title)}<span class="actor-name">${esc(name || "")}</span></div>
     <div class="actor-line"><b>ENDEREÇO</b><span>${esc(cte[`${prefix}_endereco`] || "")}</span></div>
     <div class="actor-pair"><div class="actor-line"><b>MUNICÍPIO</b><span>${esc(cte[`${prefix}_municipio_nome`] || cte[`${prefix}_municipio_ibge`] || "")} ${esc(cte[`${prefix}_uf`] ? `- ${cte[`${prefix}_uf`]}` : "")}</span></div><div class="actor-line"><b>CEP</b><span>${esc(cte[`${prefix}_cep`] || "")}</span></div></div>
     <div class="actor-pair"><div class="actor-line"><b>CNPJ/CPF</b><span>${esc(doc(cte[`${prefix}_cnpj`]))}</span></div><div class="actor-line"><b>INSC. EST.</b><span>${esc(cte[`${prefix}_ie`] || "")}</span></div></div>
@@ -314,9 +314,9 @@ function documentsHtml(cte: CtePrintInput) {
     : [];
   const fiscalRows = [...nfeRows, ...transportRow];
   if (!fiscalRows.length && !otherRows) return "";
-  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tipo</div><div>CNPJ/CPF emitente</div><div>Chave de acesso</div><div>Série/Nro. documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div>${esc(row.issuer)}</div><div class="key">${esc(row.key)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
+  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>TP DOC.</div><div>CNPJ / CPF EMITENTE</div><div>SÉRIE/NRO.DOCUMENTO</div><div>VALOR NOTA</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div class="key">${esc(row.key)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
   return `<div class="section-title">Documentos originários</div>
-    <div class="origin-docs">${panelHtml(fiscalRows)}</div>
+    <div class="origin-docs">${panelHtml(fiscalRows)}${panelHtml([])}</div>
     ${otherRows ? `<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Número</th><th>Série</th><th>Emissão</th><th>Peso kg</th><th>Valor</th></tr></thead><tbody>${otherRows}</tbody></table>` : ""}`;
 }
 
@@ -369,27 +369,27 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
       <div class="fiscal-head"><div class="title-row"><div class="dacte-title"><b>DACTE</b><span>${esc(title)}</span></div><div class="modal"><span class="label">Modal</span><b>Rodoviário</b></div></div><div class="doc-meta"><div><span class="label">Modelo</span><b>${isService ? "—" : "57"}</b></div><div><span class="label">Série</span><b>${esc(cte.serie ?? "—")}</b></div><div><span class="label">Número</span><b>${esc(number)}</b></div><div><span class="label">Página</span><b>1/1</b></div><div><span class="label">Data e hora de emissão</span><b>${esc(dateTime(cte.data_emissao))}</b></div></div><div class="access">${barcodeUrl ? `<img class="barcode" src="${barcodeUrl}"/>` : ""}<span class="label">Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br</span><div class="key">${esc(formatChave(authorization.key))}</div></div></div>
       <div class="qr">${qrCodeUrl ? `<img src="${qrCodeUrl}" alt="QR Code para consulta do CT-e"/>` : `<b>${esc(STATUS[cte.status || ""] || "INTERNO")}</b>`}</div>
     </div>
-    <div class="grid c2">${cell("Tipo do CT-e", TP_CTE[Number(cte.tp_cte)] || "Normal")}${cell("Tipo do serviço", TP_SERV[Number(cte.tp_serv)] || "Normal")}</div>
-    <div class="grid c3">${cell("Indicador do CT-e globalizado", cte.globalizado ? "SIM" : "NÃO")}${cell("Informações do CT-e globalizado", cte.informacoes_cte_globalizado)}${cell("Nº protocolo", authorization.protocol ? `${authorization.protocol} ${dateTime(cte.data_autorizacao)}` : "")}</div>
+    <div class="identification"><div class="ident-field"><span class="label">Tipo do CT-e <span class="inline-value">${esc(TP_CTE[Number(cte.tp_cte)] || "Normal")}</span></span></div><div class="ident-field"><span class="label">Tipo do serviço</span></div><div class="ident-field"><span class="inline-value">${esc(TP_SERV[Number(cte.tp_serv)] || "Normal")}</span></div></div>
+    <div class="globalized"><div class="ident-field"><span class="label">Indicador do CT-e globalizado</span><div class="value">SIM □ &nbsp;&nbsp; NÃO ${cte.globalizado ? "□" : "☒"}</div></div><div class="ident-field"><span class="label">Informações do CT-e globalizado</span><span class="value">${esc(cte.informacoes_cte_globalizado || "")}</span></div><div class="ident-field"><span class="label">Nº protocolo</span><span class="value">${esc(authorization.protocol ? `${authorization.protocol} ${dateTime(cte.data_autorizacao)}` : "")}</span></div></div>
     <div class="grid c2">
       ${cell("CFOP - Natureza da prestação", `${cte.cfop || ""} - ${cte.natureza_operacao || ""}`)}${cell("Insc. SUFRAMA do destinatário", cte.destinatario_suframa)}
     </div>
     <div class="grid c2">${cell("Origem da prestação", cteOrigemLabel(cte))}${cell("Destino da prestação", cteDestinoLabel(cte))}</div>
     ${actorPairs}
-    <div class="taker"><div class="compact-row taker-main"><div class="compact-field"><span class="label">Tomador do serviço</span><span class="value">${esc(cte.tomador_nome || "—")}</span></div><div class="compact-field"><span class="label">Município</span><span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "—")}</span></div><div class="compact-field"><span class="label">UF</span><span class="value">${esc(cte.tomador_uf || "—")}</span></div><div class="compact-field"><span class="label">CEP</span><span class="value">${esc(cte.tomador_cep || "—")}</span></div></div><div class="compact-row taker-address"><div class="compact-field"><span class="label">Endereço</span><span class="value">${esc(cte.tomador_endereco || "—")}</span></div><div class="compact-field"><span class="label">País</span><span class="value">BRASIL</span></div></div><div class="compact-row taker-docs"><div class="compact-field"><span class="label">CNPJ/CPF</span><span class="value">${esc(doc(cte.tomador_cnpj))}</span></div><div class="compact-field"><span class="label">Inscrição estadual</span><span class="value">${esc(cte.tomador_ie || "—")}</span></div><div class="compact-field"><span class="label">Fone</span><span class="value">${esc(cte.tomador_telefone || "—")}</span></div></div></div>
+    <div class="taker"><div class="taker-line one"><div class="inline-field"><span class="label">Tomador do serviço<span class="value">${esc(cte.tomador_nome || "")}</span></span></div><div class="inline-field"><span class="label">Município<span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "")}</span></span></div><div class="inline-field"><span class="label">UF<span class="value">${esc(cte.tomador_uf || "")}</span></span></div><div class="inline-field"><span class="label">CEP<span class="value">${esc(cte.tomador_cep || "")}</span></span></div></div><div class="taker-line two"><div class="inline-field"><span class="label">Endereço<span class="value">${esc(cte.tomador_endereco || "")}</span></span></div><div class="inline-field"><span class="label">País<span class="value">BRASIL</span></span></div></div><div class="taker-line three"><div class="inline-field"><span class="label">CNPJ/CPF<span class="value">${esc(doc(cte.tomador_cnpj))}</span></span></div><div class="inline-field"><span class="label">Inscrição estadual<span class="value">${esc(cte.tomador_ie || "")}</span></span></div><div class="inline-field"><span class="label">Fone<span class="value">${esc(cte.tomador_telefone || "")}</span></span></div></div></div>
     <div class="cargo-main">${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}</div>
-    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}</div>
+    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}${cell("", "")}</div>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
     ${documentsHtml(cte)}
     <div class="section-title">Observações</div><div class="notes">${esc(cte.observacoes || "")}${cte.previsao_saida ? `\nDATA E HORA PREVISTAS PARA O INÍCIO DA VIAGEM ${esc(dateTime(cte.previsao_saida))}` : ""}</div>
-    <div class="section-title">Informações específicas do modal rodoviário</div>
-    <div class="grid c3">${cell("RNTRC da empresa", digits(cte.rntrc || emit?.rntrc).replace(/^0/, ""))}${cell("CIOT", cte.ciot)}${cell("Conjunto", [cte.placa_veiculo, cte.reboque1_placa, cte.reboque2_placa].filter(Boolean).join(" / "))}</div>
+    <div class="section-title modal-specific">Informações específicas do modal rodoviário</div>
+    <div class="grid c3 rntrc-row">${cell("RNTRC da empresa", digits(cte.rntrc || emit?.rntrc).replace(/^0/, ""))}${cell("CIOT", cte.ciot)}${cell("Conjunto", [cte.placa_veiculo, cte.reboque1_placa, cte.reboque2_placa].filter(Boolean).join(" / "))}</div>
     <div class="exclusive"><div>USO EXCLUSIVO DO EMISSOR DO CT-e<br><br>${esc(cte.informacoes_fisco || (cte.valor_total_tributos ? `Total aprox. tributos: ${money(cte.valor_total_tributos)}.` : ""))}</div><div>RESERVADO AO FISCO</div></div>
   </div>
   <div class="receipt">
     <div class="receipt-head"><div><b>DECLARO QUE RECEBI OS VOLUMES DO CONHECIMENTO DE TRANSPORTE ${esc(number)} EM PERFEITO ESTADO PELO QUE DOU POR CUMPRIDO O PRESENTE CONTRATO DE TRANSPORTE</b><br>CNPJ: ${esc(emit?.cnpj || "—")} &nbsp; EMPRESA: ${esc(emit?.razao_social || "SIME TRANSPORTE LTDA")}</div><div><b>CT-e Nº ${esc(number)}</b></div></div>
-    <div class="receipt-sign"><div>NOME COMPLETO<br><br>CPF/RG/DOC<br><br>ASSINATURA / CARIMBO</div><div>CHEGADA DATA / HORA</div><div>SAÍDA DATA / HORA</div></div>
+    <div class="receipt-sign"><div class="receipt-person"><div>NOME COMPLETO</div><div>CPF/RG/DOC</div></div><div class="receipt-middle">ASSINATURA / CARIMBO</div><div class="receipt-times"><div>CHEGADA DATA / HORA</div><div>SAÍDA DATA / HORA</div></div></div>
   </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>DACTE ${esc(number)}</title>${STYLE}</head><body>${body}</body></html>`;
