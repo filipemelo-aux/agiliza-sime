@@ -373,7 +373,7 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
 
   // ---------- Código de barras / chave / QR ----------
   drawBarcode(pdf, auth.key);
-  P.text("Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br", 361.5, 112, 5, { align: "center", maxW: 226 });
+  P.text("Chave de acesso para consulta de autenticidade no site www.cte.fazenda.gov.br", 361.5, 112, 5, { align: "center", maxW: 205 });
   P.text(auth.key, 361.5, 120, 7, { align: "center", maxW: 236 });
   if (auth.key.length === 44) {
     const tpAmb = auth.ambiente === "2" ? 2 : 1;
