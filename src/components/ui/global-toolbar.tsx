@@ -25,7 +25,7 @@ import { quickPrintVisibleTable } from "@/lib/pdfDownload";
  * inspirado em barras de ferramentas clássicas). Todos com a mesma medida.
  */
 export const TOOLBAR_BUTTON_CLASS =
-  "h-9 w-9 p-0 justify-center gap-0 md:h-9 md:w-9 border-0 bg-transparent shadow-none hover:bg-muted/70 hover:text-foreground rounded-md";
+  "h-9 w-9 p-0 justify-center gap-0 md:h-9 md:w-9 border-0 bg-transparent text-foreground shadow-none hover:bg-muted/70 hover:text-foreground rounded-md";
 /** Ícone padrão de todos os botões. `!` é necessário: o botão base força tamanho nos ícones ([&_svg]:size-4). */
 export const TOOLBAR_ICON_CLASS = "!h-6 !w-6 md:!h-[22px] md:!w-[22px]";
 
