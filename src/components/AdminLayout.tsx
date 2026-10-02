@@ -286,7 +286,11 @@ function SidebarNav() {
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}
       <div className="h-16 flex items-center justify-between gap-2 px-3 shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-        <img src={logo} alt="SIME Transportes" className="h-9 w-auto max-w-[150px] object-contain group-data-[collapsible=icon]:hidden" />
+        <div className="min-w-0 leading-none group-data-[collapsible=icon]:hidden">
+          <span className="block text-[16px] font-extrabold tracking-tight text-foreground">
+            SIME <span className="text-muted-foreground font-semibold">TRANSPORTES</span>
+          </span>
+        </div>
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
           <ArrowLeftRight />
         </SidebarTrigger>
