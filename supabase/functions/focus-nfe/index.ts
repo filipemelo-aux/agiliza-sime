@@ -207,9 +207,9 @@ Deno.serve(async (req) => {
     if (Number(cte.tp_cte) === 3 && chaveAnt.length === 44) ctePayload.chave_cte_original_sub = chaveAnt;
 
     const emissionRef = `cte-${cteId}`;
-    const emitResponse = await fetch(`${BASES.homologacao}/v2/cte?ref=${emissionRef}`, {
+    const emitResponse = await fetch(`${emitBase}/v2/cte?ref=${emissionRef}`, {
       method: "POST", body: JSON.stringify(ctePayload),
-      headers: { Authorization: "Basic " + btoa(token + ":"), "Content-Type": "application/json" },
+      headers: { Authorization: "Basic " + btoa(emitToken + ":"), "Content-Type": "application/json" },
     });
     let focusData: any;
     try { focusData = await emitResponse.json(); } catch { focusData = { mensagem: await emitResponse.text() }; }
@@ -221,8 +221,8 @@ Deno.serve(async (req) => {
 
     for (let attempt = 0; attempt < 12 && ["processando_autorizacao", "processando"].includes(focusData?.status); attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      const check = await fetch(`${BASES.homologacao}/v2/cte/${emissionRef}?completa=1`, {
-        headers: { Authorization: "Basic " + btoa(token + ":") },
+      const check = await fetch(`${emitBase}/v2/cte/${emissionRef}?completa=1`, {
+        headers: { Authorization: "Basic " + btoa(emitToken + ":") },
       });
       focusData = await check.json();
     }
@@ -246,10 +246,14 @@ Deno.serve(async (req) => {
   if (["cancelar_cte_salvo", "cce_cte_salvo", "consultar_cte_salvo", "xml_cte_salvo"].includes(action)) {
     const cteId = String(body.cte_id ?? "");
     if (!/^[0-9a-f-]{36}$/i.test(cteId)) return json({ error: "CT-e inválido" }, 400);
-    const { data: cte } = await supabase.from("ctes").select("id,status").eq("id", cteId).maybeSingle();
+    const { data: cte } = await supabase.from("ctes").select("id,status,establishment_id").eq("id", cteId).maybeSingle();
     if (!cte) return json({ error: "CT-e não encontrado" }, 404);
-    const hdr = { Authorization: "Basic " + btoa(token + ":"), "Content-Type": "application/json" };
-    const url = `${BASES.homologacao}/v2/cte/cte-${cteId}`;
+    const { data: estOp } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
+    const opAmb: keyof typeof BASES = String(estOp?.ambiente) === "producao" ? "producao" : "homologacao";
+    const opToken = Deno.env.get(opAmb === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO") || token;
+    const opBase = BASES[opAmb];
+    const hdr = { Authorization: "Basic " + btoa(opToken + ":"), "Content-Type": "application/json" };
+    const url = `${opBase}/v2/cte/cte-${cteId}`;
     const b = body as any;
     if (action === "cancelar_cte_salvo") {
       const just = String(b.justificativa ?? "").trim();
@@ -277,7 +281,7 @@ Deno.serve(async (req) => {
     if (action === "xml_cte_salvo") {
       const path = d?.caminho_xml || d?.caminho_xml_nota_fiscal;
       if (!path) return json({ error: "XML ainda não disponível na SEFAZ" }, 404);
-      const x = await fetch(path.startsWith("http") ? path : BASES.homologacao + path, { headers: hdr });
+      const x = await fetch(path.startsWith("http") ? path : opBase + path, { headers: hdr });
       return json({ success: true, xml: await x.text() });
     }
     return json({ success: true, status: d?.status, mensagem: d?.mensagem_sefaz || d?.mensagem, protocolo: d?.protocolo, chave: d?.chave_cte });
