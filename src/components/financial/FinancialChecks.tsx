@@ -14,7 +14,9 @@ import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
-import { Banknote, CalendarDays, CheckCircle2, Plus, RefreshCw, Search, WalletCards, XCircle } from "lucide-react";
+import { Banknote, CalendarDays, CheckCircle2, Plus, Printer, RefreshCw, Search, Trash2, WalletCards, XCircle } from "lucide-react";
+import { buildCheckPdf, printPdfBytes } from "@/lib/checkPdf";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface CheckRow {
   id: string;
@@ -34,6 +36,9 @@ interface CheckRow {
   conta_bancaria_id: string | null;
   plano_contas_id: string | null;
   data_pagamento: string | null;
+  layout_id?: string | null;
+  cidade?: string | null;
+  cruzado?: boolean | null;
 }
 
 const typeLabel: Record<string, string> = { conta_pagar: "Conta a pagar", contrato_frete: "Contrato de frete", movimentacao: "Movimentação", avulso: "Avulso" };
@@ -177,11 +182,69 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     await load();
   };
 
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [busy, setBusy] = useState(false);
+
+  const reprintSelected = async () => {
+    const row = selectedRows[0];
+    if (!row) return;
+    setBusy(true);
+    try {
+      let layout: any = null;
+      if (row.layout_id) {
+        const { data } = await supabase.from("check_layouts").select("*").eq("id", row.layout_id).maybeSingle();
+        layout = data;
+      }
+      if (!layout) {
+        const { data } = await supabase.from("check_layouts").select("*").eq("ativo", true).order("banco_nome").limit(1).maybeSingle();
+        layout = data;
+      }
+      if (!layout) return toast.error("Nenhum template de cheque ativo encontrado");
+      const isPre = !!row.predatado;
+      const bytes = await buildCheckPdf({
+        layout,
+        valor: Number(row.valor) || 0,
+        nominal: row.favorecido_nome || "",
+        historico: row.historico || "",
+        cidade: row.cidade || localStorage.getItem("cheque_cidade") || "Araguaína",
+        dataISO: row.data_emissao,
+        cruzado: row.cruzado ?? true,
+        imprimirCanhoto: localStorage.getItem("cheque_canhoto") !== "0",
+        predatado: isPre,
+        dataVencimentoISO: isPre ? row.data_vencimento : null,
+      } as any);
+      printPdfBytes(bytes);
+    } catch (e: any) {
+      toast.error("Não foi possível reimprimir o cheque", { description: e?.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (!selectedRows.length) return;
+    const pagos = selectedRows.filter((r) => r.status === "compensado");
+    if (pagos.length) return toast.error("Cheques já pagos/compensados não podem ser excluídos. Estorne o pagamento antes.");
+    const ok = await confirm({
+      title: "Excluir cheque(s)?",
+      description: `${selectedRows.length} cheque(s) serão excluídos definitivamente do sistema. As contas a pagar vinculadas não são apagadas.`,
+      variant: "destructive",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("cheques" as any).delete().in("id", selectedRows.map((r) => r.id));
+    if (error) return toast.error("Não foi possível excluir", { description: error.message });
+    toast.success(`${selectedRows.length} cheque(s) excluído(s)`);
+    await load();
+  };
+
   const actions: ToolbarAction[] = [
     ...(!reportMode ? [{ key: "pay", label: "Pagar cheque", icon: Banknote, mode: "single" as const, priority: true, className: "bg-success text-success-foreground hover:bg-success/90 border-transparent", onClick: () => { const alvo = selectedRows.filter((r) => r.status === "emitido"); if (!alvo.length) return toast.info("Selecione um cheque em aberto (emitido)"); if (alvo.length > 1) return toast.info("Pague um cheque por vez"); setPayOpen(true); } }] : []),
     ...(!reportMode ? [{ key: "new", label: "Novo cheque", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setDialogOpen(true) }] : []),
     { key: "refresh", label: "Atualizar", icon: RefreshCw, mode: "always", variant: "outline", className: "border-border text-muted-foreground hover:bg-muted", onClick: () => { void load(); } },
+    ...(!reportMode ? [{ key: "reprint", label: "Reimprimir cheque", icon: Printer, mode: "single" as const, disabled: busy, onClick: () => { void reprintSelected(); } }] : []),
     ...(!reportMode ? [{ key: "cancel", label: "Cancelar cheque", icon: XCircle, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void cancelSelected(); } }] : []),
+    ...(!reportMode ? [{ key: "delete", label: "Excluir cheque", icon: Trash2, mode: "single+batch" as const, variant: "destructive" as const, onClick: () => { void deleteSelected(); } }] : []),
   ];
 
 
@@ -221,8 +284,9 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <span className="hidden items-center gap-1 text-[10px] text-muted-foreground xl:inline-flex"><CalendarDays className="h-3 w-3" /> Ordenado por emissão</span>
       </GlobalToolbar>
       <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={980} rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Pago e conciliado" }, { tone: "pending", label: "Pago não conciliado" }, { tone: "neutral", label: "A vencer" }, { tone: "overdue", label: "Vencido" }, { tone: "overdue", label: "Cancelado" }]} />} />
+      <ConfirmDialog />
       <CheckPayDialog open={payOpen} onOpenChange={setPayOpen} cheques={selectedRows.filter((r) => r.status === "emitido")} onPaid={() => { void load(); }} />
-      <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { setDialogOpen(false); void load(); }} />
+      <CheckIssueStandaloneDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => { void load(); }} />
     </div>
   );
 }
