@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso } from "@/lib/valorExtenso";
-import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
+import { buildCheckPdf, downloadPdfBytes, printPdfBytes } from "@/lib/checkPdf";
 import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
 import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
@@ -145,6 +145,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         freight_contract_id: data.freightContractId || null,
         conta_bancaria_id: data.contaBancariaId || null,
         plano_contas_id: data.planoContasId || null,
+        layout_id: layout.id,
+        banco_nome: layout.banco_nome || null,
         status: "emitido",
       };
       const chequeQuery = supabase.from("cheques" as any) as any;
@@ -189,6 +191,11 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     downloadPdfBytes(pdfBytes, `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`);
   };
 
+  const handlePrint = () => {
+    if (!pdfBytes) return;
+    printPdfBytes(pdfBytes);
+  };
+
 
 
 
@@ -201,8 +208,12 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={pdfBlobUrl ? "max-w-4xl w-[95vw]" : "max-w-lg"}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
+      <DialogContent
+        className={pdfBlobUrl ? "max-w-4xl w-[95vw]" : "max-w-lg"}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => { if (pdfBlobUrl || generating) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>{pdfBlobUrl ? "Visualização de Impressão" : "Emissão de Cheque"}</DialogTitle>
         </DialogHeader>
