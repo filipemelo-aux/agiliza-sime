@@ -645,7 +645,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => singleCte && handleEdit(singleCte),
             },
             {
-              key: "print", label: printing ? "Gerando..." : "Imprimir", icon: Printer, mode: "single+batch", variant: "outline",
+              key: "print", label: "Imprimir lista", icon: Printer, mode: "single+batch", variant: "outline",
               disabled: printing || selectedIds.size === 0,
               onClick: handlePrintSelected,
             },
@@ -667,9 +667,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
             {
-              key: "transmit", label: transmitting ? "Emitindo..." : "Emitir SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: true,
-              disabled: transmitting || !canTransmit,
-              onClick: handleTransmit,
+              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: canTransmit,
+              disabled: transmitting || !singleCte,
+              onClick: () => setSefazOpen(true),
             },
             {
               key: "mdfe", label: "Gerar MDF-e", icon: Truck, mode: "single+batch", variant: "outline",
