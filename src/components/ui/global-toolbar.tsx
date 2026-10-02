@@ -363,13 +363,14 @@ export function ToolbarIconButton({ label, icon: Icon, onClick, active, disabled
         className={cn(
           TOOLBAR_BUTTON_CLASS,
           showLabel && "lg:w-auto lg:px-2 lg:gap-1.5",
+          active && "bg-muted",
           pending && "ring-2 ring-ring",
           className,
         )}
       >
         <Icon className={TOOLBAR_ICON_CLASS} />
         {showLabel ? (
-          <span className={cn("hidden lg:inline text-[10px] font-normal", active ? "text-white" : "text-muted-foreground/80")}>{label}</span>
+          <span className={cn("hidden lg:inline text-[10px] font-normal", active ? "text-foreground" : "text-muted-foreground/80")}>{label}</span>
         ) : (
           <span className="sr-only">{label}</span>
         )}
