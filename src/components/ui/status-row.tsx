@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /** Tonalidades padrão de linha de lista em todo o sistema */
-export type RowTone = "pending" | "resolved" | "overdue" | "neutral";
+export type RowTone = "pending" | "resolved" | "overdue" | "cancelled" | "neutral";
 
 /** Classe de fundo aplicada à linha da lista conforme a situação do registro */
 export function rowToneClass(tone: RowTone): string {
