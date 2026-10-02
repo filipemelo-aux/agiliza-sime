@@ -200,12 +200,12 @@ const STYLE = `<style>
   .compact-field .label { flex:0 0 auto; margin:0; }
   .compact-field .value { min-width:0; }
   .taker { border-bottom:1px solid #111; }
-  .taker-main { grid-template-columns:2.05fr .95fr .42fr .28fr .6fr; }
+  .taker-main { grid-template-columns:2.05fr .95fr .28fr .6fr; }
   .taker-address { grid-template-columns:2.05fr .95fr; }
   .taker-docs { grid-template-columns:1.15fr 1.15fr .7fr; }
   .cargo-main { display:grid; grid-template-columns:1.05fr 1.02fr .7fr; border-bottom:1px solid #111; }
   .cargo-main > .cell { min-height:29px; border-bottom:0; }
-  .cargo-qty { display:grid; grid-template-columns:40px 1fr 1.15fr 1fr 1fr; border-bottom:1px solid #111; }
+  .cargo-qty { display:grid; grid-template-columns:40px 1.15fr 1fr 1fr 1fr; border-bottom:1px solid #111; }
   .cargo-qty > .cell { min-height:24px; border-bottom:0; }
   .service-values { display:grid; grid-template-columns:3fr .9fr; border-bottom:1px solid #111; }
   .service-components { display:grid; grid-template-columns:repeat(3, 1fr); }
@@ -265,7 +265,9 @@ function documentsHtml(cte: CtePrintInput) {
   const byKey = new Map(details.map((item) => [digits(item.chave), item]));
   const nfeRows = keys.map((key) => {
     const item = byKey.get(digits(key)) || details.find((detail) => detail.numero && digits(key).slice(25, 34) === String(detail.numero).padStart(9, "0")) || {};
-    return { type: "NFe", issuer: formatChave(key), number: [item.serie, item.numero ? `NF: ${String(item.numero).padStart(9, "0")}` : ""].filter(Boolean).join(" / ") || "—", value: item.valor || item.valor_produtos ? money(item.valor || item.valor_produtos) : "" };
+    const cleanKey = digits(key);
+    const issuer = cleanKey.length === 44 ? doc(cleanKey.slice(6, 20)) : "—";
+    return { type: "NFe", issuer: `${issuer}<br>${formatChave(key)}`, number: [item.serie, item.numero ? `NF: ${String(item.numero).padStart(9, "0")}` : ""].filter(Boolean).join(" / ") || "—", value: item.valor || item.valor_produtos ? money(item.valor || item.valor_produtos) : "" };
   });
   const otherRows = others.map((item) => `<tr>
     <td>${esc(item.tipo || "Outros")}</td><td>${esc(item.descricao || item.natureza || "—")}</td>
@@ -273,13 +275,14 @@ function documentsHtml(cte: CtePrintInput) {
     <td>${esc(item.data_emissao ? formatDateBR(item.data_emissao) : "—")}</td>
     <td class="right">${esc(decimal(item.peso, 3))}</td><td class="right">${esc(money(item.valor || item.valor_produtos))}</td>
   </tr>`).join("");
+  const transportKey = digits(cte.chave_cte_subcontratacao);
   const transportRow = cte.chave_cte_subcontratacao
-    ? [{ type: "CT-e", issuer: formatChave(cte.chave_cte_subcontratacao), number: cte.cte_anterior_numero || "", value: "" }]
+    ? [{ type: "CT-e", issuer: `${transportKey.length === 44 ? doc(transportKey.slice(6, 20)) : "—"}<br>${formatChave(cte.chave_cte_subcontratacao)}`, number: cte.cte_anterior_numero || "", value: "" }]
     : [];
   const fiscalRows = [...nfeRows, ...transportRow];
   if (!fiscalRows.length && !otherRows) return "";
   const panels = [fiscalRows.filter((_, index) => index % 2 === 0), fiscalRows.filter((_, index) => index % 2 === 1)];
-  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tp doc.</div><div>CNPJ / CPF emitente</div><div>Série/Nro.documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div class="key">${esc(row.issuer)}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
+  const panelHtml = (rows: typeof fiscalRows) => `<div class="origin-doc-panel"><div class="origin-doc-head"><div>Tp doc.</div><div>CNPJ / CPF emitente</div><div>Série/Nro.documento</div><div>Valor nota</div></div>${rows.map((row) => `<div class="origin-doc-row"><div>${esc(row.type)}</div><div class="key">${row.issuer.split("<br>").map(esc).join("<br>")}</div><div>${esc(row.number)}</div><div class="right">${esc(row.value)}</div></div>`).join("")}</div>`;
   return `<div class="section-title">Documentos originários</div>
     <div class="origin-docs">${panelHtml(panels[0])}${panelHtml(panels[1])}</div>
     ${otherRows ? `<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Número</th><th>Série</th><th>Emissão</th><th>Peso kg</th><th>Valor</th></tr></thead><tbody>${otherRows}</tbody></table>` : ""}`;
@@ -325,9 +328,6 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
   const barcodeUrl = barcodeDataUrl(authorization.key);
   const number = cte.numero ?? cte.numero_interno ?? "—";
   const quantities = asArray<Quantity>(cte.info_quantidade);
-  const quantitiesRows = quantities.length
-    ? quantities.map((item) => `<tr><td>${esc(item.tpMed || "Quantidade")}</td><td>${esc(item.cUnid || "—")}</td><td class="right">${esc(decimal(item.qCarga, 3))}</td></tr>`).join("")
-    : `<tr><td>PESO BRUTO</td><td>KG</td><td class="right">${esc(decimal(cte.peso_bruto, 3))}</td></tr>`;
 
   const title = isService ? "DOCUMENTO AUXILIAR DE CT-e DE SERVIÇO" : "DOCUMENTO AUXILIAR DO CONHECIMENTO DE TRANSPORTE ELETRÔNICO";
   const actorPairs = `<div class="actors">${actorSection(cte, "remetente", "Remetente")}${actorSection(cte, "destinatario", "Destinatário")}${actorSection(cte, "expedidor", "Expedidor")}${actorSection(cte, "recebedor", "Recebedor")}</div>`;
@@ -347,7 +347,7 @@ export async function buildCteHtml(cte: CtePrintInput): Promise<string> {
     ${actorPairs}
     <div class="taker"><div class="compact-row taker-main"><div class="compact-field"><span class="label">Tomador do serviço</span><span class="value">${esc(cte.tomador_nome || "—")}</span></div><div class="compact-field"><span class="label">Município</span><span class="value">${esc(cte.tomador_municipio_nome || cte.tomador_municipio_ibge || "—")}</span></div><div class="compact-field"><span class="label">UF</span><span class="value">${esc(cte.tomador_uf || "—")}</span></div><div class="compact-field"><span class="label">CEP</span><span class="value">${esc(cte.tomador_cep || "—")}</span></div></div><div class="compact-row taker-address"><div class="compact-field"><span class="label">Endereço</span><span class="value">${esc(cte.tomador_endereco || "—")}</span></div><div class="compact-field"><span class="label">País</span><span class="value">BRASIL</span></div></div><div class="compact-row taker-docs"><div class="compact-field"><span class="label">CNPJ/CPF</span><span class="value">${esc(doc(cte.tomador_cnpj))}</span></div><div class="compact-field"><span class="label">Inscrição estadual</span><span class="value">${esc(cte.tomador_ie || "—")}</span></div><div class="compact-field"><span class="label">Fone</span><span class="value">${esc(cte.tomador_telefone || "—")}</span></div></div></div>
     <div class="cargo-main">${cell("Produto predominante", cte.produto_predominante)}${cell("Outras características da carga", cte.caracteristicas_adicionais_carga)}${cell("Valor total da mercadoria", money(cte.valor_carga))}</div>
-    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Tipo de medida", quantities[0]?.tpMed || "PESO BRUTO")}${cell("Unidade", quantities[0]?.cUnid || "KG")}${cell("Quantidade", decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3))}${cell("Peso bruto", `${decimal(cte.peso_bruto, 3)} KG`)}</div>
+    <div class="cargo-qty">${cell("Qtd.", "CARGA")}${cell("Peso bruto", `${decimal(quantities[0]?.qCarga ?? cte.peso_bruto, 3)} ${quantities[0]?.cUnid || "KG"}`)}${cell("", "")}${cell("", "")}${cell("", "")}</div>
     ${valuesHtml(cte)}
     ${taxesHtml(cte)}
     ${documentsHtml(cte)}
