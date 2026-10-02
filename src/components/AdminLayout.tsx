@@ -78,7 +78,7 @@ export const allMenuItems = [
     children: [
       { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
       { title: "Contratos de Frete", url: "/admin/freight/contracts", icon: FileSignature },
-      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
+      { title: "MDF-e", url: "/admin/freight/mdfe", icon: MdfeIcon },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
       { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Relatórios", url: "/admin/freight/reports", icon: FileSpreadsheet },
