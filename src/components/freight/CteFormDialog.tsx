@@ -1722,11 +1722,94 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </SubBlock>
             </SubBlock>
           </FormBlock>
+          <FormBlock icon={FileText} title="4. Documentos" summary={docMode === "nfe" ? `NF-e · ${notasVinculadas}` : `Outros · ${form.outros_documentos.length}`}>
+            <div className="flex gap-1.5">
+              {(["nfe", "outros"] as const).map((m) => (
+                <label key={m} className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] ${docMode === m ? "border-primary bg-primary/5 font-semibold" : "border-border hover:bg-muted/40"}`}>
+                  <Checkbox checked={docMode === m} onCheckedChange={(v) => { if (v) setDocMode(m); }} />
+                  {m === "nfe" ? "NF-e" : "Outros"}
+                </label>
+              ))}
+            </div>
+            {docMode === "nfe" ? (
+              <div className="space-y-2">
+                {form.chaves_nfe_ref.length === 0 && (
+                  <p className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">Nenhuma nota. Importe no passo 3 ou <button type="button" className="underline" onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>digite manualmente</button>.</p>
+                )}
+                {form.chaves_nfe_ref.map((chave, i) => {
+                  const d = getNfeDetalhe(chave);
+                  return (
+                    <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1 space-y-0.5">
+                          <Label className="text-[10px]">Chave de acesso</Label>
+                          <Input className="h-7 font-mono text-xs" placeholder="44 dígitos" value={chave} onChange={(e) => { const arr = [...form.chaves_nfe_ref]; arr[i] = e.target.value.replace(/\D/g, "").slice(0, 44); set("chaves_nfe_ref", arr); }} />
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading || chave.length !== 44} onClick={() => buscarChave(chave)}><Search className="h-3 w-3" /> Buscar</Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
+                      </div>
+                      {chave.length === 44 && (
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+                          {NFE_FIELDS.map((f) => (
+                            <div key={f.k} className={`space-y-0.5 ${f.k === "natureza" ? "col-span-2" : ""}`}>
+                              <Label className="text-[10px]">{f.label}</Label>
+                              <DocInput kind={f.kind} value={(d as any)[f.k]} onChange={(v) => setNfeDetalhe(chave, { [f.k]: v } as any)} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {form.chaves_nfe_ref.filter((c) => c.length === 44).length > 1 && (
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading} onClick={importFromSefaz}><Search className="h-3 w-3" /> Buscar todas novamente</Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {form.outros_documentos.map((o, i) => {
+                  const upd = (patch: Partial<OutroDoc>) => setForm((p) => { const arr = [...p.outros_documentos]; const base = arr[i]; const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `out:${i}`) }; arr[i] = merged; return { ...p, ...syncAverbado(p, base, patch, merged), outros_documentos: arr }; });
+                  return (
+                    <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
+                      <div className="flex items-end gap-2">
+                        <div className="w-32 space-y-0.5">
+                          <Label className="text-[10px]">Tipo</Label>
+                          <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="00">Declaração</SelectItem>
+                              <SelectItem value="10">Dutoviário</SelectItem>
+                              <SelectItem value="59">CF-e SAT</SelectItem>
+                              <SelectItem value="65">NFC-e</SelectItem>
+                              <SelectItem value="99">Outros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 space-y-0.5"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+                        {NFE_FIELDS.map((f) => (
+                          <div key={f.k} className={`space-y-0.5 ${f.k === "natureza" ? "col-span-2" : ""}`}>
+                            <Label className="text-[10px]">{f.label}</Label>
+                            <DocInput kind={f.kind} value={(o as any)[f.k]} onChange={(v) => upd({ [f.k]: v } as any)} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => set("outros_documentos", [...form.outros_documentos, { ...emptyDoc, tipo: "99", descricao: "" }])}>
+                  <Plus className="h-3 w-3" /> Adicionar documento
+                </Button>
+              </div>
+            )}
+          </FormBlock>
 
-          {/* 2. Envolvidos + tomador */}
+          {/* 5. Envolvidos + tomador */}
           <FormBlock
             icon={Users}
-            title="4. Envolvidos"
+            title="5. Envolvidos"
             summary={[form.remetente_nome, form.destinatario_nome].filter(Boolean).join(" → ") || "preenchidos pela nota"}
           >
           <div className="grid gap-2 lg:grid-cols-2">
@@ -1865,10 +1948,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
           </FormBlock>
 
-          {/* 5. Motorista e veículo */}
+          {/* 6. Motorista e veículo */}
           <FormBlock
             icon={Truck}
-            title="5. Motorista e Veículo"
+            title="6. Motorista e Veículo"
             summary={form.placa_veiculo ? [motoristaNome, [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ")].filter(Boolean).join(" · ") : "veículo não definido"}
           >
             <SubBlock title="Motorista e veículo" hint="O motorista preenche a placa e o proprietário; a placa preenche motorista e proprietário.">
@@ -1993,7 +2076,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           </FormBlock>
 
           {/* 6. Seguro */}
-          <FormBlock icon={Building2} title="6. Seguro da Carga" summary={form.seguradora_nome ? `${form.seguradora_nome}${form.apolice_numero ? ` · apólice ${form.apolice_numero}` : ""}` : "sem seguradora"}>
+          <FormBlock icon={Building2} title="7. Seguro da Carga" summary={form.seguradora_nome ? `${form.seguradora_nome}${form.apolice_numero ? ` · apólice ${form.apolice_numero}` : ""}` : "sem seguradora"}>
             <p className="text-[11px] text-muted-foreground">Preenchido com a seguradora padrão do emitente (Configurações › Fiscal).</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
                 <div className="space-y-1">
@@ -2030,89 +2113,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           </FormBlock>
 
           {/* 7. Documentos */}
-          <FormBlock icon={FileText} title="7. Documentos" summary={docMode === "nfe" ? `NF-e · ${notasVinculadas}` : `Outros · ${form.outros_documentos.length}`}>
-            <div className="flex gap-1.5">
-              {(["nfe", "outros"] as const).map((m) => (
-                <label key={m} className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-[11px] ${docMode === m ? "border-primary bg-primary/5 font-semibold" : "border-border hover:bg-muted/40"}`}>
-                  <Checkbox checked={docMode === m} onCheckedChange={(v) => { if (v) setDocMode(m); }} />
-                  {m === "nfe" ? "NF-e" : "Outros"}
-                </label>
-              ))}
-            </div>
-            {docMode === "nfe" ? (
-              <div className="space-y-2">
-                {form.chaves_nfe_ref.length === 0 && (
-                  <p className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">Nenhuma nota. Importe no passo 3 ou <button type="button" className="underline" onClick={() => set("chaves_nfe_ref", [...form.chaves_nfe_ref, ""])}>digite manualmente</button>.</p>
-                )}
-                {form.chaves_nfe_ref.map((chave, i) => {
-                  const d = getNfeDetalhe(chave);
-                  return (
-                    <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
-                      <div className="flex items-end gap-2">
-                        <div className="flex-1 space-y-0.5">
-                          <Label className="text-[10px]">Chave de acesso</Label>
-                          <Input className="h-7 font-mono text-xs" placeholder="44 dígitos" value={chave} onChange={(e) => { const arr = [...form.chaves_nfe_ref]; arr[i] = e.target.value.replace(/\D/g, "").slice(0, 44); set("chaves_nfe_ref", arr); }} />
-                        </div>
-                        <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading || chave.length !== 44} onClick={() => buscarChave(chave)}><Search className="h-3 w-3" /> Buscar</Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("chaves_nfe_ref", form.chaves_nfe_ref.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
-                      </div>
-                      {chave.length === 44 && (
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                          {NFE_FIELDS.map((f) => (
-                            <div key={f.k} className={`space-y-0.5 ${f.k === "natureza" ? "col-span-2" : ""}`}>
-                              <Label className="text-[10px]">{f.label}</Label>
-                              <DocInput kind={f.kind} value={(d as any)[f.k]} onChange={(v) => setNfeDetalhe(chave, { [f.k]: v } as any)} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {form.chaves_nfe_ref.filter((c) => c.length === 44).length > 1 && (
-                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" disabled={nfeLoading} onClick={importFromSefaz}><Search className="h-3 w-3" /> Buscar todas novamente</Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {form.outros_documentos.map((o, i) => {
-                  const upd = (patch: Partial<OutroDoc>) => setForm((p) => { const arr = [...p.outros_documentos]; const base = arr[i]; const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `out:${i}`) }; arr[i] = merged; return { ...p, ...syncAverbado(p, base, patch, merged), outros_documentos: arr }; });
-                  return (
-                    <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
-                      <div className="flex items-end gap-2">
-                        <div className="w-32 space-y-0.5">
-                          <Label className="text-[10px]">Tipo</Label>
-                          <Select value={o.tipo} onValueChange={(v) => upd({ tipo: v })}>
-                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="00">Declaração</SelectItem>
-                              <SelectItem value="10">Dutoviário</SelectItem>
-                              <SelectItem value="59">CF-e SAT</SelectItem>
-                              <SelectItem value="65">NFC-e</SelectItem>
-                              <SelectItem value="99">Outros</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex-1 space-y-0.5"><Label className="text-[10px]">Descrição</Label><Input className="h-7 text-xs" value={o.descricao} onChange={(e) => upd({ descricao: e.target.value })} /></div>
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => set("outros_documentos", form.outros_documentos.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></Button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                        {NFE_FIELDS.map((f) => (
-                          <div key={f.k} className={`space-y-0.5 ${f.k === "natureza" ? "col-span-2" : ""}`}>
-                            <Label className="text-[10px]">{f.label}</Label>
-                            <DocInput kind={f.kind} value={(o as any)[f.k]} onChange={(v) => upd({ [f.k]: v } as any)} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => set("outros_documentos", [...form.outros_documentos, { ...emptyDoc, tipo: "99", descricao: "" }])}>
-                  <Plus className="h-3 w-3" /> Adicionar documento
-                </Button>
-              </div>
-            )}
-          </FormBlock>
 
           {/* 8. Frete mínimo ANTT */}
           <FormBlock icon={MapPin} title="8. Frete Mínimo ANTT" summary={piso ? `piso ${formatBRL(piso.total)}` : "informe distância, carga e eixos"}>
