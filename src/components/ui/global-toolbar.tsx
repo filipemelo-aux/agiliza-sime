@@ -26,12 +26,13 @@ import { quickPrintVisibleTable } from "@/lib/pdfDownload";
  * margem interna; o fator de cada arquivo faz a arte visível sair no padrão.
  */
 export const TOOLBAR_BUTTON_CLASS = "h-9 w-9 p-0 justify-center gap-0 md:h-8 md:w-8";
-export const TOOLBAR_ICON_CLASS = "h-5 w-5 md:h-[18px] md:w-[18px]";
+/** `!` é necessário: o botão base força tamanho nos ícones ([&_svg]:size-4). */
+export const TOOLBAR_ICON_CLASS = "!h-5 !w-5 md:!h-[18px] md:!w-[18px]";
 export const TOOLBAR_ICON_OFFICIAL_CLASS = {
   /** receita.svg: arte ocupa ~77% da caixa */
-  sefaz: "h-[26px] w-[26px] md:h-[23px] md:w-[23px]",
+  sefaz: "!h-[26px] !w-[26px] md:!h-[23px] md:!w-[23px]",
   /** mdfe.svg: arte ocupa ~92% da caixa */
-  mdfe: "h-[22px] w-[22px] md:h-[20px] md:w-[20px]",
+  mdfe: "!h-[22px] !w-[22px] md:!h-[20px] md:!w-[20px]",
 } as const;
 
 export type ToolbarActionMode = "always" | "create" | "single" | "batch" | "single+batch";
