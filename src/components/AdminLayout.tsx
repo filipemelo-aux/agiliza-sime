@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
+import { X, ArrowLeftRight, LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
@@ -128,26 +128,29 @@ function CollapsibleMenu({
   title,
   Icon,
   defaultOpen,
+  forceOpen,
   children,
 }: {
   title: string;
   Icon: React.ComponentType<{ className?: string }>;
   defaultOpen?: boolean;
+  forceOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = usePersistedOpen(`menu-open-${title}`, !!defaultOpen);
+  const [stored, setOpen] = usePersistedOpen(`menu-open-${title}`, !!defaultOpen);
+  const open = forceOpen || stored;
   return (
-    <SidebarMenuItem className="pt-2 first:pt-0">
+    <SidebarMenuItem>
       <Collapsible open={open} onOpenChange={setOpen} className="w-full">
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={title} className="h-7 text-xs px-2 gap-2 w-full">
-            <Icon className="h-3.5 w-3.5" />
+          <SidebarMenuButton tooltip={title} className="h-9 text-[13px] font-medium px-2.5 gap-3 w-full">
+            <Icon className="!h-4 !w-4 text-foreground/80" />
             <span className="flex-1 text-left">{title}</span>
-            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
+            <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <SidebarMenuSub className="mr-0 pr-0">
+          <SidebarMenuSub className="mx-0 ml-4 border-l-0 pl-2 pr-0 py-0.5 gap-0.5">
             {children}
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -173,14 +176,13 @@ function CollapsibleSubmenu({
     <SidebarMenuItem>
       <Collapsible open={open} onOpenChange={setOpen} className="w-full">
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={title} className="h-7 text-xs px-2 gap-2 w-full">
-            <Icon className="h-3.5 w-3.5" />
+          <SidebarMenuButton tooltip={title} className="h-8 text-[13px] px-2 gap-2 w-full">
+            <ChevronRight className={`!h-3 !w-3 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
             <span className="flex-1 text-left">{title}</span>
-            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <SidebarMenuSub className="mr-0 pr-0">
+          <SidebarMenuSub className="mx-0 ml-4 border-l-0 pl-2 pr-0 py-0.5 gap-0.5">
             {children}
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -230,10 +232,34 @@ function SidebarNav() {
   const { setOpenMobile } = useSidebar();
   const { canAccessSettings } = useUserRole();
   const { getRule } = usePageAccess();
-  const menuItems = filterMenu(
+  const baseMenuItems = filterMenu(
     allMenuItems.filter((i: any) => canAccessSettings || i.url !== "/admin/settings"),
     (u) => getRule(u).mode === "hidden",
   );
+
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const q = query.trim().toLowerCase();
+  const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const nq = norm(q);
+  const menuItems = !q ? baseMenuItems : (baseMenuItems as any[]).map((i) => {
+    if (i.title === "_spacer") return null;
+    if (norm(i.title).includes(nq)) return i;
+    if (!i.children) return null;
+    const children = i.children.map((c: any) => {
+      if (norm(c.title).includes(nq)) return c;
+      if (c.submenu) { const sub = c.submenu.filter((x: any) => norm(x.title).includes(nq)); return sub.length ? { ...c, submenu: sub } : null; }
+      return null;
+    }).filter(Boolean);
+    return children.length ? { ...i, children } : null;
+  }).filter(Boolean);
 
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return location.pathname === url;
@@ -262,10 +288,28 @@ function SidebarNav() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}
-        <div className="h-16 flex items-center px-3 border-b border-sidebar-border/60 shrink-0">
-        <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
-          SIME <span className="text-accent">TRANSPORTES</span>
-        </span>
+      <div className="h-16 flex items-center justify-between gap-2 px-3 shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+        <img src={logo} alt="SIME Transportes" className="h-9 w-auto max-w-[150px] object-contain group-data-[collapsible=icon]:hidden" />
+        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
+          <ArrowLeftRight />
+        </SidebarTrigger>
+      </div>
+      <div className="px-3 pb-2 shrink-0 group-data-[collapsible=icon]:hidden">
+        <div className="relative">
+          <input
+            ref={searchRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
+            placeholder="Pesquisar (CTRL+K)"
+            className="h-8 w-full rounded-md border border-accent/40 bg-accent/15 pl-2.5 pr-7 text-xs text-foreground placeholder:text-foreground/60 outline-none"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-foreground/70 hover:text-foreground" aria-label="Limpar busca">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <SidebarContentUI
@@ -288,6 +332,7 @@ function SidebarNav() {
                       title={item.title}
                       Icon={item.icon}
                       defaultOpen={itemActive}
+                      forceOpen={!!q}
                     >
                       {item.children.map((child: any) => {
                         if (child.submenu) {
@@ -297,13 +342,13 @@ function SidebarNav() {
                               key={child.title}
                               title={child.title}
                               Icon={child.icon}
-                              defaultOpen={anySubActive}
+                              defaultOpen={anySubActive || !!q}
                             >
                               {child.submenu.map((sub: any) => (
                                 <SidebarMenuSubItem key={sub.title}>
-                                  <SidebarMenuSubButton asChild isActive={isActive(sub.url)} className="h-6 text-[11px] px-2 gap-2">
+                                  <SidebarMenuSubButton asChild isActive={isActive(sub.url)} className="h-7 text-[12.5px] px-2 gap-2">
                                     <Link to={sub.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                                      <sub.icon className="h-3 w-3" />
+                                      <ChevronRight className="!h-3 !w-3 text-muted-foreground" />
                                       <span>{sub.title}</span>
                                     </Link>
                                   </SidebarMenuSubButton>
@@ -314,9 +359,9 @@ function SidebarNav() {
                         }
                         return (
                           <SidebarMenuItem key={child.title}>
-                            <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-7 text-xs px-2 gap-2">
+                            <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-8 text-[13px] px-2 gap-2">
                               <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                                <child.icon className="h-3.5 w-3.5" />
+                                <ChevronRight className="!h-3 !w-3 text-muted-foreground" />
                                 <span>{child.title}</span>
                               </Link>
                             </SidebarMenuButton>
@@ -327,7 +372,7 @@ function SidebarNav() {
                   );
                 }
                 if (item.title === "_spacer") {
-                  return <div key="_spacer" className="pt-6" />;
+                  return q ? null : <div key="_spacer" className="pt-4" />;
                 }
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -335,11 +380,12 @@ function SidebarNav() {
                       asChild
                       isActive={isActive(item.url!, (item as any).exact)}
                       tooltip={item.title}
-                      className="h-7 text-xs px-2 gap-2"
+                      className="h-9 text-[13px] font-medium px-2.5 gap-3"
                     >
                       <Link to={item.url!} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                        <item.icon className="h-3.5 w-3.5" />
-                        <span>{item.title}</span>
+                        <item.icon className="!h-4 !w-4 text-foreground/80" />
+                        <span className="flex-1">{item.title}</span>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
