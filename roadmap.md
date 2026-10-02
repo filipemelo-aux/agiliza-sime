@@ -1,49 +1,6 @@
-# Roadmap — Multi-Empresa Financeiro
-
-## Fase 1 — Multi-Empresa (em andamento)
-- [x] Migração: `empresa_id` em faturas_recebimento, contas_receber, previsoes_recebimento, movimentacoes_bancarias (backfill Matriz)
-- [ ] Componentes compartilhados: `EmpresaSelect` (form, obrigatório), `EmpresaFilter` (Todas/Matriz/Filial), `EmpresaBadge` (M/F)
-- [ ] Formulários: Despesa (Contas a Pagar), Lançamento manual do Cartão, Conta a Receber/Previsão, Lançamento manual Fluxo de Caixa/Conciliação
-- [ ] Filtros nas listagens: Contas a Pagar, Contas Pagas, Faturamento, Cartão de Crédito, Conciliação
-- [ ] DRE e Fluxo de Caixa com filtro de empresa
-- [ ] Badge de empresa nos data grids
-
-## Fase 2 — Tesouraria Centralizada (contas bancárias)
-- [ ] Criar tabela `contas_bancarias` (banco, agência, conta, apelido, `empresa_id` → fiscal_establishments, ativo) + RLS/GRANTs
-- [ ] CRUD de contas bancárias em Configurações/Cadastros
-- [ ] FK de `movimentacoes_bancarias.conta_bancaria_id`
-- [ ] Modal de baixa (Contas a Pagar) com select de conta bancária listando TODAS as contas do grupo ("Sicoob — Matriz"), sem filtro por empresa da despesa
-- [ ] Fluxo de Caixa / Conciliação: saldo e extrato por conta bancária
-- [ ] DRE segue alocando custo pela empresa da despesa (fato gerador)
-
-## Fase 3 — Integridade e fonte única (31/08)
-- [x] Drop trigger duplicado `trg_validar_conta_receber_recebimento` (contas_receber)
-- [x] Triggers AFTER DELETE de limpeza de `movimentacoes_bancarias` (expenses, contas_receber, expense_payments)
-- [x] Rateio fonte única: migrar JSONB → `despesa_rateio_veiculos`, refatorar RPCs, DROP coluna `credit_card_invoice_items.rateio_veiculos`, ajustar UI
-- [x] Unificar contas a pagar: migrar `accounts_payable` → `expenses`, drop triggers legadas, atestar leitura exclusiva de `expenses`
-
-## Fase 4 — Conciliação (03/09)
-- [x] Vinculação de 1 lançamento do extrato a VÁRIAS contas (rateio + confirmação final; ocultar contas já conciliadas)
-- [x] Corrigir definitivamente despesa que recebe pagamento mas continua "em aberto" (duplicidade de correspondência paga + a pagar)
-
-## Fase 5 — Padronização das listas densas (03/09)
-- [x] Remover rolagem horizontal no desktop, truncar descrições com tooltip e limitar favorecidos a 50 caracteres
-- [x] Eliminar espaços artificiais entre colunas e manter favorecidos em uma única linha com reticências
-- [x] Compactar espaçamento global, priorizar data de pagamento e reduzir colunas de cheque/datas
-
-## Pendente
-- [x] Aplicar regra de cadastro completo na criação de contas a pagar
-- [x] Conciliação bancária: despesa exige cadastro efetivo do beneficiário
-
-## Fase 6 — CT-e Talão de Produção (paridade com outro sistema, 01/10)
-- [x] 1. Bloco IBS/CBS 2026 (cálculo automático sobre o frete)
-- [x] 2. Seguro da carga (responsável, seguradora, apólice, averbação; padrão no emitente)
-- [x] 3. Importar NF-e da SEFAZ pela chave + envio de XML
-- [x] 4. Detalhes por nota (número, série, data, valor, peso, espécie) + "Outros documentos"
-- [x] 5. Carretas (Vinculado 01/02) e Contratado
-- [ ] 6. MDF-e junto ao CT-e — bloqueado: tela de MDF-e ainda não existe (construir antes)
-- [x] 7. Contrato de frete junto ao CT-e (já existia)
-- [ ] 8. Frete mínimo ANTT (aviso)
-- [x] 9. Previsões de saída/chegada, Lotação, pedido/ordem, pedágio separado
-- [x] Ligar "Emitir SEFAZ" à Focus NFe com IBS/CBS + seguro somente pela toolbar
-- [x] Corrigir numeração do CT-e: respeitar o próximo número configurado na Focus NFe (8785)
+# Roadmap
+- [ ] Refazer o DACTE conforme o modelo oficial e aplicar caixa alta
+- [ ] Criar DAMDFE completo em caixa alta
+- [ ] Adicionar download do PDF do MDF-e selecionado
+- [ ] Validar visualmente os PDFs e corrigir falhas
+- [ ] Confirmar build sem erros
