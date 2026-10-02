@@ -34,8 +34,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
-import { buildCteHtml } from "@/components/freight/ctePrint";
-import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
+import { downloadDactePdf } from "@/components/freight/dactePdf";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
@@ -115,9 +114,8 @@ export default function FreightCte() {
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
     if (error || !data) throw new Error(error?.message || "CT-e não encontrado");
-    const html = await buildCteHtml(data as any);
     const num = (data as any).numero ?? (data as any).numero_interno ?? "";
-    await downloadHtmlAsPdf(html, `DACTE-${num || cteId.slice(0, 8)}.pdf`);
+    await downloadDactePdf(data as any, `DACTE-${num || cteId.slice(0, 8)}.pdf`);
   };
 
   const handlePrintSelected = () => {
