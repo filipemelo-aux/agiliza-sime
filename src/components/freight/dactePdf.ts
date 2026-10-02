@@ -14,6 +14,23 @@ type NfeDetail = { chave?: string; numero?: string; serie?: string };
 type ActorPrefix = "remetente" | "destinatario" | "expedidor" | "recebedor" | "tomador";
 type Actor = { nome: string; endereco: string; municipio: string; uf: string; cep: string; doc: string; ie: string; fone: string };
 
+/**
+ * Contrato imutável do DACTE aprovado em 02/10/2026.
+ * Alterar estas medidas exige nova comparação visual com o modelo oficial.
+ */
+export const DACTE_LAYOUT = Object.freeze({
+  version: "oficial-57-2026-10-02",
+  unit: "pt" as const,
+  format: "a4" as const,
+  orientation: "portrait" as const,
+  width: 595.28,
+  height: 841.89,
+  contentLeft: 27,
+  contentRight: 568,
+  contentTop: 25,
+  contentBottom: 807,
+});
+
 const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 const up = (v: unknown) => String(v ?? "").toLocaleUpperCase("pt-BR");
 const money = (v: unknown) => formatCurrency(Number(v || 0)).replace(/^R\$\s?/, "");
@@ -592,11 +609,22 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
 export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
-  const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true });
+  const pdf = new jsPDF({
+    unit: DACTE_LAYOUT.unit,
+    format: DACTE_LAYOUT.format,
+    orientation: DACTE_LAYOUT.orientation,
+    compress: true,
+  });
   const logo = await loadLogo();
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
     await drawPage(pdf, ctes[i], logo);
+  }
+  const page = pdf.internal.pageSize;
+  const validA4 = Math.abs(page.getWidth() - DACTE_LAYOUT.width) < 0.1
+    && Math.abs(page.getHeight() - DACTE_LAYOUT.height) < 0.1;
+  if (!validA4 || pdf.getNumberOfPages() !== Math.max(ctes.length, 1)) {
+    throw new Error("O DACTE não respeitou o padrão vetorial A4 aprovado.");
   }
   return pdf;
 }

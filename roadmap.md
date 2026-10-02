@@ -8,3 +8,4 @@
 - [x] Reconstruir o DACTE pela geometria exata do modelo oficial reenviado
 - [x] Corrigir o download do DACTE em navegadores desktop
 - [x] DACTE em PDF vetorial idêntico ao modelo (fim da desconfiguração no download)
+- [x] Fixar o padrão vetorial aprovado e adicionar proteção automática contra desconfiguração
