@@ -87,6 +87,7 @@ export function DataGrid<T>({
   loading,
   emptyMessage = "Nenhum registro encontrado",
   minWidth = 900,
+  tableLayout = "auto",
   footer,
   rowClassName,
   maxHeight,
