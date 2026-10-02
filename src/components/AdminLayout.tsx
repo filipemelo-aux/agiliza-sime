@@ -238,14 +238,6 @@ function SidebarNav() {
   );
 
   const [query, setQuery] = useState("");
-  const searchRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); searchRef.current?.focus(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
   const q = query.trim().toLowerCase();
   const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const nq = norm(q);
@@ -297,11 +289,10 @@ function SidebarNav() {
       <div className="px-3 pb-2 shrink-0 group-data-[collapsible=icon]:hidden">
         <div className="relative">
           <input
-            ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
-            placeholder="Pesquisar (CTRL+K)"
+            placeholder="Pesquisar"
             className="h-8 w-full rounded-md border border-accent/40 bg-accent/15 pl-2.5 pr-7 text-xs text-foreground placeholder:text-foreground/60 outline-none"
           />
           {query && (
