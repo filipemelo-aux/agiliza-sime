@@ -1574,6 +1574,13 @@ tfoot{display:table-row-group}
           )}
         </div>
       </SearchFilterCard>
+
+      {/* Summary Cards - compact modern */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <SummaryCard icon={Clock} label="A Pagar" value={formatCurrency(totalPendente)} />
+        <SummaryCard icon={AlertTriangle} label="Atrasado" value={formatCurrency(totalAtrasado)} valueColor="red" />
+        <SummaryCard icon={FileText} label="Registros" value={totalRegistros} />
+      </div>
       {/* Global Toolbar */}
       <GlobalToolbar
         actions={[
