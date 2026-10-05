@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Pencil, Plus, Power, Search, Users } from "lucide-react";
+import { Building2, LogIn, Pencil, Plus, Power, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/superadmin/SuperAdminLayout";
 import { TenantFormDialog, type TenantRow } from "@/components/superadmin/TenantFormDialog";
@@ -42,6 +42,13 @@ export default function SuperAdminTenants() {
     if (error || data?.error) return toast.error(data?.error || "Erro ao alterar situação");
     toast.success(status === "active" ? "Empresa ativada" : "Empresa suspensa");
     load();
+  };
+
+  const enterSupport = async (r: TenantRow) => {
+    if (r.status !== "active") return toast.error("Ative a empresa antes de entrar em modo suporte");
+    const { error } = await (supabase.rpc as any)("set_support_tenant", { _tenant_id: r.id });
+    if (error) return toast.error("Não foi possível entrar na empresa");
+    window.location.href = "/admin";
   };
 
   const active = rows.filter((r) => r.status === "active").length;
@@ -99,6 +106,7 @@ export default function SuperAdminTenants() {
                 </td>
                 <td className="p-3">
                   <div className="flex justify-end gap-1">
+                    <Button size="icon" variant="ghost" title="Entrar em modo suporte" onClick={() => enterSupport(r)}><LogIn className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" title={r.status === "active" ? "Suspender" : "Ativar"} onClick={() => toggleStatus(r)}
                       className={r.status === "active" ? "text-destructive hover:text-destructive" : "text-success hover:text-success"}>

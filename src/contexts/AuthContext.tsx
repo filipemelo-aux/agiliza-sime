@@ -13,6 +13,7 @@ interface AuthContextType {
   isOperador: boolean;
   isConsultor: boolean;
   isSuperAdmin: boolean;
+  supportTenantId: string | null;
   loading: boolean;
 }
 
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   isOperador: false,
   isConsultor: false,
   isSuperAdmin: false,
+  supportTenantId: null,
   loading: true,
 });
 
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isModerator, setIsModerator] = useState(false);
   const [isOperador, setIsOperador] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [supportTenantId, setSupportTenantId] = useState<string | null>(null);
   const [rolesLoading, setRolesLoading] = useState(true);
 
   const fetchRoles = useCallback(async (userId: string) => {
@@ -47,8 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("user_id", userId);
         if (error) throw error;
         const userRoles = data?.map((r) => r.role as AppRole) || [];
+        let support: string | null = null;
+        if (userRoles.includes("superadmin")) {
+          const { data: st } = await (supabase.rpc as any)("my_support_tenant");
+          support = (st as string | null) ?? null;
+        }
+        setSupportTenantId(support);
         setRoles(userRoles);
-        setIsAdmin(userRoles.includes("admin"));
+        setIsAdmin(userRoles.includes("admin") || !!support);
         setIsModerator(userRoles.includes("moderator"));
         setIsOperador(userRoles.includes("operador"));
         setRolesLoading(false);
@@ -132,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoading = loading || (user !== null && rolesLoading);
 
   return (
-    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, isOperador, isConsultor: roles.includes("consultor") && !isAdmin && !isModerator && !isOperador, isSuperAdmin: roles.includes("superadmin"), loading: isLoading }}>
+    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, isOperador, isConsultor: roles.includes("consultor") && !isAdmin && !isModerator && !isOperador, isSuperAdmin: roles.includes("superadmin"), supportTenantId, loading: isLoading }}>
       {children}
     </AuthContext.Provider>
   );

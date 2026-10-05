@@ -5743,6 +5743,7 @@ export type Database = {
         Args: { _drop: string; _keep: string }
         Returns: Json
       }
+      my_support_tenant: { Args: never; Returns: string }
       next_cte_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }

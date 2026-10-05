@@ -2,7 +2,7 @@ import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { X, ArrowLeftRight, LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
-import logo from "@/assets/logo.png";
+import { useTenant } from "@/hooks/useTenant";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -282,6 +282,9 @@ function SidebarNav() {
     if (saved > 0) el.scrollTop = saved;
   }, [location.pathname]);
 
+  const { name: tenantName } = useTenant();
+  const [brandFirst, ...brandRestArr] = (tenantName || "SIME TRANSPORTES").split(" ");
+  const brandRest = brandRestArr.join(" ");
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}
@@ -291,7 +294,7 @@ function SidebarNav() {
             className="block text-base text-primary whitespace-nowrap"
             style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
           >
-            SIME <span className="text-accent">TRANSPORTES</span>
+            {brandFirst} {brandRest && <span className="text-accent">{brandRest}</span>}
           </span>
         </div>
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
@@ -400,11 +403,11 @@ function SidebarNav() {
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isSuperAdmin, loading } = useUserRole();
+  const { user, isSuperAdmin, supportTenantId, loading } = useUserRole();
   const navigateTo = useNavigate();
   useEffect(() => {
-    if (!loading && isSuperAdmin) navigateTo("/superadmin", { replace: true });
-  }, [loading, isSuperAdmin, navigateTo]);
+    if (!loading && isSuperAdmin && !supportTenantId) navigateTo("/superadmin", { replace: true });
+  }, [loading, isSuperAdmin, supportTenantId, navigateTo]);
 
   const handleLogout = async () => {
     try {
@@ -433,6 +436,14 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
   const { state, isMobile } = useSidebar();
   const navigate = useNavigate();
   const isExpanded = state === "expanded";
+  const { supportTenantId } = useUserRole();
+  const { logo: tenantLogo, name: tenantName } = useTenant();
+  const exitSupport = async () => {
+    await (supabase.rpc as any)("set_support_tenant", { _tenant_id: null });
+    window.location.href = "/superadmin";
+  };
+
+
   const headerLeft = isMobile ? "0px" : isExpanded ? "var(--sidebar-width)" : "var(--sidebar-width-icon)";
 
   return (
@@ -445,7 +456,13 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
           <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
-          <img src={logo} alt="SIME" className="h-9 w-auto" />
+          {tenantLogo && <img src={tenantLogo} alt={tenantName} className="h-9 w-auto max-w-[140px] object-contain" />}
+          {supportTenantId && (
+            <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-accent-foreground">
+              Modo suporte · {tenantName}
+              <button type="button" onClick={exitSupport} className="underline">Sair</button>
+            </span>
+          )}
         </div>
         {user && (
           <div className="flex items-center gap-2 sm:gap-4">
