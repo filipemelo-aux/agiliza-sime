@@ -68,12 +68,21 @@ serve(async (req) => {
 
     const userId = newUser.user.id;
 
+    // Multiempresa: o novo usuário pertence à empresa de quem o criou
+    const { data: callerMember } = await adminClient
+      .from("tenant_members").select("tenant_id").eq("user_id", caller.id).maybeSingle();
+    const tenantId = callerMember?.tenant_id ?? null;
+    if (tenantId) {
+      await adminClient.from("tenant_members").upsert({ user_id: userId, tenant_id: tenantId }, { onConflict: "user_id" });
+    }
+
     const { error: profileError } = await adminClient.from("profiles").insert({
       user_id: userId,
       full_name: name,
       email,
       category: "motorista",
       phone: null,
+      ...(tenantId ? { tenant_id: tenantId } : {}),
     });
     if (profileError) throw new Error("Erro ao criar perfil: " + profileError.message);
 
