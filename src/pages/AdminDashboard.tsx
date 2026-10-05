@@ -172,9 +172,11 @@ export default function AdminDashboard() {
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          {userName && (
-            <p className="text-lg text-muted-foreground mb-1">Olá, <span className="font-semibold text-foreground">{userName}</span>!</p>
-          )}
+          {tenantLogo ? (
+            <img src={tenantLogo} alt={tenantName} className="h-10 w-auto max-w-[180px] object-contain mb-1" />
+          ) : tenantName ? (
+            <p className="text-lg font-semibold text-foreground mb-1">{tenantName}</p>
+          ) : null}
           <h1 className="text-3xl font-bold font-display">Visão Geral</h1>
         </div>
 
