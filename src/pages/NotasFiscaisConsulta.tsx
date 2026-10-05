@@ -226,8 +226,8 @@ export default function NotasFiscaisConsulta() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const isToday = !!r.data_emissao && r.data_emissao.slice(0, 10) === todaySP;
-                const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : isToday ? "info" : "pending";
+                const isLatestBatch = latestBatchStart !== null && !!r.created_at && r.created_at >= latestBatchStart;
+                const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : isLatestBatch ? "info" : "pending";
                 return (
                   <tr key={r.id} className={`border-t cursor-pointer ${rowToneClass(tone as any)}`} onClick={() => setSelected((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; })}>
                     <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => setSelected((s) => { const n = new Set(s); v ? n.add(r.id) : n.delete(r.id); return n; })} /></td>
