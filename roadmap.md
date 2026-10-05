@@ -14,4 +14,4 @@
 - [x] Etapa 1 — tabelas de empresas, vínculos, segredos, certificados, papel superadmin, Sime como 1º tenant
 - [x] Etapa 2 — tenant_id + isolamento (61 tabelas), superadmin admin@fsm.app.br
 - [x] Etapa 3 — painel /superadmin (lista, cadastro, ativar/suspender). Falta: modo suporte, unicidades por tenant
-- [ ] Etapa 4 — white-label (useTenant, login, layout, documentos, focus-nfe por tenant)
+- [x] Etapa 4 — modo suporte, login neutra, nome/logo por empresa no menu (DACTE vetorial mantido fixo)
