@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { setReadOnlyMode, setReadOnlyUi } from "@/lib/readOnlyGuard";
 
-type AppRole = "admin" | "moderator" | "operador" | "consultor" | "user";
+type AppRole = "superadmin" | "admin" | "moderator" | "operador" | "consultor" | "user";
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
   isModerator: boolean;
   isOperador: boolean;
   isConsultor: boolean;
+  isSuperAdmin: boolean;
   loading: boolean;
 }
 
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   isModerator: false,
   isOperador: false,
   isConsultor: false,
+  isSuperAdmin: false,
   loading: true,
 });
 
@@ -130,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoading = loading || (user !== null && rolesLoading);
 
   return (
-    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, isOperador, isConsultor: roles.includes("consultor") && !isAdmin && !isModerator && !isOperador, loading: isLoading }}>
+    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, isOperador, isConsultor: roles.includes("consultor") && !isAdmin && !isModerator && !isOperador, isSuperAdmin: roles.includes("superadmin"), loading: isLoading }}>
       {children}
     </AuthContext.Provider>
   );

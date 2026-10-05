@@ -51,7 +51,9 @@ export default function Auth() {
     const isOperador = roles?.some((r) => r.role === "operador");
     
     const isConsultor = roles?.some((r) => r.role === "consultor");
-    if (isAdmin || isModerator || isOperador || isConsultor) {
+    if (roles?.some((r) => r.role === "superadmin")) {
+      navigate("/superadmin");
+    } else if (isAdmin || isModerator || isOperador || isConsultor) {
       navigate("/admin");
     } else {
       await supabase.auth.signOut();
