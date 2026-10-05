@@ -670,7 +670,7 @@ export function DreGerencial() {
 
       <SearchFilterCard contentClassName="block space-y-3">
           <FilterPrimaryRow>
-            <div className="space-y-1">
+            <div className="mr-auto space-y-1">
               <Label className="text-xs">Período</Label>
               <PeriodFilter
                 size="sm"

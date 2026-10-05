@@ -797,18 +797,20 @@ export function FinancialPaid() {
 
       <SearchFilterCard contentClassName="block space-y-2">
         <FilterPrimaryRow>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <CalendarIcon className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
-          </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <PeriodFilter
-              size="sm"
-              allowClear
-              inicio={periodoInicio}
-              fim={periodoFim}
-              onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
-            />
+          <div className="mr-auto flex items-end gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <PeriodFilter
+                size="sm"
+                allowClear
+                inicio={periodoInicio}
+                fim={periodoFim}
+                onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
+              />
+            </div>
           </div>
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </FilterPrimaryRow>
