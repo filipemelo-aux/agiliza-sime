@@ -15,3 +15,4 @@
 - [x] Compactar a disposição dos filtros do Fluxo de Caixa.
 - [x] Alterar o nome da plataforma para Agiliza ERP em todas as áreas e metadados.
 - [x] Selecionar e aplicar a nova logo do Agiliza ERP e seu favicon, identificando a FSM Softwares.
+- [x] Atualizar a marca para Agiliza TMS, um produto FSM Systems.
