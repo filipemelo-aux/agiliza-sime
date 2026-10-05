@@ -122,7 +122,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       <DialogContent className="max-w-4xl max-h-[92dvh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader><DialogTitle>{tenant ? "Editar empresa" : "Nova empresa"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Block title="1. Dados cadastrais">
+          <Block title={tenant ? "1. Dados cadastrais (matriz)" : "1. Dados cadastrais"}>
             <F label="CNPJ *"><div className="flex gap-1"><Input className="h-9" value={f.cnpj} onChange={set("cnpj")} />
               <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={buscarCnpj} disabled={looking} title="Buscar CNPJ">
                 {looking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}</Button></div></F>
@@ -160,7 +160,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
             <F label={`Certificado A1 (.pfx)${tenant?.certificate ? ` — atual: ${tenant.certificate.file_name}` : ""}`} span={3}>
               <Input type="file" accept=".pfx,.p12" className="h-9" onChange={(e) => setCertFile(e.target.files?.[0] || null)} /></F>
             <F label={`Senha do certificado (${saved(tenant?.has_certificate_password)})`} span={3}><Input type="password" className="h-9" value={certPass} onChange={(e) => setCertPass(e.target.value)} autoComplete="new-password" /></F>
-            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente.</p>
+            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
           </Block>
 
           {tenant && <TenantEstablishments tenantId={tenant.id} tenantCnpj={tenant.cnpj} tenantName={tenant.razao_social} />}
