@@ -179,7 +179,6 @@ export default function AdminDashboard() {
           ) : tenantName ? (
             <p className="text-lg font-semibold text-foreground mb-1">{tenantName}</p>
           ) : null}
-          <h1 className="text-3xl font-bold font-display">Visão Geral</h1>
         </div>
 
         {/* Atalhos rápidos */}

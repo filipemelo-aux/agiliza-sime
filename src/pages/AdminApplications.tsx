@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -581,10 +582,7 @@ export default function AdminApplications() {
     <AdminLayout>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-display">Ordens de Carregamento</h1>
-          <p className="text-muted-foreground">Gerencie as solicitações de ordem de carregamento</p>
-        </div>
+        <PageTitle>Ordens de Carregamento</PageTitle>
 
         {loading ? (
           <div className="flex justify-center py-12">

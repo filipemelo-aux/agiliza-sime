@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -194,10 +195,7 @@ export default function AdminFuelOrders() {
   return (
     <AdminLayout>
       <main className="container mx-auto px-4 py-6 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display">Ordens de Abastecimento</h1>
-          <p className="text-sm text-muted-foreground">Gerencie ordens de abastecimento de veículos</p>
-        </div>
+        <PageTitle>Ordens de Abastecimento</PageTitle>
 
         <GlobalToolbar actions={actions} selectedCount={selectedIds.size} />
 

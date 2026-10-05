@@ -1,8 +1,8 @@
+import { PageTitle } from "@/components/PageTitle";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useState } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -586,10 +586,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     <AdminLayout>
       <ProcessingOverlay open={transmitting || bulkDeleting || !!deletingId} label={transmitting ? "Transmitindo à SEFAZ..." : "Excluindo..."} />
       <div className="container mx-auto px-4 py-8">
-        <BackButton to="/admin" label="Dashboard" />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-3xl font-bold font-display">CT-e</h1>
-        </div>
+        <PageTitle>CT-e</PageTitle>
 
 
         <div className="flex flex-col gap-2 mb-6">

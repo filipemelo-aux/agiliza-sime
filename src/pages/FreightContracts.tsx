@@ -1,7 +1,7 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useMemo, useState } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -324,15 +324,7 @@ export default function FreightContracts() {
     <AdminLayout>
       <div className="container mx-auto px-4 py-6 space-y-4">
         <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-xl font-semibold flex items-center gap-2">
-              <FileSignature className="w-5 h-5" /> Contratos de Frete
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Contratos de fretamento vinculados a CT-e com geração de conta a pagar.
-            </p>
-          </div>
+          <PageTitle>Contratos de Frete</PageTitle>
         </div>
 
         {/* Filtros */}

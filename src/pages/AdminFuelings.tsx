@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -165,10 +166,7 @@ export default function AdminFuelings() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Abastecimentos</h1>
-          <p className="text-sm text-muted-foreground">Registre abastecimentos e gere contas a pagar</p>
-        </div>
+        <PageTitle>Abastecimentos</PageTitle>
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

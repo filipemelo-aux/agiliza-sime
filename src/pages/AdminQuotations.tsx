@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -262,10 +263,7 @@ export default function AdminQuotations() {
   return (
     <AdminLayout>
       <main className="container mx-auto px-4 py-6 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display">Cotações</h1>
-          <p className="text-sm text-muted-foreground">Gerencie propostas de frete e serviços de colheita</p>
-        </div>
+        <PageTitle>Cotações</PageTitle>
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selectedIds.size} />
 

@@ -1,6 +1,6 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign, XCircle, Ban, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,8 +88,7 @@ export default function FreightDashboard() {
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
-        <BackButton to="/admin" label="Dashboard" />
-        <h1 className="text-3xl font-bold font-display mb-6">Dashboard — Fretes</h1>
+        <PageTitle>Dashboard — Fretes</PageTitle>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           {cards.map((c) => (

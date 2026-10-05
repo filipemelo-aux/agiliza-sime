@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useMemo } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -302,9 +303,7 @@ export default function AdminMaintenances() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h1 className="text-2xl font-bold text-foreground">Manutenções</h1>
-        </div>
+        <PageTitle>Manutenções</PageTitle>
 
 
         {/* Summary */}

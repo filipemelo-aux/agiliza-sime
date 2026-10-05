@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel, Gauge, DollarSign, Droplet } from "lucide-react";
@@ -290,10 +291,7 @@ export default function AdminVehicles() {
   return (
     <AdminLayout>
       <main className="p-4 md:p-6 space-y-3">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Veículos</h1>
-          <p className="text-xs text-muted-foreground">Gerencie a frota de veículos do sistema</p>
-        </div>
+        <PageTitle>Veículos</PageTitle>
 
         {(() => {
           const totals = Object.values(metricsByVehicle).reduce(

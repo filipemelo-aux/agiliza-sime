@@ -1695,9 +1695,6 @@ export default function HarvestDetail() {
         {/* Back + Title */}
         <div className="flex flex-col gap-2 mb-6">
           <div className="flex items-center gap-4">
-            <Link to="/admin/harvest">
-              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-            </Link>
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold font-display truncate">{job.farm_name}</h1>
               <p className="text-muted-foreground flex items-center gap-1 text-sm">
