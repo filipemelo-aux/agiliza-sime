@@ -178,6 +178,13 @@ export default function AdminDashboard() {
       <main className="container mx-auto px-4 py-3">
         <PageTitle>Página Inicial</PageTitle>
 
+        {/* Assinatura da marca */}
+        <div className="flex items-center gap-2.5 mb-3 ml-1">
+          <img src={agilizaTmsLogo} alt="Agiliza TMS" className="h-9 w-auto" />
+          <span className="text-[10px] font-medium text-muted-foreground">by</span>
+          <img src={fsmSystemsLogo} alt="FSM Systems" className="h-5 w-auto" />
+        </div>
+
         {/* Atalhos rápidos */}
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Acesso Rápido</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2 mb-8">
