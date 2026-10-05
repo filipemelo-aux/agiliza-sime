@@ -57,6 +57,7 @@ export function readNfeXmlInfo(xml: string) {
  */
 export async function syncNfesRecebidas(establishments: { id: string; cnpj: string }[]) {
   let novas = 0;
+  const erros: string[] = [];
   for (const est of establishments) {
     const cnpj = digits(est.cnpj);
     if (cnpj.length !== 14) continue;
@@ -69,7 +70,9 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
       .maybeSingle();
     let versao: number | undefined = (last as any)?.versao ?? undefined;
     for (let page = 0; page < 30; page++) {
-      const list = await invokeFocus({ action: "nfes_recebidas", cnpj, ...(versao ? { versao } : {}) });
+      let list: any;
+      try { list = await invokeFocus({ action: "nfes_recebidas", cnpj, ...(versao ? { versao } : {}) }); }
+      catch (e: any) { erros.push(`${cnpj}: ${e.message}`); break; }
       const items: any[] = Array.isArray(list) ? list : [];
       if (!items.length) break;
       // A SEFAZ devolve a mesma chave mais de uma vez (resumo e nota completa): mantém a versão mais recente.
@@ -104,6 +107,16 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
       versao = maxV;
     }
 
+  }
+  if (!novas && erros.length === establishments.length && erros.length) throw new Error(erros[0]);
+  return novas;
+}
+
+/** Baixa em segundo plano o XML das notas ainda sem XML (leitura; não consome o plano). */
+export async function fillMissingNfeXml(establishments: { id: string; cnpj: string }[]) {
+  for (const est of establishments) {
+    const cnpj = digits(est.cnpj);
+    if (cnpj.length !== 14) continue;
     // Baixa XML das notas ainda sem XML (leitura; não consome autorizações do plano).
     const { data: pend } = await supabase
       .from("nfes_recebidas" as any)
@@ -127,8 +140,7 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
       }
     } }));
   }
-  return novas;
-}
+
 
 export async function ensureNfeXml(n: NfeRecebida, cnpj: string): Promise<string> {
   if (n.xml) return n.xml;
