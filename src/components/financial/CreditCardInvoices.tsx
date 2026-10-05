@@ -201,11 +201,10 @@ export function CreditCardInvoices() {
         <PageTitle>Cartão de Crédito</PageTitle>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <GlobalToolbar actions={actions} selectedCount={selected.size} filtersFirstOnMobile>
+        <span className="text-[10px] font-semibold uppercase text-muted-foreground">Empresa</span>
         <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-      </div>
-
-      <GlobalToolbar actions={actions} selectedCount={selected.size} />
+      </GlobalToolbar>
 
       <DataGrid
         rows={visibleInvoices}

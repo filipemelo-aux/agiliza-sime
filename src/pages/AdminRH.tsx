@@ -145,8 +145,8 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <PageTitle className="!mb-0">Recursos Humanos</PageTitle>
+        <PageTitle className="!mb-0">{{ colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Mês</Label>
             <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
@@ -495,17 +495,18 @@ function RHWorkspace(props: any) {
 
         {section === "folha_pagamento" && (
           <div className="space-y-3">
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                className="h-8 gap-1.5"
-                onClick={() => setWizardOpen(true)}
-                disabled={!settings.folhaAccountId}
-                title={!settings.folhaAccountId ? "Configure a conta 'Salários' em Configurações" : "Abrir assistente de geração da folha"}
-              >
-                <Sparkles className="h-3.5 w-3.5" /> Gerar folha de pagamento
-              </Button>
-            </div>
+            <GlobalToolbar
+              actions={[{
+                key: "generate-payroll",
+                label: "Gerar folha de pagamento",
+                icon: Sparkles,
+                mode: "always",
+                variant: "default",
+                onClick: () => setWizardOpen(true),
+                disabled: !settings.folhaAccountId,
+              }]}
+              selectedCount={0}
+            />
 
             {matrizId && user?.id && (
               <FolhasEmAbertoList

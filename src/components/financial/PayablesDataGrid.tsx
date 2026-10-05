@@ -18,6 +18,7 @@ import { ArrowUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
 
 type StatusFilter = "todos" | "atrasado" | "aberto" | "pago";
 
@@ -454,7 +455,14 @@ tfoot{display:table-row-group}
 
   return (
     <div className="flex flex-col gap-1 h-[calc(100vh-132px)]">
-      <div className="flex flex-wrap items-center gap-1 px-0.5">
+      <GlobalToolbar
+        actions={[
+          { key: "generate", label: loading ? "Gerando" : "Gerar relatório", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: load },
+          { key: "print", label: "Imprimir", icon: Printer, mode: "always", disabled: loading || sorted.length === 0, onClick: handlePrint },
+        ]}
+        selectedCount={0}
+        filtersFirstOnMobile
+      >
         <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
         <span className="text-[10px] text-muted-foreground">até</span>
         <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
@@ -517,15 +525,8 @@ tfoot{display:table-row-group}
             </div>
           </PopoverContent>
         </Popover>
-        <Button size="sm" className="h-7 text-[11px] px-2 py-0" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-          Gerar Relatório
-        </Button>
-        <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 py-0 gap-1" onClick={handlePrint} disabled={loading || sorted.length === 0}>
-          <Printer className="h-3 w-3" /> Imprimir
-        </Button>
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-      </div>
+      </GlobalToolbar>
 
       <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col relative">
         {loading && (

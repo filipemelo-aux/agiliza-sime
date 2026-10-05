@@ -64,7 +64,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
             <ChartOfAccounts />
           </>
         )}
-        {section === "cashflow" && <QuickPrint title="Fluxo de Caixa"><FinancialCashFlow /></QuickPrint>}
+        {section === "cashflow" && <FinancialCashFlow />}
         {section === "reconciliation" && <BankReconciliation />}
         {section === "credit-card" && <CreditCardInvoices />}
         {section === "checks" && <FinancialChecks />}
