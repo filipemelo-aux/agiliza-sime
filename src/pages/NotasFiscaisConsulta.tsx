@@ -256,7 +256,7 @@ export default function NotasFiscaisConsulta() {
           </table>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <StatusLegend items={[{ tone: "info", label: "Recebida hoje" }, { tone: "pending", label: "Disponível" }, { tone: "resolved", label: "Utilizada (despesa/CT-e)" }, { tone: "cancelled", label: "Cancelada" }] as any} />
+          <StatusLegend items={[{ tone: "info", label: "Recebidas na última consulta" }, { tone: "pending", label: "Disponível" }, { tone: "resolved", label: "Utilizada (despesa/CT-e)" }, { tone: "cancelled", label: "Cancelada" }] as any} />
           <span>{filtered.length} nota(s) · {formatCurrency(total)}</span>
         </div>
       </div>
