@@ -282,27 +282,11 @@ function SidebarNav() {
     if (saved > 0) el.scrollTop = saved;
   }, [location.pathname]);
 
-  const { name: tenantName } = useTenant();
-  const [brandFirst, ...brandRestArr] = (tenantName || "SIME TRANSPORTES").split(" ");
-  const brandRest = brandRestArr.join(" ");
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
-      {/* Branding no topo da sidebar */}
-      <div className="h-16 flex items-center justify-between gap-2 px-3 shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-        <div className="min-w-0 leading-none group-data-[collapsible=icon]:hidden">
-          <span
-            className="block text-base text-primary whitespace-nowrap"
-            style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
-          >
-            {brandFirst} {brandRest && <span className="text-accent">{brandRest}</span>}
-          </span>
-        </div>
-        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
-          <ArrowLeftRight />
-        </SidebarTrigger>
-      </div>
-      <div className="px-3 pb-2 shrink-0 group-data-[collapsible=icon]:hidden">
-        <div className="relative">
+      {/* Busca + botão de recolher na mesma linha */}
+      <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
+        <div className="relative flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -316,6 +300,9 @@ function SidebarNav() {
             </button>
           )}
         </div>
+        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
+          <ArrowLeftRight />
+        </SidebarTrigger>
       </div>
 
       <SidebarContentUI
@@ -452,11 +439,21 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
         className="fixed top-0 right-0 z-30 h-14 border-b border-border/40 backdrop-blur-xl bg-background/80 flex items-center justify-between px-4 transition-[left] duration-200 ease-out"
         style={{ left: headerLeft }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
-          {tenantLogo && <img src={tenantLogo} alt={tenantName} className="h-9 w-auto max-w-[140px] object-contain" />}
+          {tenantLogo && <img src={tenantLogo} alt={tenantName} className="h-9 w-auto max-w-[110px] object-contain shrink-0" />}
+          <span
+            className="hidden sm:block text-[15px] whitespace-nowrap"
+            style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
+          >
+            ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
+          </span>
+          <span className="hidden md:inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground whitespace-nowrap">
+            <Building2 className="h-3 w-3" />
+            {tenantName || "SIME TRANSPORTES"}
+          </span>
           {supportTenantId && (
             <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-accent-foreground">
               Modo suporte · {tenantName}
