@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { X, ArrowLeftRight, LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards } from "lucide-react";
+import { X, ArrowLeftRight, LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards, Building2 } from "lucide-react";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { useTenant } from "@/hooks/useTenant";
 import { Button } from "@/components/ui/button";
