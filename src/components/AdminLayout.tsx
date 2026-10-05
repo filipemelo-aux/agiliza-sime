@@ -215,6 +215,7 @@ function filterMenu(items: any[], hidden: (u: string) => boolean): any[] {
 function SidebarNav() {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
+  const { logo: tenantLogo, name: tenantName } = useTenant();
   const { canAccessSettings } = useUserRole();
   const { getRule } = usePageAccess();
   const baseMenuItems = filterMenu(
