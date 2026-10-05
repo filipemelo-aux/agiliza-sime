@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
   if (cnpj && cnpj.length !== 14) return json({ error: "CNPJ inválido" }, 400);
 
   // Consultas de documentos recebidos usam produção (somente leitura). Emissão segue em homologação.
-  const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave" || action === "cte_por_chave";
+  const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave" || action === "cte_por_chave" || action === "nfe_pdf_por_chave";
   const ambiente = isQuery && tok(true) ? "producao" : "homologacao";
   const token = tok(ambiente === "producao");
   if (!token) return json({ error: "Token Focus NFe não configurado" }, 500);
@@ -322,6 +322,15 @@ Deno.serve(async (req) => {
       if (chave.length !== 44) return json({ error: "Chave de NF-e inválida" }, 400);
       path = `/v2/nfes_recebidas/${chave}.xml`;
       break;
+    }
+    case "nfe_pdf_por_chave": {
+      const chave = String((body as any).chave ?? "").replace(/\D/g, "");
+      if (chave.length !== 44) return json({ error: "Chave de NF-e inválida" }, 400);
+      const r = await fetch(`${base}/v2/nfes_recebidas/${chave}.pdf`, { headers: { Authorization: "Basic " + btoa(token + ":") } });
+      if (!r.ok) return json({ ok: false, status: r.status, data: { mensagem: r.status === 404 ? "DANFE ainda não disponível para esta nota." : await r.text() } }, 200);
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return json({ ok: true, status: 200, data: { pdf_base64: btoa(bin) } }, 200);
     }
     case "emitir_cte":
       if (!ref || !body.cte) return json({ error: "Informe ref e cte" }, 400);

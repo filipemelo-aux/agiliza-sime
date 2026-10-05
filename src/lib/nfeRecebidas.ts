@@ -57,6 +57,7 @@ export function readNfeXmlInfo(xml: string) {
  */
 export async function syncNfesRecebidas(establishments: { id: string; cnpj: string }[]) {
   let novas = 0;
+  const erros: string[] = [];
   for (const est of establishments) {
     const cnpj = digits(est.cnpj);
     if (cnpj.length !== 14) continue;
@@ -67,29 +68,55 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
       .order("versao", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
-    const versao = (last as any)?.versao ?? undefined;
-    const list = await invokeFocus({ action: "nfes_recebidas", cnpj, ...(versao ? { versao } : {}) });
-    const items: any[] = Array.isArray(list) ? list : [];
-    if (items.length) {
-      const rows = items
-        .filter((i) => digits(i.chave_nfe).length === 44)
-        .map((i) => ({
-          establishment_id: est.id,
-          chave: digits(i.chave_nfe),
-          data_emissao: i.data_emissao || null,
-          emitente_nome: i.nome_emitente || null,
-          emitente_cnpj: digits(i.documento_emitente) || null,
-          valor: Number(i.valor_total) || 0,
-          situacao: String(i.situacao || "autorizada").toLowerCase(),
-          numero: digits(i.chave_nfe).length === 44 ? String(Number(digits(i.chave_nfe).slice(25, 34))) : null,
-          serie: digits(i.chave_nfe).length === 44 ? String(Number(digits(i.chave_nfe).slice(22, 25))) : null,
-          versao: Number(i.versao) || null,
-        }));
-      const { error } = await supabase.from("nfes_recebidas" as any).upsert(rows as any, { onConflict: "tenant_id,chave", ignoreDuplicates: false });
-      if (error) throw new Error(error.message);
-      novas += rows.length;
+    let versao: number | undefined = (last as any)?.versao ?? undefined;
+    for (let page = 0; page < 30; page++) {
+      let list: any;
+      try { list = await invokeFocus({ action: "nfes_recebidas", cnpj, ...(versao ? { versao } : {}) }); }
+      catch (e: any) { erros.push(`${cnpj}: ${e.message}`); break; }
+      const items: any[] = Array.isArray(list) ? list : [];
+      if (!items.length) break;
+      // A SEFAZ devolve a mesma chave mais de uma vez (resumo e nota completa): mantém a versão mais recente.
+      const byKey = new Map<string, any>();
+      for (const i of items) {
+        const k = digits(i.chave_nfe);
+        if (k.length !== 44) continue;
+        const prev = byKey.get(k);
+        if (!prev || Number(i.versao) > Number(prev.versao)) byKey.set(k, i);
+      }
+      const rows = [...byKey.entries()].map(([k, i]) => ({
+        establishment_id: est.id,
+        chave: k,
+        data_emissao: i.data_emissao || null,
+        emitente_nome: i.nome_emitente || null,
+        emitente_cnpj: digits(i.documento_emitente) || null,
+        destinatario_cnpj: digits(i.cnpj_destinatario || i.cpf_destinatario) || null,
+        ator: digits(i.cnpj_destinatario) === cnpj ? "destinatario" : "transportadora",
+        valor: Number(i.valor_total) || 0,
+        situacao: String(i.situacao || "autorizada").toLowerCase(),
+        numero: String(Number(k.slice(25, 34))),
+        serie: String(Number(k.slice(22, 25))),
+        versao: Number(i.versao) || null,
+      }));
+      if (rows.length) {
+        const { error } = await supabase.from("nfes_recebidas" as any).upsert(rows as any, { onConflict: "tenant_id,chave" });
+        if (error) throw new Error(error.message);
+        novas += rows.length;
+      }
+      const maxV = Math.max(...items.map((i) => Number(i.versao) || 0));
+      if (!maxV || maxV === versao || items.length < 50) break;
+      versao = maxV;
     }
 
+  }
+  if (!novas && erros.length === establishments.length && erros.length) throw new Error(erros[0]);
+  return novas;
+}
+
+/** Baixa em segundo plano o XML das notas ainda sem XML (leitura; não consome o plano). */
+export async function fillMissingNfeXml(establishments: { id: string; cnpj: string }[]) {
+  for (const est of establishments) {
+    const cnpj = digits(est.cnpj);
+    if (cnpj.length !== 14) continue;
     // Baixa XML das notas ainda sem XML (leitura; não consome autorizações do plano).
     const { data: pend } = await supabase
       .from("nfes_recebidas" as any)
@@ -97,7 +124,8 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
       .eq("establishment_id", est.id)
       .is("xml", null)
       .limit(40);
-    for (const p of (pend as any[]) || []) {
+    const pendList = (pend as any[]) || [];
+    await Promise.all([0, 1, 2, 3, 4].map(async (w) => { for (let idx = w; idx < pendList.length; idx += 5) { const p = pendList[idx];
       try {
         const xml = await invokeFocus({ action: "nfe_por_chave", chave: p.chave, cnpj });
         if (typeof xml !== "string") continue;
@@ -105,13 +133,13 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
         const ator: NfeAtor = info.destinatario_cnpj === cnpj
           ? "destinatario"
           : info.transportadora_cnpj === cnpj ? "transportadora" : "destinatario";
+        if (!info.destinatario_cnpj) delete (info as any).destinatario_cnpj;
         await supabase.from("nfes_recebidas" as any).update({ xml, ator, ...info } as any).eq("id", p.id);
       } catch {
         /* nota sem XML completo disponível ainda */
       }
-    }
+    } }));
   }
-  return novas;
 }
 
 export async function ensureNfeXml(n: NfeRecebida, cnpj: string): Promise<string> {
@@ -130,4 +158,14 @@ export async function fetchCtesRecebidas(cnpj: string) {
 export async function fetchCteRecebidoXml(chave: string, cnpj: string) {
   const xml = await invokeFocus({ action: "cte_por_chave", chave, cnpj: digits(cnpj) });
   return typeof xml === "string" ? xml : null;
+}
+
+export async function fetchNfePdf(chave: string, cnpj: string): Promise<Blob> {
+  const data = await invokeFocus({ action: "nfe_pdf_por_chave", chave, cnpj: digits(cnpj) });
+  const b64 = data?.pdf_base64;
+  if (!b64) throw new Error("DANFE indisponível");
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: "application/pdf" });
 }
