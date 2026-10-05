@@ -241,7 +241,7 @@ export default function NotasFiscaisConsulta() {
                 );
               })}
               {!filtered.length && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma nota no período. Abra o card Filtrar e clique em Filtrar para consultar as notas recebidas na SEFAZ.</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma nota no período. Use o botão da SEFAZ na barra para buscar notas novas.</td></tr>
               )}
             </tbody>
           </table>
