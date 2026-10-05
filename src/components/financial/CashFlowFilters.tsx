@@ -1,14 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
+import { Filter, RotateCcw, X } from "lucide-react";
 import { PlanoContasCombobox, PlanoContaOption } from "./PlanoContasCombobox";
 import { PeriodFilter } from "@/components/PeriodFilter";
 
@@ -29,6 +25,7 @@ interface CashFlowFiltersProps {
   filters: CashFlowFilterValues;
   onChange: (filters: CashFlowFilterValues) => void;
   chartAccounts?: PlanoContaOption[];
+  primaryFilter?: React.ReactNode;
 }
 
 function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; dataFim: Date | null } {
@@ -41,7 +38,7 @@ function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; data
   return { dataInicio: null, dataFim: null };
 }
 
-export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFiltersProps) {
+export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilter }: CashFlowFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const update = (partial: Partial<CashFlowFilterValues>) => {
@@ -80,28 +77,12 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
   ];
 
   return (
-    <div className="space-y-3">
-      {/* Quick period buttons */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {periodButtons.map((p) => (
-          <Button
-            key={p.key}
-            variant={filters.quickPeriod === p.key ? "default" : "outline"}
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => setQuickPeriod(p.key)}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Secondary filters row */}
-      <div className="flex flex-wrap items-end gap-4">
-        {/* Date range */}
-        <div>
-          <Label className="text-xs text-muted-foreground">Período</Label>
+    <div className="space-y-2">
+      <div className="flex min-w-0 flex-wrap items-end justify-end gap-2">
+        <div className="space-y-1">
+          <Label className="text-[11px] text-muted-foreground">Período</Label>
           <PeriodFilter
+            size="sm"
             inicio={filters.dataInicio ? format(filters.dataInicio, "yyyy-MM-dd") : ""}
             fim={filters.dataFim ? format(filters.dataFim, "yyyy-MM-dd") : ""}
             allowClear
@@ -114,11 +95,19 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
             }
           />
         </div>
+        {primaryFilter}
+      </div>
 
-
-        {/* Type filter */}
-        <div>
-          <Label className="text-xs text-muted-foreground">Tipo</Label>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {periodButtons.map((p) => (
+            <Button key={p.key} variant={filters.quickPeriod === p.key ? "default" : "outline"} size="sm" className="h-8 px-2.5 text-xs" onClick={() => setQuickPeriod(p.key)}>
+              {p.label}
+            </Button>
+          ))}
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[11px] text-muted-foreground">Tipo</Label>
           <Select value={filters.tipo} onValueChange={(v) => update({ tipo: v as CashFlowFilterValues["tipo"] })}>
             <SelectTrigger className="w-[130px] h-9">
               <SelectValue />
@@ -131,9 +120,8 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
           </Select>
         </div>
 
-        {/* Origin filter */}
-        <div>
-          <Label className="text-xs text-muted-foreground">Origem</Label>
+        <div className="space-y-1">
+          <Label className="text-[11px] text-muted-foreground">Origem</Label>
           <Select value={filters.origem} onValueChange={(v) => update({ origem: v as CashFlowFilterValues["origem"] })}>
             <SelectTrigger className="w-[160px] h-9">
               <SelectValue />
@@ -149,10 +137,9 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
           </Select>
         </div>
 
-        {/* Plano de contas filter */}
         {chartAccounts && (
-          <div className="min-w-[220px]">
-            <Label className="text-xs text-muted-foreground">Plano de Contas</Label>
+          <div className="min-w-[220px] space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Plano de Contas</Label>
             <PlanoContasCombobox
               value={filters.planoContasId}
               onChange={(v) => update({ planoContasId: v })}
@@ -167,9 +154,6 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
             />
           </div>
         )}
-
-
-        {/* Advanced toggle */}
         <Button
           variant={hasAdvancedFilters ? "secondary" : "ghost"}
           size="sm"
@@ -185,7 +169,6 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
           )}
         </Button>
 
-        {/* Clear all filters */}
         {hasAnyFilter && (
           <Button
             variant="ghost"
@@ -198,11 +181,10 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
         )}
       </div>
 
-      {/* Advanced filters */}
       {showAdvanced && (
-        <div className="flex flex-wrap items-end gap-4 p-3 rounded-md border border-border bg-muted/30">
-          <div>
-            <Label className="text-xs text-muted-foreground">Valor mínimo</Label>
+        <div className="flex flex-wrap items-end gap-2 rounded-md border border-border bg-muted/30 p-2">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Valor mínimo</Label>
             <Input
               type="number"
               placeholder="0,00"
@@ -211,8 +193,8 @@ export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFi
               onChange={(e) => update({ valorMin: e.target.value })}
             />
           </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Valor máximo</Label>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Valor máximo</Label>
             <Input
               type="number"
               placeholder="0,00"

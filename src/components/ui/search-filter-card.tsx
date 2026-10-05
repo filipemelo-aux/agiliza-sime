@@ -11,6 +11,20 @@ interface SearchFilterCardProps {
   label?: string;
 }
 
+interface FilterPrimaryRowProps {
+  children: ReactNode;
+  className?: string;
+}
+
+/** Primeira linha dos filtros: período e empresa alinhados juntos à direita. */
+export function FilterPrimaryRow({ children, className }: FilterPrimaryRowProps) {
+  return (
+    <div className={cn("flex min-w-0 flex-wrap items-end justify-end gap-2", className)}>
+      {children}
+    </div>
+  );
+}
+
 /** Faixa única para busca, período, ordenação e filtros de listagens. */
 export function SearchFilterCard({
   children,

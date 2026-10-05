@@ -21,7 +21,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 interface InstallmentInfo {
@@ -796,12 +796,12 @@ export function FinancialPaid() {
       </div>
 
       <SearchFilterCard contentClassName="block space-y-2">
-        <div className="flex items-center gap-2 flex-wrap">
+        <FilterPrimaryRow>
           <div className="flex items-center gap-1.5 shrink-0">
             <CalendarIcon className="h-4 w-4 text-primary" />
             <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
           </div>
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             <PeriodFilter
               size="sm"
               allowClear
@@ -811,7 +811,7 @@ export function FinancialPaid() {
             />
           </div>
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-        </div>
+        </FilterPrimaryRow>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex-1 min-w-0 relative">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
