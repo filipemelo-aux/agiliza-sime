@@ -5310,6 +5310,10 @@ export type Database = {
           logo_url: string | null
           logradouro: string | null
           municipio: string | null
+          nfe_last_auto_sync_at: string | null
+          nfe_sync_enabled: boolean
+          nfe_sync_interval_hours: number
+          nfe_sync_start_hour: number
           nome_fantasia: string | null
           numero: string | null
           razao_social: string
@@ -5333,6 +5337,10 @@ export type Database = {
           logo_url?: string | null
           logradouro?: string | null
           municipio?: string | null
+          nfe_last_auto_sync_at?: string | null
+          nfe_sync_enabled?: boolean
+          nfe_sync_interval_hours?: number
+          nfe_sync_start_hour?: number
           nome_fantasia?: string | null
           numero?: string | null
           razao_social: string
@@ -5356,6 +5364,10 @@ export type Database = {
           logo_url?: string | null
           logradouro?: string | null
           municipio?: string | null
+          nfe_last_auto_sync_at?: string | null
+          nfe_sync_enabled?: boolean
+          nfe_sync_interval_hours?: number
+          nfe_sync_start_hour?: number
           nome_fantasia?: string | null
           numero?: string | null
           razao_social?: string
