@@ -121,9 +121,11 @@ interface Props {
   chartAccounts: ChartAccount[];
   onSaved: (savedExpenseId?: string) => void;
   initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string; favorecidoId?: string | null; favorecidoNome?: string | null } | null;
+  /** XML de NF-e para pré-importar ao abrir (ex.: vindo da consulta de notas recebidas). */
+  initialXml?: string | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues, initialXml }: Props) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
@@ -513,6 +515,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
   };
+
+  useEffect(() => {
+    if (!open || expense || !initialXml) return;
+    const t = setTimeout(() => {
+      const file = new File([initialXml], "nfe.xml", { type: "text/xml" });
+      handleXmlImport({ target: { files: [file], value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>);
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialXml]);
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
