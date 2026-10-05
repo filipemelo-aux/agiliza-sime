@@ -24,6 +24,7 @@ import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { SummaryCard } from "@/components/SummaryCard";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -976,8 +977,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
 
 
-          <Card>
-            <CardContent className="p-3 space-y-3">
+          <SearchFilterCard contentClassName="block space-y-3">
               {TIPO_DATA_OPTIONS[reportType] && (
                 <div className="space-y-1">
                   <Label className="text-xs">Filtrar período por</Label>
@@ -1164,8 +1164,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+          </SearchFilterCard>
 
           {rows.length > 0 && (
             <div className="mt-3 space-y-3">
