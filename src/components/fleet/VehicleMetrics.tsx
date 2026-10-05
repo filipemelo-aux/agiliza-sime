@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -317,8 +318,7 @@ export default function VehicleMetrics() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Métricas por Veículo</h1>
-        <p className="text-sm text-muted-foreground">Dashboard de performance financeira e operacional da frota</p>
+        <PageTitle>Métricas por Veículo</PageTitle>
       </div>
 
       <Card>

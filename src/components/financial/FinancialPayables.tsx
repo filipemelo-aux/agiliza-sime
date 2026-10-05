@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -1468,7 +1469,7 @@ tfoot{display:table-row-group}
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
+          <PageTitle>Contas a Pagar</PageTitle>
           <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a vencer. Use as abas de status (Em Aberto, Pago, Atrasado) para gestão de boletos e faturas pendentes." />
         </div>
       </div>

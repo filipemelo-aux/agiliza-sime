@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -483,8 +484,7 @@ export function RevenueForecasts() {
     <div className="space-y-3">
       {ConfirmDialog}
       <div>
-        <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
-        <p className="text-xs text-muted-foreground">Previsões geradas por CT-e, colheita ou lançamento manual.</p>
+        <PageTitle>Previsões de Recebimento</PageTitle>
       </div>
 
       <ManualForecastDialog

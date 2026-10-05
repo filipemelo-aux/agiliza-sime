@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -197,8 +198,7 @@ export function CreditCardInvoices() {
   return (
     <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold text-foreground">Cartão de Crédito</h1>
-        <p className="text-xs text-muted-foreground">Importe arquivos OFX e classifique os lançamentos para gerar uma despesa única no Contas a Pagar.</p>
+        <PageTitle>Cartão de Crédito</PageTitle>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

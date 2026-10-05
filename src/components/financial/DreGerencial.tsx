@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -652,7 +653,7 @@ export function DreGerencial() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h1 className="text-lg font-bold text-foreground">DRE Gerencial</h1>
+        <PageTitle>DRE Gerencial</PageTitle>
         <ReportInfoTooltip text="Regime de COMPETÊNCIA PURA: receitas pela data de emissão do CT-e/serviço; despesas pela data de competência (fato gerador); cartão de crédito pela data original da compra com o valor total da compra parcelada lançado de uma vez." />
       </div>
 
