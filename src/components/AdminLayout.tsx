@@ -425,7 +425,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void }) {
   const navigate = useNavigate();
   const { supportTenantId } = useUserRole();
-  const { logo: tenantLogo, name: tenantName } = useTenant();
+  const { name: tenantName } = useTenant();
   const exitSupport = async () => {
     await (supabase.rpc as any)("set_support_tenant", { _tenant_id: null });
     window.location.href = "/superadmin";
@@ -442,8 +442,8 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
       >
         ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
       </span>
-      <span className="ml-2 hidden sm:inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground whitespace-nowrap">
-        <Building2 className="h-3 w-3" />
+      <span className="ml-2 hidden sm:inline-flex items-center gap-1.5 rounded-md bg-primary-foreground/10 px-3 py-1.5 text-xs whitespace-nowrap">
+        <Building2 className="h-4 w-4" />
         {tenantName || "SIME TRANSPORTES"}
       </span>
       {supportTenantId && (
@@ -453,7 +453,6 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
         </span>
       )}
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        {tenantLogo && <img src={tenantLogo} alt={tenantName} className="h-8 w-auto max-w-[100px] object-contain shrink-0" />}
         {user && (
           <>
             <NotificationBell userId={user.id} />
