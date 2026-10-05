@@ -404,16 +404,10 @@ function SidebarNav() {
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isSuperAdmin, supportTenantId, loading } = useUserRole();
-  const { logo: tenantLogo, name: tenantName } = useTenant();
   const navigateTo = useNavigate();
   useEffect(() => {
     if (!loading && isSuperAdmin && !supportTenantId) navigateTo("/superadmin", { replace: true });
   }, [loading, isSuperAdmin, supportTenantId, navigateTo]);
-
-  const exitSupport = async () => {
-    await (supabase.rpc as any)("set_support_tenant", { _tenant_id: null });
-    window.location.href = "/superadmin";
-  };
 
   const handleLogout = async () => {
     try {
@@ -442,6 +436,14 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
   const { state, isMobile } = useSidebar();
   const navigate = useNavigate();
   const isExpanded = state === "expanded";
+  const { supportTenantId } = useUserRole();
+  const { logo: tenantLogo, name: tenantName } = useTenant();
+  const exitSupport = async () => {
+    await (supabase.rpc as any)("set_support_tenant", { _tenant_id: null });
+    window.location.href = "/superadmin";
+  };
+
+
   const headerLeft = isMobile ? "0px" : isExpanded ? "var(--sidebar-width)" : "var(--sidebar-width-icon)";
 
   return (
