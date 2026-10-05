@@ -1778,21 +1778,6 @@ ${hasRecebimentos ? `
         <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-        <Input
-          placeholder="Buscar cliente..."
-          value={filterCliente}
-          onChange={(e) => setFilterCliente(e.target.value)}
-          className="h-8 w-[220px] text-xs"
-        />
-        {filterCliente && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterCliente("")}>
-            <X className="h-3 w-3" /> Limpar
-          </Button>
-        )}
-      </div>
-
       <GlobalToolbar
         actions={[
           { key: "new", label: "Nova Fatura", icon: Plus, mode: "create", variant: "default", onClick: openNewInvoice },
@@ -1832,7 +1817,20 @@ ${hasRecebimentos ? `
           },
         ]}
         selectedCount={selectedFaturaIds.size}
+        filtersFirstOnMobile
       >
+        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+        <Input
+          placeholder="Buscar cliente..."
+          value={filterCliente}
+          onChange={(e) => setFilterCliente(e.target.value)}
+          className="h-8 w-[220px] text-xs"
+        />
+        {filterCliente && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterCliente("")}>
+            <X className="h-3 w-3" /> Limpar
+          </Button>
+        )}
         {selectedFaturaIds.size > 0 && (
           <span className="text-[11px] font-mono text-primary">
             {formatCurrency(selectedFaturas.reduce((s, f) => s + Number(f.valor_total), 0))}
