@@ -17,4 +17,4 @@
 - [x] Selecionar e aplicar a nova logo do Agiliza ERP e seu favicon, identificando a FSM Softwares.
 - [x] Atualizar a marca para Agiliza TMS, um produto FSM Systems.
 - [x] Criar novos modelos de logo para a FSM Systems e apresentar para escolha antes de aplicar na tela inicial. (Escolhido: verde esmeralda + cinza, S destacado.)
-- [ ] Combinar verde esmeralda com cinza na logomarca FSM Systems e reaplicar na tela inicial.
+- [x] Combinar verde esmeralda com cinza na logomarca FSM Systems e reaplicar na tela inicial.
