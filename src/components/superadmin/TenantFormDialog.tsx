@@ -17,6 +17,7 @@ export interface TenantRow {
   logo_url: string | null; status: "active" | "suspended"; focus_environment: "production" | "homologation";
   users_count: number; has_token_production: boolean; has_token_homologation: boolean; has_certificate_password: boolean;
   certificate: { file_name: string | null; valid_until: string | null } | null;
+  server_token_production?: boolean; server_token_homologation?: boolean;
 }
 
 const empty = {
@@ -114,7 +115,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
     setSaving(false);
   };
 
-  const saved = (b?: boolean) => (b ? "já cadastrado — preencha só para trocar" : "não cadastrado");
+  const saved = (b?: boolean, server?: boolean) => (b ? "próprio da empresa — preencha só para trocar" : server ? "usando o token padrão do servidor" : "não cadastrado");
 
   return (
     <Dialog open={open} onOpenChange={(v) => !saving && onOpenChange(v)}>
@@ -148,14 +149,14 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
           </Block>
 
           <Block title="2. Fiscal e integrações">
-            <F label="Ambiente ativo">
+            <F label="Ambiente da matriz">
               <Select value={f.focus_environment} onValueChange={(v: any) => setF((p) => ({ ...p, focus_environment: v }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="homologation">Homologação (teste)</SelectItem><SelectItem value="production">Produção</SelectItem></SelectContent>
               </Select>
             </F>
-            <F label={`Token Focus NF-e — Produção (${saved(tenant?.has_token_production)})`} span={4}><Input type="password" className="h-9" value={tokProd} onChange={(e) => setTokProd(e.target.value)} autoComplete="off" /></F>
-            <F label={`Token Focus NF-e — Homologação (${saved(tenant?.has_token_homologation)})`} span={6}><Input type="password" className="h-9" value={tokHom} onChange={(e) => setTokHom(e.target.value)} autoComplete="off" /></F>
+            <F label={`Token Focus NF-e — Produção (${saved(tenant?.has_token_production, tenant?.server_token_production)})`} span={4}><Input type="password" className="h-9" value={tokProd} onChange={(e) => setTokProd(e.target.value)} autoComplete="off" /></F>
+            <F label={`Token Focus NF-e — Homologação (${saved(tenant?.has_token_homologation, tenant?.server_token_homologation)})`} span={6}><Input type="password" className="h-9" value={tokHom} onChange={(e) => setTokHom(e.target.value)} autoComplete="off" /></F>
             <F label={`Certificado A1 (.pfx)${tenant?.certificate ? ` — atual: ${tenant.certificate.file_name}` : ""}`} span={3}>
               <Input type="file" accept=".pfx,.p12" className="h-9" onChange={(e) => setCertFile(e.target.files?.[0] || null)} /></F>
             <F label={`Senha do certificado (${saved(tenant?.has_certificate_password)})`} span={3}><Input type="password" className="h-9" value={certPass} onChange={(e) => setCertPass(e.target.value)} autoComplete="new-password" /></F>
