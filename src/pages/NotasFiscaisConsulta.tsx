@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import JSZip from "jszip";
-import { RefreshCw, Receipt, Download, Printer, FileText } from "lucide-react";
+import { Receipt, Download, Printer, FileText, FileDown, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { SearchFilterCard, FilterPrimaryRow } from "@/components/ui/search-filter-card";
@@ -12,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { SefazIcon } from "@/components/icons/SefazIcon";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +22,7 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
-import { syncNfesRecebidas, ensureNfeXml, type NfeRecebida } from "@/lib/nfeRecebidas";
+import { syncNfesRecebidas, ensureNfeXml, fetchNfePdf, type NfeRecebida } from "@/lib/nfeRecebidas";
 
 const monthStart = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`; };
 const monthEnd = () => { const d = new Date(); const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, "0")}-${String(e.getDate()).padStart(2, "0")}`; };
@@ -37,6 +37,8 @@ export default function NotasFiscaisConsulta() {
   const [inicio, setInicio] = useState(monthStart());
   const [fim, setFim] = useState(monthEnd());
   const [empresa, setEmpresa] = useState("");
+  const [fInicio, setFInicio] = useState(monthStart());
+  const [fFim, setFFim] = useState(monthEnd());
   const [ator, setAtor] = useState<"todos" | "destinatario" | "transportadora">("todos");
   const [situacao, setSituacao] = useState("todas");
   const [busca, setBusca] = useState("");
@@ -84,13 +86,15 @@ export default function NotasFiscaisConsulta() {
   const estCnpj = (id: string | null) => establishments?.find((e: any) => e.id === id)?.cnpj || "";
   const isUsed = (r: NfeRecebida) => !!r.expense_id || !!r.cte_id || usedExpense.has(r.chave);
 
-  const sync = async () => {
+  const aplicar = async () => {
+    setSelected(new Set());
+    if (isConsultor) { setInicio(fInicio); setFim(fFim); return; }
     setBusy("Consultando notas na SEFAZ...");
     try {
       const ests = (establishments || []).filter((e: any) => !empresa || e.id === empresa);
       const n = await syncNfesRecebidas(ests);
-      toast({ title: "Consulta concluída", description: n ? `${n} nota(s) recebida(s) ou atualizada(s).` : "Nenhuma nota nova." });
-      await load();
+      toast({ title: "Consulta concluída", description: n ? `${n} nota(s) recebida(s) ou atualizada(s) na SEFAZ.` : "Nenhuma nota nova na SEFAZ." });
+      if (fInicio === inicio && fFim === fim) await load(); else { setInicio(fInicio); setFim(fFim); }
     } catch (e: any) {
       toast({ title: "Falha na consulta", description: e.message, variant: "destructive" });
     } finally { setBusy(null); }
@@ -130,6 +134,27 @@ export default function NotasFiscaisConsulta() {
     } finally { setBusy(null); }
   };
 
+  const downloadPdf = async () => {
+    setBusy("Baixando DANFE...");
+    try {
+      const files: { name: string; blob: Blob }[] = [];
+      const falhas: string[] = [];
+      for (const r of selectedRows) {
+        try { files.push({ name: `${r.chave}-danfe.pdf`, blob: await fetchNfePdf(r.chave, estCnpj(r.establishment_id)) }); }
+        catch { falhas.push(r.numero || r.chave); }
+      }
+      if (!files.length) { toast({ title: "DANFE indisponível", description: "A SEFAZ ainda não disponibilizou o PDF das notas selecionadas.", variant: "destructive" }); return; }
+      let blob = files[0].blob, name = files[0].name;
+      if (files.length > 1) {
+        const zip = new JSZip(); files.forEach((f) => zip.file(f.name, f.blob));
+        blob = await zip.generateAsync({ type: "blob" }); name = `danfes-${inicio}_${fim}.zip`;
+      }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      if (falhas.length) toast({ title: "Algumas notas sem DANFE", description: `Não disponível: ${falhas.join(", ")}` });
+    } finally { setBusy(null); }
+  };
+
   const printList = () => {
     const list = selectedRows.length ? selectedRows : filtered;
     const body = list.map((r) => `<tr><td>${r.numero || ""}</td><td>${r.serie || ""}</td><td>${formatDateBR(r.data_emissao?.slice(0, 10) || "")}</td><td>${r.emitente_nome || ""}</td><td>${fmtCnpj(r.emitente_cnpj)}</td><td>${r.ator === "transportadora" ? "Transportadora" : "Destinatário"}</td><td style="text-align:right">${formatCurrency(Number(r.valor) || 0)}</td></tr>`).join("");
@@ -137,12 +162,11 @@ export default function NotasFiscaisConsulta() {
   };
 
   const actions: ToolbarAction[] = [
-    { key: "sync", label: "Consultar na SEFAZ", icon: SefazIcon as any, onClick: sync, mode: "always", hidden: isConsultor, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]" },
+    { key: "pdf", label: "Baixar PDF (DANFE)", icon: FileDown, onClick: downloadPdf, mode: "batch" },
+    { key: "xml", label: "Baixar XML", icon: Download, onClick: downloadXml, mode: "batch" },
+    { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, onClick: printList, mode: "batch" },
     { key: "expense", label: "Gerar despesa (nota de entrada)", icon: Receipt, onClick: openExpense, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "destinatario" || single.situacao === "cancelada" },
     { key: "cte", label: "Emitir CT-e (nota como transportadora)", icon: FileText, onClick: openCte, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "transportadora" || single.situacao === "cancelada" },
-    { key: "xml", label: "Baixar XML", icon: Download, onClick: downloadXml, mode: "batch" },
-    { key: "print", label: "Imprimir lista", icon: Printer, onClick: printList, mode: "always" },
-    { key: "reload", label: "Atualizar lista", icon: RefreshCw, onClick: load, mode: "always" },
   ];
 
   const toggleAll = (v: boolean) => setSelected(v ? new Set(filtered.map((r) => r.id)) : new Set());
@@ -152,30 +176,31 @@ export default function NotasFiscaisConsulta() {
     <AdminLayout>
       <PageTitle>Consulta de Notas Fiscais</PageTitle>
       <div className="container mx-auto px-4 py-3 md:px-6 space-y-3">
-        <SearchFilterCard contentClassName="sm:flex-col sm:items-stretch">
-          <FilterPrimaryRow>
-            <div className="mr-auto"><PeriodFilter inicio={inicio} fim={fim} size="sm" onChange={(i: string, f: string) => { setInicio(i); setFim(f); }} /></div>
+        <SearchFilterCard>
+          <FilterPrimaryRow className="w-full flex-nowrap max-lg:flex-wrap">
+            <div className="mr-auto flex flex-wrap items-end gap-2">
+              <PeriodFilter inicio={fInicio} fim={fFim} size="sm" onChange={(i: string, f: string) => { setFInicio(i); setFFim(f); }} />
+              <Select value={ator} onValueChange={(v) => setAtor(v as any)}>
+                <SelectTrigger className="h-8 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os atores</SelectItem>
+                  <SelectItem value="destinatario">Destinatário (notas de entrada)</SelectItem>
+                  <SelectItem value="transportadora">Transportadora</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={situacao} onValueChange={setSituacao}>
+                <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas situações</SelectItem>
+                  <SelectItem value="autorizada">Autorizada</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input className="h-8 w-[240px] text-xs" placeholder="Emitente, CNPJ, número ou chave" value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aplicar(); }} />
+            </div>
             <EmpresaFilter value={empresa} onChange={setEmpresa} />
+            <Button size="sm" className="h-8 gap-1.5 px-4 text-xs" onClick={aplicar}><Search className="h-3.5 w-3.5" />Filtrar</Button>
           </FilterPrimaryRow>
-          <div className="flex flex-wrap items-end gap-2">
-            <Select value={ator} onValueChange={(v) => setAtor(v as any)}>
-              <SelectTrigger className="h-8 w-[230px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os atores</SelectItem>
-                <SelectItem value="destinatario">Destinatário (notas de entrada)</SelectItem>
-                <SelectItem value="transportadora">Transportadora</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={situacao} onValueChange={setSituacao}>
-              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas situações</SelectItem>
-                <SelectItem value="autorizada">Autorizada</SelectItem>
-                <SelectItem value="cancelada">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input className="h-8 max-w-sm text-xs" placeholder="Emitente, CNPJ, número ou chave" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          </div>
         </SearchFilterCard>
 
         <GlobalToolbar actions={actions} selectedCount={selectedRows.length} />
@@ -207,7 +232,7 @@ export default function NotasFiscaisConsulta() {
                 );
               })}
               {!filtered.length && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma nota no período. Use o botão da SEFAZ na barra de ações para consultar as notas recebidas.</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma nota no período. Abra o card Filtrar e clique em Filtrar para consultar as notas recebidas na SEFAZ.</td></tr>
               )}
             </tbody>
           </table>
