@@ -37,9 +37,9 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
         <span className="flex h-10 items-center rounded bg-primary-foreground px-2">
           <img
             src={agilizaLogo}
-            alt="Agiliza TMS — Um produto FSM Systems"
-            width={1455}
-            height={244}
+            alt="Agiliza TMS"
+            width={1142}
+            height={202}
             className="h-8 w-auto object-contain"
           />
         </span>

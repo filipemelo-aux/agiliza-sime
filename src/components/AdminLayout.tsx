@@ -297,9 +297,9 @@ function SidebarNav() {
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
         <img
           src={agilizaLogo}
-          alt="Agiliza TMS — Um produto FSM Systems"
-          width={1455}
-          height={244}
+          alt="Agiliza TMS"
+          width={1142}
+          height={202}
           className="h-10 min-w-0 flex-1 object-contain object-left group-data-[collapsible=icon]:hidden"
         />
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
