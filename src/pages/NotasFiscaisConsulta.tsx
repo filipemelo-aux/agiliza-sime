@@ -22,7 +22,7 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
-import { syncNfesRecebidas, ensureNfeXml, fetchNfePdf, type NfeRecebida } from "@/lib/nfeRecebidas";
+import { syncNfesRecebidas, fillMissingNfeXml, ensureNfeXml, fetchNfePdf, type NfeRecebida } from "@/lib/nfeRecebidas";
 
 const monthStart = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`; };
 const monthEnd = () => { const d = new Date(); const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, "0")}-${String(e.getDate()).padStart(2, "0")}`; };
@@ -95,6 +95,7 @@ export default function NotasFiscaisConsulta() {
       const n = await syncNfesRecebidas(ests);
       toast({ title: "Consulta concluída", description: n ? `${n} nota(s) recebida(s) ou atualizada(s) na SEFAZ.` : "Nenhuma nota nova na SEFAZ." });
       if (fInicio === inicio && fFim === fim) await load(); else { setInicio(fInicio); setFim(fFim); }
+      fillMissingNfeXml(ests).then(() => load()).catch(() => undefined);
     } catch (e: any) {
       toast({ title: "Falha na consulta", description: e.message, variant: "destructive" });
     } finally { setBusy(null); }
@@ -196,7 +197,7 @@ export default function NotasFiscaisConsulta() {
                   <SelectItem value="cancelada">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
-              <Input className="h-8 w-[240px] text-xs" placeholder="Emitente, CNPJ, número ou chave" value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aplicar(); }} />
+              <Input className="h-8 w-[200px] text-xs" placeholder="Emitente, CNPJ, número ou chave" value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aplicar(); }} />
             </div>
             <EmpresaFilter value={empresa} onChange={setEmpresa} />
             <Button size="sm" className="h-8 gap-1.5 px-4 text-xs" onClick={aplicar}><Search className="h-3.5 w-3.5" />Filtrar</Button>

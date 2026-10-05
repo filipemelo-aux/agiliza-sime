@@ -140,7 +140,7 @@ export async function fillMissingNfeXml(establishments: { id: string; cnpj: stri
       }
     } }));
   }
-
+}
 
 export async function ensureNfeXml(n: NfeRecebida, cnpj: string): Promise<string> {
   if (n.xml) return n.xml;
