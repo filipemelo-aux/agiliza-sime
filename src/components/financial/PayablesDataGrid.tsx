@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 type StatusFilter = "todos" | "atrasado" | "aberto" | "pago";
 
@@ -455,26 +456,13 @@ tfoot{display:table-row-group}
 
   return (
     <div className="flex flex-col gap-1 h-[calc(100vh-132px)]">
-      <GlobalToolbar
-        actions={[
-          { key: "generate", label: loading ? "Gerando" : "Gerar relatório", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: load },
-          { key: "print", label: "Imprimir", icon: Printer, mode: "always", disabled: loading || sorted.length === 0, onClick: handlePrint },
-        ]}
-        selectedCount={0}
-        filtersFirstOnMobile
-      >
+      <SearchFilterCard contentClassName="gap-1.5">
         <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
         <span className="text-[10px] text-muted-foreground">até</span>
         <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-        <div className="flex gap-0.5 ml-1">
+        <div className="flex gap-0.5">
           {statusButtons.map((b) => (
-            <Button
-              key={b.v}
-              size="sm"
-              variant={status === b.v ? "default" : "outline"}
-              className="h-7 text-[11px] px-2 py-0"
-              onClick={() => setStatus(b.v)}
-            >
+            <Button key={b.v} size="sm" variant={status === b.v ? "default" : "outline"} className="h-7 text-[11px] px-2 py-0" onClick={() => setStatus(b.v)}>
               {b.label}
             </Button>
           ))}
@@ -488,45 +476,33 @@ tfoot{display:table-row-group}
           <PopoverTrigger asChild>
             <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 py-0 gap-1" disabled={loading || categoriasDisponiveis.length === 0}>
               <Filter className="h-3 w-3" /> Excluir planos
-              {excludedCategorias.size > 0 && (
-                <Badge variant="secondary" className="h-4 px-1 text-[10px]">{excludedCategorias.size}</Badge>
-              )}
+              {excludedCategorias.size > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{excludedCategorias.size}</Badge>}
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-2">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-semibold">Ocultar planos de contas</span>
-              {excludedCategorias.size > 0 && (
-                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-1.5 gap-1" onClick={() => setExcludedCategorias(new Set())}>
-                  <X className="h-3 w-3" /> Limpar
-                </Button>
-              )}
+              {excludedCategorias.size > 0 && <Button variant="ghost" size="sm" className="h-6 text-[10px] px-1.5 gap-1" onClick={() => setExcludedCategorias(new Set())}><X className="h-3 w-3" /> Limpar</Button>}
             </div>
             <p className="text-[10px] text-muted-foreground mb-2">Marcados serão excluídos do relatório.</p>
             <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-              {categoriasDisponiveis.map((c) => {
-                const checked = excludedCategorias.has(c);
-                return (
-                  <label key={c} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded p-1">
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) => {
-                        setExcludedCategorias((prev) => {
-                          const next = new Set(prev);
-                          if (v) next.add(c); else next.delete(c);
-                          return next;
-                        });
-                      }}
-                    />
-                    <span className="leading-tight break-words">{c}</span>
-                  </label>
-                );
-              })}
+              {categoriasDisponiveis.map((c) => (
+                <label key={c} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded p-1">
+                  <Checkbox checked={excludedCategorias.has(c)} onCheckedChange={(v) => setExcludedCategorias((prev) => { const next = new Set(prev); if (v) next.add(c); else next.delete(c); return next; })} />
+                  <span className="leading-tight break-words">{c}</span>
+                </label>
+              ))}
             </div>
           </PopoverContent>
         </Popover>
-        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-      </GlobalToolbar>
+      </SearchFilterCard>
+      <GlobalToolbar
+        actions={[
+          { key: "generate", label: loading ? "Gerando" : "Gerar relatório", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: load },
+          { key: "print", label: "Imprimir", icon: Printer, mode: "always", disabled: loading || sorted.length === 0, onClick: handlePrint },
+        ]}
+        selectedCount={0}
+      />
 
       <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col relative">
         {loading && (

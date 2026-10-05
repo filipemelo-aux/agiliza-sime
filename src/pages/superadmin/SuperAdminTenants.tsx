@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 
@@ -66,10 +67,12 @@ export default function SuperAdminTenants() {
         </Button>
       </div>
 
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome ou CNPJ" className="pl-9 h-9" />
-      </div>
+      <SearchFilterCard className="mb-3">
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome ou CNPJ" className="pl-9 h-9" />
+        </div>
+      </SearchFilterCard>
 
       <div className="rounded-lg border bg-card overflow-x-auto">
         <table className="w-full text-sm">

@@ -19,6 +19,7 @@ import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { limitDisplayText } from "@/lib/displayText";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface ContaReceber {
   id: string;
@@ -139,7 +140,7 @@ export function FinancialReceivables() {
       </div>
 
       {/* Filter */}
-      <div className="flex items-center gap-2">
+      <SearchFilterCard>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[150px] h-8 text-xs">
             <SelectValue placeholder="Filtrar status" />
@@ -163,7 +164,7 @@ export function FinancialReceivables() {
             <X className="h-3 w-3" /> Limpar filtros
           </Button>
         )}
-      </div>
+      </SearchFilterCard>
 
       {/* List */}
       {loading ? (
