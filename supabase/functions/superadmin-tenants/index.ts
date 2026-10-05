@@ -26,6 +26,9 @@ const TenantSchema = z.object({
   email: z.string().max(200).optional().nullable(),
   logo_url: z.string().max(500_000).optional().nullable(),
   focus_environment: z.enum(["production", "homologation"]),
+  nfe_sync_enabled: z.boolean().optional(),
+  nfe_sync_start_hour: z.number().int().min(0).max(23).optional(),
+  nfe_sync_interval_hours: z.number().int().min(1).max(24).optional(),
 });
 
 const SaveSchema = z.object({
