@@ -1,4 +1,5 @@
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
+import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -868,7 +869,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-bold text-foreground">Relatórios de Transporte</h1>
+        <PageTitle>Relatórios de Transporte</PageTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1">
             <FileSpreadsheet className="h-3.5 w-3.5" /> CSV

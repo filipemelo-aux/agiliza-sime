@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -293,7 +294,7 @@ export function FinancialPayablesTree() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
+          <PageTitle>Contas a Pagar</PageTitle>
           <ReportInfoTooltip text="Visão de Obrigações — filtragem por data de vencimento (Regime de Caixa)." />
         </div>
         <Button size="sm" className="h-9 gap-1" onClick={handleNew}>

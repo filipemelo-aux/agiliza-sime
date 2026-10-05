@@ -283,10 +283,22 @@ function SidebarNav() {
   }, [location.pathname]);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border fixed left-0 top-14 bottom-0 h-[calc(100svh-3.5rem)] z-30">
-      {/* Busca + botão de recolher na mesma linha */}
+    <Sidebar collapsible="icon" className="border-r border-border">
+      {/* Nome do sistema + botão de recolher */}
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-        <div className="relative flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+        <span
+          className="flex-1 min-w-0 text-[15px] leading-tight tracking-tight text-primary group-data-[collapsible=icon]:hidden"
+          style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
+        >
+          ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
+        </span>
+        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
+          <ArrowLeftRight />
+        </SidebarTrigger>
+      </div>
+      {/* Busca logo abaixo */}
+      <div className="px-3 pb-2 shrink-0 group-data-[collapsible=icon]:hidden">
+        <div className="relative">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -300,9 +312,6 @@ function SidebarNav() {
             </button>
           )}
         </div>
-        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
-          <ArrowLeftRight />
-        </SidebarTrigger>
       </div>
 
       <SidebarContentUI
@@ -409,10 +418,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="h-[100dvh] flex flex-col w-full overflow-hidden">
-        <TopHeader user={user} handleLogout={handleLogout} />
-        <div className="flex-1 flex min-h-0 overflow-hidden">
-          <SidebarNav />
+      <div className="h-[100dvh] flex w-full overflow-hidden">
+        <SidebarNav />
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <TopHeader user={user} handleLogout={handleLogout} />
           <SidebarContentInner>
             {children}
           </SidebarContentInner>
@@ -432,20 +441,11 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
   };
 
   return (
-    <header className="h-14 shrink-0 z-40 bg-primary text-primary-foreground flex items-center px-4 gap-3">
-      <SidebarTrigger className="md:hidden h-9 w-9 flex items-center justify-center rounded-md text-primary-foreground hover:bg-primary-foreground/10">
+    <header className="h-16 shrink-0 z-20 bg-background border-b border-border flex items-center px-4 md:px-6 gap-3">
+      <SidebarTrigger className="md:hidden h-9 w-9 flex items-center justify-center rounded-md hover:bg-muted">
         <Menu className="h-5 w-5" />
       </SidebarTrigger>
-      <span
-        className="text-[17px] tracking-tight whitespace-nowrap"
-        style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
-      >
-        ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
-      </span>
-      <span className="ml-2 hidden sm:inline-flex items-center gap-1.5 rounded-md bg-primary-foreground/10 px-3 py-1.5 text-xs whitespace-nowrap">
-        <Building2 className="h-4 w-4" />
-        {tenantName || "SIME TRANSPORTES"}
-      </span>
+      <div id="page-title-slot" className="min-w-0 flex-1 flex items-center" />
       {supportTenantId && (
         <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-accent-foreground">
           Modo suporte · {tenantName}
@@ -456,16 +456,10 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
         {user && (
           <>
             <NotificationBell userId={user.id} />
-            <button type="button" onClick={() => navigate("/admin/settings")} title="Meu perfil" className="rounded-md px-1 hover:bg-primary-foreground/10 transition-colors">
+            <button type="button" onClick={() => navigate("/admin/settings")} title="Meu perfil" className="rounded-md border border-border px-3 py-1 hover:bg-muted transition-colors">
               <UserAvatar userId={user.id} showName size="sm" />
             </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 h-8 w-8"
-              title="Sair"
-            >
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 text-muted-foreground" title="Sair">
               <LogOut className="w-4 h-4" />
             </Button>
           </>
@@ -477,11 +471,9 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
 
 function SidebarContentInner({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col min-w-0 min-h-0">
-      <main className="flex-1 min-h-0 overflow-y-auto">
-        <PageGate>{children}</PageGate>
-      </main>
-    </div>
+    <main className="flex-1 min-h-0 overflow-y-auto">
+      <PageGate>{children}</PageGate>
+    </main>
   );
 }
 

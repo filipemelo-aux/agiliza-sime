@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -1768,7 +1769,7 @@ ${hasRecebimentos ? `
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">Faturamento</h1>
+        <PageTitle>Faturamento</PageTitle>
       </div>
 
 

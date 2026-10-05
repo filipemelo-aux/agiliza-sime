@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -937,7 +938,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-bold text-foreground leading-tight">{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</h1>
+        <PageTitle>{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</PageTitle>
         {(reportType as string) !== "payables" && (
           <div className="flex gap-1.5">
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1 h-7 px-2 text-xs">

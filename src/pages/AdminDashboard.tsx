@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { useNavigate, Link } from "react-router-dom";
 import {
   FileText,
@@ -173,13 +174,7 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          {tenantLogo ? (
-            <img src={tenantLogo} alt={tenantName} className="h-10 w-auto max-w-[180px] object-contain mb-1" />
-          ) : tenantName ? (
-            <p className="text-lg font-semibold text-foreground mb-1">{tenantName}</p>
-          ) : null}
-        </div>
+        <PageTitle>Página Inicial</PageTitle>
 
         {/* Atalhos rápidos */}
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Acesso Rápido</p>

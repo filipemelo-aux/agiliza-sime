@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -389,7 +390,7 @@ export function FinancialCashFlow() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
+            <PageTitle>Fluxo de Caixa</PageTitle>
             <ReportInfoTooltip text="Baseado em Regime de Caixa (Data de Pagamento / Valor da Parcela). Mostra o dinheiro real entrando e saindo da conta — cada parcela paga aparece na data em que efetivamente saiu do caixa." />
           </div>
           <Button size="sm" className="gap-1" onClick={() => setManualDialogOpen(true)}>

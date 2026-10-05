@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -786,7 +787,7 @@ export function FinancialPaid() {
   return (
     <div className="space-y-4">
       {ConfirmDialog}
-      <h1 className="text-lg font-bold text-foreground">Contas Pagas</h1>
+      <PageTitle>Contas Pagas</PageTitle>
 
       <div className="grid grid-cols-2 gap-2">
         <SummaryCard icon={CheckCircle2} label="Total Pago" value={formatCurrency(total)} valueColor="green" />

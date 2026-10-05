@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -280,7 +281,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2"><div><h1 className="flex items-center gap-2 text-lg font-bold text-foreground"><WalletCards className="h-5 w-5 text-primary" /> {reportMode ? "Relatório de Cheques" : "Emissor de Cheques"}</h1><p className="text-[11px] text-muted-foreground">Acompanhe emissão, favorecido, origem e conta relacionada.</p></div><div className="hidden items-center gap-2 sm:flex"><span className="text-xs text-muted-foreground">{filtered.length} registro(s)</span><CheckCircle2 className="h-4 w-4 text-muted-foreground" /></div></div>
+      <div className="flex items-center justify-between gap-2"><PageTitle>{reportMode ? "Relatório de Cheques" : "Emissor de Cheques"}</PageTitle><div className="hidden items-center gap-2 sm:flex"><span className="text-xs text-muted-foreground">{filtered.length} registro(s)</span><CheckCircle2 className="h-4 w-4 text-muted-foreground" /></div></div>
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input className="h-8 w-full pl-8 text-xs" placeholder="Buscar cheque, favorecido..." value={search} onChange={(event) => setSearch(event.target.value)} />

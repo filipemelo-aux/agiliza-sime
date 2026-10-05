@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock, Receipt, Undo2 } from "lucide-react";
@@ -1696,7 +1697,7 @@ export default function HarvestDetail() {
         <div className="flex flex-col gap-2 mb-6">
           <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold font-display truncate">{job.farm_name}</h1>
+              <PageTitle>{job.farm_name}</PageTitle>
               <p className="text-muted-foreground flex items-center gap-1 text-sm">
                 <MapPin className="h-3.5 w-3.5 shrink-0" /> {job.location}
               </p>

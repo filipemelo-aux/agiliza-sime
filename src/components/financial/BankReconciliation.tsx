@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -3021,7 +3022,7 @@ export function BankReconciliation() {
      return (
        <div className="space-y-4">
         {ConfirmDialog}
-        <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
+        <PageTitle>Conciliação Bancária</PageTitle>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
             {syncing ? (
@@ -3130,7 +3131,7 @@ export function BankReconciliation() {
       {ConfirmDialog}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
+          <PageTitle>Conciliação Bancária</PageTitle>
           <p className="text-xs text-muted-foreground">{fileName}</p>
         </div>
         <div className="flex w-full items-center justify-end gap-1.5 md:w-auto">
