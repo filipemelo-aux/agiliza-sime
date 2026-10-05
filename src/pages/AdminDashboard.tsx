@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTenant } from "@/hooks/useTenant";
 import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
@@ -35,6 +36,7 @@ interface DueItem {
 export default function AdminDashboard() {
   const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const { user } = useAuth();
+  const { logo: tenantLogo, name: tenantName } = useTenant();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
@@ -172,9 +174,11 @@ export default function AdminDashboard() {
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          {userName && (
-            <p className="text-lg text-muted-foreground mb-1">Olá, <span className="font-semibold text-foreground">{userName}</span>!</p>
-          )}
+          {tenantLogo ? (
+            <img src={tenantLogo} alt={tenantName} className="h-10 w-auto max-w-[180px] object-contain mb-1" />
+          ) : tenantName ? (
+            <p className="text-lg font-semibold text-foreground mb-1">{tenantName}</p>
+          ) : null}
           <h1 className="text-3xl font-bold font-display">Visão Geral</h1>
         </div>
 
