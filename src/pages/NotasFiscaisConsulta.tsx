@@ -179,6 +179,14 @@ export default function NotasFiscaisConsulta() {
 
   const toggleAll = (v: boolean) => setSelected(v ? new Set(filtered.map((r) => r.id)) : new Set());
   const todaySP = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  // Destaque: notas recebidas na consulta mais recente do dia (lote da última sincronização em que entraram notas).
+  const latestBatchStart = useMemo(() => {
+    const spDate = (iso: string) => new Date(iso).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const todays = rows.map((r) => r.created_at).filter((c): c is string => !!c && spDate(c) === todaySP);
+    if (!todays.length) return null;
+    const max = Math.max(...todays.map((c) => new Date(c).getTime()));
+    return new Date(max - 10 * 60 * 1000).toISOString();
+  }, [rows, todaySP]);
   const total = filtered.reduce((s, r) => s + (Number(r.valor) || 0), 0);
 
   return (
