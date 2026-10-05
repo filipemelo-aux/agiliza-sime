@@ -297,7 +297,7 @@ function SidebarNav() {
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
         <img
           src={agilizaLogo}
-          alt="Agiliza TMS — Um produto FSM Systems"
+          alt="Agiliza TMS"
           width={1455}
           height={244}
           className="h-10 min-w-0 flex-1 object-contain object-left group-data-[collapsible=icon]:hidden"

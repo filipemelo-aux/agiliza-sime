@@ -194,7 +194,7 @@ export default function Auth() {
         <div className="flex flex-col items-center mb-8">
           <img
             src={agilizaLogo}
-            alt="Agiliza TMS — Um produto FSM Systems"
+            alt="Agiliza TMS"
             width={1455}
             height={244}
             className="mb-4 h-auto w-full max-w-sm object-contain"
