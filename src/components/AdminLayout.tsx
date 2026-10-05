@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect, useRef, useCallback, type UIEvent } from "react";
+import agilizaLogo from "@/assets/brand/agiliza-logo.png";
 
 export const allMenuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
@@ -294,12 +295,13 @@ function SidebarNav() {
     <Sidebar collapsible="icon" className="border-r border-border">
       {/* Nome do sistema + botão de recolher */}
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-        <span
-          className="flex-1 min-w-0 text-[15px] leading-tight tracking-tight text-primary group-data-[collapsible=icon]:hidden"
-          style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
-        >
-          AGILIZA <span className="text-accent">ERP</span>
-        </span>
+        <img
+          src={agilizaLogo}
+          alt="Agiliza ERP — Um produto da FSM Softwares"
+          width={1314}
+          height={327}
+          className="h-10 min-w-0 flex-1 object-contain object-left group-data-[collapsible=icon]:hidden"
+        />
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
           <ArrowLeftRight />
         </SidebarTrigger>

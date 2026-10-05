@@ -5,6 +5,7 @@ import { Building2, LogOut, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import agilizaLogo from "@/assets/brand/agiliza-logo.png";
 
 export function SuperAdminLayout({ children }: { children: ReactNode }) {
   const { user, isSuperAdmin, supportTenantId, loading } = useAuth();
@@ -33,8 +34,14 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col bg-muted/30">
       <header className="h-14 border-b bg-primary text-primary-foreground flex items-center px-4 gap-3">
         <ShieldCheck className="h-5 w-5 text-secondary" />
-        <span className="font-[Exo] italic font-extrabold text-[17px] tracking-tight">
-          AGILIZA <span className="text-secondary">ERP</span>
+        <span className="flex h-10 items-center rounded bg-primary-foreground px-2">
+          <img
+            src={agilizaLogo}
+            alt="Agiliza ERP — Um produto da FSM Softwares"
+            width={1314}
+            height={327}
+            className="h-8 w-auto object-contain"
+          />
         </span>
         <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase text-secondary-foreground">
           SuperAdmin
