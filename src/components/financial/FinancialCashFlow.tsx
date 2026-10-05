@@ -24,6 +24,7 @@ import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { limitDisplayText } from "@/lib/displayText";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { quickPrintVisibleTable } from "@/lib/pdfDownload";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 import {
   BarChart,
   Bar,
@@ -399,18 +400,20 @@ export function FinancialCashFlow() {
         <SummaryCard icon={TrendingUp} label="Movimentações" value={movimentacoes.length} />
       </div>
 
+      <SearchFilterCard contentClassName="block">
+        <div className="mb-2 flex justify-end"><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></div>
+        <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
+      </SearchFilterCard>
+
       <GlobalToolbar
         actions={[
           { key: "new", label: "Nova Movimentação", icon: Plus, mode: "create", variant: "default", onClick: () => setManualDialogOpen(true) },
           { key: "print", label: "Imprimir", icon: Printer, mode: "always", onClick: () => quickPrintVisibleTable(document.querySelector("main"), "Fluxo de Caixa") },
         ]}
         selectedCount={0}
-        filtersFirstOnMobile
       >
         <ReportInfoTooltip text="Baseado em Regime de Caixa. Cada parcela aparece na data em que o dinheiro efetivamente entrou ou saiu." />
-        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
       </GlobalToolbar>
-      <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
 
       {/* Chart - entrada vs saída */}
       {chartData.length > 1 && (
