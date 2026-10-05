@@ -144,11 +144,7 @@ export default function AdminCargas() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-3">
-        <BackButton to="/admin" label="Dashboard" />
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Natureza de Cargas</h1>
-          <p className="text-xs text-muted-foreground">Cadastro de produtos e naturezas utilizadas na emissão de documentos.</p>
-        </div>
+        <PageTitle>Natureza de Cargas</PageTitle>
 
         <GlobalToolbar actions={actions} selectedCount={selected.size}>
           <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">

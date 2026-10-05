@@ -102,8 +102,7 @@ export default function FreightMdfe() {
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-6">
-        <BackButton to="/admin" label="Dashboard" />
-        <h1 className="text-2xl font-bold font-display mb-4">MDF-e — Manifestos de Carga</h1>
+        <PageTitle>MDF-e — Manifestos de Carga</PageTitle>
         <div className="relative max-w-sm mb-3">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="h-9 pl-8" placeholder="Buscar por número, placa, motorista ou cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
