@@ -8,4 +8,4 @@
 - [x] Tornar todos os cards “Filtrar” recolhíveis e fechados por padrão.
 - [x] Incluir páginas com filtros residuais no padrão global.
 - [x] Reduzir o espaço entre o cabeçalho e o primeiro conteúdo das páginas.
-- [ ] Validar compilação e apresentação expandida/recolhida.
+- [x] Validar compilação e apresentação expandida/recolhida.
