@@ -226,7 +226,7 @@ export default function NotasFiscaisConsulta() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const isToday = !!(r as any).created_at && new Date((r as any).created_at).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) === todaySP;
+                const isToday = !!r.data_emissao && r.data_emissao.slice(0, 10) === todaySP;
                 const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : isToday ? "info" : "pending";
                 return (
                   <tr key={r.id} className={`border-t cursor-pointer ${rowToneClass(tone as any)}`} onClick={() => setSelected((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; })}>
