@@ -17,8 +17,8 @@
 - [x] Etapa 4 — modo suporte, login neutra, nome/logo por empresa no menu (DACTE vetorial mantido fixo)
 
 ## Padronização visual global (05/10)
-- [ ] Corrigir títulos e layout das páginas de RH
-- [ ] Padronizar cartões, filtros e toolbars do Financeiro
-- [ ] Padronizar toolbars das páginas de relatórios
-- [ ] Padronizar filtros e ações das páginas de Transporte
-- [ ] Validar espaçamentos, ordem dos resumos e funcionamento
+- [x] Corrigir títulos e layout das páginas de RH
+- [x] Padronizar cartões, filtros e toolbars do Financeiro
+- [x] Padronizar toolbars das páginas de relatórios
+- [x] Padronizar filtros e ações das páginas de Transporte
+- [x] Validar espaçamentos, ordem dos resumos e funcionamento
