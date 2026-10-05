@@ -9,3 +9,4 @@
 - [x] Incluir páginas com filtros residuais no padrão global.
 - [x] Reduzir o espaço entre o cabeçalho e o primeiro conteúdo das páginas.
 - [x] Validar compilação e apresentação expandida/recolhida.
+- [x] Espaçamento único: 8px do cabeçalho, 12px entre blocos em todas as páginas

@@ -471,7 +471,7 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
 
 function SidebarContentInner({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex-1 min-h-0 overflow-y-auto">
+    <main className="page-content flex-1 min-h-0 overflow-y-auto">
       <PageGate>{children}</PageGate>
     </main>
   );
