@@ -178,6 +178,7 @@ export default function NotasFiscaisConsulta() {
   ];
 
   const toggleAll = (v: boolean) => setSelected(v ? new Set(filtered.map((r) => r.id)) : new Set());
+  const todaySP = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
   const total = filtered.reduce((s, r) => s + (Number(r.valor) || 0), 0);
 
   return (
