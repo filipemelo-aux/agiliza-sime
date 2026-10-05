@@ -22,6 +22,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 import { getLocalDateISO } from "@/lib/date";
+import agilizaTmsLogo from "@/assets/brand/agiliza-tms-logo.png";
+import fsmSystemsLogo from "@/assets/brand/fsm-systems-logo.png";
 
 interface DueItem {
   id: string;
