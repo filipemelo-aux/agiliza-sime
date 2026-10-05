@@ -1769,9 +1769,7 @@ ${hasRecebimentos ? `
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <PageTitle>Faturamento</PageTitle>
-      </div>
+      <PageTitle>Faturamento</PageTitle>
 
 
       <div className="grid grid-cols-2 gap-2">
