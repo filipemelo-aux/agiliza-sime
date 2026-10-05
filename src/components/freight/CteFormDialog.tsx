@@ -112,6 +112,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   cte: Cte | null;
   onSaved: () => void;
+  /** XML de NF-e para pré-importar ao abrir um CT-e novo. */
+  initialXml?: string | null;
 }
 
 interface DocCampos { natureza: string; tipo: string; numero: string; serie: string; data_emissao: string; valor: number; peso: number; quantidade: number; especie: string; cubagem: number; marca: string; cfop: string; ncm: string; valor_produtos: number; bc_icms: number; bc_icms_st: number; outros: number }
@@ -525,7 +527,7 @@ function ActorSection({
 
 }
 
-export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
+export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -1121,6 +1123,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       setNfeLoading(false);
     }
   };
+
+  const initialXmlApplied = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) { initialXmlApplied.current = null; return; }
+    if (cte || !initialXml || initialXmlApplied.current === initialXml) return;
+    const t = setTimeout(() => {
+      initialXmlApplied.current = initialXml;
+      try {
+        if (applyNfe(parseNfeXml(initialXml))) toast({ title: "Nota importada", description: "Confira os dados preenchidos." });
+      } catch (err: any) {
+        toast({ title: "Falha ao importar a nota", description: err.message, variant: "destructive" });
+      }
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialXml, cte]);
 
   const handleXmlFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

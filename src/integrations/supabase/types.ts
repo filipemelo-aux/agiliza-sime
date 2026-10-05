@@ -4368,6 +4368,83 @@ export type Database = {
           },
         ]
       }
+      nfes_recebidas: {
+        Row: {
+          ator: string
+          chave: string
+          created_at: string
+          cte_id: string | null
+          data_emissao: string | null
+          destinatario_cnpj: string | null
+          emitente_cnpj: string | null
+          emitente_nome: string | null
+          establishment_id: string | null
+          expense_id: string | null
+          id: string
+          numero: string | null
+          serie: string | null
+          situacao: string | null
+          tenant_id: string
+          transportadora_cnpj: string | null
+          updated_at: string
+          valor: number | null
+          versao: number | null
+          xml: string | null
+        }
+        Insert: {
+          ator?: string
+          chave: string
+          created_at?: string
+          cte_id?: string | null
+          data_emissao?: string | null
+          destinatario_cnpj?: string | null
+          emitente_cnpj?: string | null
+          emitente_nome?: string | null
+          establishment_id?: string | null
+          expense_id?: string | null
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          situacao?: string | null
+          tenant_id?: string
+          transportadora_cnpj?: string | null
+          updated_at?: string
+          valor?: number | null
+          versao?: number | null
+          xml?: string | null
+        }
+        Update: {
+          ator?: string
+          chave?: string
+          created_at?: string
+          cte_id?: string | null
+          data_emissao?: string | null
+          destinatario_cnpj?: string | null
+          emitente_cnpj?: string | null
+          emitente_nome?: string | null
+          establishment_id?: string | null
+          expense_id?: string | null
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          situacao?: string | null
+          tenant_id?: string
+          transportadora_cnpj?: string | null
+          updated_at?: string
+          valor?: number | null
+          versao?: number | null
+          xml?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfes_recebidas_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
