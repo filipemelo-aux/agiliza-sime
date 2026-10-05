@@ -145,7 +145,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <PageTitle className="!mb-0">{{ colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[section]}</PageTitle>
+        <PageTitle className="!mb-0">{{ colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Mês</Label>

@@ -959,7 +959,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
           <div className="grid grid-cols-2 gap-2">
             <SummaryCard icon={FileSpreadsheet} label="Registros" value={filteredRows.length} />
-            <SummaryCard icon={reportType === "cashflow" ? RefreshCw : FileSpreadsheet} label="Total" value={formatCurrency(totals.total)} valueColor="green" />
+            <SummaryCard icon={RefreshCw} label="Total" value={formatCurrency(totals.total)} valueColor="green" />
           </div>
 
           <GlobalToolbar
