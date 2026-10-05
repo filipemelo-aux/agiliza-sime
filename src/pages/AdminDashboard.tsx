@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTenant } from "@/hooks/useTenant";
 import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
@@ -35,6 +36,7 @@ interface DueItem {
 export default function AdminDashboard() {
   const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const { user } = useAuth();
+  const { logo: tenantLogo, name: tenantName } = useTenant();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
