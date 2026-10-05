@@ -1471,13 +1471,6 @@ tfoot{display:table-row-group}
       <div className="flex items-center justify-between">
         <PageTitle>Contas a Pagar</PageTitle>
       </div>
-      {/* Summary Cards - compact modern */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        <SummaryCard icon={Clock} label="A Pagar" value={formatCurrency(totalPendente)} />
-        <SummaryCard icon={AlertTriangle} label="Atrasado" value={formatCurrency(totalAtrasado)} valueColor="red" />
-        <SummaryCard icon={FileText} label="Registros" value={totalRegistros} />
-      </div>
-
       <SearchFilterCard contentClassName="block space-y-2">
         {/* Row 1: Period label + date pickers */}
         <div className="flex items-center gap-2 flex-wrap">
