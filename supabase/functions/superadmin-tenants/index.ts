@@ -80,6 +80,65 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (body.action === "list_establishments") {
+      const p = z.object({ tenant_id: z.string().uuid() }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { data, error } = await admin.from("fiscal_establishments")
+        .select("id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active")
+        .eq("tenant_id", p.data.tenant_id).order("type").order("razao_social");
+      if (error) throw error;
+      return json({ establishments: data || [] });
+    }
+
+    if (body.action === "save_establishment") {
+      const p = z.object({
+        tenant_id: z.string().uuid(),
+        establishment: z.object({
+          id: z.string().uuid().optional().nullable(),
+          type: z.enum(["matriz", "filial"]),
+          cnpj: z.string().trim().min(14).max(18),
+          razao_social: z.string().trim().min(2).max(200),
+          nome_fantasia: z.string().max(200).optional().nullable(),
+          inscricao_estadual: z.string().max(30).optional().nullable(),
+          rntrc: z.string().max(20).optional().nullable(),
+          endereco_logradouro: z.string().max(200).optional().nullable(),
+          endereco_numero: z.string().max(20).optional().nullable(),
+          endereco_bairro: z.string().max(100).optional().nullable(),
+          endereco_municipio: z.string().max(100).optional().nullable(),
+          endereco_uf: z.string().max(2).optional().nullable(),
+          endereco_cep: z.string().max(10).optional().nullable(),
+          codigo_municipio_ibge: z.string().max(10).optional().nullable(),
+          ambiente: z.enum(["producao", "homologacao"]),
+          serie_cte: z.number().int().min(0).max(999).optional().nullable(),
+          serie_mdfe: z.number().int().min(0).max(999).optional().nullable(),
+          active: z.boolean().optional(),
+        }),
+      }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos", details: p.error.flatten().fieldErrors }, 400);
+      const { tenant_id, establishment: e } = p.data;
+      const { data: t } = await admin.from("tenants").select("cnpj").eq("id", tenant_id).single();
+      if (!t) return json({ error: "Empresa não encontrada" }, 404);
+      const cnpj = digits(e.cnpj);
+      if (cnpj.length !== 14) return json({ error: "CNPJ inválido" }, 400);
+      if (cnpj.slice(0, 8) !== digits(t.cnpj).slice(0, 8)) return json({ error: "A filial precisa ter a mesma raiz de CNPJ (8 primeiros dígitos) da empresa" }, 400);
+      if (e.type === "matriz") {
+        const { data: m } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", tenant_id).eq("type", "matriz");
+        if (m?.some((x: any) => x.id !== e.id)) return json({ error: "Esta empresa já possui uma matriz" }, 400);
+      }
+      const { data: dup } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", tenant_id).eq("cnpj", cnpj);
+      if (dup?.some((x: any) => x.id !== e.id)) return json({ error: "Já existe um estabelecimento com este CNPJ" }, 400);
+      const { id, ...rest } = e;
+      const row = { ...rest, cnpj, endereco_cep: digits(e.endereco_cep) || null, endereco_uf: e.endereco_uf?.toUpperCase() || null, tenant_id };
+      if (id) {
+        const { error } = await admin.from("fiscal_establishments").update(row).eq("id", id).eq("tenant_id", tenant_id);
+        if (error) throw error;
+        return json({ success: true, id });
+      }
+      const { data, error } = await admin.from("fiscal_establishments").insert(row).select("id").single();
+      if (error) throw error;
+      return json({ success: true, id: data.id });
+    }
+
     if (body.action === "set_status") {
       const p = z.object({ id: z.string().uuid(), status: z.enum(["active", "suspended"]) }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos" }, 400);
