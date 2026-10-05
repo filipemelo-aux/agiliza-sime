@@ -283,7 +283,7 @@ function SidebarNav() {
   }, [location.pathname]);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
+    <Sidebar collapsible="icon" className="border-r border-border fixed left-0 top-14 bottom-0 h-[calc(100svh-3.5rem)] z-30">
       {/* Busca + botão de recolher na mesma linha */}
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
         <div className="relative flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
