@@ -412,10 +412,15 @@ function SidebarNav() {
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isSuperAdmin, supportTenantId, loading } = useUserRole();
+  const { name: tenantName } = useTenant();
   const navigateTo = useNavigate();
   useEffect(() => {
     if (!loading && isSuperAdmin && !supportTenantId) navigateTo("/superadmin", { replace: true });
   }, [loading, isSuperAdmin, supportTenantId, navigateTo]);
+
+  useEffect(() => {
+    document.title = tenantName ? `Agiliza TMS - ${tenantName}` : "Agiliza TMS";
+  }, [tenantName]);
 
   const handleLogout = async () => {
     try {
