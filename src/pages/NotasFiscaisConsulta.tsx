@@ -170,7 +170,6 @@ export default function NotasFiscaisConsulta() {
   };
 
   const actions: ToolbarAction[] = [
-    { key: "sefaz", label: "Buscar notas novas na SEFAZ", icon: SefazIcon as unknown as LucideIcon, onClick: buscarSefaz, mode: "always" as any, hidden: isConsultor, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]" } as any,
     { key: "pdf", label: "Baixar PDF (DANFE)", icon: FileDown, onClick: downloadPdf, mode: "batch" },
     { key: "xml", label: "Baixar XML", icon: Download, onClick: downloadXml, mode: "batch" },
     { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, onClick: printList, mode: "batch" },
@@ -226,7 +225,8 @@ export default function NotasFiscaisConsulta() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : "pending";
+                const isToday = !!(r as any).created_at && new Date((r as any).created_at).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) === todaySP;
+                const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : isToday ? "info" : "pending";
                 return (
                   <tr key={r.id} className={`border-t cursor-pointer ${rowToneClass(tone as any)}`} onClick={() => setSelected((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; })}>
                     <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => setSelected((s) => { const n = new Set(s); v ? n.add(r.id) : n.delete(r.id); return n; })} /></td>
@@ -241,13 +241,13 @@ export default function NotasFiscaisConsulta() {
                 );
               })}
               {!filtered.length && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma nota no período. Use o botão da SEFAZ na barra para buscar notas novas.</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Nenhuma nota no período. As notas novas chegam automaticamente nos horários de sincronização da empresa.</td></tr>
               )}
             </tbody>
           </table>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <StatusLegend items={[{ tone: "pending", label: "Disponível" }, { tone: "resolved", label: "Utilizada (despesa/CT-e)" }, { tone: "cancelled", label: "Cancelada" }] as any} />
+          <StatusLegend items={[{ tone: "info", label: "Recebida hoje" }, { tone: "pending", label: "Disponível" }, { tone: "resolved", label: "Utilizada (despesa/CT-e)" }, { tone: "cancelled", label: "Cancelada" }] as any} />
           <span>{filtered.length} nota(s) · {formatCurrency(total)}</span>
         </div>
       </div>
