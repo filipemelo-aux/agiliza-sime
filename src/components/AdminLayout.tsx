@@ -27,7 +27,6 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect, useRef, useCallback, type UIEvent } from "react";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
-import fsmLogo from "@/assets/brand/fsm-systems-logo-horizontal.png";
 
 export const allMenuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
