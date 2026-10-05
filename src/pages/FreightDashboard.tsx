@@ -1,6 +1,6 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign, XCircle, Ban, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";

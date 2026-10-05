@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Phone, FileText, Calendar, Edit2, Save, X, ShieldCheck, Building2, CreditCard, Key, PenLine } from "lucide-react";

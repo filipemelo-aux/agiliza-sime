@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { maskPhone, maskCNPJ, maskDocument } from "@/lib/masks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

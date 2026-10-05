@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { maskPhone, maskCNPJ, maskDocument } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";

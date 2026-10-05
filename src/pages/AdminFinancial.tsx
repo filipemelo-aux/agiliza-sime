@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { AdminLayout } from "@/components/AdminLayout";
 import { FinancialPayables } from "@/components/financial/FinancialPayables";
 import { FinancialReceipts } from "@/components/financial/FinancialReceipts";

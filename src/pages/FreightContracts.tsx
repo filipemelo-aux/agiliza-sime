@@ -1,7 +1,7 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useMemo, useState } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

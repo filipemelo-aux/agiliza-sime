@@ -1,7 +1,7 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useMemo, useState } from "react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";

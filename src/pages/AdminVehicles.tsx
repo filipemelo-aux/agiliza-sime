@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel, Gauge, DollarSign, Droplet } from "lucide-react";

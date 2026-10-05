@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useMemo } from "react";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useNavigate } from "react-router-dom";

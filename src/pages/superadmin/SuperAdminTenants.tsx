@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, LogIn, Pencil, Plus, Power, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";

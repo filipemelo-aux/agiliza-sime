@@ -1,7 +1,7 @@
+import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
-import { BackButton } from "@/components/BackButton";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2, Search, FileDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
