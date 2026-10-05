@@ -18,6 +18,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface ChartAccount {
   id: string;
@@ -302,8 +303,7 @@ export function FinancialPayablesTree() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-3 space-y-3">
+      <SearchFilterCard contentClassName="block space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
             <div className="space-y-1 col-span-2">
               <Label className="text-xs">Vencimento</Label>
@@ -354,8 +354,7 @@ export function FinancialPayablesTree() {
               </Button>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </SearchFilterCard>
 
       <Card>
         <CardContent className="p-0">

@@ -291,7 +291,7 @@ export default function AdminVehicles() {
 
   return (
     <AdminLayout>
-      <main className="p-4 md:p-6 space-y-3">
+      <main className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle>Veículos</PageTitle>
 
         {(() => {

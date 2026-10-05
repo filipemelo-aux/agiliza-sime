@@ -1692,9 +1692,9 @@ export default function HarvestDetail() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-3">
         {/* Back + Title */}
-        <div className="flex flex-col gap-2 mb-6">
+        <div className="flex flex-col gap-2 mb-3">
           <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0">
               <PageTitle>{job.farm_name}</PageTitle>

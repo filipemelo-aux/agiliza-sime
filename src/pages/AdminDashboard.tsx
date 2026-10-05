@@ -173,7 +173,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-3">
         <PageTitle>Página Inicial</PageTitle>
 
         {/* Atalhos rápidos */}

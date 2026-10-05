@@ -194,7 +194,7 @@ export default function AdminFuelOrders() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-6 space-y-4">
+      <main className="container mx-auto px-4 py-3 space-y-3">
         <PageTitle>Ordens de Abastecimento</PageTitle>
 
         <GlobalToolbar actions={actions} selectedCount={selectedIds.size} />

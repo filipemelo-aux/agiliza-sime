@@ -581,7 +581,7 @@ export default function AdminApplications() {
   return (
     <AdminLayout>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-3">
         <PageTitle>Ordens de Carregamento</PageTitle>
 
         {loading ? (

@@ -323,7 +323,7 @@ export default function FreightContracts() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-6 space-y-4">
+      <div className="container mx-auto px-4 py-3 space-y-3">
         <div className="flex items-center gap-3">
           <PageTitle>Contratos de Frete</PageTitle>
         </div>

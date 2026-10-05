@@ -208,9 +208,9 @@ export default function Profile() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8" data-readonly-allow>
+      <div className="container mx-auto px-4 py-3" data-readonly-allow>
         <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
+          <div className="mb-3">
             <PageTitle>Meu Perfil</PageTitle>
             {!editing ? (
               <Button

@@ -21,6 +21,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -238,7 +239,7 @@ export default function AdminDrivers() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-3">
         <PageTitle>Cadastros</PageTitle>
         <div className="flex mb-2">
           {isVehicleTab ? (
@@ -268,15 +269,17 @@ export default function AdminDrivers() {
         </Tabs>
 
         {/* Search */}
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={isVehicleTab ? "Buscar por placa, marca, modelo ou proprietário..." : "Buscar por nome, CNPJ, razão social ou e-mail..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <SearchFilterCard className="mb-3">
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={isVehicleTab ? "Buscar por placa, marca, modelo ou proprietário..." : "Buscar por nome, CNPJ, razão social ou e-mail..."}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </SearchFilterCard>
 
         {loading ? (
           <div className="flex justify-center py-12">

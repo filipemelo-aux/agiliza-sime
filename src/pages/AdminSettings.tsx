@@ -35,6 +35,7 @@ import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
 import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
 import { SignaturePad } from "@/components/SignaturePad";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface SystemUser {
   id: string;
@@ -458,7 +459,7 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout>
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="px-4 py-3 md:px-6 space-y-4">
         {/* Header */}
         <PageTitle>Configurações</PageTitle>
         <div className="flex items-center gap-2">
@@ -525,15 +526,12 @@ export default function AdminSettings() {
               </Button>
             </div>
 
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, e-mail ou perfil..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchFilterCard>
+              <div className="relative min-w-[260px] flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar por nome, e-mail ou perfil..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+              </div>
+            </SearchFilterCard>
 
             <div className="space-y-1.5">
               {loading ? (

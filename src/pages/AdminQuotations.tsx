@@ -263,7 +263,7 @@ export default function AdminQuotations() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-6 space-y-4">
+      <main className="container mx-auto px-4 py-3 space-y-3">
         <PageTitle>Cotações</PageTitle>
 
         <SearchFilterCard>
