@@ -5,7 +5,7 @@ import { Building2, LogOut, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import agilizaLogo from "@/assets/brand/agiliza-logo.png";
+import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
 
 export function SuperAdminLayout({ children }: { children: ReactNode }) {
   const { user, isSuperAdmin, supportTenantId, loading } = useAuth();
@@ -37,9 +37,9 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
         <span className="flex h-10 items-center rounded bg-primary-foreground px-2">
           <img
             src={agilizaLogo}
-            alt="Agiliza ERP — Um produto da FSM Softwares"
-            width={1314}
-            height={327}
+            alt="Agiliza TMS — Um produto FSM Systems"
+            width={1455}
+            height={244}
             className="h-8 w-auto object-contain"
           />
         </span>
