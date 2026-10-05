@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import JSZip from "jszip";
-import { Receipt, Download, Printer, FileText, FileDown, Search } from "lucide-react";
+import { Receipt, Download, Printer, FileText, FileDown, Search, type LucideIcon } from "lucide-react";
+import { SefazIcon } from "@/components/icons/SefazIcon";
 import { Button } from "@/components/ui/button";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
@@ -86,10 +87,16 @@ export default function NotasFiscaisConsulta() {
   const estCnpj = (id: string | null) => establishments?.find((e: any) => e.id === id)?.cnpj || "";
   const isUsed = (r: NfeRecebida) => !!r.expense_id || !!r.cte_id || usedExpense.has(r.chave);
 
+  // Filtrar: lê somente as notas já gravadas (compartilhadas por todos da empresa), sem consultar Focus/SEFAZ.
   const aplicar = async () => {
     setSelected(new Set());
-    if (isConsultor) { setInicio(fInicio); setFim(fFim); return; }
-    setBusy("Consultando notas na SEFAZ...");
+    if (fInicio === inicio && fFim === fim) await load(); else { setInicio(fInicio); setFim(fFim); }
+  };
+
+  // Busca incremental de notas novas na SEFAZ (a partir da última versão já gravada por qualquer usuário).
+  const buscarSefaz = async () => {
+    setSelected(new Set());
+    setBusy("Buscando notas novas na SEFAZ...");
     try {
       const ests = (establishments || []).filter((e: any) => !empresa || e.id === empresa);
       const n = await syncNfesRecebidas(ests);
@@ -163,6 +170,7 @@ export default function NotasFiscaisConsulta() {
   };
 
   const actions: ToolbarAction[] = [
+    { key: "sefaz", label: "Buscar notas novas na SEFAZ", icon: SefazIcon as unknown as LucideIcon, onClick: buscarSefaz, mode: "always" as any, hidden: isConsultor, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]" } as any,
     { key: "pdf", label: "Baixar PDF (DANFE)", icon: FileDown, onClick: downloadPdf, mode: "batch" },
     { key: "xml", label: "Baixar XML", icon: Download, onClick: downloadXml, mode: "batch" },
     { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, onClick: printList, mode: "batch" },
