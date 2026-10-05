@@ -33,6 +33,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 /**
@@ -1477,8 +1478,7 @@ tfoot{display:table-row-group}
         <SummaryCard icon={FileText} label="Registros" value={totalRegistros} />
       </div>
 
-      {/* Filter Card */}
-      <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+      <SearchFilterCard contentClassName="block space-y-2">
         {/* Row 1: Period label + date pickers */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 shrink-0">
@@ -1580,7 +1580,7 @@ tfoot{display:table-row-group}
             </Button>
           )}
         </div>
-      </div>
+      </SearchFilterCard>
       {/* Global Toolbar */}
       <GlobalToolbar
         actions={[

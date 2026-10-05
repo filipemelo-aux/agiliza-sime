@@ -12,6 +12,7 @@ import { GlobalToolbar, ToolbarIconButton } from "@/components/ui/global-toolbar
 import { Plus, Pencil, ChevronRight, ChevronDown, Search, FolderTree, List, ListTree } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 const TIPO_OPERACIONAL_OPTIONS = [
   { value: "", label: "Nenhum (conta genérica)" },
@@ -355,43 +356,28 @@ export function ChartOfAccounts() {
 
   return (
     <div className="space-y-3">
+      <SearchFilterCard>
+        <div className="relative w-full lg:w-[260px] shrink-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Buscar por código ou nome..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {(([{ tab: "todos", label: `Todos (${totalizadores.total})`, icon: FolderTree }, { tab: "despesa", label: `Desp. (${totalizadores.desp})`, icon: List }, { tab: "receita", label: `Rec. (${totalizadores.rec})`, icon: List }] as const)).map(({ tab, label, icon: Icon }) => (
+            <ToolbarIconButton key={tab} label={label} icon={Icon} active={tipoFilter === tab} showLabel onClick={() => setTipoFilter(tab)} />
+          ))}
+        </div>
+      </SearchFilterCard>
+
       <GlobalToolbar
         iconOnlyOnDesktop
         selectedCount={selected.size}
-        filtersFirstOnMobile
         actions={[
           { key: "nova", label: "Nova Conta", icon: Plus, mode: "create", variant: "default", onClick: openNew },
           { key: "editar", label: "Editar", icon: Pencil, mode: "single", onClick: editSelected },
           { key: "expandir", label: "Expandir tudo", icon: ListTree, mode: "always", variant: "outline", hidden: searching, onClick: expandAll },
           { key: "recolher", label: "Recolher tudo", icon: List, mode: "always", variant: "outline", hidden: searching, onClick: collapseAll },
         ]}
-      >
-        <div className="relative order-3 w-full lg:order-none lg:ml-1 lg:w-[240px] lg:border-l lg:border-border lg:pl-2 shrink-0">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por código ou nome..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="h-9 md:h-8 pl-8 text-xs"
-          />
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {(([
-            { tab: "todos", label: `Todos (${totalizadores.total})`, icon: FolderTree },
-            { tab: "despesa", label: `Desp. (${totalizadores.desp})`, icon: List },
-            { tab: "receita", label: `Rec. (${totalizadores.rec})`, icon: List },
-          ] as const)).map(({ tab, label, icon: Icon }) => (
-            <ToolbarIconButton
-              key={tab}
-              label={label}
-              icon={Icon}
-              active={tipoFilter === tab}
-              showLabel
-              onClick={() => setTipoFilter(tab)}
-            />
-          ))}
-        </div>
-      </GlobalToolbar>
+      />
 
       <DataGrid
         rows={flatRows}

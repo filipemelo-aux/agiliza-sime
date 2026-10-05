@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 
@@ -313,8 +314,7 @@ export default function AdminMaintenances() {
           <SummaryCard icon={Car} label="Veículos Atendidos" value={new Set(filtered.map(i => i.veiculo_id)).size} className="hidden md:flex" />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
+        <SearchFilterCard>
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar descrição, placa, fornecedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
@@ -361,7 +361,7 @@ export default function AdminMaintenances() {
               <X className="h-4 w-4" />
             </Button>
           )}
-        </div>
+        </SearchFilterCard>
 
         <GlobalToolbar
           actions={[
