@@ -330,10 +330,7 @@ export default function AdminPeople() {
   return (
     <AdminLayout>
       <main className="p-4 md:p-6 space-y-3">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Pessoas</h1>
-          <p className="text-xs text-muted-foreground">Cadastro unificado de motoristas, clientes, fornecedores e proprietários</p>
-        </div>
+        <PageTitle>Pessoas</PageTitle>
 
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
           <Select value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setSelected(new Set()); }}>

@@ -238,11 +238,8 @@ export default function AdminDrivers() {
   return (
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Cadastros</h1>
-            <p className="text-muted-foreground">Gerencie pessoas e veículos do sistema</p>
-          </div>
+        <PageTitle>Cadastros</PageTitle>
+        <div className="flex mb-2">
           {isVehicleTab ? (
             <Button onClick={() => { setEditVehicleId(null); setVehicleModalOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo Veículo
