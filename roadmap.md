@@ -1,24 +1,7 @@
 # Roadmap
-- [x] Refazer o DACTE conforme o modelo oficial e aplicar caixa alta
-- [x] Criar DAMDFE completo em caixa alta
-- [x] Adicionar download do PDF do MDF-e selecionado
-- [x] Validar visualmente os PDFs e corrigir falhas
-- [x] Confirmar build sem erros
-- [x] Compactar todos os campos do DACTE conforme as marcações dos prints
-- [x] Reconstruir o DACTE pela geometria exata do modelo oficial reenviado
-- [x] Corrigir o download do DACTE em navegadores desktop
-- [x] DACTE em PDF vetorial idêntico ao modelo (fim da desconfiguração no download)
-- [x] Fixar o padrão vetorial aprovado e adicionar proteção automática contra desconfiguração
 
-## Multiempresa (plano aprovado 05/10)
-- [x] Etapa 1 — tabelas de empresas, vínculos, segredos, certificados, papel superadmin, Sime como 1º tenant
-- [x] Etapa 2 — tenant_id + isolamento (61 tabelas), superadmin admin@fsm.app.br
-- [x] Etapa 3 — painel /superadmin (lista, cadastro, ativar/suspender). Falta: modo suporte, unicidades por tenant
-- [x] Etapa 4 — modo suporte, login neutra, nome/logo por empresa no menu (DACTE vetorial mantido fixo)
-
-## Padronização visual global (05/10)
-- [x] Corrigir títulos e layout das páginas de RH
-- [x] Padronizar cartões, filtros e toolbars do Financeiro
-- [x] Padronizar toolbars das páginas de relatórios
-- [x] Padronizar filtros e ações das páginas de Transporte
-- [x] Validar espaçamentos, ordem dos resumos e funcionamento
+- [ ] Criar componente visual único para buscas e filtros.
+- [ ] Remover todos os campos de busca e filtros das GlobalToolbar.
+- [ ] Aplicar o card padronizado em páginas financeiras, transporte, cadastros, RH e relatórios.
+- [ ] Preservar ações informativas e operacionais nas toolbars.
+- [ ] Validar compilação e páginas representativas no desktop.
