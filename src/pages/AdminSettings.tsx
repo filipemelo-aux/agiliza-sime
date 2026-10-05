@@ -134,12 +134,14 @@ export default function AdminSettings() {
         profileMap[p.user_id] = { name: p.full_name, email: p.email };
       });
 
-      const systemUsers: SystemUser[] = Array.from(userIds).map((uid) => ({
-        id: uid,
-        email: profileMap[uid]?.email || "",
-        roles: roleMap[uid] || [],
-        profile_name: profileMap[uid]?.name || null,
-      }));
+      const systemUsers: SystemUser[] = Array.from(userIds)
+        .filter((uid) => !roleMap[uid]?.includes("superadmin"))
+        .map((uid) => ({
+          id: uid,
+          email: profileMap[uid]?.email || "",
+          roles: roleMap[uid] || [],
+          profile_name: profileMap[uid]?.name || null,
+        }));
 
       setUsers(systemUsers);
     } catch (err: any) {

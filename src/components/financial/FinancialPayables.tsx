@@ -33,7 +33,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 /**
@@ -1471,12 +1471,12 @@ tfoot{display:table-row-group}
       <PageTitle>Contas a Pagar</PageTitle>
       <SearchFilterCard contentClassName="block space-y-2">
         {/* Row 1: Period label + date pickers */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <FilterPrimaryRow>
           <div className="flex items-center gap-1.5 shrink-0">
             <CalendarIcon className="h-4 w-4 text-primary" />
             <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
           </div>
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             <PeriodFilter
               size="sm"
               allowClear
@@ -1486,7 +1486,7 @@ tfoot{display:table-row-group}
             />
           </div>
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-        </div>
+        </FilterPrimaryRow>
 
         {/* Row 2: Search */}
         <div className="relative">

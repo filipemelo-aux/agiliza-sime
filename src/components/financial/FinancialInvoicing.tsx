@@ -31,7 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
@@ -1777,8 +1777,8 @@ ${hasRecebimentos ? `
         <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
-      <SearchFilterCard>
-        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+      <SearchFilterCard contentClassName="block space-y-2">
+        <FilterPrimaryRow><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></FilterPrimaryRow>
         <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 min-w-[220px] flex-1 text-xs" />
         {filterCliente && <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterCliente("")}><X className="h-3 w-3" /> Limpar</Button>}
       </SearchFilterCard>

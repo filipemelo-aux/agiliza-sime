@@ -17,7 +17,7 @@ import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { EmpresaFilter } from "./EmpresaControls";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface ChartAccount {
   id: string;
@@ -669,8 +669,8 @@ export function DreGerencial() {
       </GlobalToolbar>
 
       <SearchFilterCard contentClassName="block space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
-            <div className="space-y-1 col-span-2">
+          <FilterPrimaryRow>
+            <div className="space-y-1">
               <Label className="text-xs">Período</Label>
               <PeriodFilter
                 size="sm"
@@ -679,11 +679,11 @@ export function DreGerencial() {
                 onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
               />
             </div>
-            <div className="space-y-1 col-span-2 md:col-span-1">
+            <div className="space-y-1">
               <Label className="text-xs">Empresa</Label>
               <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
             </div>
-          </div>
+          </FilterPrimaryRow>
           <p className="text-[11px] text-muted-foreground">
             Regime de <b>competência pura</b>: compras do cartão entram pela <b>data original da compra</b> (posted_date). Compras parceladas são lançadas pelo <b>valor total</b> (parcela × N) no mês em que ocorreram — parcelas 2/N, 3/N... não aparecem em meses futuros. Clique no valor de uma linha de <i>Origem</i> para auditar os lançamentos individuais.
           </p>

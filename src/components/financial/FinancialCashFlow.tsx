@@ -401,8 +401,12 @@ export function FinancialCashFlow() {
       </div>
 
       <SearchFilterCard contentClassName="block">
-        <div className="mb-2 flex justify-end"><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></div>
-        <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
+        <CashFlowFilters
+          filters={filters}
+          onChange={setFilters}
+          chartAccounts={chartAccounts}
+          primaryFilter={<EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />}
+        />
       </SearchFilterCard>
 
       <GlobalToolbar
