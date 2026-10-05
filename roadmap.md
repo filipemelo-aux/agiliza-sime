@@ -13,3 +13,5 @@
 - [x] Ocultar SuperAdmin da gestão de usuários das empresas.
 - [x] Padronizar primeira linha dos filtros: período à esquerda e "Todas as Empresas" à direita.
 - [x] Compactar a disposição dos filtros do Fluxo de Caixa.
+- [x] Alterar o nome da plataforma para Agiliza ERP em todas as áreas e metadados.
+- [ ] Selecionar e aplicar a nova logo do Agiliza ERP e seu favicon.

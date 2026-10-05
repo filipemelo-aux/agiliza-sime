@@ -298,7 +298,7 @@ function SidebarNav() {
           className="flex-1 min-w-0 text-[15px] leading-tight tracking-tight text-primary group-data-[collapsible=icon]:hidden"
           style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
         >
-          ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
+          AGILIZA <span className="text-accent">ERP</span>
         </span>
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
           <ArrowLeftRight />
