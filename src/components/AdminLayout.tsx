@@ -303,10 +303,6 @@ function SidebarNav() {
             height={202}
             className="h-8 w-full object-contain object-left"
           />
-          <div className="flex items-center gap-1 pl-0.5">
-            <span className="text-[9px] font-medium text-muted-foreground">by</span>
-            <img src={fsmLogo} alt="FSM Sistemas" className="h-3.5 w-auto object-contain" />
-          </div>
         </div>
         <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
           <ArrowLeftRight />
