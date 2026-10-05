@@ -400,7 +400,11 @@ function SidebarNav() {
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useUserRole();
+  const { user, isSuperAdmin, loading } = useUserRole();
+  const navigateTo = useNavigate();
+  useEffect(() => {
+    if (!loading && isSuperAdmin) navigateTo("/superadmin", { replace: true });
+  }, [loading, isSuperAdmin, navigateTo]);
 
   const handleLogout = async () => {
     try {

@@ -30,6 +30,7 @@ import AdminTransportReports from "./pages/AdminTransportReports";
 import AdminFleetMetrics from "./pages/AdminFleetMetrics";
 import AdminRH from "./pages/AdminRH";
 import NotFound from "./pages/NotFound";
+import SuperAdminTenants from "./pages/superadmin/SuperAdminTenants";
 import { UpdateNotification } from "./components/UpdateNotification";
 
 const queryClient = new QueryClient({
@@ -54,6 +55,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/register" element={<Navigate to="/admin" replace />} />
+            <Route path="/superadmin" element={<SuperAdminTenants />} />
+            <Route path="/superadmin/*" element={<Navigate to="/superadmin" replace />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
