@@ -206,7 +206,7 @@ export default function AdminHarvest() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-3">
+      <main className="container mx-auto px-4 py-3 space-y-3">
         <PageTitle>Colheitas</PageTitle>
         <GlobalToolbar actions={[{ key: "new", label: "Novo Serviço", icon: Plus, mode: "create", variant: "default", onClick: openCreateDialog }]} selectedCount={0} />
 

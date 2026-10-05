@@ -587,7 +587,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
   return (
     <AdminLayout>
       <ProcessingOverlay open={transmitting || bulkDeleting || !!deletingId} label={transmitting ? "Transmitindo à SEFAZ..." : "Excluindo..."} />
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-3 space-y-3">
         <PageTitle>CT-e</PageTitle>
 
 
@@ -651,7 +651,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
           selectedCount={selectedIds.size}
         />
 
-        <div className="cte-grid mt-3">
+        <div className="cte-grid">
           <DataGrid
             rows={sorted}
             columns={cteColumns}
