@@ -224,7 +224,7 @@ export default function NotasFiscaisConsulta() {
                     <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => setSelected((s) => { const n = new Set(s); v ? n.add(r.id) : n.delete(r.id); return n; })} /></td>
                     <td className="p-2">{r.numero}</td><td className="p-2">{r.serie}</td>
                     <td className="p-2 whitespace-nowrap">{formatDateBR(r.data_emissao?.slice(0, 10) || "")}</td>
-                    <td className="p-2">{r.emitente_nome}</td><td className="p-2 whitespace-nowrap">{fmtCnpj(r.emitente_cnpj)}</td>
+                    <td className="p-2 max-w-[280px] truncate" title={r.emitente_nome || ""}>{r.emitente_nome}</td><td className="p-2 whitespace-nowrap">{fmtCnpj(r.emitente_cnpj)}</td>
                     <td className="p-2">{r.ator === "transportadora" ? "Transportadora" : "Destinatário"}</td>
                     <td className="p-2 capitalize">{isUsed(r) && r.situacao !== "cancelada" ? "Utilizada" : r.situacao || "autorizada"}</td>
                     <td className="p-2 text-right whitespace-nowrap">{formatCurrency(Number(r.valor) || 0)}</td>
