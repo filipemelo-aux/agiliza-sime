@@ -11,6 +11,7 @@ import { checkPendingLoadingOrder } from "@/hooks/usePendingLoadingOrder";
 import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
+import fsmLogo from "@/assets/brand/fsm-systems-logo-horizontal.png";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
