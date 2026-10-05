@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
             has_token_homologation: !!s?.focus_nfe_token_homologation,
             has_certificate_password: !!s?.certificate_password,
             certificate: certs?.find((c: any) => c.tenant_id === t.id) || null,
+            server_token_production: !!Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO"),
+            server_token_homologation: !!Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO"),
           };
         }),
       });
@@ -87,7 +89,30 @@ Deno.serve(async (req) => {
         .select("id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active")
         .eq("tenant_id", p.data.tenant_id).order("type").order("razao_social");
       if (error) throw error;
-      return json({ establishments: data || [] });
+      const { data: fc } = await admin.from("fiscal_certificates").select("id,nome,ativo,created_at").eq("tenant_id", p.data.tenant_id).order("created_at", { ascending: false });
+      const { data: links } = await admin.from("establishment_certificates").select("certificate_id,establishment_id").eq("tenant_id", p.data.tenant_id);
+      return json({
+        establishments: data || [],
+        certificates: (fc || []).map((c: any) => ({ ...c, establishment_ids: (links || []).filter((l: any) => l.certificate_id === c.id).map((l: any) => l.establishment_id) })),
+      });
+    }
+
+    if (body.action === "set_certificate_links") {
+      const p = z.object({ tenant_id: z.string().uuid(), certificate_id: z.string().uuid(), establishment_ids: z.array(z.string().uuid()).max(100) }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { tenant_id, certificate_id, establishment_ids } = p.data;
+      const { data: c } = await admin.from("fiscal_certificates").select("id").eq("id", certificate_id).eq("tenant_id", tenant_id).maybeSingle();
+      if (!c) return json({ error: "Certificado não encontrado" }, 404);
+      const { data: ests } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", tenant_id).in("id", establishment_ids.length ? establishment_ids : ["00000000-0000-0000-0000-000000000000"]);
+      const valid = (ests || []).map((e: any) => e.id);
+      await admin.from("establishment_certificates").delete().eq("certificate_id", certificate_id);
+      if (valid.length) {
+        // cada estabelecimento usa um único certificado
+        await admin.from("establishment_certificates").delete().in("establishment_id", valid);
+        const { error } = await admin.from("establishment_certificates").insert(valid.map((id: string) => ({ certificate_id, establishment_id: id, tenant_id })));
+        if (error) throw error;
+      }
+      return json({ success: true });
     }
 
     if (body.action === "save_establishment") {
@@ -173,6 +198,14 @@ Deno.serve(async (req) => {
         const { id: _id, ...upd } = row as any;
         const { error } = await admin.from("tenants").update(upd).eq("id", tenantId);
         if (error) throw error;
+        // Matriz fiscal espelha os dados cadastrais da empresa
+        const { error: mErr } = await admin.from("fiscal_establishments").update({
+          cnpj: row.cnpj, razao_social: row.razao_social, nome_fantasia: row.nome_fantasia, inscricao_estadual: row.ie, rntrc: row.rntrc,
+          endereco_logradouro: row.logradouro, endereco_numero: row.numero, endereco_bairro: row.bairro,
+          endereco_municipio: row.municipio, endereco_uf: row.uf, endereco_cep: row.cep, codigo_municipio_ibge: row.codigo_municipio,
+          ambiente: row.focus_environment === "production" ? "producao" : "homologacao",
+        }).eq("tenant_id", tenantId).eq("type", "matriz");
+        if (mErr) throw new Error("Erro ao atualizar a matriz: " + mErr.message);
       }
 
       if (secrets) {
