@@ -20,6 +20,7 @@ export interface NfeRecebida {
   expense_id: string | null;
   cte_id: string | null;
   versao: number | null;
+  created_at?: string | null;
 }
 
 const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
