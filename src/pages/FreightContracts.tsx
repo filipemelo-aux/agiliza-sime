@@ -26,6 +26,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 import type { Cte } from "@/pages/FreightCte";
 
@@ -333,7 +334,21 @@ export default function FreightContracts() {
           <Card><CardContent className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Valor total</p><p className="text-sm font-semibold">{formatCurrency(totals.totalValor)}</p></CardContent></Card>
         </div>
 
-        {/* Toolbar + filtros + lista */}
+        <SearchFilterCard>
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-8 h-9" placeholder="Nº, contratado, motorista, placa, trecho..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Status do pagamento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem><SelectItem value="pendente">Pendente</SelectItem><SelectItem value="atrasado">Atrasado</SelectItem><SelectItem value="parcial">Parcial</SelectItem><SelectItem value="pago">Pago</SelectItem><SelectItem value="cancelado">Cancelado</SelectItem><SelectItem value="sem_titulo">Sem título</SelectItem>
+            </SelectContent>
+          </Select>
+          <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
+          <Button variant="outline" className="h-8 w-8 p-0" onClick={clearFilters} title="Limpar filtros"><X className="w-4 h-4" /></Button>
+        </SearchFilterCard>
+
         <GlobalToolbar
           actions={[
             {
@@ -346,46 +361,7 @@ export default function FreightContracts() {
             { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: deletable.length === 0, onClick: handleBatchDelete },
           ]}
           selectedCount={selectedIds.size}
-          filtersFirstOnMobile
         >
-              <div className="relative min-w-[220px] flex-1">
-                <Search className="w-4 h-4 absolute left-2 top-2.5 text-muted-foreground" />
-                <Input
-                  className="pl-8 h-9"
-                  placeholder="Nº, contratado, motorista, placa, trecho..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Status do pagamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os status</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="atrasado">Atrasado</SelectItem>
-                    <SelectItem value="parcial">Parcial</SelectItem>
-                    <SelectItem value="pago">Pago</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                    <SelectItem value="sem_titulo">Sem título</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <PeriodFilter
-                  inicio={dateFrom}
-                  fim={dateTo}
-                  allowClear
-                  onChange={(i, f) => { setDateFrom(i); setDateTo(f); }}
-                />
-              </div>
-              <div>
-                <Button variant="outline" className="h-8 w-8 p-0" onClick={clearFilters} title="Limpar filtros">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
           {selectedIds.size > 0 && (
             <span className="text-[11px] font-mono text-primary">
               {formatCurrency(selectedRows.reduce((s, r) => s + r.valor_total, 0))}

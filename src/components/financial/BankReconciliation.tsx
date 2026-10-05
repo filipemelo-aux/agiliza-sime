@@ -32,6 +32,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { GlobalToolbar, ToolbarIconButton } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 type MatchPrecision = "exato" | "proximo";
@@ -3272,7 +3273,25 @@ export function BankReconciliation() {
       </AlertDialog>
 
 
-      {/* Global Toolbar (ações + filtros) */}
+      <SearchFilterCard>
+        <div className="relative w-full lg:w-[240px] shrink-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pend.", icon: AlertCircle }, { tab: "conciliado", label: "Concil.", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
+            const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
+            return <ToolbarIconButton key={tab} label={`${label} (${count})`} icon={Icon} active={statusFilter === tab} showLabel onClick={() => setStatusFilter(tab)} />;
+          })}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "debito", label: "Débito", icon: ArrowDownCircle }, { tab: "credito", label: "Crédito", icon: ArrowUpCircle }] as const)).map(({ tab, label, icon: Icon }) => {
+            const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
+            return <ToolbarIconButton key={tab} label={`${label} (${count})`} icon={Icon} active={tipoFilter === tab} showLabel onClick={() => setTipoFilter(tab)} />;
+          })}
+        </div>
+      </SearchFilterCard>
+
       <GlobalToolbar
         iconOnlyOnDesktop
         actions={[
@@ -3358,49 +3377,7 @@ export function BankReconciliation() {
           },
         ]}
         selectedCount={selectedIds.size}
-        filtersFirstOnMobile
-      >
-        <div className="relative order-3 w-full lg:order-none lg:ml-1 lg:w-[220px] lg:border-l lg:border-border lg:pl-2 shrink-0">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="h-9 md:h-8 pl-8 text-xs"
-          />
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pend.", icon: AlertCircle }, { tab: "conciliado", label: "Concil.", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
-            const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
-            return (
-              <ToolbarIconButton
-                key={tab}
-                label={`${label} (${count})`}
-                icon={Icon}
-                active={statusFilter === tab}
-                showLabel
-                onClick={() => setStatusFilter(tab)}
-              />
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "debito", label: "Débito", icon: ArrowDownCircle }, { tab: "credito", label: "Crédito", icon: ArrowUpCircle }] as const)).map(({ tab, label, icon: Icon }) => {
-            const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
-            return (
-              <ToolbarIconButton
-                key={tab}
-                label={`${label} (${count})`}
-                icon={Icon}
-                active={tipoFilter === tab}
-                showLabel
-                onClick={() => setTipoFilter(tab)}
-              />
-            );
-          })}
-        </div>
-
-      </GlobalToolbar>
+      />
 
       {/* Data Grid */}
       <div className="recon-grid-wrapper">

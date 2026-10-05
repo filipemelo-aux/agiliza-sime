@@ -12,6 +12,7 @@ import { printCreditCardInvoice } from "./printCreditCardInvoice";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface InvoiceRow {
   id: string;
@@ -201,10 +202,11 @@ export function CreditCardInvoices() {
         <PageTitle>Cartão de Crédito</PageTitle>
       </div>
 
-      <GlobalToolbar actions={actions} selectedCount={selected.size} filtersFirstOnMobile>
+      <SearchFilterCard>
         <span className="text-[10px] font-semibold uppercase text-muted-foreground">Empresa</span>
         <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-      </GlobalToolbar>
+      </SearchFilterCard>
+      <GlobalToolbar actions={actions} selectedCount={selected.size} />
 
       <DataGrid
         rows={visibleInvoices}

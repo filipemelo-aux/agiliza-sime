@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
@@ -316,7 +317,7 @@ export default function AdminVehicles() {
           );
         })()}
 
-        <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
+        <SearchFilterCard>
           <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
             {[
               { v: "__all__", label: "Todos" },
@@ -344,7 +345,8 @@ export default function AdminVehicles() {
               className="pl-8 h-8 text-xs"
             />
           </div>
-        </GlobalToolbar>
+        </SearchFilterCard>
+        <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
 
         <DataGrid
           rows={filteredVehicles}

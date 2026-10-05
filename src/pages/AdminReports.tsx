@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 type ReportType = "pessoas" | "veiculos" | "cargas" | "plano_contas";
 
@@ -236,7 +237,7 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 items-end">
+      <SearchFilterCard>
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input placeholder="Buscar nome, CPF/CNPJ, telefone, cidade..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
@@ -247,12 +248,8 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
             {PERSON_CATEGORIES.map(c => <SelectItem key={c} value={c}>{PERSON_CAT_LABELS[c]}</SelectItem>)}
           </SelectContent>
         </Select>
-        <ExportButtons
-          onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), matriz, cnpjsFooter)}
-          disabled={filtered.length === 0}
-        />
-      </div>
+      </SearchFilterCard>
+      <ExportButtons onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
@@ -375,7 +372,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 items-end">
+      <SearchFilterCard>
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input placeholder="Buscar placa, RENAVAM, marca, modelo, motorista..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
@@ -397,12 +394,8 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
             <SelectItem value="terceiros">Terceiros</SelectItem>
           </SelectContent>
         </Select>
-        <ExportButtons
-          onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), matriz, cnpjsFooter)}
-          disabled={filtered.length === 0}
-        />
-      </div>
+      </SearchFilterCard>
+      <ExportButtons onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
@@ -506,7 +499,7 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 items-end">
+      <SearchFilterCard>
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input placeholder="Buscar produto, NCM, sinônimos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
@@ -525,12 +518,8 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
             <SelectItem value="inativo">Inativo</SelectItem>
           </SelectContent>
         </Select>
-        <ExportButtons
-          onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), matriz, cnpjsFooter)}
-          disabled={filtered.length === 0}
-        />
-      </div>
+      </SearchFilterCard>
+      <ExportButtons onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
@@ -635,7 +624,7 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 items-end">
+      <SearchFilterCard>
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input placeholder="Buscar código ou nome..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
@@ -654,12 +643,8 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
             <SelectItem value="inativo">Inativo</SelectItem>
           </SelectContent>
         </Select>
-        <ExportButtons
-          onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), matriz, cnpjsFooter)}
-          disabled={filtered.length === 0}
-        />
-      </div>
+      </SearchFilterCard>
+      <ExportButtons onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
         <Table>

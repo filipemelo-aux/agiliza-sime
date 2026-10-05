@@ -22,6 +22,7 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
@@ -386,7 +387,7 @@ function RHWorkspace(props: any) {
 
         {section === "colaboradores" && (
           <div className="space-y-3">
-            <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size}>
+            <SearchFilterCard>
               <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
                 {([
                   { v: "all", label: "Todos" },
@@ -413,7 +414,8 @@ function RHWorkspace(props: any) {
                   className="pl-8 h-8 text-xs"
                 />
               </div>
-            </GlobalToolbar>
+            </SearchFilterCard>
+            <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size} />
 
             <DataGrid
               rows={filteredColabs}

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { SummaryCard } from "@/components/SummaryCard";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 type ReportType =
   | "cte"
@@ -896,8 +897,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
             ]}
             selectedCount={0}
           />
-          <Card>
-            <CardContent className="p-3 space-y-3">
+          <SearchFilterCard contentClassName="block space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 <div className="space-y-1 col-span-2">
                   <Label className="text-xs">Período</Label>
@@ -996,8 +996,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+          </SearchFilterCard>
 
           {rows.length > 0 && (
             <div className="mt-3 space-y-3">

@@ -41,6 +41,7 @@ import { downloadDactePdf } from "@/components/freight/dactePdf";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 export interface Cte {
@@ -590,6 +591,18 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         <PageTitle>CT-e</PageTitle>
 
 
+        <SearchFilterCard>
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+          </div>
+          <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
+          <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
+            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
+          </Select>
+        </SearchFilterCard>
+
         <GlobalToolbar
           actions={[
             {
@@ -636,18 +649,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
           ]}
           selectedCount={selectedIds.size}
-          filtersFirstOnMobile
-        >
-          <div className="relative min-w-[240px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
-          </div>
-          <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
-          <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
-            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
-          </Select>
-        </GlobalToolbar>
+        />
 
         <div className="cte-grid mt-3">
           <DataGrid
