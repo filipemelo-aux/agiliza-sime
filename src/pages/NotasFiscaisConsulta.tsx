@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { syncNfesRecebidas, ensureNfeXml, type NfeRecebida } from "@/lib/nfeRecebidas";
@@ -30,7 +30,7 @@ const fmtCnpj = (v?: string | null) => { const d = (v || "").replace(/\D/g, "");
 
 export default function NotasFiscaisConsulta() {
   const { toast } = useToast();
-  const { isConsultor } = useUserRole() as any;
+  const { isConsultor } = useUserRole() as any; // somente leitura
   const { establishments } = useUnifiedCompany() as any;
   const [rows, setRows] = useState<NfeRecebida[]>([]);
   const [usedExpense, setUsedExpense] = useState<Set<string>>(new Set());
@@ -133,7 +133,7 @@ export default function NotasFiscaisConsulta() {
   const printList = () => {
     const list = selectedRows.length ? selectedRows : filtered;
     const body = list.map((r) => `<tr><td>${r.numero || ""}</td><td>${r.serie || ""}</td><td>${formatDateBR(r.data_emissao?.slice(0, 10) || "")}</td><td>${r.emitente_nome || ""}</td><td>${fmtCnpj(r.emitente_cnpj)}</td><td>${r.ator === "transportadora" ? "Transportadora" : "Destinatário"}</td><td style="text-align:right">${formatCurrency(Number(r.valor) || 0)}</td></tr>`).join("");
-    openPrintWindow(`<h3>Notas Fiscais Recebidas — ${formatDateBR(inicio)} a ${formatDateBR(fim)}</h3><table style="width:100%;border-collapse:collapse;font-size:11px" border="1" cellpadding="4"><thead><tr><th>Número</th><th>Série</th><th>Emissão</th><th>Emitente</th><th>CNPJ</th><th>Ator</th><th>Valor</th></tr></thead><tbody>${body}</tbody></table>`, "Notas Fiscais Recebidas");
+    openPrintWindow(`<h3>Notas Fiscais Recebidas — ${formatDateBR(inicio)} a ${formatDateBR(fim)}</h3><table style="width:100%;border-collapse:collapse;font-size:11px" border="1" cellpadding="4"><thead><tr><th>Número</th><th>Série</th><th>Emissão</th><th>Emitente</th><th>CNPJ</th><th>Ator</th><th>Valor</th></tr></thead><tbody>${body}</tbody></table>`);
   };
 
   const actions: ToolbarAction[] = [
@@ -245,7 +245,7 @@ export default function NotasFiscaisConsulta() {
           }}
         />
       )}
-      <ProcessingOverlay open={!!busy} message={busy || ""} />
+      <ProcessingOverlay open={!!busy} label={busy || undefined} />
     </AdminLayout>
   );
 }
