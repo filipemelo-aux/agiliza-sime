@@ -7,7 +7,7 @@ export type RowTone = "info" | "pending" | "resolved" | "overdue" | "cancelled" 
 export function rowToneClass(tone: RowTone): string {
   switch (tone) {
     case "info":
-      return "bg-primary/10 hover:bg-primary/15";
+      return "bg-info/20 hover:bg-info/30";
     case "pending":
       return "bg-warning/10 hover:bg-warning/20";
     case "resolved":
@@ -28,7 +28,7 @@ const DEFAULT_LEGEND: { tone: RowTone; label: string }[] = [
 ];
 
 const SWATCH: Record<RowTone, string> = {
-  info: "bg-primary/25 border-primary/60",
+  info: "bg-info/60 border-info",
   pending: "bg-warning/40 border-warning",
   resolved: "bg-success/40 border-success",
   overdue: "bg-destructive/40 border-destructive",
