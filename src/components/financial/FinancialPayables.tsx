@@ -1468,9 +1468,7 @@ tfoot{display:table-row-group}
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <PageTitle>Contas a Pagar</PageTitle>
-      </div>
+      <PageTitle>Contas a Pagar</PageTitle>
       <SearchFilterCard contentClassName="block space-y-2">
         {/* Row 1: Period label + date pickers */}
         <div className="flex items-center gap-2 flex-wrap">
