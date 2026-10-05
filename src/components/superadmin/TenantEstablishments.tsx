@@ -27,7 +27,9 @@ const F = ({ label, span = 2, children }: { label: string; span?: number; childr
 
 
 export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { tenantId: string; tenantCnpj: string; tenantName: string }) {
-  const [list, setList] = useState<Est[]>([]);
+  const [all, setAll] = useState<Est[]>([]);
+  const [certs, setCerts] = useState<{ id: string; nome: string; ativo: boolean; establishment_ids: string[] }[]>([]);
+  const list = all.filter((e) => e.type === "filial");
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Est | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,9 +40,18 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
     const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "list_establishments", tenant_id: tenantId } });
     setLoading(false);
     if (error || data?.error) return toast.error(data?.error || "Erro ao carregar estabelecimentos");
-    setList(data.establishments || []);
+    setAll(data.establishments || []);
+    setCerts(data.certificates || []);
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
+
+  const toggleLink = async (certId: string, estId: string, on: boolean) => {
+    const c = certs.find((x) => x.id === certId); if (!c) return;
+    const ids = on ? [...new Set([...c.establishment_ids, estId])] : c.establishment_ids.filter((i) => i !== estId);
+    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "set_certificate_links", tenant_id: tenantId, certificate_id: certId, establishment_ids: ids } });
+    if (error || data?.error) return toast.error(data?.error || "Erro ao vincular certificado");
+    toast.success("Vínculo do certificado atualizado"); load();
+  };
 
   const novaFilial = () => setEdit({
     id: null, type: "filial", cnpj: tenantCnpj.replace(/\D/g, "").slice(0, 8), razao_social: `${tenantName} - Filial `, nome_fantasia: "",
@@ -84,11 +95,12 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   return (
     <section className="rounded-lg border">
       <div className="flex items-center px-3 py-2 bg-muted/50 border-b">
-        <h3 className="text-xs font-bold uppercase tracking-wide">3. Estabelecimentos (matriz e filiais)</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide">3. Filiais</h3>
         {!edit && <Button type="button" size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={novaFilial}><Plus className="h-3.5 w-3.5 mr-1" />Nova filial</Button>}
       </div>
       <div className="p-3 space-y-2">
         {loading && <p className="text-xs text-muted-foreground">Carregando…</p>}
+        {!loading && list.length === 0 && !edit && <p className="text-xs text-muted-foreground">Nenhuma filial cadastrada. A matriz usa os dados cadastrais do bloco 1.</p>}
         {!loading && list.map((e) => (
           <div key={e.id} className={`flex items-center gap-3 rounded border p-2 text-xs ${e.active ? "" : "opacity-60"}`}>
             <Badge variant={e.type === "matriz" ? "default" : "secondary"} className="w-14 justify-center uppercase">{e.type}</Badge>
@@ -131,6 +143,24 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
               <Button type="button" variant="outline" className="h-9" onClick={() => setEdit(null)} disabled={saving}>Cancelar</Button>
               <Button type="button" className="h-9" onClick={salvar} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar estabelecimento</Button>
             </div>
+          </div>
+        )}
+        {!loading && certs.length > 0 && (
+          <div className="rounded border p-2 space-y-1">
+            <p className="text-xs font-semibold">Certificados digitais e vínculos</p>
+            {certs.map((c) => (
+              <div key={c.id} className="text-xs">
+                <div className="font-medium">{c.nome}{!c.ativo && " (inativo)"}</div>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {all.map((e) => (
+                    <label key={e.id!} className="inline-flex items-center gap-1.5 cursor-pointer">
+                      <Switch checked={c.establishment_ids.includes(e.id!)} onCheckedChange={(v) => toggleLink(c.id, e.id!, v)} />
+                      <span className="uppercase text-[10px] text-muted-foreground">{e.type}</span> {fmtCnpj(e.cnpj)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">Filiais usam a mesma raiz de CNPJ, tokens e certificado da empresa. Os números de CT-e/MDF-e continuam sendo controlados pelo sistema.</p>

@@ -31,6 +31,18 @@ Deno.serve(async (req) => {
   ]);
   if (!isAdmin && !isMod) return json({ error: "Sem permissão" }, 403);
 
+  // Tokens Focus: os da empresa (tenant_secrets) têm prioridade; sem eles, usa os padrões do servidor.
+  let tenantTok: { focus_nfe_token_production?: string | null; focus_nfe_token_homologation?: string | null } | null = null;
+  {
+    const { data: tid } = await supabase.rpc("current_tenant_id");
+    if (tid) {
+      const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data } = await svc.from("tenant_secrets").select("focus_nfe_token_production, focus_nfe_token_homologation").eq("tenant_id", tid).maybeSingle();
+      tenantTok = data;
+    }
+  }
+  const tok = (prod: boolean) => (prod ? tenantTok?.focus_nfe_token_production || Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") : tenantTok?.focus_nfe_token_homologation || Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO"));
+
   let body: { action?: string; cnpj?: string; versao?: number; ref?: string; cte?: Record<string, unknown>; cte_id?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
   const action = body.action ?? "ping";
@@ -39,8 +51,8 @@ Deno.serve(async (req) => {
 
   // Consultas de documentos recebidos usam produção (somente leitura). Emissão segue em homologação.
   const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave" || action === "cte_por_chave";
-  const ambiente = isQuery && Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") ? "producao" : "homologacao";
-  const token = Deno.env.get(ambiente === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO");
+  const ambiente = isQuery && tok(true) ? "producao" : "homologacao";
+  const token = tok(ambiente === "producao");
   if (!token) return json({ error: "Token Focus NFe não configurado" }, 500);
   const base = BASES[ambiente];
 
@@ -65,7 +77,7 @@ Deno.serve(async (req) => {
     if (cte.status === "processando") {
       const { data: estSync } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
       const syncAmb = String(estSync?.ambiente) === "producao" ? "producao" : "homologacao";
-      const syncToken = Deno.env.get(syncAmb === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO") || token;
+      const syncToken = tok(syncAmb === "producao") || token;
       const syncRes = await fetch(`${BASES[syncAmb]}/v2/cte/cte-${cteId}?completa=1`, {
         headers: { Authorization: "Basic " + btoa(syncToken + ":") },
       });
@@ -97,7 +109,7 @@ Deno.serve(async (req) => {
 
     // Ambiente da emissão segue o cadastro do estabelecimento emitente (matriz=produção, filial=homologação).
     const emitAmb: keyof typeof BASES = String(est.ambiente) === "producao" ? "producao" : "homologacao";
-    const emitToken = Deno.env.get(emitAmb === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO");
+    const emitToken = tok(emitAmb === "producao");
     if (!emitToken) return json({ error: `Token de ${emitAmb === "producao" ? "produção" : "homologação"} não configurado no backend` }, 500);
     const emitBase = BASES[emitAmb];
 
@@ -252,7 +264,7 @@ Deno.serve(async (req) => {
     if (!cte) return json({ error: "CT-e não encontrado" }, 404);
     const { data: estOp } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
     const opAmb: keyof typeof BASES = String(estOp?.ambiente) === "producao" ? "producao" : "homologacao";
-    const opToken = Deno.env.get(opAmb === "producao" ? "FOCUS_NFE_TOKEN_PRODUCAO" : "FOCUS_NFE_TOKEN_HOMOLOGACAO") || token;
+    const opToken = tok(opAmb === "producao") || token;
     const opBase = BASES[opAmb];
     const hdr = { Authorization: "Basic " + btoa(opToken + ":"), "Content-Type": "application/json" };
     const url = `${opBase}/v2/cte/cte-${cteId}`;
