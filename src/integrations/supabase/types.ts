@@ -4500,6 +4500,212 @@ export type Database = {
         }
         Relationships: []
       }
+      superadmin_support_context: {
+        Row: {
+          tenant_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          tenant_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          tenant_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superadmin_support_context_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_certificates: {
+        Row: {
+          cnpj_titular: string | null
+          created_at: string
+          file_name: string | null
+          id: string
+          is_active: boolean
+          storage_path: string
+          tenant_id: string
+          titular: string | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          cnpj_titular?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          is_active?: boolean
+          storage_path: string
+          tenant_id: string
+          titular?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          cnpj_titular?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          is_active?: boolean
+          storage_path?: string
+          tenant_id?: string
+          titular?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_certificates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_members: {
+        Row: {
+          created_at: string
+          id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_secrets: {
+        Row: {
+          certificate_password: string | null
+          focus_nfe_token_homologation: string | null
+          focus_nfe_token_production: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          certificate_password?: string | null
+          focus_nfe_token_homologation?: string | null
+          focus_nfe_token_production?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          certificate_password?: string | null
+          focus_nfe_token_homologation?: string | null
+          focus_nfe_token_production?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cnpj: string
+          codigo_municipio: string | null
+          complemento: string | null
+          created_at: string
+          email: string | null
+          focus_environment: string
+          id: string
+          ie: string | null
+          logo_url: string | null
+          logradouro: string | null
+          municipio: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          razao_social: string
+          rntrc: string | null
+          status: string
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cnpj: string
+          codigo_municipio?: string | null
+          complemento?: string | null
+          created_at?: string
+          email?: string | null
+          focus_environment?: string
+          id?: string
+          ie?: string | null
+          logo_url?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          razao_social: string
+          rntrc?: string | null
+          status?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cnpj?: string
+          codigo_municipio?: string | null
+          complemento?: string | null
+          created_at?: string
+          email?: string | null
+          focus_environment?: string
+          id?: string
+          ie?: string | null
+          logo_url?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          razao_social?: string
+          rntrc?: string | null
+          status?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trailers: {
         Row: {
           capacity_kg: number
@@ -4867,6 +5073,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_tenant_id: { Args: never; Returns: string }
       fn_contract_city_from_address: {
         Args: { _addr: string }
         Returns: string
@@ -4942,6 +5149,7 @@ export type Database = {
         Args: { _invoice: Json; _invoice_id: string; _items: Json }
         Returns: undefined
       }
+      set_support_tenant: { Args: { _tenant_id: string }; Returns: undefined }
       sync_card_item_rateio: {
         Args: { _invoice_id: string }
         Returns: undefined
