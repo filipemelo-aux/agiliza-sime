@@ -283,10 +283,22 @@ function SidebarNav() {
   }, [location.pathname]);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border fixed left-0 top-14 bottom-0 h-[calc(100svh-3.5rem)] z-30">
-      {/* Busca + botão de recolher na mesma linha */}
+    <Sidebar collapsible="icon" className="border-r border-border">
+      {/* Nome do sistema + botão de recolher */}
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-        <div className="relative flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+        <span
+          className="flex-1 min-w-0 text-[15px] leading-tight tracking-tight text-primary group-data-[collapsible=icon]:hidden"
+          style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}
+        >
+          ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
+        </span>
+        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
+          <ArrowLeftRight />
+        </SidebarTrigger>
+      </div>
+      {/* Busca logo abaixo */}
+      <div className="px-3 pb-2 shrink-0 group-data-[collapsible=icon]:hidden">
+        <div className="relative">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -300,9 +312,6 @@ function SidebarNav() {
             </button>
           )}
         </div>
-        <SidebarTrigger className="h-9 w-9 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/90 [&_svg]:!h-4 [&_svg]:!w-4" title="Recolher menu">
-          <ArrowLeftRight />
-        </SidebarTrigger>
       </div>
 
       <SidebarContentUI
