@@ -22,8 +22,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 import { getLocalDateISO } from "@/lib/date";
-import agilizaTmsLogo from "@/assets/brand/agiliza-tms-logo.png";
-import fsmSystemsLogo from "@/assets/brand/fsm-systems-logo-horizontal.png";
 
 interface DueItem {
   id: string;
@@ -177,13 +175,6 @@ export default function AdminDashboard() {
     <AdminLayout>
       <main className="container mx-auto px-4 py-3">
         <PageTitle>Página Inicial</PageTitle>
-
-        {/* Assinatura da marca */}
-        <div className="flex items-center gap-2.5 mb-3 ml-1">
-          <img src={agilizaTmsLogo} alt="Agiliza TMS" className="h-9 w-auto" />
-          <span className="text-[10px] font-medium text-muted-foreground">by</span>
-          <img src={fsmSystemsLogo} alt="FSM Sistemas" className="h-6 w-auto" />
-        </div>
 
         {/* Atalhos rápidos */}
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Acesso Rápido</p>
