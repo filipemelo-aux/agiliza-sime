@@ -102,7 +102,7 @@ export default function FreightMdfe() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-3 space-y-3">
         <PageTitle>MDF-e — Manifestos de Carga</PageTitle>
         <SearchFilterCard>
           <div className="relative min-w-[260px] flex-1">
@@ -119,7 +119,7 @@ export default function FreightMdfe() {
           ] as any}
           selectedCount={selected.size}
         />
-        <div className="mt-3">
+        <div>
           <DataGrid
             rows={filtered}
             columns={columns}

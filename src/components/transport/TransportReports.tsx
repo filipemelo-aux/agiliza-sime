@@ -882,7 +882,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           <TabsTrigger value="abastecimentos">Abastecimentos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={reportType} className="mt-4">
+        <TabsContent value={reportType} className="mt-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
             <SummaryCard icon={FileSpreadsheet} label="Registros" value={rows.length} />
             {showPeso && <SummaryCard icon={FileSpreadsheet} label="Peso" value={fmtTon(totals.pesoKg)} />}
