@@ -15,6 +15,7 @@ export interface TenantRow {
   logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
   uf: string | null; cep: string | null; codigo_municipio: string | null; telefone: string | null; email: string | null;
   logo_url: string | null; status: "active" | "suspended"; focus_environment: "production" | "homologation";
+  nfe_sync_enabled?: boolean; nfe_sync_start_hour?: number; nfe_sync_interval_hours?: number;
   users_count: number; has_token_production: boolean; has_token_homologation: boolean; has_certificate_password: boolean;
   certificate: { file_name: string | null; valid_until: string | null } | null;
   server_token_production?: boolean; server_token_homologation?: boolean;
@@ -23,6 +24,7 @@ export interface TenantRow {
 const empty = {
   razao_social: "", nome_fantasia: "", cnpj: "", ie: "", rntrc: "", logradouro: "", numero: "", complemento: "", bairro: "",
   municipio: "", uf: "", cep: "", codigo_municipio: "", telefone: "", email: "", logo_url: "", focus_environment: "homologation" as const,
+  nfe_sync_enabled: false as boolean, nfe_sync_start_hour: 8 as number, nfe_sync_interval_hours: 2 as number,
 };
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
@@ -58,7 +60,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
     if (!open) return;
     if (tenant) {
       const t: any = { ...empty };
-      for (const k of Object.keys(empty)) t[k] = (tenant as any)[k] ?? "";
+      for (const k of Object.keys(empty)) t[k] = (tenant as any)[k] ?? (empty as any)[k];
       setF(t);
     } else setF(empty);
     setTokProd(""); setTokHom(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
@@ -160,6 +162,25 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
             <F label={`Certificado A1 (.pfx)${tenant?.certificate ? ` — atual: ${tenant.certificate.file_name}` : ""}`} span={3}>
               <Input type="file" accept=".pfx,.p12" className="h-9" onChange={(e) => setCertFile(e.target.files?.[0] || null)} /></F>
             <F label={`Senha do certificado (${saved(tenant?.has_certificate_password)})`} span={3}><Input type="password" className="h-9" placeholder={tenant?.has_certificate_password ? "•••••••• cadastrada" : ""} value={certPass} onChange={(e) => setCertPass(e.target.value)} autoComplete="new-password" /></F>
+            <F label="Sincronização automática de NF-e recebidas">
+              <Select value={f.nfe_sync_enabled ? "on" : "off"} onValueChange={(v) => setF((p) => ({ ...p, nfe_sync_enabled: v === "on" }))}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="on">Ativada</SelectItem><SelectItem value="off">Desativada</SelectItem></SelectContent>
+              </Select>
+            </F>
+            <F label="Primeira sincronização do dia">
+              <Select value={String(f.nfe_sync_start_hour)} onValueChange={(v) => setF((p) => ({ ...p, nfe_sync_start_hour: Number(v) }))}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>{Array.from({ length: 24 }, (_, h) => <SelectItem key={h} value={String(h)}>{String(h).padStart(2, "0")}:00</SelectItem>)}</SelectContent>
+              </Select>
+            </F>
+            <F label="Depois, a cada">
+              <Select value={String(f.nfe_sync_interval_hours)} onValueChange={(v) => setF((p) => ({ ...p, nfe_sync_interval_hours: Number(v) }))}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>{[1, 2, 3, 4, 6, 8, 12, 24].map((h) => <SelectItem key={h} value={String(h)}>{h === 24 ? "Somente 1 vez ao dia" : `${h} hora(s)`}</SelectItem>)}</SelectContent>
+              </Select>
+            </F>
+            <p className="md:col-span-3 self-end text-[11px] text-muted-foreground">Cada sincronização consulta a SEFAZ uma vez por CNPJ (horário de Brasília) e as notas ficam disponíveis para todos os usuários da empresa.</p>
             <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
           </Block>
 

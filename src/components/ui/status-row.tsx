@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
 
 /** Tonalidades padrão de linha de lista em todo o sistema */
-export type RowTone = "pending" | "resolved" | "overdue" | "cancelled" | "neutral";
+export type RowTone = "info" | "pending" | "resolved" | "overdue" | "cancelled" | "neutral";
 
 /** Classe de fundo aplicada à linha da lista conforme a situação do registro */
 export function rowToneClass(tone: RowTone): string {
   switch (tone) {
+    case "info":
+      return "bg-primary/10 hover:bg-primary/15";
     case "pending":
       return "bg-warning/10 hover:bg-warning/20";
     case "resolved":
@@ -26,6 +28,7 @@ const DEFAULT_LEGEND: { tone: RowTone; label: string }[] = [
 ];
 
 const SWATCH: Record<RowTone, string> = {
+  info: "bg-primary/25 border-primary/60",
   pending: "bg-warning/40 border-warning",
   resolved: "bg-success/40 border-success",
   overdue: "bg-destructive/40 border-destructive",
