@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { useNavigate } from "react-router-dom";
 import { Sprout, Plus, MapPin, Calendar, Users, DollarSign, ChevronRight, Pencil, Trash2, Building2 } from "lucide-react";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -206,13 +207,7 @@ export default function AdminHarvest() {
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold font-display flex items-center gap-2">
-              <Sprout className="h-8 w-8 text-primary" />
-              Colheitas
-            </h1>
-            <p className="text-muted-foreground">Gestão de serviços de colheita terceirizados</p>
-          </div>
+          <PageTitle>Colheitas</PageTitle>
           <Button className="" onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" /> Novo Serviço
           </Button>
