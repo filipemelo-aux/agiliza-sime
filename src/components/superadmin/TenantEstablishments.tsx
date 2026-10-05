@@ -19,6 +19,13 @@ interface Est {
 
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 
+const F = ({ label, span = 2, children }: { label: string; span?: number; children: React.ReactNode }) => (
+    <div className={{ 1: "md:col-span-1", 2: "md:col-span-2", 3: "md:col-span-3", 4: "md:col-span-4", 6: "md:col-span-6" }[span]}>
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>{children}
+    </div>
+  );
+
+
 export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { tenantId: string; tenantCnpj: string; tenantName: string }) {
   const [list, setList] = useState<Est[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,12 +80,6 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
     toast.success(edit.id ? "Estabelecimento atualizado" : "Filial cadastrada");
     setEdit(null); load();
   };
-
-  const F = ({ label, span = 2, children }: { label: string; span?: number; children: React.ReactNode }) => (
-    <div className={{ 1: "md:col-span-1", 2: "md:col-span-2", 3: "md:col-span-3", 4: "md:col-span-4", 6: "md:col-span-6" }[span]}>
-      <Label className="text-[11px] text-muted-foreground">{label}</Label>{children}
-    </div>
-  );
 
   return (
     <section className="rounded-lg border">
