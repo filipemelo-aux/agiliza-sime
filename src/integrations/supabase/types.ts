@@ -48,7 +48,7 @@ export type Database = {
           paid_amount?: number | null
           paid_at?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -106,7 +106,7 @@ export type Database = {
           id?: string
           movimentacao_id: string
           reconciliation_item_id: string
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           created_at?: string
@@ -164,7 +164,7 @@ export type Database = {
           matched_movimentacao_id?: string | null
           reconciliation_id: string
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tipo: string
           transaction_date: string
         }
@@ -230,7 +230,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           reconciled_items?: number
-          tenant_id: string
+          tenant_id?: string
           total_items?: number
         }
         Update: {
@@ -305,7 +305,7 @@ export type Database = {
           remetente_cnpj?: string | null
           remetente_nome?: string | null
           sinonimos?: string | null
-          tenant_id: string
+          tenant_id?: string
           tipo?: string | null
           tolerancia_quebra?: number | null
           uf_destino?: string | null
@@ -380,7 +380,7 @@ export type Database = {
           id?: string
           nivel?: number
           nome: string
-          tenant_id: string
+          tenant_id?: string
           tipo: string
           tipo_operacional?: string | null
           updated_at?: string
@@ -508,7 +508,7 @@ export type Database = {
           largura_folha_mm?: number
           nominal_x?: number
           nominal_y?: number
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           valor_extenso1_x?: number
           valor_extenso1_y?: number
@@ -587,7 +587,7 @@ export type Database = {
           created_at?: string
           expense_id: string
           id?: string
-          tenant_id: string
+          tenant_id?: string
           valor?: number
         }
         Update: {
@@ -678,7 +678,7 @@ export type Database = {
           plano_contas_id?: string | null
           predatado?: boolean
           status?: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           valor?: number
           vinculo_tipo?: string
@@ -810,7 +810,7 @@ export type Database = {
           percentual?: number | null
           referencia_id: string
           status?: Database["public"]["Enums"]["comissao_status"]
-          tenant_id: string
+          tenant_id?: string
           tipo: Database["public"]["Enums"]["comissao_tipo"]
           updated_at?: string
           valor_base?: number
@@ -876,7 +876,7 @@ export type Database = {
           id?: string
           nome: string
           saldo_inicial?: number
-          tenant_id: string
+          tenant_id?: string
           tipo?: string
           updated_at?: string
         }
@@ -938,7 +938,7 @@ export type Database = {
           forma_recebimento?: string | null
           id?: string
           status?: Database["public"]["Enums"]["conta_receber_status"]
-          tenant_id: string
+          tenant_id?: string
           valor?: number
           valor_recebido?: number | null
         }
@@ -1017,7 +1017,7 @@ export type Database = {
           previous_mode?: string
           reason?: string | null
           resolved_at?: string | null
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           created_at?: string
@@ -1111,7 +1111,7 @@ export type Database = {
           parcelas_expandidas?: boolean
           plano_contas_id?: string | null
           posted_date: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           veiculo_id?: string | null
           xml_original?: string | null
@@ -1239,7 +1239,7 @@ export type Database = {
           ofx_file_name?: string | null
           reference_label?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           total_amount?: number
           updated_at?: string
         }
@@ -1514,7 +1514,7 @@ export type Database = {
           seguro_responsavel?: number | null
           serie?: number
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tipo_talao?: string
           tomador_cnpj?: string | null
           tomador_endereco?: string | null
@@ -1732,7 +1732,7 @@ export type Database = {
           descricao?: string | null
           folha_pagamento_id?: string | null
           id?: string
-          tenant_id: string
+          tenant_id?: string
           tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at?: string
           valor?: number
@@ -1789,7 +1789,7 @@ export type Database = {
           id?: string
           observacao?: string | null
           percentual?: number | null
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           valor_rateado?: number
           veiculo_id: string
@@ -1857,7 +1857,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           id?: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           user_id: string
         }
@@ -1896,7 +1896,7 @@ export type Database = {
           created_at?: string
           id?: string
           service_type: string
-          tenant_id: string
+          tenant_id?: string
           user_id: string
         }
         Update: {
@@ -1930,7 +1930,7 @@ export type Database = {
           created_at?: string
           establishment_id: string
           id?: string
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           certificate_id?: string
@@ -1977,7 +1977,7 @@ export type Database = {
           grupo_expense_id: string
           id?: string
           original_expense_id: string
-          tenant_id: string
+          tenant_id?: string
           valor?: number
         }
         Update: {
@@ -2033,7 +2033,7 @@ export type Database = {
           id?: string
           numero_parcela?: number
           status?: string
-          tenant_id: string
+          tenant_id?: string
           total_parcelas?: number | null
           valor?: number
         }
@@ -2088,7 +2088,7 @@ export type Database = {
           id?: string
           ncm?: string | null
           quantidade?: number
-          tenant_id: string
+          tenant_id?: string
           unidade?: string | null
           valor_total?: number
           valor_unitario?: number
@@ -2141,7 +2141,7 @@ export type Database = {
           expense_id: string
           id?: string
           quantidade?: number
-          tenant_id: string
+          tenant_id?: string
           tipo?: string
           valor_total?: number
           valor_unitario?: number
@@ -2206,7 +2206,7 @@ export type Database = {
           lote_id?: string | null
           observacoes?: string | null
           skip_cashflow?: boolean
-          tenant_id: string
+          tenant_id?: string
           valor?: number
         }
         Update: {
@@ -2343,7 +2343,7 @@ export type Database = {
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           tempo_parado?: string | null
-          tenant_id: string
+          tenant_id?: string
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
           tipo_manutencao?: string | null
           unidade_id?: string | null
@@ -2481,7 +2481,7 @@ export type Database = {
           fatura_id: string
           id?: string
           previsao_id: string
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           created_at?: string
@@ -2544,7 +2544,7 @@ export type Database = {
           observacoes?: string | null
           parcelas_custom?: Json | null
           status?: Database["public"]["Enums"]["fatura_status"]
-          tenant_id: string
+          tenant_id?: string
           valor_acrescimo?: number
           valor_desconto?: number
           valor_total?: number
@@ -2608,7 +2608,7 @@ export type Database = {
           id?: string
           name: string
           plano_contas_id?: string | null
-          tenant_id: string
+          tenant_id?: string
           tipo_operacional?: string | null
           type: string
           updated_at?: string
@@ -2659,7 +2659,7 @@ export type Database = {
           id?: string
           nome: string
           senha_criptografada: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -2747,7 +2747,7 @@ export type Database = {
           seguradora_nome?: string | null
           serie_cte?: number | null
           serie_mdfe?: number | null
-          tenant_id: string
+          tenant_id?: string
           type?: Database["public"]["Enums"]["establishment_type"]
           ultimo_numero_contrato_frete?: number
           ultimo_numero_cte?: number | null
@@ -2852,7 +2852,7 @@ export type Database = {
           sefaz_code?: string | null
           sefaz_message?: string | null
           sefaz_url?: string | null
-          tenant_id: string
+          tenant_id?: string
           uf?: string | null
           user_id: string
         }
@@ -2939,7 +2939,7 @@ export type Database = {
           result?: Json | null
           started_at?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           timeout_seconds?: number
         }
         Update: {
@@ -3031,7 +3031,7 @@ export type Database = {
           senha_certificado_encrypted?: string | null
           serie_cte?: number
           serie_mdfe?: number
-          tenant_id: string
+          tenant_id?: string
           uf_emissao?: string
           ultimo_numero_cte?: number
           ultimo_numero_mdfe?: number
@@ -3113,7 +3113,7 @@ export type Database = {
           mes_referencia: string
           observacoes?: string | null
           status?: Database["public"]["Enums"]["folha_status"]
-          tenant_id: string
+          tenant_id?: string
           tipo_periodo?: string
           total_adiantamentos?: number
           total_base?: number
@@ -3189,7 +3189,7 @@ export type Database = {
           id?: string
           liquido?: number
           salario_base?: number
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -3271,7 +3271,7 @@ export type Database = {
           payment_receipt_url?: string | null
           payment_status?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           user_id: string
           vehicle_id: string
         }
@@ -3377,7 +3377,7 @@ export type Database = {
           observacoes?: string | null
           peso_kg?: number
           placa_veiculo?: string | null
-          tenant_id: string
+          tenant_id?: string
           uf_destino?: string | null
           uf_origem?: string | null
           updated_at?: string
@@ -3511,7 +3511,7 @@ export type Database = {
             | Database["public"]["Enums"]["vehicle_type"]
             | null
           status?: Database["public"]["Enums"]["freight_status"]
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           value_brl: number
           weight_kg: number
@@ -3588,7 +3588,7 @@ export type Database = {
           status?: string
           supplier_id?: string | null
           supplier_name: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           vehicle_id?: string | null
           vehicle_plate: string
@@ -3698,7 +3698,7 @@ export type Database = {
           posto_combustivel?: string | null
           quantidade_litros?: number
           status_faturamento?: string
-          tenant_id: string
+          tenant_id?: string
           tipo_combustivel?: string
           updated_at?: string
           valor_por_litro?: number
@@ -3806,7 +3806,7 @@ export type Database = {
           id?: string
           start_date?: string
           status?: string
-          tenant_id: string
+          tenant_id?: string
           user_id: string
           vehicle_id?: string | null
         }
@@ -3882,7 +3882,7 @@ export type Database = {
           payment_closing_day?: number
           payment_value?: number
           status?: string
-          tenant_id: string
+          tenant_id?: string
           total_third_party_vehicles?: number
           updated_at?: string
         }
@@ -3944,7 +3944,7 @@ export type Database = {
           notes?: string | null
           period_end: string
           period_start: string
-          tenant_id: string
+          tenant_id?: string
           total_amount?: number
           total_expected?: number
         }
@@ -4012,7 +4012,7 @@ export type Database = {
           odometro?: number
           proxima_manutencao_km?: number | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tipo_manutencao?: string
           updated_at?: string
           veiculo_id: string
@@ -4183,7 +4183,7 @@ export type Database = {
           seguradora_nome?: string | null
           serie?: number
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tipo_carga?: string | null
           tipo_manifesto?: string
           uf_carregamento?: string | null
@@ -4325,7 +4325,7 @@ export type Database = {
           origem: string
           origem_id: string
           plano_contas_id?: string | null
-          tenant_id: string
+          tenant_id?: string
           tipo: string
           valor: number
         }
@@ -4386,7 +4386,7 @@ export type Database = {
           id?: string
           message: string
           read?: boolean
-          tenant_id: string
+          tenant_id?: string
           title: string
           type?: string
           user_id: string
@@ -4431,7 +4431,7 @@ export type Database = {
           message?: string | null
           mode: string
           page_url: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -4482,7 +4482,7 @@ export type Database = {
           id?: string
           person_id?: string | null
           person_name: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -4555,7 +4555,7 @@ export type Database = {
           origem_id: string
           origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
           status?: Database["public"]["Enums"]["previsao_status"]
-          tenant_id: string
+          tenant_id?: string
           valor?: number
           veiculo_id?: string | null
         }
@@ -4684,7 +4684,7 @@ export type Database = {
           razao_social?: string | null
           salario?: number | null
           signature_data?: string | null
-          tenant_id: string
+          tenant_id?: string
           tipo_colaborador_rh?:
             | Database["public"]["Enums"]["tipo_colaborador_rh"]
             | null
@@ -4807,7 +4807,7 @@ export type Database = {
           produto?: string | null
           quantidade_caminhoes?: number | null
           status?: string
-          tenant_id: string
+          tenant_id?: string
           tipo_valor_frete?: string
           type: string
           updated_at?: string
@@ -4930,7 +4930,7 @@ export type Database = {
           forma_recebimento: string
           id?: string
           observacoes?: string | null
-          tenant_id: string
+          tenant_id?: string
           valor: number
         }
         Update: {
@@ -4980,7 +4980,7 @@ export type Database = {
         Insert: {
           description?: string | null
           key: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           value: Json
         }
@@ -5055,7 +5055,7 @@ export type Database = {
           id?: string
           password_encrypted?: string
           port?: number
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           use_tls?: boolean
           username?: string
@@ -5307,7 +5307,7 @@ export type Database = {
           id?: string
           plate: string
           renavam: string
-          tenant_id: string
+          tenant_id?: string
           trailer_type: string
           vehicle_id: string
         }
@@ -5411,7 +5411,7 @@ export type Database = {
           plate: string
           proxima_revisao_km?: number | null
           renavam: string
-          tenant_id: string
+          tenant_id?: string
           tipo_alienacao?: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
@@ -5498,7 +5498,7 @@ export type Database = {
           numero_parcela: number
           observacoes?: string | null
           status_pagamento?: Database["public"]["Enums"]["status_parcela_alienacao"]
-          tenant_id: string
+          tenant_id?: string
           total_parcelas: number
           updated_at?: string
           valor_parcela?: number
@@ -5570,7 +5570,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           status_pagamento?: Database["public"]["Enums"]["status_pagamento_documento"]
-          tenant_id: string
+          tenant_id?: string
           tipo_documento: Database["public"]["Enums"]["tipo_documento_veiculo"]
           updated_at?: string
           valor_total?: number
