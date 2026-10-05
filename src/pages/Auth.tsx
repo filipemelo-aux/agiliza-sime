@@ -200,6 +200,10 @@ export default function Auth() {
             height={202}
             className="mb-4 h-auto w-full max-w-sm object-contain"
           />
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[10px] font-medium text-muted-foreground">by</span>
+            <img src={fsmLogo} alt="FSM Sistemas" className="h-5 w-auto object-contain" />
+          </div>
           <p className="text-sm text-muted-foreground">
             {isSignup ? "Crie sua conta" : "Acesse sua conta"}
           </p>
