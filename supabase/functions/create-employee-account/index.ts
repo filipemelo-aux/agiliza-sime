@@ -134,6 +134,14 @@ serve(async (req) => {
       if (roleError) throw new Error("Erro ao atribuir papel: " + roleError.message);
     }
 
+    // Multiempresa: a nova conta pertence à mesma empresa de quem a criou
+    const { data: callerMember } = await adminClient
+      .from("tenant_members").select("tenant_id").eq("user_id", caller.id).maybeSingle();
+    if (callerMember?.tenant_id) {
+      await adminClient.from("tenant_members")
+        .upsert({ user_id: authUserId, tenant_id: callerMember.tenant_id }, { onConflict: "user_id", ignoreDuplicates: true });
+    }
+
     if (profile_id) {
       const { error: profileError } = await adminClient
         .from("profiles")
