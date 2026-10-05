@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -333,7 +334,7 @@ export default function AdminPeople() {
       <main className="p-4 md:p-6 space-y-3">
         <PageTitle>Pessoas</PageTitle>
 
-        <GlobalToolbar actions={toolbarActions} selectedCount={selected.size}>
+        <SearchFilterCard>
           <Select value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setSelected(new Set()); }}>
             <SelectTrigger className="h-8 w-[190px] text-xs shrink-0 ml-auto">
               <SelectValue />
@@ -366,7 +367,8 @@ export default function AdminPeople() {
               className="pl-8 h-8 text-xs"
             />
           </div>
-        </GlobalToolbar>
+        </SearchFilterCard>
+        <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
 
         <DataGrid
           rows={filteredDrivers}
