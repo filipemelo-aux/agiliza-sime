@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { TenantEstablishments } from "./TenantEstablishments";
 
 export interface TenantRow {
   id: string; razao_social: string; nome_fantasia: string | null; cnpj: string; ie: string | null; rntrc: string | null;
@@ -161,6 +162,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
             <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente.</p>
           </Block>
 
+          {tenant && <TenantEstablishments tenantId={tenant.id} tenantCnpj={tenant.cnpj} tenantName={tenant.razao_social} />}
           {!tenant && (
             <>
               <Block title="3. Estabelecimento matriz">
