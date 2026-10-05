@@ -459,25 +459,15 @@ export default function AdminSettings() {
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Settings className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Configurações</h1>
-              <p className="text-sm text-muted-foreground">Gerencie o sistema, usuários e preferências</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs gap-1.5 h-7 px-3">
-              v{currentVersion}
-            </Badge>
-            <Button variant="outline" size="sm" className="gap-2 h-8" onClick={handleForceUpdate}>
-              <RefreshCw className="w-3.5 h-3.5" />
-              Atualizar Sistema
-            </Button>
-          </div>
+        <PageTitle>Configurações</PageTitle>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs gap-1.5 h-7 px-3">
+            v{currentVersion}
+          </Badge>
+          <Button variant="outline" size="sm" className="gap-2 h-8" onClick={handleForceUpdate}>
+            <RefreshCw className="w-3.5 h-3.5" />
+            Atualizar Sistema
+          </Button>
         </div>
 
         <Separator />

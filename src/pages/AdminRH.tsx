@@ -145,17 +145,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Recursos Humanos</h1>
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              Visão consolidada da folha, adiantamentos e colaboradores
-              {realtimeActive && (
-                <span className="inline-flex items-center gap-1 text-green-600">
-                  <Radio className="h-3 w-3 animate-pulse" /> em tempo real
-                </span>
-              )}
-            </p>
-          </div>
+          <PageTitle className="!mb-0">Recursos Humanos</PageTitle>
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Mês</Label>
             <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />

@@ -53,13 +53,13 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         
         {section === "receipts" && (
           <>
-            <h1 className="text-lg font-bold text-foreground">Recibos</h1>
+            <PageTitle>Recibos</PageTitle>
             <QuickPrint title="Recibos"><FinancialReceipts /></QuickPrint>
           </>
         )}
         {section === "chart" && (
           <>
-            <h1 className="text-lg font-bold text-foreground">Plano de Contas</h1>
+            <PageTitle>Plano de Contas</PageTitle>
             <ChartOfAccounts />
           </>
         )}

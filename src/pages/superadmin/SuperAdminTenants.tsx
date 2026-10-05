@@ -57,7 +57,7 @@ export default function SuperAdminTenants() {
     <SuperAdminLayout>
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <div>
-          <h1 className="text-xl font-bold">Empresas cadastradas</h1>
+          <PageTitle>Empresas cadastradas</PageTitle>
           <p className="text-xs text-muted-foreground">{rows.length} empresas · {active} ativas · {rows.length - active} suspensas</p>
         </div>
         <Button className="ml-auto h-10" onClick={() => { setEditing(null); setOpen(true); }}>
