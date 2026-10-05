@@ -555,3 +555,10 @@
   }
 }
 
+
+/* Espaçamento padrão das páginas: 8px do cabeçalho e 12px entre blocos (fora de cards). */
+.page-content > .container,
+.page-content > div > .container { padding-top: 0.5rem !important; }
+.page-content :is(.space-y-2,.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):not(:is(.border,.rounded-lg,.rounded-md,[role="dialog"],[role="tabpanel"] .border,form,table) *) > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem !important;
+}
