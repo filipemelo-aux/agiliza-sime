@@ -1,13 +1,19 @@
 import "@fontsource/exo/800-italic.css";
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { checkPendingLoadingOrder } from "@/hooks/usePendingLoadingOrder";
 import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
@@ -18,25 +24,17 @@ const loginSchema = z.object({
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
-const signupSchema = loginSchema.extend({
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
-
 export default function Auth() {
-  const [searchParams] = useSearchParams();
-  const mode = searchParams.get("mode");
-  const [isSignup, setIsSignup] = useState(mode === "signup");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForceChange, setShowForceChange] = useState(false);
   const [pendingRedirectUserId, setPendingRedirectUserId] = useState<string | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    confirmPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
@@ -51,7 +49,7 @@ export default function Auth() {
     const isAdmin = roles?.some((r) => r.role === "admin");
     const isModerator = roles?.some((r) => r.role === "moderator");
     const isOperador = roles?.some((r) => r.role === "operador");
-    
+
     const isConsultor = roles?.some((r) => r.role === "consultor");
     if (roles?.some((r) => r.role === "superadmin")) {
       navigate("/superadmin");
@@ -102,8 +100,7 @@ export default function Auth() {
     setErrors({});
 
     try {
-      const schema = isSignup ? signupSchema : loginSchema;
-      schema.parse(formData);
+      loginSchema.parse(formData);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -120,64 +117,35 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isSignup) {
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-          },
-        });
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-        if (error) {
-          if (error.message.includes("already registered")) {
-            toast({
-              title: "E-mail já cadastrado",
-              description: "Faça login ou use outro e-mail.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
-          return;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast({
+            title: "Credenciais inválidas",
+            description: "Verifique seu e-mail e senha.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
         }
-
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Complete seu perfil para começar a usar o app.",
-        });
-        navigate("/register");
-      } else {
-        const { data: signInData, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            toast({
-              title: "Credenciais inválidas",
-              description: "Verifique seu e-mail e senha.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
-          return;
-        }
-
-        // Check if user must change password
-        if (signInData?.user?.user_metadata?.must_change_password) {
-          setPendingRedirectUserId(signInData.user.id);
-          setShowForceChange(true);
-          return;
-        }
-
-        toast({
-          title: "Bem-vindo de volta!",
-          description: "Login realizado com sucesso.",
-        });
+        return;
       }
+
+      // Check if user must change password
+      if (signInData?.user?.user_metadata?.must_change_password) {
+        setPendingRedirectUserId(signInData.user.id);
+        setShowForceChange(true);
+        return;
+      }
+
+      toast({
+        title: "Bem-vindo de volta!",
+        description: "Login realizado com sucesso.",
+      });
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -186,6 +154,39 @@ export default function Auth() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const email = forgotEmail.trim().toLowerCase();
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      toast({
+        title: "E-mail inválido",
+        description: "Informe o e-mail da sua conta para receber o link de redefinição.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setForgotSending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setForgotOpen(false);
+      toast({
+        title: "Link enviado",
+        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível enviar o link de redefinição.",
+        variant: "destructive",
+      });
+    } finally {
+      setForgotSending(false);
     }
   };
 
@@ -204,9 +205,7 @@ export default function Auth() {
             <span className="text-[10px] font-medium text-muted-foreground">by</span>
             <img src={fsmLogo} alt="FSM Sistemas" className="h-5 w-auto object-contain" />
           </div>
-          <p className="text-sm text-muted-foreground">
-            {isSignup ? "Crie sua conta" : "Acesse sua conta"}
-          </p>
+          <p className="text-sm text-muted-foreground">Acesse sua conta</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -257,51 +256,56 @@ export default function Auth() {
             )}
           </div>
 
-          {isSignup && (
-            <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="input-transport"
-                disabled={loading}
-              />
-              {errors.confirmPassword && (
-                <p className="text-sm text-destructive">
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
-          )}
-
           <Button
             type="submit"
             className=" w-full py-6 text-base"
             disabled={loading}
           >
-            {loading
-              ? "Carregando..."
-              : isSignup
-              ? "Criar conta"
-              : "Entrar"}
+            {loading ? "Carregando..." : "Entrar"}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          {isSignup ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
+        <p className="mt-6 text-center text-sm">
           <button
             type="button"
-            onClick={() => setIsSignup(!isSignup)}
+            onClick={() => setForgotOpen(true)}
             className="text-primary hover:underline font-medium"
           >
-            {isSignup ? "Fazer login" : "Cadastre-se"}
+            Esqueceu sua senha?
           </button>
         </p>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recuperar senha</DialogTitle>
+            <DialogDescription>
+              Informe o e-mail da sua conta. Enviaremos um link para você definir uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="forgot-email">E-mail</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="seu@email.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={forgotSending}
+              onClick={handleForgotPassword}
+            >
+              {forgotSending ? "Enviando..." : "Enviar link de redefinição"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ForcePasswordChangeDialog
         open={showForceChange}

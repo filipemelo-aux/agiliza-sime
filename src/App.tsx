@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
@@ -56,6 +57,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/register" element={<Navigate to="/admin" replace />} />
             <Route path="/superadmin" element={<SuperAdminTenants />} />
             <Route path="/superadmin/*" element={<Navigate to="/superadmin" replace />} />
