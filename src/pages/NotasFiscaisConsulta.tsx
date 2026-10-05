@@ -179,6 +179,14 @@ export default function NotasFiscaisConsulta() {
 
   const toggleAll = (v: boolean) => setSelected(v ? new Set(filtered.map((r) => r.id)) : new Set());
   const todaySP = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  // Destaque: notas recebidas na consulta mais recente do dia (lote da última sincronização em que entraram notas).
+  const latestBatchStart = useMemo(() => {
+    const spDate = (iso: string) => new Date(iso).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const todays = rows.map((r) => r.created_at).filter((c): c is string => !!c && spDate(c) === todaySP);
+    if (!todays.length) return null;
+    const max = Math.max(...todays.map((c) => new Date(c).getTime()));
+    return new Date(max - 10 * 60 * 1000).toISOString();
+  }, [rows, todaySP]);
   const total = filtered.reduce((s, r) => s + (Number(r.valor) || 0), 0);
 
   return (
@@ -226,8 +234,8 @@ export default function NotasFiscaisConsulta() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const isToday = !!r.data_emissao && r.data_emissao.slice(0, 10) === todaySP;
-                const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : isToday ? "info" : "pending";
+                const isLatestBatch = latestBatchStart !== null && !!r.created_at && r.created_at >= latestBatchStart;
+                const tone = r.situacao === "cancelada" ? "cancelled" : isUsed(r) ? "resolved" : isLatestBatch ? "info" : "pending";
                 return (
                   <tr key={r.id} className={`border-t cursor-pointer ${rowToneClass(tone as any)}`} onClick={() => setSelected((s) => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; })}>
                     <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => setSelected((s) => { const n = new Set(s); v ? n.add(r.id) : n.delete(r.id); return n; })} /></td>
@@ -248,7 +256,7 @@ export default function NotasFiscaisConsulta() {
           </table>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <StatusLegend items={[{ tone: "info", label: "Recebida hoje" }, { tone: "pending", label: "Disponível" }, { tone: "resolved", label: "Utilizada (despesa/CT-e)" }, { tone: "cancelled", label: "Cancelada" }] as any} />
+          <StatusLegend items={[{ tone: "info", label: "Recebidas na última consulta" }, { tone: "pending", label: "Disponível" }, { tone: "resolved", label: "Utilizada (despesa/CT-e)" }, { tone: "cancelled", label: "Cancelada" }] as any} />
           <span>{filtered.length} nota(s) · {formatCurrency(total)}</span>
         </div>
       </div>
