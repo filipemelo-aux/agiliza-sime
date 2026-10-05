@@ -127,10 +127,7 @@ export function FinancialReceivables() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <PageTitle>Contas a Receber</PageTitle>
-        <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a receber. Ideal para gestão de cobranças e recebimentos pendentes." />
-      </div>
+      <PageTitle>Contas a Receber</PageTitle>
 
       {/* Summary cards - compact */}
       <div className="grid grid-cols-3 gap-2">
@@ -159,6 +156,7 @@ export function FinancialReceivables() {
           className="h-8 w-[220px] text-xs"
         />
         <span className="text-xs text-muted-foreground">{filtered.length} título(s)</span>
+        <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a receber. Ideal para gestão de cobranças e recebimentos pendentes." />
         {(filterStatus !== "todos" || filterCliente) && (
           <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => { setFilterStatus("todos"); setFilterCliente(""); }}>
             <X className="h-3 w-3" /> Limpar filtros
