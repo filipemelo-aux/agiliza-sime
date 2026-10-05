@@ -195,8 +195,8 @@ export default function Auth() {
           <img
             src={agilizaLogo}
             alt="Agiliza TMS"
-            width={1455}
-            height={244}
+            width={1142}
+            height={202}
             className="mb-4 h-auto w-full max-w-sm object-contain"
           />
           <p className="text-sm text-muted-foreground">

@@ -38,8 +38,8 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
           <img
             src={agilizaLogo}
             alt="Agiliza TMS"
-            width={1455}
-            height={244}
+            width={1142}
+            height={202}
             className="h-8 w-auto object-contain"
           />
         </span>
