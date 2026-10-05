@@ -176,22 +176,6 @@ export default function AdminFuelings() {
           <SummaryCard icon={Fuel} label="Selecionados" value={selected.size} />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="nao_faturado">Não Faturado</SelectItem>
-              <SelectItem value="faturado">Faturado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         <GlobalToolbar
           actions={[
             { key: "new", label: "Novo", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setFormOpen(true); } },
@@ -212,7 +196,16 @@ export default function AdminFuelings() {
             },
           ]}
           selectedCount={selected.size}
+          filtersFirstOnMobile
         >
+          <div className="relative min-w-[210px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="nao_faturado">Não faturado</SelectItem><SelectItem value="faturado">Faturado</SelectItem></SelectContent>
+          </Select>
           {selected.size > 0 && (
             <span className="text-[11px] font-mono text-primary">
               {formatCurrency(selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0))}

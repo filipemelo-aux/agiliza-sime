@@ -125,7 +125,7 @@ export function FinancialReceivables() {
   const openPayment = (conta: ContaReceber) => { setSelectedConta(conta); setPayDialogOpen(true); };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
         <PageTitle>Contas a Receber</PageTitle>
         <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a receber. Ideal para gestão de cobranças e recebimentos pendentes." />
