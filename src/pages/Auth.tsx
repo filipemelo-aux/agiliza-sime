@@ -192,7 +192,7 @@ export default function Auth() {
       <div className="max-w-md w-full mx-auto">
         <div className="flex flex-col items-center mb-8">
           <h1 className="mb-3 text-3xl text-primary" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}>
-            ERP AGILIZA <span className="text-accent">TRANSPORTE</span>
+            AGILIZA <span className="text-accent">ERP</span>
           </h1>
           <p className="text-sm text-muted-foreground">
             {isSignup ? "Crie sua conta" : "Acesse sua conta"}

@@ -34,7 +34,7 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
       <header className="h-14 border-b bg-primary text-primary-foreground flex items-center px-4 gap-3">
         <ShieldCheck className="h-5 w-5 text-secondary" />
         <span className="font-[Exo] italic font-extrabold text-[17px] tracking-tight">
-          ERP AGILIZA <span className="text-secondary">TRANSPORTE</span>
+          AGILIZA <span className="text-secondary">ERP</span>
         </span>
         <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase text-secondary-foreground">
           SuperAdmin
