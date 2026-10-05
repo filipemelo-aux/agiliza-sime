@@ -1468,10 +1468,7 @@ tfoot{display:table-row-group}
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <PageTitle>Contas a Pagar</PageTitle>
-          <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a vencer. Use as abas de status (Em Aberto, Pago, Atrasado) para gestão de boletos e faturas pendentes." />
-        </div>
+        <PageTitle>Contas a Pagar</PageTitle>
       </div>
       {/* Summary Cards - compact modern */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -1665,6 +1662,7 @@ tfoot{display:table-row-group}
 
         selectedCount={selectedIds.size}
       >
+        <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a vencer. Use as abas de status para gestão dos documentos." />
         {selectedIds.size > 0 && (
           <span className="text-[11px] font-mono text-primary">{formatCurrency(selectedTotal)}</span>
         )}

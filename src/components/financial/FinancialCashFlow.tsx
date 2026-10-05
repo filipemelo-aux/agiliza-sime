@@ -10,7 +10,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
-import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2 } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2, Printer } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
 import { EmpresaFilter } from "./EmpresaControls";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
@@ -22,6 +22,8 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { limitDisplayText } from "@/lib/displayText";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { quickPrintVisibleTable } from "@/lib/pdfDownload";
 import {
   BarChart,
   Bar,
@@ -387,21 +389,7 @@ export function FinancialCashFlow() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <PageTitle>Fluxo de Caixa</PageTitle>
-            <ReportInfoTooltip text="Baseado em Regime de Caixa (Data de Pagamento / Valor da Parcela). Mostra o dinheiro real entrando e saindo da conta — cada parcela paga aparece na data em que efetivamente saiu do caixa." />
-          </div>
-          <Button size="sm" className="gap-1" onClick={() => setManualDialogOpen(true)}>
-            <Plus className="h-3.5 w-3.5" /> Nova Movimentação
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-        </div>
-        <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
-      </div>
+      <PageTitle>Fluxo de Caixa</PageTitle>
 
       {/* Summary cards - compact */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -410,6 +398,19 @@ export function FinancialCashFlow() {
         <SummaryCard icon={DollarSign} label="Saldo" value={formatCurrency(totals.saldo)} valueColor={totals.saldo >= 0 ? "green" : "red"} />
         <SummaryCard icon={TrendingUp} label="Movimentações" value={movimentacoes.length} />
       </div>
+
+      <GlobalToolbar
+        actions={[
+          { key: "new", label: "Nova Movimentação", icon: Plus, mode: "create", variant: "default", onClick: () => setManualDialogOpen(true) },
+          { key: "print", label: "Imprimir", icon: Printer, mode: "always", onClick: () => quickPrintVisibleTable(document.querySelector("main"), "Fluxo de Caixa") },
+        ]}
+        selectedCount={0}
+        filtersFirstOnMobile
+      >
+        <ReportInfoTooltip text="Baseado em Regime de Caixa. Cada parcela aparece na data em que o dinheiro efetivamente entrou ou saiu." />
+        <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+      </GlobalToolbar>
+      <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
 
       {/* Chart - entrada vs saída */}
       {chartData.length > 1 && (

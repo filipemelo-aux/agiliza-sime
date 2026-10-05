@@ -15,7 +15,7 @@ import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { rowToneClass, StatusLegend, type RowTone } from "@/components/ui/status-row";
 import { toast } from "sonner";
-import { Banknote, CheckCircle2, Download, Plus, Printer, RefreshCw, Search, Trash2, WalletCards, X, XCircle } from "lucide-react";
+import { Banknote, Download, Plus, Printer, RefreshCw, Search, Trash2, X, XCircle } from "lucide-react";
 import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -281,7 +281,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2"><PageTitle>{reportMode ? "Relatório de Cheques" : "Emissor de Cheques"}</PageTitle><div className="hidden items-center gap-2 sm:flex"><span className="text-xs text-muted-foreground">{filtered.length} registro(s)</span><CheckCircle2 className="h-4 w-4 text-muted-foreground" /></div></div>
+      <PageTitle>{reportMode ? "Relatório de Cheques" : "Emissor de Cheques"}</PageTitle>
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input className="h-8 w-full pl-8 text-xs" placeholder="Buscar cheque, favorecido..." value={search} onChange={(event) => setSearch(event.target.value)} />
@@ -292,7 +292,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
         <EmpresaFilter value={empresa} onChange={setEmpresa} />
       </GlobalToolbar>
       <div className="checks-grid">
-      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={1230} tableLayout="fixed" rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<StatusLegend items={[{ tone: "resolved", label: "Pago e conciliado" }, { tone: "pending", label: "Pago não conciliado" }, { tone: "neutral", label: "A vencer" }, { tone: "overdue", label: "Vencido" }, { tone: "cancelled", label: "Cancelado" }]} />} />
+      <DataGrid rows={filtered} columns={columns} rowId={(row) => row.id} selected={selected} onSelectedChange={setSelected} loading={loading} emptyMessage="Nenhum cheque registrado" minWidth={1230} tableLayout="fixed" rowClassName={(row) => rowToneClass(chequeRowTone(row))} footer={<div className="flex flex-wrap items-center justify-between gap-2"><StatusLegend items={[{ tone: "resolved", label: "Pago e conciliado" }, { tone: "pending", label: "Pago não conciliado" }, { tone: "neutral", label: "A vencer" }, { tone: "overdue", label: "Vencido" }, { tone: "cancelled", label: "Cancelado" }]} /><span className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</span></div>} />
       </div>
       {ConfirmDialog}
       <CheckPayDialog open={payOpen} onOpenChange={setPayOpen} cheques={selectedRows.filter((r) => r.status === "emitido")} onPaid={() => { void load(); }} />
