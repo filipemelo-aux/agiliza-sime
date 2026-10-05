@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import JSZip from "jszip";
-import { RefreshCw, Receipt, Download, Printer } from "lucide-react";
+import { RefreshCw, Receipt, Download, Printer, FileText } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { SearchFilterCard, FilterPrimaryRow } from "@/components/ui/search-filter-card";
@@ -137,9 +137,9 @@ export default function NotasFiscaisConsulta() {
   };
 
   const actions: ToolbarAction[] = [
-    { key: "sync", label: "Consultar na SEFAZ", icon: SefazIcon as any, onClick: sync, mode: "always", hidden: isConsultor, iconClassName: "!h-8 !w-8" },
+    { key: "sync", label: "Consultar na SEFAZ", icon: SefazIcon as any, onClick: sync, mode: "always", hidden: isConsultor, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]" },
     { key: "expense", label: "Gerar despesa (nota de entrada)", icon: Receipt, onClick: openExpense, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "destinatario" || single.situacao === "cancelada" },
-    { key: "cte", label: "Emitir CT-e (nota como transportadora)", icon: SefazIcon as any, onClick: openCte, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "transportadora" || single.situacao === "cancelada", iconClassName: "!h-8 !w-8" },
+    { key: "cte", label: "Emitir CT-e (nota como transportadora)", icon: FileText, onClick: openCte, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "transportadora" || single.situacao === "cancelada" },
     { key: "xml", label: "Baixar XML", icon: Download, onClick: downloadXml, mode: "batch" },
     { key: "print", label: "Imprimir lista", icon: Printer, onClick: printList, mode: "always" },
     { key: "reload", label: "Atualizar lista", icon: RefreshCw, onClick: load, mode: "always" },
