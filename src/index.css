@@ -558,10 +558,14 @@
 
 /* Espaçamento padrão das páginas: 8px do cabeçalho e 12px entre blocos (fora de cards). */
 .page-content > .container,
-.page-content > div > .container { padding-top: 0.5rem !important; }
-.page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):not(:is(.border,.rounded-lg,.rounded-md,[role="dialog"],[role="tabpanel"] .border,form,table) *) > :not([hidden]) ~ :not([hidden]) {
+.page-content > div > .container { padding-top: 0.75rem !important; }
+.page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):not(:is(.border,.rounded-lg,.rounded-md,[role="dialog"],[role="tabpanel"] .border,form,table) *):not(:has(> section[aria-label="Filtrar"])) > :not([hidden]) ~ :not([hidden]) {
   margin-top: 0.75rem !important;
 }
 /* Caixas vazias (ex.: título enviado ao cabeçalho) não podem gerar espaço extra. */
 .page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8) > div:empty:not([class*="h-"]):not([class*="w-"]) { display: none; }
 .page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8) > div:empty + * { margin-top: 0 !important; }
+/* Card "Filtrar" sempre no topo da página. */
+.page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):has(> section[aria-label="Filtrar"]) { display: flex; flex-direction: column; gap: 0.75rem; }
+.page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):has(> section[aria-label="Filtrar"]) > * { margin-top: 0 !important; }
+.page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8) > section[aria-label="Filtrar"] { order: -1; }
