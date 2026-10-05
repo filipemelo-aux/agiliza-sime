@@ -11,5 +11,5 @@
 - [x] Validar compilação e apresentação expandida/recolhida.
 - [x] Espaçamento único: 8px do cabeçalho, 12px entre blocos em todas as páginas
 - [x] Ocultar SuperAdmin da gestão de usuários das empresas.
-- [x] Padronizar empresa e período juntos à direita na primeira linha dos filtros.
+- [x] Padronizar primeira linha dos filtros: período à esquerda e "Todas as Empresas" à direita.
 - [x] Compactar a disposição dos filtros do Fluxo de Caixa.

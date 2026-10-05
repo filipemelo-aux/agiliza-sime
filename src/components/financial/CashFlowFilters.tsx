@@ -79,7 +79,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
   return (
     <div className="space-y-2">
       <div className="flex min-w-0 flex-wrap items-end justify-end gap-2">
-        <div className="space-y-1">
+        <div className="mr-auto space-y-1">
           <Label className="text-[11px] text-muted-foreground">Período</Label>
           <PeriodFilter
             size="sm"

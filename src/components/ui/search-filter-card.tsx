@@ -16,7 +16,7 @@ interface FilterPrimaryRowProps {
   className?: string;
 }
 
-/** Primeira linha dos filtros: período e empresa alinhados juntos à direita. */
+/** Primeira linha dos filtros: período à esquerda e empresa à direita. */
 export function FilterPrimaryRow({ children, className }: FilterPrimaryRowProps) {
   return (
     <div className={cn("flex min-w-0 flex-wrap items-end justify-end gap-2", className)}>

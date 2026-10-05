@@ -1472,18 +1472,20 @@ tfoot{display:table-row-group}
       <SearchFilterCard contentClassName="block space-y-2">
         {/* Row 1: Period label + date pickers */}
         <FilterPrimaryRow>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <CalendarIcon className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
-          </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <PeriodFilter
-              size="sm"
-              allowClear
-              inicio={filterPeriodoInicio}
-              fim={filterPeriodoFim}
-              onChange={(i, f) => { setFilterPeriodoInicio(i); setFilterPeriodoFim(f); }}
-            />
+          <div className="mr-auto flex items-end gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <PeriodFilter
+                size="sm"
+                allowClear
+                inicio={filterPeriodoInicio}
+                fim={filterPeriodoFim}
+                onChange={(i, f) => { setFilterPeriodoInicio(i); setFilterPeriodoFim(f); }}
+              />
+            </div>
           </div>
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </FilterPrimaryRow>
