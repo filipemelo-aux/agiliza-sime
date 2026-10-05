@@ -24,6 +24,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
+import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface HarvestJob {
   id: string;
@@ -1692,9 +1693,9 @@ export default function HarvestDetail() {
 
   return (
     <AdminLayout>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-3">
         {/* Back + Title */}
-        <div className="flex flex-col gap-2 mb-6">
+        <div className="flex flex-col gap-2 mb-3">
           <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0">
               <PageTitle>{job.farm_name}</PageTitle>
@@ -2040,14 +2041,8 @@ export default function HarvestDetail() {
           </DialogContent>
         </Dialog>
 
-        {/* Period filter + actions */}
-        <div className="flex flex-col gap-2 mb-4 p-3 bg-muted/50 rounded-lg border border-border">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Calendar className="h-4 w-4 text-primary shrink-0" />
-              <Label className="text-xs font-medium whitespace-nowrap">Período de Fechamento:</Label>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+        {/* Filters + actions */}
+        <div className="mb-2 flex items-center justify-end gap-1.5">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-7 text-xs px-2">
@@ -2095,10 +2090,11 @@ export default function HarvestDetail() {
                   <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
                 </Button>
               )}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        </div>
+        <SearchFilterCard className="mb-4" contentClassName="gap-2">
+            <div className="flex min-w-[280px] flex-1 items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-primary shrink-0" />
+              <Label className="text-xs font-medium whitespace-nowrap">Período:</Label>
               <Input
                 type="date"
                 value={filterStartDate}
@@ -2118,8 +2114,7 @@ export default function HarvestDetail() {
                 </Button>
               )}
             </div>
-          </div>
-          <div className="relative">
+          <div className="relative min-w-[240px] flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar motorista ou placa..."
@@ -2128,7 +2123,7 @@ export default function HarvestDetail() {
               className="h-8 text-xs pl-8"
             />
           </div>
-        </div>
+        </SearchFilterCard>
 
         {assignments.length === 0 ? (
           <Card className="mb-6">

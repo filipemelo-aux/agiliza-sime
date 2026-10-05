@@ -303,7 +303,7 @@ export default function AdminMaintenances() {
 
   return (
     <AdminLayout>
-      <div className="p-4 md:p-6 space-y-4">
+      <div className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle>Manutenções</PageTitle>
 
 

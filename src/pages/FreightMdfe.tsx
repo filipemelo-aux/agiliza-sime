@@ -102,7 +102,7 @@ export default function FreightMdfe() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-3">
         <PageTitle>MDF-e — Manifestos de Carga</PageTitle>
         <SearchFilterCard>
           <div className="relative min-w-[260px] flex-1">
