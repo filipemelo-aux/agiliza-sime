@@ -103,10 +103,6 @@ export default function FreightMdfe() {
     <AdminLayout>
       <div className="container mx-auto px-4 py-6">
         <PageTitle>MDF-e — Manifestos de Carga</PageTitle>
-        <div className="relative max-w-sm mb-3">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="h-9 pl-8" placeholder="Buscar por número, placa, motorista ou cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
         <GlobalToolbar
           actions={[
             { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
@@ -115,7 +111,13 @@ export default function FreightMdfe() {
             { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0, onClick: handleDelete },
           ] as any}
           selectedCount={selected.size}
-        />
+          filtersFirstOnMobile
+        >
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input className="h-8 pl-8 text-xs" placeholder="Buscar por número, placa, motorista ou cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+        </GlobalToolbar>
         <div className="mt-3">
           <DataGrid
             rows={filtered}

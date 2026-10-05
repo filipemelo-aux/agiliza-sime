@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // tabs removed: reports now driven by sidebar routes
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Printer, Loader2, FileSpreadsheet, Search, RefreshCw, Info } from "lucide-react";
+import { Printer, Loader2, FileSpreadsheet, Search, RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,6 +23,7 @@ import { CashFlowDailyGrid } from "./CashFlowDailyGrid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { SummaryCard } from "@/components/SummaryCard";
+import { ReportInfoTooltip } from "./ReportInfoTooltip";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -967,10 +968,11 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
               { key: "generate", label: loading ? "Gerando" : "Gerar relatório", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: fetchData },
               { key: "csv", label: "Exportar CSV", icon: FileSpreadsheet, mode: "always", disabled: !rows.length, onClick: exportCsv },
               { key: "print", label: "Imprimir", icon: Printer, mode: "always", disabled: !rows.length, onClick: handlePrint },
-              { key: "info", label: "Informações do relatório", icon: Info, mode: "always", onClick: () => undefined },
             ]}
             selectedCount={0}
-          />
+          >
+            <ReportInfoTooltip text="Os dados respeitam o período, a situação e os demais filtros selecionados. Gere novamente após alterar os critérios." />
+          </GlobalToolbar>
 
 
 

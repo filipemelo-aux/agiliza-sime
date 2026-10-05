@@ -17,6 +17,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
 
 type ReportType = "pessoas" | "veiculos" | "cargas" | "plano_contas";
 
@@ -173,14 +174,14 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 
 function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled: boolean }) {
   return (
-    <div className="flex gap-1">
-      <Button variant="outline" onClick={onCsv} disabled={disabled} size="sm" className="h-7 text-[11px] px-2">
-        <Download className="h-3 w-3 mr-1" /> CSV
-      </Button>
-      <Button variant="outline" onClick={onPdf} disabled={disabled} size="sm" className="h-7 text-[11px] px-2">
-        <Printer className="h-3 w-3 mr-1" /> PDF
-      </Button>
-    </div>
+    <GlobalToolbar
+      className="shrink-0"
+      selectedCount={0}
+      actions={[
+        { key: "csv", label: "Exportar CSV", icon: Download, mode: "always", disabled, onClick: onCsv },
+        { key: "pdf", label: "Baixar PDF", icon: Printer, mode: "always", disabled, onClick: onPdf },
+      ]}
+    />
   );
 }
 

@@ -589,47 +589,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         <PageTitle>CT-e</PageTitle>
 
 
-        <div className="flex flex-col gap-2 mb-6">
-          <div className="relative w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar nº, remetente, destinatário, placa..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-xs"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <PeriodFilter
-              inicio={dateFrom}
-              fim={dateTo}
-              allowClear
-              onChange={(i, f) => { setDateFrom(i); setDateTo(f); }}
-            />
-            <div className="inline-flex rounded-md border border-border bg-card p-0.5 ml-auto">
-              {([
-                { v: "todos", label: "Todos" },
-                { v: "producao", label: "Produção" },
-                { v: "servico", label: "Serviço" },
-              ] as const).map((opt) => (
-                <button
-                  key={opt.v}
-                  type="button"
-                  onClick={() => setTipoFilter(opt.v)}
-                  className={`px-2.5 h-8 text-xs rounded-sm transition-colors ${
-                    tipoFilter === opt.v
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-
         <GlobalToolbar
           actions={[
             {
@@ -676,7 +635,18 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
           ]}
           selectedCount={selectedIds.size}
-        />
+          filtersFirstOnMobile
+        >
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+          </div>
+          <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
+          <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
+            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
+          </Select>
+        </GlobalToolbar>
 
         <div className="cte-grid mt-3">
           <DataGrid

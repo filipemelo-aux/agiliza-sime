@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
 
 interface ClientOption {
   id: string;
@@ -206,12 +207,8 @@ export default function AdminHarvest() {
   return (
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <PageTitle>Colheitas</PageTitle>
-          <Button className="" onClick={openCreateDialog}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Serviço
-          </Button>
-        </div>
+        <PageTitle>Colheitas</PageTitle>
+        <GlobalToolbar actions={[{ key: "new", label: "Novo Serviço", icon: Plus, mode: "create", variant: "default", onClick: openCreateDialog }]} selectedCount={0} />
 
         {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingJob(null); }}>
