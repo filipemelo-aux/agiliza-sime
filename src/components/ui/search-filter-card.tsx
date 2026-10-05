@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -34,7 +34,6 @@ export function SearchFilterCard({
             aria-label={`${open ? "Recolher" : "Expandir"} filtros`}
           >
             <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} aria-hidden="true" />
-            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <span>{label}</span>
           </Button>
         </CollapsibleTrigger>
