@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 export function SuperAdminLayout({ children }: { children: ReactNode }) {
-  const { user, isSuperAdmin, loading } = useAuth();
+  const { user, isSuperAdmin, supportTenantId, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,6 +15,10 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
     if (!user) navigate("/", { replace: true });
     else if (!isSuperAdmin) navigate("/admin", { replace: true });
   }, [loading, user, isSuperAdmin, navigate]);
+
+  useEffect(() => {
+    if (supportTenantId) (supabase.rpc as any)("set_support_tenant", { _tenant_id: null });
+  }, [supportTenantId]);
 
   const logout = async () => {
     await supabase.auth.signOut({ scope: "local" });

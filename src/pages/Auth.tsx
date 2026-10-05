@@ -1,3 +1,4 @@
+import "@fontsource/exo/800-italic.css";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
