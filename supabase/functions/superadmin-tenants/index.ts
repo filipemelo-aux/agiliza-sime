@@ -63,20 +63,35 @@ Deno.serve(async (req) => {
       const { data: tenants, error } = await admin.from("tenants").select("*").order("razao_social");
       if (error) throw error;
       const { data: members } = await admin.from("tenant_members").select("tenant_id");
-      const { data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, certificate_password");
+      const { data: fcerts } = await admin.from("fiscal_certificates").select("tenant_id, nome, ativo, senha_criptografada, created_at").order("created_at", { ascending: false });
+      let { data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, certificate_password");
+      // Adota os tokens já em uso (padrão do servidor) para a empresa que já emite com certificado próprio
+      const envProd = Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") || null;
+      const envHom = Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO") || null;
+      const owners = [...new Set((fcerts || []).map((c: any) => c.tenant_id).filter(Boolean))];
+      let changed = false;
+      for (const tid of owners) {
+        const s = secrets?.find((x: any) => x.tenant_id === tid);
+        if (!s?.focus_nfe_token_production && !s?.focus_nfe_token_homologation && (envProd || envHom)) {
+          await admin.from("tenant_secrets").upsert({ tenant_id: tid, focus_nfe_token_production: envProd, focus_nfe_token_homologation: envHom, certificate_password: s?.certificate_password ?? null }, { onConflict: "tenant_id" });
+          changed = true;
+        }
+      }
+      if (changed) ({ data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, certificate_password"));
       const { data: certs } = await admin.from("tenant_certificates").select("tenant_id, file_name, valid_until, is_active").eq("is_active", true);
       return json({
         tenants: (tenants || []).map((t: any) => {
           const s = secrets?.find((x: any) => x.tenant_id === t.id);
+          const fc = (fcerts || []).find((c: any) => c.tenant_id === t.id && c.ativo) || (fcerts || []).find((c: any) => c.tenant_id === t.id);
           return {
             ...t,
             users_count: members?.filter((m: any) => m.tenant_id === t.id).length || 0,
             has_token_production: !!s?.focus_nfe_token_production,
             has_token_homologation: !!s?.focus_nfe_token_homologation,
-            has_certificate_password: !!s?.certificate_password,
-            certificate: certs?.find((c: any) => c.tenant_id === t.id) || null,
-            server_token_production: !!Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO"),
-            server_token_homologation: !!Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO"),
+            has_certificate_password: !!s?.certificate_password || !!fc?.senha_criptografada,
+            certificate: certs?.find((c: any) => c.tenant_id === t.id) || (fc ? { file_name: fc.nome, valid_until: null } : null),
+            server_token_production: !!envProd,
+            server_token_homologation: !!envHom,
           };
         }),
       });
