@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // tabs removed: reports now driven by sidebar routes
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
+import { Printer, Loader2, FileSpreadsheet, Search, RefreshCw, Info } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -21,6 +21,8 @@ import { DreGerencial } from "./DreGerencial";
 import { PayablesDataGrid } from "./PayablesDataGrid";
 import { CashFlowDailyGrid } from "./CashFlowDailyGrid";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { SummaryCard } from "@/components/SummaryCard";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -937,19 +939,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <PageTitle>{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</PageTitle>
-        {(reportType as string) !== "payables" && (
-          <div className="flex gap-1.5">
-            <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1 h-7 px-2 text-xs">
-              <FileSpreadsheet className="h-3 w-3" /> CSV
-            </Button>
-            <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1 h-7 px-2 text-xs">
-              <Printer className="h-3 w-3" /> Imprimir
-            </Button>
-          </div>
-        )}
-      </div>
+      <PageTitle>{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</PageTitle>
 
       <div>
         {reportType === "dre" ? (
@@ -965,7 +955,22 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
             <CashFlowDailyGrid />
           </div>
         ) : (
-        <div className="mt-1">
+        <div className="mt-1 space-y-3">
+
+          <div className="grid grid-cols-2 gap-2">
+            <SummaryCard icon={FileSpreadsheet} label="Registros" value={filteredRows.length} />
+            <SummaryCard icon={reportType === "cashflow" ? RefreshCw : FileSpreadsheet} label="Total" value={formatCurrency(totals.total)} valueColor="green" />
+          </div>
+
+          <GlobalToolbar
+            actions={[
+              { key: "generate", label: loading ? "Gerando" : "Gerar relatório", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: fetchData },
+              { key: "csv", label: "Exportar CSV", icon: FileSpreadsheet, mode: "always", disabled: !rows.length, onClick: exportCsv },
+              { key: "print", label: "Imprimir", icon: Printer, mode: "always", disabled: !rows.length, onClick: handlePrint },
+              { key: "info", label: "Informações do relatório", icon: Info, mode: "always", onClick: () => undefined },
+            ]}
+            selectedCount={0}
+          />
 
 
 
@@ -1142,11 +1147,6 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       {groupOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1 flex flex-col justify-end">
-                  <Button size="sm" onClick={fetchData} disabled={loading} className="gap-1 h-8">
-                    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Gerar
-                  </Button>
                 </div>
               </div>
               <div className="pt-1">

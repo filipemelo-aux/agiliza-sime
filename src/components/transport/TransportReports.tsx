@@ -19,6 +19,8 @@ import { SortableTh } from "@/components/ui/sortable-th";
 
 import { toast } from "sonner";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
+import { SummaryCard } from "@/components/SummaryCard";
 
 type ReportType =
   | "cte"
@@ -868,17 +870,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <PageTitle>Relatórios de Transporte</PageTitle>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1">
-            <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
-            <Printer className="h-3.5 w-3.5" /> Imprimir
-          </Button>
-        </div>
-      </div>
+      <PageTitle>Relatórios de Transporte</PageTitle>
 
       <Tabs value={reportType} onValueChange={handleTab}>
         <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1">
@@ -890,6 +882,20 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
         </TabsList>
 
         <TabsContent value={reportType} className="mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            <SummaryCard icon={FileSpreadsheet} label="Registros" value={rows.length} />
+            {showPeso && <SummaryCard icon={FileSpreadsheet} label="Peso" value={fmtTon(totals.pesoKg)} />}
+            {showDesconto && <SummaryCard icon={FileSpreadsheet} label="Descontos" value={formatCurrency(totals.desconto)} valueColor="red" />}
+            {showValor && <SummaryCard icon={FileSpreadsheet} label="Valor total" value={formatCurrency(totals.total)} valueColor="green" />}
+          </div>
+          <GlobalToolbar
+            actions={[
+              { key: "generate", label: loading ? "Gerando" : "Gerar relatório", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: fetchData },
+              { key: "csv", label: "Exportar CSV", icon: FileSpreadsheet, mode: "always", disabled: !rows.length, onClick: exportCsv },
+              { key: "print", label: "Imprimir", icon: Printer, mode: "always", disabled: !rows.length, onClick: handlePrint },
+            ]}
+            selectedCount={0}
+          />
           <Card>
             <CardContent className="p-3 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -989,30 +995,12 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     </Select>
                   </div>
                 )}
-                <div className="space-y-1 flex flex-col justify-end">
-                  <Button size="sm" onClick={fetchData} disabled={loading} className="gap-1 h-8">
-                    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Gerar
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>
 
           {rows.length > 0 && (
             <div className="mt-3 space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
-                <div className="flex items-center gap-4 flex-wrap">
-                  {showPeso && totals.pesoKg > 0 && (
-                    <div className="text-sm font-semibold text-foreground">Peso: <span className="text-primary">{fmtTon(totals.pesoKg)}</span></div>
-                  )}
-                  {showDesconto && totals.desconto > 0 && (
-                    <div className="text-sm font-semibold text-destructive">Descontos: − {formatCurrency(totals.desconto)}</div>
-                  )}
-                  {showValor && <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>}
-                </div>
-              </div>
-
               <div className="border border-border rounded-md overflow-hidden bg-card">
                 <div className="scrollbar-thin-custom w-full max-w-full overflow-x-auto overscroll-x-contain xl:overflow-x-hidden">
                   <table
