@@ -24,7 +24,7 @@ const TenantSchema = z.object({
   codigo_municipio: z.string().max(10).optional().nullable(),
   telefone: z.string().max(30).optional().nullable(),
   email: z.string().max(200).optional().nullable(),
-  logo_url: z.string().max(1000).optional().nullable(),
+  logo_url: z.string().max(500_000).optional().nullable(),
   focus_environment: z.enum(["production", "homologation"]),
 });
 
