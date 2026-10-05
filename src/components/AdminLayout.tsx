@@ -286,6 +286,12 @@ function SidebarNav() {
     <Sidebar collapsible="icon" className="border-r border-border fixed left-0 top-14 bottom-0 h-[calc(100svh-3.5rem)] z-30">
       {/* Busca + botão de recolher na mesma linha */}
       <div className="h-16 flex items-center gap-2 px-3 shrink-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
+        {tenantLogo && (
+          <img src={tenantLogo} alt={tenantName} className="h-8 w-auto max-w-[110px] object-contain shrink-0 group-data-[collapsible=icon]:hidden" />
+        )}
+        {tenantLogo && (
+          <img src={tenantLogo} alt={tenantName} className="hidden group-data-[collapsible=icon]:block h-8 w-auto max-w-[42px] object-contain shrink-0" />
+        )}
         <div className="relative flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
           <input
             value={query}
