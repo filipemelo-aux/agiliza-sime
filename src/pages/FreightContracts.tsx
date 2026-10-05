@@ -327,11 +327,28 @@ export default function FreightContracts() {
           <PageTitle>Contratos de Frete</PageTitle>
         </div>
 
-        {/* Filtros */}
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-              <div className="md:col-span-4 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <Card><CardContent className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Contratos</p><p className="text-sm font-semibold">{totals.count}</p></CardContent></Card>
+          <Card><CardContent className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Peso total</p><p className="text-sm font-semibold">{(totals.totalPeso / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t</p></CardContent></Card>
+          <Card><CardContent className="p-3"><p className="text-[10px] uppercase text-muted-foreground">Valor total</p><p className="text-sm font-semibold">{formatCurrency(totals.totalValor)}</p></CardContent></Card>
+        </div>
+
+        {/* Toolbar + filtros + lista */}
+        <GlobalToolbar
+          actions={[
+            {
+              key: "edit", label: "Editar", icon: Pencil, mode: "single",
+              disabled: !single || single.payable?.status === "pago" || single.payable?.status === "parcial",
+              onClick: async () => { if (!single) return; const { data: cteData } = await supabase.from("ctes").select("*").eq("id", single.cte_id).maybeSingle(); if (cteData) setEditing({ contractId: single.id, cte: cteData as any }); },
+            },
+            { key: "print", label: "Imprimir", icon: Printer, mode: "single+batch", disabled: selectedRows.length === 0, onClick: handlePrintSelected },
+            { key: "cte", label: "CT-e vinculado", icon: ExternalLink, mode: "single", disabled: !single, onClick: () => single && openCteDetail(single.cte_id) },
+            { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: deletable.length === 0, onClick: handleBatchDelete },
+          ]}
+          selectedCount={selectedIds.size}
+          filtersFirstOnMobile
+        >
+              <div className="relative min-w-[220px] flex-1">
                 <Search className="w-4 h-4 absolute left-2 top-2.5 text-muted-foreground" />
                 <Input
                   className="pl-8 h-9"
@@ -340,7 +357,7 @@ export default function FreightContracts() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <div className="md:col-span-3">
+              <div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Status do pagamento" />
@@ -356,7 +373,7 @@ export default function FreightContracts() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="md:col-span-4">
+              <div>
                 <PeriodFilter
                   inicio={dateFrom}
                   fim={dateTo}
@@ -364,51 +381,11 @@ export default function FreightContracts() {
                   onChange={(i, f) => { setDateFrom(i); setDateTo(f); }}
                 />
               </div>
-              <div className="md:col-span-1">
-                <Button variant="outline" className="h-9 w-full gap-1" onClick={clearFilters}>
+              <div>
+                <Button variant="outline" className="h-8 w-8 p-0" onClick={clearFilters} title="Limpar filtros">
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground border-t pt-2">
-              <span><b>{totals.count}</b> contrato(s)</span>
-              <span>Peso total: <b>{(totals.totalPeso / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t</b></span>
-              <span>Valor total: <b className="text-foreground">{formatCurrency(totals.totalValor)}</b></span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Toolbar + Lista */}
-        <GlobalToolbar
-          actions={[
-            {
-              key: "edit", label: "Editar", icon: Pencil, mode: "single",
-              disabled: !single || single.payable?.status === "pago" || single.payable?.status === "parcial",
-              onClick: async () => {
-                if (!single) return;
-                const { data: cteData } = await supabase.from("ctes").select("*").eq("id", single.cte_id).maybeSingle();
-                if (cteData) setEditing({ contractId: single.id, cte: cteData as any });
-              },
-            },
-            {
-              key: "print", label: "Imprimir", icon: Printer, mode: "single+batch",
-              disabled: selectedRows.length === 0,
-              onClick: handlePrintSelected,
-            },
-            {
-              key: "cte", label: "CT-e vinculado", icon: ExternalLink, mode: "single",
-              disabled: !single,
-              onClick: () => single && openCteDetail(single.cte_id),
-            },
-            {
-              key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-              disabled: deletable.length === 0,
-              onClick: handleBatchDelete,
-            },
-          ]}
-          selectedCount={selectedIds.size}
-        >
           {selectedIds.size > 0 && (
             <span className="text-[11px] font-mono text-primary">
               {formatCurrency(selectedRows.reduce((s, r) => s + r.valor_total, 0))}

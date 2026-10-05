@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, ChevronRight, ChevronDown, Eye, Download, ScanSearch } from "lucide-react";
+import { Loader2, Search, ChevronRight, ChevronDown, Eye, Download, ScanSearch, Expand, Shrink } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { exportToCsv } from "@/lib/csvExport";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { EmpresaFilter } from "./EmpresaControls";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { GlobalToolbar } from "@/components/ui/global-toolbar";
 
 interface ChartAccount {
   id: string;
@@ -652,10 +653,19 @@ export function DreGerencial() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <PageTitle>DRE Gerencial</PageTitle>
-        <ReportInfoTooltip text="Regime de COMPETÊNCIA PURA: receitas pela data de emissão do CT-e/serviço; despesas pela data de competência (fato gerador); cartão de crédito pela data original da compra com o valor total da compra parcelada lançado de uma vez." />
-      </div>
+      <PageTitle>DRE Gerencial</PageTitle>
+
+      <GlobalToolbar
+        actions={[
+          { key: "generate", label: loading ? "Gerando" : "Gerar DRE", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: gerar },
+          { key: "expand", label: "Expandir", icon: Expand, mode: "always", disabled: !generated, onClick: expandAll },
+          { key: "collapse", label: "Recolher", icon: Shrink, mode: "always", disabled: !generated, onClick: collapseAll },
+          { key: "audit", label: "Auditar divergências", icon: auditLoading ? Loader2 : ScanSearch, mode: "always", disabled: !generated || auditLoading, onClick: runAudit },
+        ]}
+        selectedCount={0}
+      >
+        <ReportInfoTooltip text="Regime de competência pura: receitas pela emissão; despesas pelo fato gerador; cartão pela data original da compra." />
+      </GlobalToolbar>
 
       <Card>
         <CardContent className="p-3 space-y-3">
@@ -673,27 +683,6 @@ export function DreGerencial() {
               <Label className="text-xs">Empresa</Label>
               <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
             </div>
-            <div>
-              <Button size="sm" onClick={gerar} disabled={loading} className="gap-1 h-8 w-full">
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Gerar DRE
-              </Button>
-            </div>
-            {generated && (
-              <div className="flex gap-1.5 flex-wrap">
-                <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={expandAll}>Expandir</Button>
-                <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={collapseAll}>Recolher</Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 text-xs w-full gap-1"
-                  onClick={runAudit}
-                  disabled={auditLoading}
-                >
-                  {auditLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScanSearch className="h-3.5 w-3.5" />}
-                  Auditoria de Divergências (Cartão × DRE)
-                </Button>
-              </div>
-            )}
           </div>
           <p className="text-[11px] text-muted-foreground">
             Regime de <b>competência pura</b>: compras do cartão entram pela <b>data original da compra</b> (posted_date). Compras parceladas são lançadas pelo <b>valor total</b> (parcela × N) no mês em que ocorreram — parcelas 2/N, 3/N... não aparecem em meses futuros. Clique no valor de uma linha de <i>Origem</i> para auditar os lançamentos individuais.
