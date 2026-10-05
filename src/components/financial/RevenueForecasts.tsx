@@ -483,9 +483,7 @@ export function RevenueForecasts() {
   return (
     <div className="space-y-3">
       {ConfirmDialog}
-      <div>
-        <PageTitle>Previsões de Recebimento</PageTitle>
-      </div>
+      <PageTitle>Previsões de Recebimento</PageTitle>
 
       <ManualForecastDialog
         open={manualDialogOpen}
