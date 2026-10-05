@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { checkPendingLoadingOrder } from "@/hooks/usePendingLoadingOrder";
 import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
+import agilizaLogo from "@/assets/brand/agiliza-logo.png";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -191,9 +192,13 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
       <div className="max-w-md w-full mx-auto">
         <div className="flex flex-col items-center mb-8">
-          <h1 className="mb-3 text-3xl text-primary" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: "italic" }}>
-            AGILIZA <span className="text-accent">ERP</span>
-          </h1>
+          <img
+            src={agilizaLogo}
+            alt="Agiliza ERP — Um produto da FSM Softwares"
+            width={1314}
+            height={327}
+            className="mb-4 h-auto w-full max-w-sm object-contain"
+          />
           <p className="text-sm text-muted-foreground">
             {isSignup ? "Crie sua conta" : "Acesse sua conta"}
           </p>
