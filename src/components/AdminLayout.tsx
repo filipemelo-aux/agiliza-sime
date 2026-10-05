@@ -85,6 +85,14 @@ export const allMenuItems = [
     ],
   },
   {
+    title: "Notas Fiscais",
+    icon: Receipt,
+    children: [
+      { title: "Consulta de Notas", url: "/admin/notas-fiscais/consulta", icon: FileText },
+      { title: "Download de XML", url: "/admin/notas-fiscais/download-xml", icon: FileSpreadsheet },
+    ],
+  },
+  {
     title: "Frota",
     icon: Car,
     children: [
