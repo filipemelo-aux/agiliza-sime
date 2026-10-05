@@ -12,6 +12,6 @@
 
 ## Multiempresa (plano aprovado 05/10)
 - [x] Etapa 1 — tabelas de empresas, vínculos, segredos, certificados, papel superadmin, Sime como 1º tenant
-- [ ] Etapa 2 — tenant_id + isolamento em todas as tabelas operacionais
+- [x] Etapa 2 — tenant_id + isolamento (61 tabelas), superadmin admin@fsm.app.br
 - [ ] Etapa 3 — painel /superadmin
 - [ ] Etapa 4 — white-label (useTenant, login, layout, documentos, focus-nfe por tenant)

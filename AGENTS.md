@@ -9,3 +9,4 @@
 - SEFAZ operations on a CT-e (transmit, status, DACTE PDF, XML, CC-e, cancel) are grouped in one dialog opened by the toolbar SEFAZ button; the focus-nfe function exposes them per saved CT-e id so the emission environment stays consistent.
 - CT-e CFOP is derived centrally from the service origin/destination states and service type, so route changes cannot leave an internal/interstate code inconsistent.
 - Official fiscal glyphs (SEFAZ, MDF-e) come from the Sime SVG set stored as CDN assets and are exposed only through wrapper components in `src/components/icons`, so the same approved glyph is reused in menus, toolbars and dialogs instead of ad-hoc generic icons.
+- Every operational public table carries tenant_id (default current_tenant_id(), insert trigger) plus one RESTRICTIVE tenant_isolation policy, so isolation lives in one place instead of every role policy.
