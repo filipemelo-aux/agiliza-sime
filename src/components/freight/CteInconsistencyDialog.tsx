@@ -55,6 +55,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
   const [groups, setGroups] = useState<DupGroup[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [contractsByCte, setContractsByCte] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open) scan();
@@ -97,6 +98,16 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
         g.items.length > 1 && (!focus || g.items.some((i) => focus.has(i.id))),
       );
       setGroups(dups);
+      const allIds = dups.flatMap((g) => g.items.map((i) => i.id));
+      const cmap: Record<string, number> = {};
+      for (let k = 0; k < allIds.length; k += 200) {
+        const { data: cs } = await supabase
+          .from("freight_contracts")
+          .select("cte_id, numero")
+          .in("cte_id", allIds.slice(k, k + 200));
+        for (const c of cs || []) cmap[c.cte_id] = c.numero;
+      }
+      setContractsByCte(cmap);
       // Pré-marca os registros antigos (não selecionados) para exclusão
       setSelected(focus ? new Set(dups.flatMap((g) => g.items.filter((i) => !focus.has(i.id)).map((i) => i.id))) : new Set());
     } catch (err: any) {
@@ -117,7 +128,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
     if (selected.size === 0) return;
     const ok = await confirm({
       title: "Excluir CT-es duplicados",
-      description: `Confirma excluir ${selected.size} CT-e(s) e seus contratos de frete vinculados?\n\nEsta ação é irreversível.`,
+      description: `Confirma excluir ${selected.size} CT-e(s)?\n\nContratos de frete dos CT-es excluídos serão transferidos para o CT-e mantido do mesmo grupo (preferindo o importado). Se não houver CT-e mantido sem contrato, o contrato será excluído.\n\nEsta ação é irreversível.`,
       confirmLabel: "Excluir",
       variant: "destructive",
     });
@@ -129,22 +140,38 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
     const errors: string[] = [];
 
     try {
-      // Buscar contratos vinculados
+      // Contratos vinculados aos CT-es que serão excluídos
       const { data: contracts } = await supabase
         .from("freight_contracts")
         .select("id, expense_id, cte_id")
         .in("cte_id", ids);
 
-      const expenseIds = (contracts || []).map((c: any) => c.expense_id).filter(Boolean);
-      const contractIds = (contracts || []).map((c: any) => c.id);
+      const focus = new Set(focusIds || []);
+      const taken = new Set(Object.keys(contractsByCte));
+      const toDelete: any[] = [];
+      let moved = 0;
 
-      // Deletar contratos
+      for (const c of contracts || []) {
+        const group = groups.find((g) => g.items.some((i) => i.id === c.cte_id));
+        const candidates = (group?.items || []).filter((i) => !selected.has(i.id) && !taken.has(i.id));
+        const target = candidates.find((i) => focus.has(i.id)) || candidates[0];
+        if (target) {
+          const { error } = await supabase.from("freight_contracts").update({ cte_id: target.id }).eq("id", c.id);
+          if (error) { errors.push(`Contrato: ${error.message}`); toDelete.push(c); }
+          else { taken.add(target.id); moved++; }
+        } else {
+          toDelete.push(c);
+        }
+      }
+
+      const contractIds = toDelete.map((c) => c.id);
+      const expenseIds = toDelete.map((c) => c.expense_id).filter(Boolean);
+
       if (contractIds.length) {
         const { error } = await supabase.from("freight_contracts").delete().in("id", contractIds);
         if (error) errors.push(`Contratos: ${error.message}`);
       }
 
-      // Deletar contas a pagar pendentes vinculadas
       if (expenseIds.length) {
         await supabase.from("expenses").delete().in("id", expenseIds).in("status", ["pendente", "atrasado"]);
       }
@@ -158,7 +185,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
 
       toast({
         title: errors.length ? "Concluído com erros" : "Duplicidades removidas",
-        description: `${okCount} CT-e(s) excluído(s).${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
+        description: `${okCount} CT-e(s) excluído(s).${moved ? ` ${moved} contrato(s) de frete transferido(s) para o CT-e importado.` : ""}${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
         variant: errors.length ? "destructive" : "default",
       });
       onDeleted?.();
@@ -226,6 +253,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
                           <Badge variant="outline" className="text-[9px]">{item.tipo_talao === "servico" ? "Serviço" : "Produção"}</Badge>
                           <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
                           {focusIds?.includes(item.id) && <Badge className="text-[9px]">Selecionado</Badge>}
+                          {contractsByCte[item.id] != null && <Badge variant="secondary" className="text-[9px]">Contrato Nº {contractsByCte[item.id]}</Badge>}
                           <span className="text-[11px] truncate flex-1">
                             {item.destinatario_nome || item.remetente_nome || "—"}
                           </span>
