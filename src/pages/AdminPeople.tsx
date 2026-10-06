@@ -304,17 +304,6 @@ export default function AdminPeople() {
         </div>
       ),
     },
-    {
-      key: "cidade",
-      header: "Cidade/UF",
-      width: "140px",
-      sortValue: (d) => `${d.address_state || ""} ${d.address_city || ""}`,
-      cell: (d) => (
-        <span className="whitespace-nowrap text-muted-foreground">
-          {d.address_city && d.address_state ? `${d.address_city}/${d.address_state}` : "—"}
-        </span>
-      ),
-    },
   ];
 
   const toolbarActions: ToolbarAction[] = [
