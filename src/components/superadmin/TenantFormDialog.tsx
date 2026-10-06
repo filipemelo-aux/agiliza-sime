@@ -176,6 +176,13 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
             <F label={`Certificado A1 (.pfx)${tenant?.certificate ? ` — atual: ${tenant.certificate.file_name}` : ""}`} span={3}>
               <Input type="file" accept=".pfx,.p12" className="h-9" onChange={(e) => setCertFile(e.target.files?.[0] || null)} /></F>
             <F label={`Senha do certificado (${saved(tenant?.has_certificate_password)})`} span={3}><Input type="password" className="h-9" placeholder={tenant?.has_certificate_password ? "•••••••• cadastrada" : ""} value={certPass} onChange={(e) => setCertPass(e.target.value)} autoComplete="new-password" /></F>
+            {tenant && (
+              <>
+                <F label="Último nº CT-e (produção)" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_cte} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_cte: Number(e.target.value) || 0 }))} /></F>
+                <F label="Último nº CT-e (serviço)" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_cte_servico} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_cte_servico: Number(e.target.value) || 0 }))} /></F>
+                <F label="Último nº MDF-e" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_mdfe} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_mdfe: Number(e.target.value) || 0 }))} /></F>
+              </>
+            )}
             <F label="Sincronização automática de NF-e recebidas">
               <Select value={f.nfe_sync_enabled ? "on" : "off"} onValueChange={(v) => setF((p) => ({ ...p, nfe_sync_enabled: v === "on" }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
