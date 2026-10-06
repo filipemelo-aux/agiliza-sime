@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Pencil, Plus, RefreshCw, Search, KeyRound, CheckCircle2 } from "lucide-react";
+import { Loader2, Pencil, Plus, RefreshCw, Search, KeyRound, CheckCircle2, XCircle, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupCnpj } from "@/lib/cnpjLookup";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   const [hasMaster, setHasMaster] = useState(false);
   const [master, setMaster] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [hml, setHml] = useState<{ nome: string; ok: boolean; steps: { label: string; ok: boolean; message: string }[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Est | null>(null);
   const [saving, setSaving] = useState(false);
@@ -97,6 +98,16 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   });
 
   const s = (k: keyof Est) => (e: React.ChangeEvent<HTMLInputElement>) => setEdit((p) => p && ({ ...p, [k]: e.target.value }));
+
+  const matriz = all.find((x) => x.type === "matriz");
+  const runHml = async (e: Est) => {
+    if (!e.id) return;
+    setBusy("hml" + e.id); setHml(null);
+    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "homologation_test", tenant_id: tenantId, establishment_id: e.id } });
+    setBusy(null);
+    if (error || data?.error) return toast.error(data?.error || "Erro ao executar o teste");
+    setHml({ nome: e.type === "matriz" ? "Matriz" : e.razao_social, ok: data.ok, steps: data.steps || [] });
+  };
 
   const buscar = async () => {
     if (!edit) return;
