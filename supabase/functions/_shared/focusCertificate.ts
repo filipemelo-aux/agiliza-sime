@@ -55,3 +55,48 @@ export async function pushCertificateToFocus(masterToken: string, cnpj: string, 
     return { ok: false, message: "Falha de comunicação com a Focus: " + (e as Error).message };
   }
 }
+
+async function encKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("CERTIFICATE_ENCRYPTION_KEY");
+  if (!secret) throw new Error("CERTIFICATE_ENCRYPTION_KEY not configured");
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
+  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["decrypt"]);
+}
+
+export async function decryptCertPassword(encrypted: string): Promise<string> {
+  const [ivB64, ctB64] = encrypted.split(":");
+  if (!ivB64 || !ctB64) return encrypted; // legado em texto puro
+  const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
+  const ct = Uint8Array.from(atob(ctB64), (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, await encKey(), ct));
+}
+
+/** Envia um certificado já salvo para a Focus (todos os CNPJs vinculados) e grava o resultado. */
+// deno-lint-ignore no-explicit-any
+export async function syncCertificateToFocus(svc: any, certificateId: string): Promise<{ ok: boolean; message: string }> {
+  const { data: cert } = await svc.from("fiscal_certificates").select("id,tenant_id,caminho_storage,senha_criptografada,cnpj").eq("id", certificateId).maybeSingle();
+  if (!cert) return { ok: false, message: "Certificado não encontrado" };
+  const save = async (r: { ok: boolean; message: string }, status?: string) => {
+    await svc.from("fiscal_certificates").update({ focus_sync_status: status ?? (r.ok ? "sincronizado" : "erro"), focus_sync_message: r.message, focus_synced_at: new Date().toISOString() }).eq("id", cert.id);
+    return r;
+  };
+  const { data: sec } = await svc.from("tenant_secrets").select("focus_nfe_token_master").eq("tenant_id", cert.tenant_id).maybeSingle();
+  const master = sec?.focus_nfe_token_master || Deno.env.get("FOCUS_NFE_TOKEN_MASTER");
+  if (!master) return save({ ok: false, message: "Aguardando o SuperAdmin informar o token principal da conta Focus" }, "pendente");
+  const { data: blob } = await svc.storage.from("fiscal-certificates").download(cert.caminho_storage);
+  if (!blob) return save({ ok: false, message: "Arquivo do certificado não encontrado" });
+  const senha = await decryptCertPassword(cert.senha_criptografada);
+  const b64 = toBase64(await blob.arrayBuffer());
+  const { data: links } = await svc.from("establishment_certificates").select("establishment_id").eq("certificate_id", cert.id);
+  const ids = (links || []).map((l: any) => l.establishment_id);
+  let cnpjs: string[] = [];
+  if (ids.length) {
+    const { data: ests } = await svc.from("fiscal_establishments").select("cnpj").in("id", ids);
+    cnpjs = (ests || []).map((e: any) => String(e.cnpj).replace(/\D/g, ""));
+  }
+  if (!cnpjs.length && cert.cnpj) cnpjs = [cert.cnpj];
+  if (!cnpjs.length) return save({ ok: false, message: "Nenhum CNPJ vinculado ao certificado" });
+  const msgs: string[] = []; let ok = true;
+  for (const c of cnpjs) { const r = await pushCertificateToFocus(master, c, b64, senha); ok &&= r.ok; msgs.push(`${c}: ${r.message}`); }
+  return save({ ok, message: msgs.join(" | ") });
+}
