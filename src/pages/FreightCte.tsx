@@ -32,6 +32,7 @@ import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
+import { CteXmlBatchImportDialog } from "@/components/freight/CteXmlBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -100,6 +101,8 @@ export default function FreightCte() {
   const [servicoOpen, setServicoOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
   const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
+  const [xmlBatchOpen, setXmlBatchOpen] = useState(false);
+  const [inconsistencyFocus, setInconsistencyFocus] = useState<string[]>([]);
   
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
@@ -630,7 +633,11 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             {
               key: "inconsist", label: "Inconsistências", icon: AlertTriangle, mode: "always", variant: "outline",
-              onClick: () => setInconsistencyOpen(true),
+              onClick: () => { setInconsistencyFocus(Array.from(selectedIds)); setInconsistencyOpen(true); },
+            },
+            {
+              key: "xmlbatch", label: "Importar XML (Produção)", icon: Upload, mode: "always", variant: "outline",
+              onClick: () => setXmlBatchOpen(true),
             },
             {
               key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
@@ -753,7 +760,13 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       <CteInconsistencyDialog
         open={inconsistencyOpen}
         onOpenChange={setInconsistencyOpen}
-        onDeleted={fetchCtes}
+        onDeleted={() => { fetchCtes(); setSelectedIds(new Set()); }}
+        focusIds={inconsistencyFocus}
+      />
+      <CteXmlBatchImportDialog
+        open={xmlBatchOpen}
+        onOpenChange={setXmlBatchOpen}
+        onImported={(ids) => { fetchCtes(); setSelectedIds(new Set(ids)); }}
       />
       {ConfirmDialog}
     </AdminLayout>
