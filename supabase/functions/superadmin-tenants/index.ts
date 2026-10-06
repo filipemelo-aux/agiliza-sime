@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
           const resto = soma % 11; const dv = resto < 2 ? 0 : 11 - resto;
           const chaveNfe = base43 + dv;
           const numero = 900000000 + Math.floor(Math.random() * 99999999);
-          const nomeHml = "CTE EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
+          const nomeHml = "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
           const actor = (p: string) => ({
             [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml, [`razao_social_${p}`]: nomeHml,
             [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
