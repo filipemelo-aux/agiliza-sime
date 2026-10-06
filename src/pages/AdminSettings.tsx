@@ -31,7 +31,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { maskName } from "@/lib/masks";
-import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
 import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
 import { SignaturePad } from "@/components/SignaturePad";
@@ -614,29 +613,10 @@ export default function AdminSettings() {
           <TabsContent value="fiscal" className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold">Configurações Fiscais</h2>
-              <p className="text-sm text-muted-foreground">Gerencie estabelecimentos e certificados digitais</p>
+              <p className="text-sm text-muted-foreground">Envie ou atualize o certificado digital da empresa. Ambiente, numeração e tokens são definidos pelo suporte.</p>
             </div>
 
-            <Tabs defaultValue="establishments" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
-                <TabsTrigger value="establishments" className="gap-2 text-xs sm:text-sm">
-                  <Building2 className="w-4 h-4" />
-                  Estabelecimentos
-                </TabsTrigger>
-                <TabsTrigger value="certificates" className="gap-2 text-xs sm:text-sm">
-                  <ShieldCheck className="w-4 h-4" />
-                  Certificados
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="establishments">
-                <EstablishmentsList />
-              </TabsContent>
-
-              <TabsContent value="certificates">
-                <CertificatesList />
-              </TabsContent>
-            </Tabs>
+            <CertificatesList />
           </TabsContent>
 
           {/* ===== TAB EMAIL ===== */}
