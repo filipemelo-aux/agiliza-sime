@@ -60,7 +60,13 @@ async function encKey(): Promise<CryptoKey> {
   const secret = Deno.env.get("CERTIFICATE_ENCRYPTION_KEY");
   if (!secret) throw new Error("CERTIFICATE_ENCRYPTION_KEY not configured");
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
-  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["decrypt"]);
+  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["decrypt", "encrypt"]);
+}
+
+export async function encryptCertPassword(password: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await encKey(), new TextEncoder().encode(password));
+  return `${btoa(String.fromCharCode(...iv))}:${btoa(String.fromCharCode(...new Uint8Array(ct)))}`;
 }
 
 export async function decryptCertPassword(encrypted: string): Promise<string> {
