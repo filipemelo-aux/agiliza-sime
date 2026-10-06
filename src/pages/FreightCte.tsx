@@ -153,7 +153,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     try {
       const { data, error } = await supabase
         .from("ctes")
-        .select("*")
+        .select(CTE_LIST_COLUMNS)
         .order("data_emissao", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -238,7 +238,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     setServicoOpen(true);
   };
 
-  const handleEdit = (cte: Cte) => {
+  const handleEdit = async (cte: Cte) => {
+    // A listagem não traz os XMLs: busca a linha completa antes de abrir o formulário.
+    try {
+      const { data } = await supabase.from("ctes").select("*").eq("id", cte.id).single();
+      if (data) cte = data as Cte;
+    } catch { /* usa o objeto da listagem */ }
     setEditingCte(cte);
     if (cte.tipo_talao === "servico") {
       setServicoOpen(true);
