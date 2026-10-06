@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
 
       let reg;
       try {
-        reg = await registerCertificate(serviceClient, { tenantId, bin: new Uint8Array(await file.arrayBuffer()), fileName: nome.endsWith(".pfx") || nome.endsWith(".p12") ? nome : file.name, password: senha });
+        reg = await registerCertificate(serviceClient, { tenantId, bin: new Uint8Array(await file.arrayBuffer()), fileName: nome, password: senha });
       } catch (e) { return json({ success: false, error: (e as Error).message }, 400); }
       const { cert, info, focus } = reg;
       console.log(`[certificate-manager] Certificate "${nome}" uploaded by user ${userId}`);
