@@ -1836,9 +1836,13 @@ ${hasRecebimentos ? `
         <FilterPrimaryRow>
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Emissão</span>
-            <Input type="date" value={filterEmissaoInicio} onChange={(e) => setFilterEmissaoInicio(e.target.value)} className="h-8 w-[130px] text-xs" title="Emissão - início" />
-            <span className="text-xs text-muted-foreground">a</span>
-            <Input type="date" value={filterEmissaoFim} onChange={(e) => setFilterEmissaoFim(e.target.value)} className="h-8 w-[130px] text-xs" title="Emissão - fim" />
+            <PeriodFilter
+              size="sm"
+              allowClear
+              inicio={filterEmissaoInicio}
+              fim={filterEmissaoFim}
+              onChange={(i, f) => { setFilterEmissaoInicio(i); setFilterEmissaoFim(f); }}
+            />
           </div>
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </FilterPrimaryRow>
@@ -1861,9 +1865,13 @@ ${hasRecebimentos ? `
             </SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground whitespace-nowrap">Venc.</span>
-          <Input type="date" value={filterVencInicio} onChange={(e) => setFilterVencInicio(e.target.value)} className="h-8 w-[130px] text-xs" title="Vencimento - início" />
-          <span className="text-xs text-muted-foreground">a</span>
-          <Input type="date" value={filterVencFim} onChange={(e) => setFilterVencFim(e.target.value)} className="h-8 w-[130px] text-xs" title="Vencimento - fim" />
+          <PeriodFilter
+            size="sm"
+            allowClear
+            inicio={filterVencInicio}
+            fim={filterVencFim}
+            onChange={(i, f) => { setFilterVencInicio(i); setFilterVencFim(f); }}
+          />
           <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
           <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 min-w-[180px] flex-1 text-xs" />
           {hasFaturaFilters && (
