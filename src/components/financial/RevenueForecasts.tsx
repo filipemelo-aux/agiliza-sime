@@ -26,6 +26,10 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { PeriodFilter } from "@/components/PeriodFilter";
+import { EmpresaFilter } from "./EmpresaControls";
+import { Search, X } from "lucide-react";
 
 
 interface Previsao {
@@ -64,6 +68,12 @@ export function RevenueForecasts() {
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
   const [cteMap, setCteMap] = useState<Record<string, number>>({});
+  const [filterOrigem, setFilterOrigem] = useState<string>("todas");
+  const [filterDoc, setFilterDoc] = useState<string>("");
+  const [filterBusca, setFilterBusca] = useState<string>("");
+  const [filterDataInicio, setFilterDataInicio] = useState<string>("");
+  const [filterDataFim, setFilterDataFim] = useState<string>("");
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   // Individual invoice dialog: per-previsao due dates
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
