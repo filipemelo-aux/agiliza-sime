@@ -253,6 +253,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
                           <Badge variant="outline" className="text-[9px]">{item.tipo_talao === "servico" ? "Serviço" : "Produção"}</Badge>
                           <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
                           {focusIds?.includes(item.id) && <Badge className="text-[9px]">Selecionado</Badge>}
+                          {contractsByCte[item.id] != null && <Badge variant="secondary" className="text-[9px]">Contrato Nº {contractsByCte[item.id]}</Badge>}
                           <span className="text-[11px] truncate flex-1">
                             {item.destinatario_nome || item.remetente_nome || "—"}
                           </span>
