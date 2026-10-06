@@ -198,6 +198,7 @@ Deno.serve(async (req) => {
       if (id) {
         const { error } = await admin.from("fiscal_establishments").update(row).eq("id", id).eq("tenant_id", tenant_id);
         if (error) throw error;
+        await saveTokens(id);
         return json({ success: true, id });
       }
       const { data, error } = await admin.from("fiscal_establishments").insert(row).select("id").single();
