@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { syncCertificateToFocus } from "../_shared/focusCertificate.ts";
+import { syncCertificateToFocus, parsePfx, encryptCertPassword } from "../_shared/focusCertificate.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -89,7 +89,23 @@ Deno.serve(async (req) => {
       }
       if (changed) ({ data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, focus_nfe_token_master, certificate_password"));
       const { data: certs } = await admin.from("tenant_certificates").select("tenant_id, file_name, valid_until, is_active").eq("is_active", true);
+      const { data: branches } = await admin.from("fiscal_establishments")
+        .select("id,tenant_id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active,ultimo_numero_cte,ultimo_numero_mdfe,ultimo_numero_cte_servico")
+        .eq("type", "filial").order("razao_social");
+      const { data: bsec } = await admin.from("establishment_secrets").select("establishment_id,focus_nfe_token_production,focus_nfe_token_homologation");
+      const { data: blinks } = await admin.from("establishment_certificates").select("establishment_id,certificate_id");
+      const { data: mlinks } = await admin.from("fiscal_establishments").select("id,tenant_id").eq("type", "matriz");
       return json({
+        branches: (branches || []).map((b: any) => {
+          const x = (bsec || []).find((r: any) => r.establishment_id === b.id);
+          const link = (blinks || []).find((l: any) => l.establishment_id === b.id);
+          const m = (mlinks || []).find((r: any) => r.tenant_id === b.tenant_id);
+          const mLink = m ? (blinks || []).find((l: any) => l.establishment_id === m.id) : null;
+          return {
+            ...b, has_token_production: !!x?.focus_nfe_token_production, has_token_homologation: !!x?.focus_nfe_token_homologation,
+            has_certificate: !!link, same_certificate_as_matriz: !!link && !!mLink && link.certificate_id === mLink.certificate_id,
+          };
+        }),
         tenants: (tenants || []).map((t: any) => {
           const s = secrets?.find((x: any) => x.tenant_id === t.id);
           const fc = (fcerts || []).find((c: any) => c.tenant_id === t.id && c.ativo) || (fcerts || []).find((c: any) => c.tenant_id === t.id);
@@ -177,9 +193,11 @@ Deno.serve(async (req) => {
           focus_nfe_token_production: z.string().trim().max(500).optional().nullable(),
           focus_nfe_token_homologation: z.string().trim().max(500).optional().nullable(),
         }).optional(),
+        certificate_mode: z.enum(["keep", "matriz", "new"]).optional(),
+        certificate: z.object({ file_name: z.string().max(200), base64: z.string().max(20_000_000), password: z.string().min(1).max(200) }).optional().nullable(),
       }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos", details: p.error.flatten().fieldErrors }, 400);
-      const { tenant_id, establishment: e, tokens } = p.data;
+      const { tenant_id, establishment: e, tokens, certificate_mode, certificate } = p.data;
       const saveTokens = async (estId: string) => {
         if (!tokens) return;
         const patch: Record<string, unknown> = { establishment_id: estId, tenant_id };
@@ -189,11 +207,40 @@ Deno.serve(async (req) => {
         }
         if (any) { const { error } = await admin.from("establishment_secrets").upsert(patch, { onConflict: "establishment_id" }); if (error) throw error; }
       };
+      const applyCert = async (estId: string): Promise<{ ok: boolean; message: string } | null> => {
+        if (!certificate_mode || certificate_mode === "keep") return null;
+        if (certificate_mode === "matriz") {
+          const { data: m } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", tenant_id).eq("type", "matriz").maybeSingle();
+          const { data: ml } = m ? await admin.from("establishment_certificates").select("certificate_id").eq("establishment_id", m.id).limit(1).maybeSingle() : { data: null };
+          if (!ml) return { ok: false, message: "A matriz não tem certificado vinculado" };
+          await admin.from("establishment_certificates").delete().eq("establishment_id", estId);
+          const { error } = await admin.from("establishment_certificates").insert({ certificate_id: ml.certificate_id, establishment_id: estId, tenant_id });
+          if (error) throw error;
+          return await syncCertificateToFocus(admin, ml.certificate_id);
+        }
+        if (!certificate) throw new Error("Envie o arquivo do certificado e a senha");
+        const bin = Uint8Array.from(atob(certificate.base64), (c) => c.charCodeAt(0));
+        const info = parsePfx(bin.buffer, certificate.password);
+        if (info.validUntil.getTime() < Date.now()) throw new Error(`Certificado vencido em ${info.validUntil.toLocaleDateString("pt-BR")}`);
+        if (info.cnpj && info.cnpj.slice(0, 8) !== digits(e.cnpj).slice(0, 8)) throw new Error(`Este certificado é do CNPJ ${info.cnpj}, que não pertence a esta empresa`);
+        const path = `certificates/${crypto.randomUUID()}_${certificate.file_name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+        const { error: upErr } = await admin.storage.from("fiscal-certificates").upload(path, bin, { contentType: "application/x-pkcs12", upsert: false });
+        if (upErr) throw new Error("Erro ao armazenar certificado");
+        const { data: cert, error: insErr } = await admin.from("fiscal_certificates").insert({
+          nome: certificate.file_name, caminho_storage: path, senha_criptografada: await encryptCertPassword(certificate.password),
+          tenant_id, cnpj: info.cnpj, titular: info.titular, valid_until: info.validUntil.toISOString(), focus_sync_status: "pendente",
+        }).select("id").single();
+        if (insErr) { await admin.storage.from("fiscal-certificates").remove([path]); throw new Error("Erro ao salvar certificado"); }
+        await admin.from("establishment_certificates").delete().eq("establishment_id", estId);
+        const { error } = await admin.from("establishment_certificates").insert({ certificate_id: cert.id, establishment_id: estId, tenant_id });
+        if (error) throw error;
+        return await syncCertificateToFocus(admin, cert.id);
+      };
       const { data: t } = await admin.from("tenants").select("cnpj").eq("id", tenant_id).single();
       if (!t) return json({ error: "Empresa não encontrada" }, 404);
       const cnpj = digits(e.cnpj);
       if (cnpj.length !== 14) return json({ error: "CNPJ inválido" }, 400);
-      if (cnpj.slice(0, 8) !== digits(t.cnpj).slice(0, 8)) return json({ error: "A filial precisa ter a mesma raiz de CNPJ (8 primeiros dígitos) da empresa" }, 400);
+      if (cnpj.slice(0, 8) !== digits(t.cnpj).slice(0, 8)) return json({ error: "A filial precisa ter a mesma raiz de CNPJ (8 primeiros dígitos) da empresa matriz" }, 400);
       if (e.type === "matriz") {
         const { data: m } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", tenant_id).eq("type", "matriz");
         if (m?.some((x: any) => x.id !== e.id)) return json({ error: "Esta empresa já possui uma matriz" }, 400);
@@ -202,16 +249,18 @@ Deno.serve(async (req) => {
       if (dup?.some((x: any) => x.id !== e.id)) return json({ error: "Já existe um estabelecimento com este CNPJ" }, 400);
       const { id, ...rest } = e;
       const row = { ...rest, cnpj, endereco_cep: digits(e.endereco_cep) || null, endereco_uf: e.endereco_uf?.toUpperCase() || null, tenant_id };
+      let estId = id;
       if (id) {
         const { error } = await admin.from("fiscal_establishments").update(row).eq("id", id).eq("tenant_id", tenant_id);
         if (error) throw error;
-        await saveTokens(id);
-        return json({ success: true, id });
+      } else {
+        const { data, error } = await admin.from("fiscal_establishments").insert(row).select("id").single();
+        if (error) throw error;
+        estId = data.id;
       }
-      const { data, error } = await admin.from("fiscal_establishments").insert(row).select("id").single();
-      if (error) throw error;
-      await saveTokens(data.id);
-      return json({ success: true, id: data.id });
+      await saveTokens(estId!);
+      const focus = await applyCert(estId!);
+      return json({ success: true, id: estId, focus });
     }
 
     if (body.action === "set_master_token") {

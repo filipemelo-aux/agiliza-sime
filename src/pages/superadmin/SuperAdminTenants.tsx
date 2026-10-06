@@ -1,9 +1,10 @@
 import { PageTitle } from "@/components/PageTitle";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, LogIn, Pencil, Plus, Power, Search, Users } from "lucide-react";
+import { Building2, GitBranch, LogIn, Pencil, Plus, Power, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/superadmin/SuperAdminLayout";
 import { TenantFormDialog, type TenantRow } from "@/components/superadmin/TenantFormDialog";
+import { BranchFormDialog, type BranchRow } from "@/components/superadmin/BranchFormDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,9 @@ export default function SuperAdminTenants() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<TenantRow | null>(null);
   const [open, setOpen] = useState(false);
+  const [branches, setBranches] = useState<BranchRow[]>([]);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<BranchRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -25,6 +29,7 @@ export default function SuperAdminTenants() {
     setLoading(false);
     if (error || data?.error) return toast.error(data?.error || "Erro ao carregar empresas");
     setRows(data.tenants || []);
+    setBranches(data.branches || []);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -34,8 +39,9 @@ export default function SuperAdminTenants() {
     if (!t) return rows;
     const d = t.replace(/\D/g, "");
     return rows.filter((r) =>
-      r.razao_social.toLowerCase().includes(t) || (r.nome_fantasia || "").toLowerCase().includes(t) || (d && r.cnpj.includes(d)));
-  }, [rows, q]);
+      r.razao_social.toLowerCase().includes(t) || (r.nome_fantasia || "").toLowerCase().includes(t) || (d && r.cnpj.includes(d))
+      || branches.some((b) => b.tenant_id === r.id && (b.razao_social.toLowerCase().includes(t) || (d && b.cnpj.includes(d)))));
+  }, [rows, q, branches]);
 
   const toggleStatus = async (r: TenantRow) => {
     const status = r.status === "active" ? "suspended" : "active";
@@ -89,7 +95,7 @@ export default function SuperAdminTenants() {
           <tbody>
             {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>}
             {!loading && filtered.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma empresa encontrada</td></tr>}
-            {filtered.map((r) => (
+            {filtered.flatMap((r) => [
               <tr key={r.id} className={`border-t ${r.status === "suspended" ? "bg-muted/60 text-muted-foreground" : ""}`}>
                 <td className="p-3">
                   <div className="flex items-center gap-3">
@@ -118,14 +124,37 @@ export default function SuperAdminTenants() {
                     </Button>
                   </div>
                 </td>
-              </tr>
-            ))}
+              </tr>,
+              ...branches.filter((b) => b.tenant_id === r.id).map((b) => (
+                <tr key={b.id} className={`border-t ${b.active ? "" : "bg-muted/60 text-muted-foreground"}`}>
+                  <td className="p-3 pl-8">
+                    <div className="flex items-center gap-3">
+                      <GitBranch className="h-8 w-8 p-1.5 rounded bg-muted text-muted-foreground" />
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">{b.nome_fantasia || b.razao_social}</div>
+                        <div className="text-xs text-muted-foreground truncate">Filial de {r.nome_fantasia || r.razao_social}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-3 tabular-nums">{fmtCnpj(b.cnpj)}</td>
+                  <td className="p-3 text-xs">{b.ambiente === "producao" ? "Produção" : "Homologação"}</td>
+                  <td className="p-3 text-xs text-muted-foreground">da matriz</td>
+                  <td className="p-3">{b.active ? <Badge className="bg-success/15 text-success hover:bg-success/15">Ativa</Badge> : <Badge variant="secondary">Inativa</Badge>}</td>
+                  <td className="p-3"><div className="flex justify-end gap-1">
+                    <Button size="icon" variant="ghost" title="Editar filial" onClick={() => { setEditingBranch(b); setBranchOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                  </div></td>
+                </tr>
+              )),
+            ])}
           </tbody>
-          <tfoot className="bg-muted/60"><tr><td colSpan={20} className="px-3 py-1.5 text-[11px] text-muted-foreground">{filtered.length} registro(s)</td></tr></tfoot>
+          <tfoot className="bg-muted/60"><tr><td colSpan={20} className="px-3 py-1.5 text-[11px] text-muted-foreground">{filtered.length} empresa(s) · {branches.filter((b) => filtered.some((r) => r.id === b.tenant_id)).length} filial(is)</td></tr></tfoot>
         </table>
       </div>
 
-      <TenantFormDialog open={open} onOpenChange={setOpen} tenant={editing} onSaved={load} />
+      <TenantFormDialog open={open} onOpenChange={setOpen} tenant={editing} onSaved={load}
+        onMarkBranch={() => { setOpen(false); setEditingBranch(null); setBranchOpen(true); }} />
+      <BranchFormDialog open={branchOpen} onOpenChange={setBranchOpen} branch={editingBranch} tenants={rows} onSaved={load}
+        onUnmarkBranch={() => { setBranchOpen(false); setEditing(null); setOpen(true); }} />
     </SuperAdminLayout>
   );
 }
