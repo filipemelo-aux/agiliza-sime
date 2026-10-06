@@ -334,6 +334,76 @@ Deno.serve(async (req) => {
         } catch { add("Empresa na Focus", false, "Sem comunicação com a Focus"); }
       }
 
+      // Emissão real de um CT-e de teste na SEFAZ (homologação, sem valor fiscal).
+      const prereqOk = steps.filter((s) => s.label !== "Empresa na Focus").every((s) => s.ok);
+      if (!token || !prereqOk) {
+        add("CT-e de teste na SEFAZ", false, "Não enviado — corrija os itens acima primeiro");
+      } else {
+        try {
+          const { data: e } = await admin.from("fiscal_establishments").select("*").eq("id", est.id).maybeSingle();
+          const d = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+          const cnpj = d(e.cnpj);
+          const uf = e.endereco_uf;
+          const ibge = d(e.codigo_municipio_ibge);
+          const cidade = e.endereco_municipio || "NAO INFORMADO";
+          const UF_CODE: Record<string, string> = { RO:"11",AC:"12",AM:"13",RR:"14",PA:"15",AP:"16",TO:"17",MA:"21",PI:"22",CE:"23",RN:"24",PB:"25",PE:"26",AL:"27",SE:"28",BA:"29",MG:"31",ES:"32",RJ:"33",SP:"35",PR:"41",SC:"42",RS:"43",MS:"50",MT:"51",GO:"52",DF:"53" };
+          const now = new Date();
+          const aamm = now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }).slice(2, 7).replace("-", "");
+          const base43 = `${UF_CODE[uf] || "17"}${aamm}${cnpj}55001${String(Math.floor(Math.random() * 1e9)).padStart(9, "0")}1${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
+          let soma = 0, peso = 2;
+          for (let i = base43.length - 1; i >= 0; i--) { soma += Number(base43[i]) * peso; peso = peso === 9 ? 2 : peso + 1; }
+          const resto = soma % 11; const dv = resto < 2 ? 0 : 11 - resto;
+          const chaveNfe = base43 + dv;
+          const numero = 900000000 + Math.floor(Math.random() * 99999999);
+          const nomeHml = "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
+          const actor = (p: string) => ({
+            [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml,
+            [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
+            [`bairro_${p}`]: e.endereco_bairro || "NAO INFORMADO", [`codigo_municipio_${p}`]: ibge, [`municipio_${p}`]: cidade, [`uf_${p}`]: uf,
+          });
+          const rntrc = (() => { const v = d(e.rntrc); return v ? v.slice(-8).padStart(8, "0") : "ISENTO"; })();
+          const payload: Record<string, unknown> = {
+            cfop: "5353", natureza_operacao: "PRESTACAO DE SERVICO DE TRANSPORTE", numero, serie: e.serie_cte || 1,
+            data_emissao: now.toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
+            tipo_documento: 0, modal: "01", tipo_servico: 0,
+            codigo_municipio_envio: ibge, municipio_envio: cidade, uf_envio: uf,
+            codigo_municipio_inicio: ibge, municipio_inicio: cidade, uf_inicio: uf,
+            codigo_municipio_fim: ibge, municipio_fim: cidade, uf_fim: uf,
+            retirar_mercadoria: 1, indicador_inscricao_estadual_tomador: 9, tomador: 0,
+            cnpj_emitente: cnpj, inscricao_estadual_emitente: e.inscricao_estadual, nome_emitente: e.razao_social,
+            nome_fantasia_emitente: e.nome_fantasia || e.razao_social, logradouro_emitente: e.endereco_logradouro || "NAO INFORMADO",
+            numero_emitente: e.endereco_numero || "S/N", bairro_emitente: e.endereco_bairro || "NAO INFORMADO",
+            codigo_municipio_emitente: ibge, municipio_emitente: cidade, uf_emitente: uf, cep_emitente: d(e.endereco_cep),
+            ...actor("remetente"), ...actor("destinatario"),
+            valor_total: "100.00", valor_receber: "100.00", componentes_valor: [{ nome: "FRETE VALOR", valor: "100.00" }],
+            icms_situacao_tributaria: "40", icms_base_calculo: "0.00", icms_aliquota: "0.00", icms_valor: "0.00",
+            valor_total_carga: "1000.00", valor_carga_averbacao: "1000.00", produto_predominante: "TESTE HOMOLOGACAO",
+            quantidades: [{ codigo_unidade_medida: "01", tipo_medida: "PESO BRUTO", quantidade: "1000.0000" }],
+            outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { rntrc },
+            ibs_cbs_situacao_tributaria: "000", ibs_cbs_classificacao_tributaria: "000001", ibs_cbs_base_calculo: "100.00",
+            ibs_uf_aliquota: "0.00", ibs_uf_valor: "0.00", ibs_mun_aliquota: "0.00", ibs_mun_valor: "0.00", ibs_valor_total: "0.00",
+            cbs_aliquota: "0.00", cbs_valor: "0.00", valor_total_dfe: "100.00",
+          };
+          const HML = "https://homologacao.focusnfe.com.br";
+          const ref = `teste-hml-${est.id.slice(0, 8)}-${Date.now()}`;
+          const auth = { Authorization: "Basic " + btoa(token + ":") };
+          const r = await fetch(`${HML}/v2/cte?ref=${ref}`, { method: "POST", body: JSON.stringify(payload), headers: { ...auth, "Content-Type": "application/json" } });
+          let fd: any; try { fd = await r.json(); } catch { fd = {}; }
+          if (!r.ok) {
+            const why = fd?.mensagem || fd?.erros?.map?.((x: any) => x.mensagem || x).join("; ") || `Focus respondeu ${r.status}`;
+            add("CT-e de teste na SEFAZ", false, `Recusado: ${why}`);
+          } else {
+            for (let i = 0; i < 20 && ["processando_autorizacao", "processando"].includes(fd?.status); i++) {
+              await new Promise((res) => setTimeout(res, 1500));
+              fd = await (await fetch(`${HML}/v2/cte/${ref}?completa=0`, { headers: auth })).json().catch(() => fd);
+            }
+            if (fd?.status === "autorizado") add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
+            else if (["processando_autorizacao", "processando"].includes(fd?.status)) add("CT-e de teste na SEFAZ", false, "SEFAZ ainda processando — clique em Testar novamente em instantes");
+            else add("CT-e de teste na SEFAZ", false, String(fd?.status_sefaz) === "646" ? "Rejeitado (646): o sistema enviou o nome exigido para o remetente, mas ele chegou diferente na SEFAZ. Comunicação, token e certificado estão OK — confirme com o suporte da Focus o texto que eles aplicam em homologação." : `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} `);
+          }
+        } catch (err) { add("CT-e de teste na SEFAZ", false, `Falha no envio: ${(err as Error).message}`); }
+      }
+
       return json({ ok: steps.every((s) => s.ok), steps });
     }
 
