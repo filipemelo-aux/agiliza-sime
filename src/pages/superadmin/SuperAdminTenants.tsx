@@ -121,6 +121,7 @@ export default function SuperAdminTenants() {
               </tr>
             ))}
           </tbody>
+          <tfoot className="bg-muted/60"><tr><td colSpan={20} className="px-3 py-1.5 text-[11px] text-muted-foreground">{filtered.length} registro(s)</td></tr></tfoot>
         </table>
       </div>
 
