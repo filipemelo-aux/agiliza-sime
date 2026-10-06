@@ -53,6 +53,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
   const [certPass, setCertPass] = useState("");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [adm, setAdm] = useState({ full_name: "", email: "", password: "" });
+  const [matrizNums, setMatrizNums] = useState({ ultimo_numero_cte: 0, ultimo_numero_cte_servico: 0, ultimo_numero_mdfe: 0 });
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
 
