@@ -152,10 +152,30 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
             </div>
             <span className="text-muted-foreground text-right">{e.ambiente === "producao" ? "Produção" : "Homologação"}{!e.active && " · Inativo"}
               <span className="block text-[10px]">Token prod. {e.has_token_production ? "✓" : "—"} · homol. {e.has_token_homologation ? "✓" : "—"} · CT-e nº {e.ultimo_numero_cte ?? 0} · MDF-e nº {e.ultimo_numero_mdfe ?? 0}</span></span>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" title="Teste de homologação" disabled={busy === "hml" + e.id} onClick={() => runHml(e)}>{busy === "hml" + e.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5 mr-1" />}Teste homologação</Button>
             <Button type="button" size="sm" variant="outline" className="h-7 text-xs" title="Tokens da Focus" onClick={() => openEdit({ ...e } as Est)}><KeyRound className="h-3.5 w-3.5 mr-1" />Tokens Focus</Button>
             <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Editar" onClick={() => openEdit({ ...e } as Est)}><Pencil className="h-3.5 w-3.5" /></Button>
           </div>
         ))}
+        {!loading && matriz && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Matriz ({fmtCnpj(matriz.cnpj)}):</span>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" disabled={busy === "hml" + matriz.id} onClick={() => runHml(matriz)}>{busy === "hml" + matriz.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5 mr-1" />}Teste homologação da matriz</Button>
+          </div>
+        )}
+        {hml && (
+          <div className={`rounded border p-2 text-xs space-y-1 ${hml.ok ? "border-success/50 bg-success/5" : "border-destructive/50 bg-destructive/5"}`}>
+            <div className="flex items-center font-semibold">Teste de homologação — {hml.nome}: {hml.ok ? "tudo pronto para emitir em homologação" : "há pendências"}
+              <Button type="button" size="sm" variant="ghost" className="ml-auto h-6 text-[11px]" onClick={() => setHml(null)}>Fechar</Button></div>
+            {hml.steps.map((st) => (
+              <div key={st.label} className="flex items-start gap-1.5">
+                {st.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 mt-px" /> : <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-px" />}
+                <span><b>{st.label}:</b> {st.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
 
         {edit && (
           <div className="rounded border bg-muted/20 p-3 grid grid-cols-1 md:grid-cols-6 gap-2">
