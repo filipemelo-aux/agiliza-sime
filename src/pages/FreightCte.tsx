@@ -45,6 +45,9 @@ import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
 import { SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
+// Colunas da listagem: exclui xml_enviado/xml_autorizado (grandes) — a edição busca a linha completa por id.
+export const CTE_LIST_COLUMNS = "id,numero,serie,chave_acesso,protocolo_autorizacao,status,tomador_id,remetente_nome,remetente_cnpj,remetente_ie,remetente_endereco,remetente_municipio_ibge,remetente_uf,destinatario_nome,destinatario_cnpj,destinatario_ie,destinatario_endereco,destinatario_municipio_ibge,destinatario_uf,valor_frete,valor_carga,base_calculo_icms,aliquota_icms,valor_icms,cst_icms,cfop,natureza_operacao,municipio_origem_ibge,municipio_origem_nome,uf_origem,municipio_destino_ibge,municipio_destino_nome,uf_destino,placa_veiculo,rntrc,motorista_id,veiculo_id,produto_predominante,peso_bruto,motivo_rejeicao,data_emissao,data_autorizacao,observacoes,created_by,created_at,updated_at,establishment_id,expedidor_nome,expedidor_cnpj,expedidor_ie,expedidor_endereco,expedidor_municipio_ibge,expedidor_uf,recebedor_nome,recebedor_cnpj,recebedor_ie,recebedor_endereco,recebedor_municipio_ibge,recebedor_uf,tomador_tipo,tomador_nome,tomador_cnpj,tomador_ie,tomador_endereco,tomador_municipio_ibge,tomador_uf,ind_ie_toma,tp_cte,tp_serv,modal,retira,valor_receber,valor_total_tributos,valor_carga_averb,chaves_nfe_ref,componentes_frete,info_quantidade,municipio_envio_ibge,municipio_envio_nome,uf_envio,tipo_talao,numero_interno,data_carregamento,valor_tonelada,desconto,motorista_nome,ibs_cbs_cst,ibs_cbs_class_trib,ibs_uf_aliquota,ibs_uf_valor,ibs_mun_aliquota,ibs_mun_valor,cbs_aliquota,cbs_valor,ibs_cbs_base_calculo,seguro_responsavel,seguradora_nome,seguradora_cnpj,apolice_numero,averbacao_numero,nfe_detalhes,outros_documentos,reboque1_placa,reboque2_placa,contratado_id,contratado_nome,contratado_documento,previsao_saida,previsao_chegada,lotacao,pedido_numero,valor_pedagio,numero_eixos,gerar_previsao,composicao_frete,frete_minimo,chave_cte_subcontratacao,percentual_reducao_bc,tenant_id";
+
 export interface Cte {
   id: string;
   numero: number | null;
@@ -150,7 +153,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     try {
       const { data, error } = await supabase
         .from("ctes")
-        .select("*")
+        .select(CTE_LIST_COLUMNS)
         .order("data_emissao", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -235,7 +238,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     setServicoOpen(true);
   };
 
-  const handleEdit = (cte: Cte) => {
+  const handleEdit = async (cte: Cte) => {
+    // A listagem não traz os XMLs: busca a linha completa antes de abrir o formulário.
+    try {
+      const { data } = await supabase.from("ctes").select("*").eq("id", cte.id).single();
+      if (data) cte = data as Cte;
+    } catch { /* usa o objeto da listagem */ }
     setEditingCte(cte);
     if (cte.tipo_talao === "servico") {
       setServicoOpen(true);
