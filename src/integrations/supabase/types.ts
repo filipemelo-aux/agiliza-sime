@@ -1963,6 +1963,48 @@ export type Database = {
           },
         ]
       }
+      establishment_secrets: {
+        Row: {
+          created_at: string
+          establishment_id: string
+          focus_nfe_token_homologation: string | null
+          focus_nfe_token_production: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          establishment_id: string
+          focus_nfe_token_homologation?: string | null
+          focus_nfe_token_production?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          establishment_id?: string
+          focus_nfe_token_homologation?: string | null
+          focus_nfe_token_production?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_secrets_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: true
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_group_items: {
         Row: {
           created_at: string
@@ -2645,32 +2687,50 @@ export type Database = {
         Row: {
           ativo: boolean
           caminho_storage: string
+          cnpj: string | null
           created_at: string
+          focus_sync_message: string | null
+          focus_sync_status: string | null
+          focus_synced_at: string | null
           id: string
           nome: string
           senha_criptografada: string
           tenant_id: string
+          titular: string | null
           updated_at: string
+          valid_until: string | null
         }
         Insert: {
           ativo?: boolean
           caminho_storage: string
+          cnpj?: string | null
           created_at?: string
+          focus_sync_message?: string | null
+          focus_sync_status?: string | null
+          focus_synced_at?: string | null
           id?: string
           nome: string
           senha_criptografada: string
           tenant_id?: string
+          titular?: string | null
           updated_at?: string
+          valid_until?: string | null
         }
         Update: {
           ativo?: boolean
           caminho_storage?: string
+          cnpj?: string | null
           created_at?: string
+          focus_sync_message?: string | null
+          focus_sync_status?: string | null
+          focus_synced_at?: string | null
           id?: string
           nome?: string
           senha_criptografada?: string
           tenant_id?: string
+          titular?: string | null
           updated_at?: string
+          valid_until?: string | null
         }
         Relationships: [
           {
@@ -5267,6 +5327,7 @@ export type Database = {
         Row: {
           certificate_password: string | null
           focus_nfe_token_homologation: string | null
+          focus_nfe_token_master: string | null
           focus_nfe_token_production: string | null
           tenant_id: string
           updated_at: string
@@ -5274,6 +5335,7 @@ export type Database = {
         Insert: {
           certificate_password?: string | null
           focus_nfe_token_homologation?: string | null
+          focus_nfe_token_master?: string | null
           focus_nfe_token_production?: string | null
           tenant_id: string
           updated_at?: string
@@ -5281,6 +5343,7 @@ export type Database = {
         Update: {
           certificate_password?: string | null
           focus_nfe_token_homologation?: string | null
+          focus_nfe_token_master?: string | null
           focus_nfe_token_production?: string | null
           tenant_id?: string
           updated_at?: string
