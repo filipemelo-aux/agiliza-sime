@@ -32,6 +32,7 @@ import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
