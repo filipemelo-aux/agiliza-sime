@@ -188,6 +188,13 @@ export function FinancialInvoicing() {
   const [receiveContaId, setReceiveContaId] = useState<string>("");
   const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [filterCliente, setFilterCliente] = useState<string>("");
+  const [filterCondicao, setFilterCondicao] = useState<string>("todas");
+  const [filterStatusFatura, setFilterStatusFatura] = useState<string>("todos");
+  const [filterVencInicio, setFilterVencInicio] = useState<string>("");
+  const [filterVencFim, setFilterVencFim] = useState<string>("");
+  const [filterEmissaoInicio, setFilterEmissaoInicio] = useState<string>("");
+  const [filterEmissaoFim, setFilterEmissaoFim] = useState<string>("");
+  const [filterNumero, setFilterNumero] = useState<string>("");
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
@@ -1692,10 +1699,55 @@ ${hasRecebimentos ? `
           const q = filterCliente.trim().toLowerCase();
           if (!(f.cliente_nome || "").toLowerCase().includes(q)) return false;
         }
+        if (filterCondicao !== "todas") {
+          const cond = (f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : "");
+          const isAvista = cond === "À vista";
+          if (filterCondicao === "avista" && !isAvista) return false;
+          if (filterCondicao === "prazo" && isAvista) return false;
+        }
+        if (filterStatusFatura !== "todos") {
+          if (filterStatusFatura === "parcial") {
+            if (!f.has_partial) return false;
+          } else if (f.has_partial || f.status !== filterStatusFatura) return false;
+        }
+        const venc = String((f as any).data_vencimento_ref || f.data_emissao).slice(0, 10);
+        if (filterVencInicio && venc < filterVencInicio) return false;
+        if (filterVencFim && venc > filterVencFim) return false;
+        const emissao = String((f as any).data_emissao_real || f.data_emissao).slice(0, 10);
+        if (filterEmissaoInicio && emissao < filterEmissaoInicio) return false;
+        if (filterEmissaoFim && emissao > filterEmissaoFim) return false;
+        if (filterNumero.trim()) {
+          const digits = filterNumero.replace(/\D/g, "");
+          if (digits) {
+            const numStr = String(f.numero);
+            if (!numStr.includes(digits) && !numStr.padStart(4, "0").includes(digits)) return false;
+          }
+        }
         return true;
       }),
-    [faturasSorted, filterEmpresa, filterCliente],
+    [faturasSorted, filterEmpresa, filterCliente, filterCondicao, filterStatusFatura, filterVencInicio, filterVencFim, filterEmissaoInicio, filterEmissaoFim, filterNumero],
   );
+
+  const hasFaturaFilters =
+    !!filterCliente ||
+    filterCondicao !== "todas" ||
+    filterStatusFatura !== "todos" ||
+    !!filterVencInicio ||
+    !!filterVencFim ||
+    !!filterEmissaoInicio ||
+    !!filterEmissaoFim ||
+    !!filterNumero;
+
+  const clearFaturaFilters = () => {
+    setFilterCliente("");
+    setFilterCondicao("todas");
+    setFilterStatusFatura("todos");
+    setFilterVencInicio("");
+    setFilterVencFim("");
+    setFilterEmissaoInicio("");
+    setFilterEmissaoFim("");
+    setFilterNumero("");
+  };
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
@@ -1778,9 +1830,46 @@ ${hasRecebimentos ? `
       </div>
 
       <SearchFilterCard contentClassName="block space-y-2">
-        <FilterPrimaryRow><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></FilterPrimaryRow>
-        <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 min-w-[220px] flex-1 text-xs" />
-        {filterCliente && <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterCliente("")}><X className="h-3 w-3" /> Limpar</Button>}
+        <FilterPrimaryRow>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Emissão</span>
+            <Input type="date" value={filterEmissaoInicio} onChange={(e) => setFilterEmissaoInicio(e.target.value)} className="h-8 w-[130px] text-xs" title="Emissão - início" />
+            <span className="text-xs text-muted-foreground">a</span>
+            <Input type="date" value={filterEmissaoFim} onChange={(e) => setFilterEmissaoFim(e.target.value)} className="h-8 w-[130px] text-xs" title="Emissão - fim" />
+          </div>
+          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+        </FilterPrimaryRow>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Select value={filterCondicao} onValueChange={setFilterCondicao}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Condição: todas</SelectItem>
+              <SelectItem value="avista">À vista</SelectItem>
+              <SelectItem value="prazo">A prazo / Parcelada</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterStatusFatura} onValueChange={setFilterStatusFatura}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Status: todos</SelectItem>
+              <SelectItem value="rascunho">Rascunho</SelectItem>
+              <SelectItem value="faturada">Em aberto</SelectItem>
+              <SelectItem value="parcial">Parcial</SelectItem>
+              <SelectItem value="paga">Paga</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Venc.</span>
+          <Input type="date" value={filterVencInicio} onChange={(e) => setFilterVencInicio(e.target.value)} className="h-8 w-[130px] text-xs" title="Vencimento - início" />
+          <span className="text-xs text-muted-foreground">a</span>
+          <Input type="date" value={filterVencFim} onChange={(e) => setFilterVencFim(e.target.value)} className="h-8 w-[130px] text-xs" title="Vencimento - fim" />
+          <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
+          <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 min-w-[180px] flex-1 text-xs" />
+          {hasFaturaFilters && (
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFaturaFilters}>
+              <X className="h-3 w-3" /> Limpar
+            </Button>
+          )}
+        </div>
       </SearchFilterCard>
 
       <GlobalToolbar
