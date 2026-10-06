@@ -244,6 +244,61 @@ Deno.serve(async (req) => {
       return json({ ok: true, message: "Token aceito pela Focus" });
     }
 
+    if (body.action === "homologation_test") {
+      const p = z.object({ tenant_id: z.string().uuid(), establishment_id: z.string().uuid() }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { data: est } = await admin.from("fiscal_establishments").select("id,cnpj,inscricao_estadual,codigo_municipio_ibge,endereco_uf").eq("id", p.data.establishment_id).eq("tenant_id", p.data.tenant_id).maybeSingle();
+      if (!est) return json({ error: "Estabelecimento não encontrado" }, 404);
+      const steps: { label: string; ok: boolean; message: string }[] = [];
+      const add = (label: string, ok: boolean, message: string) => steps.push({ label, ok, message });
+
+      const faltando = [!est.cnpj && "CNPJ", !est.inscricao_estadual && "IE", !est.codigo_municipio_ibge && "Cód. IBGE", !est.endereco_uf && "UF"].filter(Boolean);
+      add("Dados cadastrais", faltando.length === 0, faltando.length ? `Faltando: ${faltando.join(", ")}` : "CNPJ, IE, município e UF preenchidos");
+
+      const { data: sec } = await admin.from("establishment_secrets").select("focus_nfe_token_homologation").eq("establishment_id", est.id).maybeSingle();
+      const { data: tsec } = await admin.from("tenant_secrets").select("focus_nfe_token_homologation,focus_nfe_token_master").eq("tenant_id", p.data.tenant_id).maybeSingle();
+      const token = sec?.focus_nfe_token_homologation || tsec?.focus_nfe_token_homologation;
+      if (!token) add("Token de homologação", false, "Nenhum token de homologação informado");
+      else {
+        try {
+          const r = await fetch("https://homologacao.focusnfe.com.br/v2/cte/teste-conexao-agiliza", { headers: { Authorization: "Basic " + btoa(token + ":") } });
+          await r.text();
+          const ok = r.status !== 401 && r.status !== 403;
+          add("Token de homologação", ok, ok ? `Aceito pela Focus${sec?.focus_nfe_token_homologation ? "" : " (token da empresa)"}` : "Token recusado pela Focus");
+        } catch { add("Token de homologação", false, "Sem comunicação com a Focus"); }
+      }
+
+      const { data: links } = await admin.from("establishment_certificates").select("certificate_id").eq("establishment_id", est.id);
+      const ids = (links || []).map((l: any) => l.certificate_id);
+      const { data: certs } = ids.length ? await admin.from("fiscal_certificates").select("*").in("id", ids) : { data: [] as any[] };
+      const cert = ((certs || []) as any[]).find((c) => c.active !== false && c.ativo !== false);
+      if (!cert) add("Certificado A1", false, "Nenhum certificado ativo vinculado");
+      else {
+        const vence = cert.valid_until ? new Date(cert.valid_until) : null;
+        const ok = !vence || vence > new Date();
+        add("Certificado A1", ok, `${cert.titular || cert.nome || "Certificado"}${vence ? ` — válido até ${vence.toLocaleDateString("pt-BR")}` : ""}${ok ? "" : " (VENCIDO)"}`);
+      }
+
+      const master = tsec?.focus_nfe_token_master;
+      if (!master) add("Empresa na Focus", false, "Token principal não informado — não foi possível conferir");
+      else {
+        try {
+          const r = await fetch(`https://api.focusnfe.com.br/v2/empresas?cnpj=${String(est.cnpj).replace(/\D/g, "")}`, { headers: { Authorization: "Basic " + btoa(master + ":") } });
+          const j = await r.json().catch(() => null);
+          const emp = Array.isArray(j) ? j[0] : null;
+          if (!r.ok) add("Empresa na Focus", false, r.status === 401 ? "Token principal recusado" : `Focus respondeu ${r.status}`);
+          else if (!emp) add("Empresa na Focus", false, "CNPJ não encontrado na conta Focus");
+          else {
+            const cte = emp.habilita_cte !== false;
+            const certFocus = emp.certificado_valido_ate ? ` — certificado na Focus até ${new Date(emp.certificado_valido_ate).toLocaleDateString("pt-BR")}` : " — sem certificado na Focus";
+            add("Empresa na Focus", cte && !!emp.certificado_valido_ate, `${cte ? "CT-e habilitado" : "CT-e NÃO habilitado"}${certFocus}`);
+          }
+        } catch { add("Empresa na Focus", false, "Sem comunicação com a Focus"); }
+      }
+
+      return json({ ok: steps.every((s) => s.ok), steps });
+    }
+
     if (body.action === "set_status") {
       const p = z.object({ id: z.string().uuid(), status: z.enum(["active", "suspended"]) }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos" }, 400);
