@@ -16,7 +16,7 @@ export interface TenantRow {
   uf: string | null; cep: string | null; codigo_municipio: string | null; telefone: string | null; email: string | null;
   logo_url: string | null; status: "active" | "suspended"; focus_environment: "production" | "homologation";
   nfe_sync_enabled?: boolean; nfe_sync_start_hour?: number; nfe_sync_interval_hours?: number;
-  users_count: number; has_token_production: boolean; has_token_homologation: boolean; has_certificate_password: boolean;
+  users_count: number; has_token_production: boolean; has_token_homologation: boolean; has_certificate_password: boolean; has_master_token?: boolean;
   certificate: { file_name: string | null; valid_until: string | null } | null;
   server_token_production?: boolean; server_token_homologation?: boolean;
 }
@@ -50,6 +50,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
   const [f, setF] = useState<typeof empty>(empty);
   const [tokProd, setTokProd] = useState("");
   const [tokHom, setTokHom] = useState("");
+  const [tokMaster, setTokMaster] = useState("");
   const [certPass, setCertPass] = useState("");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [adm, setAdm] = useState({ full_name: "", email: "", password: "" });
@@ -72,7 +73,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
         });
       });
     } else setF(empty);
-    setTokProd(""); setTokHom(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
+    setTokProd(""); setTokHom(""); setTokMaster(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
   }, [open, tenant]);
 
   const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -115,7 +116,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       const { data, error } = await supabase.functions.invoke("superadmin-tenants", {
         body: {
           action: "save", tenant: tenantPayload,
-          secrets: { focus_nfe_token_production: tokProd || null, focus_nfe_token_homologation: tokHom || null, certificate_password: certPass || null },
+          secrets: { focus_nfe_token_production: tokProd || null, focus_nfe_token_homologation: tokHom || null, focus_nfe_token_master: tokMaster || null, certificate_password: certPass || null },
           certificate, admin: wantsAdmin ? adm : null,
           matriz_numeracao: tenant ? {
             ultimo_numero_cte: Number(matrizNums.ultimo_numero_cte) || 0,
@@ -173,6 +174,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
             </F>
             <F label={`Token Focus NF-e — Produção (${saved(tenant?.has_token_production, tenant?.server_token_production)})`} span={4}><Input type="password" className="h-9" placeholder={tenant?.has_token_production ? "•••••••• cadastrado" : ""} value={tokProd} onChange={(e) => setTokProd(e.target.value)} autoComplete="off" /></F>
             <F label={`Token Focus NF-e — Homologação (${saved(tenant?.has_token_homologation, tenant?.server_token_homologation)})`} span={6}><Input type="password" className="h-9" placeholder={tenant?.has_token_homologation ? "•••••••• cadastrado" : ""} value={tokHom} onChange={(e) => setTokHom(e.target.value)} autoComplete="off" /></F>
+            <F label={`Token principal da conta Focus (${tenant?.has_master_token ? "cadastrado — preencha só para trocar" : "não cadastrado"})`} span={6}><Input type="password" className="h-9" placeholder={tenant?.has_master_token ? "•••••••• cadastrado" : "Token da conta Focus (vale para a matriz e todas as filiais)"} value={tokMaster} onChange={(e) => setTokMaster(e.target.value)} autoComplete="off" /></F>
             <F label={`Certificado A1 (.pfx)${tenant?.certificate ? ` — atual: ${tenant.certificate.file_name}` : ""}`} span={3}>
               <Input type="file" accept=".pfx,.p12" className="h-9" onChange={(e) => setCertFile(e.target.files?.[0] || null)} /></F>
             <F label={`Senha do certificado (${saved(tenant?.has_certificate_password)})`} span={3}><Input type="password" className="h-9" placeholder={tenant?.has_certificate_password ? "•••••••• cadastrada" : ""} value={certPass} onChange={(e) => setCertPass(e.target.value)} autoComplete="new-password" /></F>
@@ -202,7 +204,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
               </Select>
             </F>
             <p className="md:col-span-3 self-end text-[11px] text-muted-foreground">Cada sincronização consulta a SEFAZ uma vez por CNPJ (horário de Brasília) e as notas ficam disponíveis para todos os usuários da empresa.</p>
-            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
+            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. O token principal é o da conta Focus da empresa: vale para a matriz e todas as filiais e é usado para atualizar o certificado na Focus automaticamente quando o cliente envia um novo. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
           </Block>
 
           {tenant && <TenantEstablishments tenantId={tenant.id} tenantCnpj={tenant.cnpj} tenantName={tenant.razao_social} />}
