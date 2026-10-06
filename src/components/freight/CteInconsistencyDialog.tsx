@@ -241,7 +241,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
               Verificação de Inconsistências
             </DialogTitle>
             <DialogDescription>
-              Procura CT-es com mesma <strong>data de emissão + placa + peso + valor</strong>. CT-es com peso zero são ignorados.{focusIds?.length ? ` Analisando ${focusIds.length} CT-e(s) selecionado(s) contra todos os talões; os registros não selecionados vêm marcados para exclusão.` : ""}
+              Procura CT-es com mesma <strong>placa + peso + valor</strong> e data de emissão igual (ou até 3 dias de diferença, ao analisar selecionados). CT-es com peso zero são ignorados.{focusIds?.length ? ` Analisando ${focusIds.length} CT-e(s) selecionado(s) contra todos os talões; os registros não selecionados vêm marcados para exclusão.` : ""}
             </DialogDescription>
           </DialogHeader>
 
