@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { TenantEstablishments } from "./TenantEstablishments";
+import { Switch } from "@/components/ui/switch";
+import { HomologationResult, runHomologationTest, type HmlResult } from "./HomologationResult";
 
 export interface TenantRow {
   id: string; razao_social: string; nome_fantasia: string | null; cnpj: string; ie: string | null; rntrc: string | null;
@@ -44,9 +45,11 @@ const toBase64 = (f: File) => new Promise<string>((res, rej) => {
   const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f);
 });
 
-export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
-  open: boolean; onOpenChange: (v: boolean) => void; tenant: TenantRow | null; onSaved: () => void;
+export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBranch }: {
+  open: boolean; onOpenChange: (v: boolean) => void; tenant: TenantRow | null; onSaved: () => void; onMarkBranch?: () => void;
 }) {
+  const [hml, setHml] = useState<HmlResult | null>(null);
+  const [matrizEstId, setMatrizEstId] = useState<string | null>(null);
   const [f, setF] = useState<typeof empty>(empty);
   const [tokProd, setTokProd] = useState("");
   const [tokHom, setTokHom] = useState("");
@@ -66,13 +69,15 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       setF(t);
       supabase.functions.invoke("superadmin-tenants", { body: { action: "list_establishments", tenant_id: tenant.id } }).then(({ data }) => {
         const m = (data?.establishments || []).find((e: any) => e.type === "matriz");
+        if (m) setMatrizEstId(m.id);
         if (m) setMatrizNums({
           ultimo_numero_cte: m.ultimo_numero_cte ?? 0,
           ultimo_numero_cte_servico: m.ultimo_numero_cte_servico ?? 0,
           ultimo_numero_mdfe: m.ultimo_numero_mdfe ?? 0,
         });
       });
-    } else setF(empty);
+    } else { setF(empty); setMatrizEstId(null); }
+    setHml(null);
     setTokProd(""); setTokHom(""); setTokMaster(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
   }, [open, tenant]);
 
@@ -127,7 +132,17 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       toast.success(tenant ? "Empresa atualizada" : "Empresa cadastrada com matriz e administrador");
-      onOpenChange(false); onSaved();
+      onSaved();
+      if (f.focus_environment === "homologation") {
+        let estId = matrizEstId;
+        const tid = tenant?.id || data?.id;
+        if (!estId && tid) {
+          const { data: le } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "list_establishments", tenant_id: tid } });
+          estId = (le?.establishments || []).find((e: any) => e.type === "matriz")?.id || null;
+        }
+        if (estId && tid) setHml(await runHomologationTest(tid, estId, f.razao_social));
+        else onOpenChange(false);
+      } else onOpenChange(false);
     } catch (e: any) { toast.error(e.message || "Erro ao salvar"); }
     setSaving(false);
   };
@@ -139,6 +154,11 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       <DialogContent className="max-w-4xl max-h-[92dvh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader><DialogTitle>{tenant ? "Editar empresa" : "Nova empresa"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          {!tenant && (
+            <label className="flex items-center gap-2 text-sm font-medium rounded-lg border p-3">
+              <Switch checked={false} onCheckedChange={(v) => { if (v) onMarkBranch?.(); }} /> Esta empresa é uma filial
+            </label>
+          )}
           <Block title={tenant ? "1. Dados cadastrais (matriz)" : "1. Dados cadastrais"}>
             <F label="CNPJ *"><div className="flex gap-1"><Input className="h-9" value={f.cnpj} onChange={set("cnpj")} />
               <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={buscarCnpj} disabled={looking} title="Buscar CNPJ">
@@ -204,10 +224,9 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
               </Select>
             </F>
             <p className="md:col-span-3 self-end text-[11px] text-muted-foreground">Cada sincronização consulta a SEFAZ uma vez por CNPJ (horário de Brasília) e as notas ficam disponíveis para todos os usuários da empresa.</p>
-            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. O token principal é o da conta Focus da empresa: vale para a matriz e todas as filiais e é usado para atualizar o certificado na Focus automaticamente quando o cliente envia um novo. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
+            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. O token principal é o da conta Focus da empresa: vale para a matriz e todas as filiais e é usado para atualizar o certificado na Focus automaticamente quando o cliente envia um novo.</p>
           </Block>
 
-          {tenant && <TenantEstablishments tenantId={tenant.id} tenantCnpj={tenant.cnpj} tenantName={tenant.razao_social} />}
           {!tenant && (
             <>
               <Block title="3. Estabelecimento matriz">
@@ -221,6 +240,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
               </Block>
             </>
           )}
+          {hml && <HomologationResult r={hml} />}
         </div>
         <DialogFooter>
           <Button variant="outline" className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
