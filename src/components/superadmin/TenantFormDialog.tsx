@@ -60,6 +60,14 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
   const [matrizNums, setMatrizNums] = useState({ ultimo_numero_cte: 0, ultimo_numero_cte_servico: 0, ultimo_numero_mdfe: 0 });
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const testFocus = async () => {
+    if (!tenant || !matrizEstId) return;
+    setTesting(true);
+    setHml(await runHomologationTest(tenant.id, matrizEstId, f.razao_social || tenant.razao_social));
+    setTesting(false);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -226,6 +234,14 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
             </F>
             <p className="md:col-span-3 self-end text-[11px] text-muted-foreground">Cada sincronização consulta a SEFAZ uma vez por CNPJ (horário de Brasília) e as notas ficam disponíveis para todos os usuários da empresa.</p>
             <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. O token principal é o da conta Focus da empresa: vale para a matriz e todas as filiais e é usado para atualizar o certificado na Focus automaticamente quando o cliente envia um novo.</p>
+            {tenant && matrizEstId && (
+              <div className="md:col-span-6">
+                <Button type="button" variant="outline" className="h-10" onClick={testFocus} disabled={testing || saving}>
+                  {testing && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Verificar comunicação com a Focus
+                </Button>
+                <p className="mt-1 text-[11px] text-muted-foreground">Confere na hora: dados fiscais, token, certificado A1 local e se a Focus reconhece a empresa e o certificado. Funciona em homologação e produção.</p>
+              </div>
+            )}
           </Block>
 
           {!tenant && (
