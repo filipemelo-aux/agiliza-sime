@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Pencil, Plus, Search } from "lucide-react";
+import { Loader2, Pencil, Plus, RefreshCw, Search, KeyRound, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupCnpj } from "@/lib/cnpjLookup";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,11 @@ interface Est {
   inscricao_estadual: string; rntrc: string; endereco_logradouro: string; endereco_numero: string; endereco_bairro: string;
   endereco_municipio: string; endereco_uf: string; endereco_cep: string; codigo_municipio_ibge: string;
   ambiente: "producao" | "homologacao"; serie_cte: number; serie_mdfe: number; active: boolean;
+  ultimo_numero_cte?: number | null; ultimo_numero_mdfe?: number | null; ultimo_numero_cte_servico?: number | null;
+  has_token_production?: boolean; has_token_homologation?: boolean;
 }
+interface Cert { id: string; nome: string; ativo: boolean; establishment_ids: string[]; cnpj?: string | null; titular?: string | null; valid_until?: string | null; focus_sync_status?: string | null; focus_sync_message?: string | null; focus_synced_at?: string | null }
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
 
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 
@@ -28,8 +32,13 @@ const F = ({ label, span = 2, children }: { label: string; span?: number; childr
 
 export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { tenantId: string; tenantCnpj: string; tenantName: string }) {
   const [all, setAll] = useState<Est[]>([]);
-  const [certs, setCerts] = useState<{ id: string; nome: string; ativo: boolean; establishment_ids: string[] }[]>([]);
-  const list = all.filter((e) => e.type === "filial");
+  const [certs, setCerts] = useState<Cert[]>([]);
+  const list = all;
+  const [tokProd, setTokProd] = useState("");
+  const [tokHom, setTokHom] = useState("");
+  const [hasMaster, setHasMaster] = useState(false);
+  const [master, setMaster] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Est | null>(null);
   const [saving, setSaving] = useState(false);
@@ -42,6 +51,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
     if (error || data?.error) return toast.error(data?.error || "Erro ao carregar estabelecimentos");
     setAll(data.establishments || []);
     setCerts(data.certificates || []);
+    setHasMaster(!!data.has_master_token);
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
 
@@ -53,7 +63,34 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
     toast.success("Vínculo do certificado atualizado"); load();
   };
 
-  const novaFilial = () => setEdit({
+  const openEdit = (e: Est | null) => { setTokProd(""); setTokHom(""); setEdit(e); };
+
+  const saveMaster = async () => {
+    setBusy("master");
+    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "set_master_token", tenant_id: tenantId, token: master.trim() || null } });
+    setBusy(null);
+    if (error || data?.error) return toast.error(data?.error || "Erro ao salvar token principal");
+    toast.success("Token principal salvo"); setMaster(""); load();
+  };
+
+  const syncCert = async (id: string) => {
+    setBusy(id);
+    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "sync_certificate", tenant_id: tenantId, certificate_id: id } });
+    setBusy(null);
+    if (error || data?.error) return toast.error(data?.error || "Erro ao enviar para a Focus");
+    data.ok ? toast.success(data.message) : toast.error(data.message);
+    load();
+  };
+
+  const testToken = async (estId: string, ambiente: "producao" | "homologacao") => {
+    setBusy(estId + ambiente);
+    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "test_focus_token", tenant_id: tenantId, establishment_id: estId, ambiente } });
+    setBusy(null);
+    if (error || data?.error) return toast.error(data?.error || "Erro ao testar token");
+    data.ok ? toast.success(data.message) : toast.error(data.message);
+  };
+
+  const novaFilial = () => openEdit({
     id: null, type: "filial", cnpj: tenantCnpj.replace(/\D/g, "").slice(0, 8), razao_social: `${tenantName} - Filial `, nome_fantasia: "",
     inscricao_estadual: "", rntrc: "", endereco_logradouro: "", endereco_numero: "", endereco_bairro: "", endereco_municipio: "",
     endereco_uf: "", endereco_cep: "", codigo_municipio_ibge: "", ambiente: "homologacao", serie_cte: 1, serie_mdfe: 1, active: true,
@@ -82,10 +119,15 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   const salvar = async () => {
     if (!edit) return;
     setSaving(true);
-    const payload: any = { ...edit, serie_cte: Number(edit.serie_cte) || 1, serie_mdfe: Number(edit.serie_mdfe) || 1 };
+    const { has_token_production: _a, has_token_homologation: _b, ...base } = edit;
+    const payload: any = {
+      ...base, serie_cte: Number(edit.serie_cte) || 1, serie_mdfe: Number(edit.serie_mdfe) || 1,
+      ultimo_numero_cte: Number(edit.ultimo_numero_cte) || 0, ultimo_numero_mdfe: Number(edit.ultimo_numero_mdfe) || 0,
+      ultimo_numero_cte_servico: Number(edit.ultimo_numero_cte_servico) || 0,
+    };
     for (const k of Object.keys(payload)) if (payload[k] === "") payload[k] = null;
     payload.cnpj = edit.cnpj; payload.razao_social = edit.razao_social;
-    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "save_establishment", tenant_id: tenantId, establishment: payload } });
+    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "save_establishment", tenant_id: tenantId, establishment: payload, tokens: { focus_nfe_token_production: tokProd.trim() || undefined, focus_nfe_token_homologation: tokHom.trim() || undefined } } });
     setSaving(false);
     if (error || data?.error) return toast.error(data?.error || "Erro ao salvar estabelecimento");
     toast.success(edit.id ? "Estabelecimento atualizado" : "Filial cadastrada");
@@ -95,7 +137,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   return (
     <section className="rounded-lg border">
       <div className="flex items-center px-3 py-2 bg-muted/50 border-b">
-        <h3 className="text-xs font-bold uppercase tracking-wide">3. Filiais</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide">3. Estabelecimentos fiscais (matriz e filiais)</h3>
         {!edit && <Button type="button" size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={novaFilial}><Plus className="h-3.5 w-3.5 mr-1" />Nova filial</Button>}
       </div>
       <div className="p-3 space-y-2">
@@ -108,8 +150,9 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
               <div className="font-semibold truncate">{e.razao_social}</div>
               <div className="text-muted-foreground tabular-nums">{fmtCnpj(e.cnpj)} · IE {e.inscricao_estadual || "—"} · {e.endereco_municipio || "—"}/{e.endereco_uf || "—"}</div>
             </div>
-            <span className="text-muted-foreground">{e.ambiente === "producao" ? "Produção" : "Homologação"}{!e.active && " · Inativo"}</span>
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Editar" onClick={() => setEdit({ ...e } as Est)}><Pencil className="h-3.5 w-3.5" /></Button>
+            <span className="text-muted-foreground text-right">{e.ambiente === "producao" ? "Produção" : "Homologação"}{!e.active && " · Inativo"}
+              <span className="block text-[10px]">Token prod. {e.has_token_production ? "✓" : "—"} · homol. {e.has_token_homologation ? "✓" : "—"} · CT-e nº {e.ultimo_numero_cte ?? 0} · MDF-e nº {e.ultimo_numero_mdfe ?? 0}</span></span>
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Editar" onClick={() => openEdit({ ...e } as Est)}><Pencil className="h-3.5 w-3.5" /></Button>
           </div>
         ))}
 
@@ -138,9 +181,18 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
             </F>
             <F label="Série CT-e" span={1}><Input type="number" className="h-9" value={edit.serie_cte ?? 1} onChange={s("serie_cte")} /></F>
             <F label="Série MDF-e" span={1}><Input type="number" className="h-9" value={edit.serie_mdfe ?? 1} onChange={s("serie_mdfe")} /></F>
+            <F label="Último nº CT-e (produção)" span={2}><Input type="number" className="h-9" value={edit.ultimo_numero_cte ?? 0} onChange={s("ultimo_numero_cte")} /></F>
+            <F label="Último nº CT-e (serviço)" span={2}><Input type="number" className="h-9" value={edit.ultimo_numero_cte_servico ?? 0} onChange={s("ultimo_numero_cte_servico")} /></F>
+            <F label="Último nº MDF-e" span={2}><Input type="number" className="h-9" value={edit.ultimo_numero_mdfe ?? 0} onChange={s("ultimo_numero_mdfe")} /></F>
+            <F label={`Token Focus produção ${edit.has_token_production ? "(configurado)" : ""}`} span={3}>
+              <div className="flex gap-1"><Input type="password" autoComplete="new-password" className="h-9" placeholder={edit.has_token_production ? "•••••• deixe vazio para manter" : "Cole o token de produção"} value={tokProd} onChange={(e) => setTokProd(e.target.value)} />
+                {edit.id && edit.has_token_production && <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Testar token" disabled={busy === edit.id + "producao"} onClick={() => testToken(edit.id!, "producao")}>{busy === edit.id + "producao" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}</Button>}</div></F>
+            <F label={`Token Focus homologação ${edit.has_token_homologation ? "(configurado)" : ""}`} span={3}>
+              <div className="flex gap-1"><Input type="password" autoComplete="new-password" className="h-9" placeholder={edit.has_token_homologation ? "•••••• deixe vazio para manter" : "Cole o token de homologação"} value={tokHom} onChange={(e) => setTokHom(e.target.value)} />
+                {edit.id && edit.has_token_homologation && <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Testar token" disabled={busy === edit.id + "homologacao"} onClick={() => testToken(edit.id!, "homologacao")}>{busy === edit.id + "homologacao" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}</Button>}</div></F>
             <F label="Ativo" span={2}><div className="h-9 flex items-center"><Switch checked={edit.active !== false} onCheckedChange={(v) => setEdit((p) => p && ({ ...p, active: v }))} /></div></F>
             <div className="md:col-span-6 flex justify-end gap-2">
-              <Button type="button" variant="outline" className="h-9" onClick={() => setEdit(null)} disabled={saving}>Cancelar</Button>
+              <Button type="button" variant="outline" className="h-9" onClick={() => openEdit(null)} disabled={saving}>Cancelar</Button>
               <Button type="button" className="h-9" onClick={salvar} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar estabelecimento</Button>
             </div>
           </div>
@@ -150,7 +202,15 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
             <p className="text-xs font-semibold">Certificados digitais e vínculos</p>
             {certs.map((c) => (
               <div key={c.id} className="text-xs">
-                <div className="font-medium">{c.nome}{!c.ativo && " (inativo)"}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">{c.nome}{!c.ativo && " (inativo)"}</div>
+                  <span className="text-muted-foreground">{c.titular || ""} {c.cnpj ? `· ${fmtCnpj(c.cnpj)}` : ""} · válido até {fmtDate(c.valid_until)}</span>
+                  <Badge variant={c.focus_sync_status === "sincronizado" ? "default" : c.focus_sync_status === "erro" ? "destructive" : "secondary"} className="ml-auto text-[10px]">
+                    Focus: {c.focus_sync_status || "não enviado"}</Badge>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs" disabled={busy === c.id} onClick={() => syncCert(c.id)}>
+                    {busy === c.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}Enviar à Focus</Button>
+                </div>
+                {c.focus_sync_message && <div className="text-[11px] text-muted-foreground">{c.focus_sync_message} {c.focus_synced_at && `(${new Date(c.focus_synced_at).toLocaleString("pt-BR")})`}</div>}
                 <div className="flex flex-wrap gap-3 mt-1">
                   {all.map((e) => (
                     <label key={e.id!} className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -163,7 +223,14 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
             ))}
           </div>
         )}
-        <p className="text-[11px] text-muted-foreground">Filiais usam a mesma raiz de CNPJ, tokens e certificado da empresa. Os números de CT-e/MDF-e continuam sendo controlados pelo sistema.</p>
+        <div className="rounded border p-2 flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[240px]">
+            <Label className="text-[11px] text-muted-foreground flex items-center gap-1"><KeyRound className="h-3 w-3" />Token principal da conta Focus {hasMaster ? "(configurado)" : "(não configurado)"}</Label>
+            <Input type="password" autoComplete="new-password" className="h-9" placeholder="Usado para atualizar o certificado das empresas na Focus" value={master} onChange={(e) => setMaster(e.target.value)} />
+          </div>
+          <Button type="button" className="h-9" disabled={busy === "master" || !master.trim()} onClick={saveMaster}>{busy === "master" && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar token principal</Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Cada estabelecimento usa o próprio token da Focus; sem token próprio, vale o token da empresa. Quando o cliente envia um novo certificado, ele é validado, vinculado e enviado à Focus automaticamente.</p>
       </div>
     </section>
   );
