@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { syncCertificateToFocus } from "../_shared/focusCertificate.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -104,13 +105,19 @@ Deno.serve(async (req) => {
       const p = z.object({ tenant_id: z.string().uuid() }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos" }, 400);
       const { data, error } = await admin.from("fiscal_establishments")
-        .select("id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active")
+        .select("id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active,ultimo_numero_cte,ultimo_numero_mdfe,ultimo_numero_cte_servico")
         .eq("tenant_id", p.data.tenant_id).order("type").order("razao_social");
       if (error) throw error;
-      const { data: fc } = await admin.from("fiscal_certificates").select("id,nome,ativo,created_at").eq("tenant_id", p.data.tenant_id).order("created_at", { ascending: false });
+      const { data: es } = await admin.from("establishment_secrets").select("establishment_id,focus_nfe_token_production,focus_nfe_token_homologation").eq("tenant_id", p.data.tenant_id);
+      const { data: ts } = await admin.from("tenant_secrets").select("focus_nfe_token_master").eq("tenant_id", p.data.tenant_id).maybeSingle();
+      const { data: fc } = await admin.from("fiscal_certificates").select("id,nome,ativo,created_at,cnpj,titular,valid_until,focus_sync_status,focus_sync_message,focus_synced_at").eq("tenant_id", p.data.tenant_id).order("created_at", { ascending: false });
       const { data: links } = await admin.from("establishment_certificates").select("certificate_id,establishment_id").eq("tenant_id", p.data.tenant_id);
       return json({
-        establishments: data || [],
+        has_master_token: !!(ts?.focus_nfe_token_master || Deno.env.get("FOCUS_NFE_TOKEN_MASTER")),
+        establishments: (data || []).map((e: any) => {
+          const x = (es || []).find((r: any) => r.establishment_id === e.id);
+          return { ...e, has_token_production: !!x?.focus_nfe_token_production, has_token_homologation: !!x?.focus_nfe_token_homologation };
+        }),
         certificates: (fc || []).map((c: any) => ({ ...c, establishment_ids: (links || []).filter((l: any) => l.certificate_id === c.id).map((l: any) => l.establishment_id) })),
       });
     }
@@ -155,10 +162,26 @@ Deno.serve(async (req) => {
           serie_cte: z.number().int().min(0).max(999).optional().nullable(),
           serie_mdfe: z.number().int().min(0).max(999).optional().nullable(),
           active: z.boolean().optional(),
+          ultimo_numero_cte: z.number().int().min(0).max(999999999).optional().nullable(),
+          ultimo_numero_mdfe: z.number().int().min(0).max(999999999).optional().nullable(),
+          ultimo_numero_cte_servico: z.number().int().min(0).max(999999999).optional().nullable(),
         }),
+        tokens: z.object({
+          focus_nfe_token_production: z.string().trim().max(500).optional().nullable(),
+          focus_nfe_token_homologation: z.string().trim().max(500).optional().nullable(),
+        }).optional(),
       }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos", details: p.error.flatten().fieldErrors }, 400);
-      const { tenant_id, establishment: e } = p.data;
+      const { tenant_id, establishment: e, tokens } = p.data;
+      const saveTokens = async (estId: string) => {
+        if (!tokens) return;
+        const patch: Record<string, unknown> = { establishment_id: estId, tenant_id };
+        let any = false;
+        for (const k of ["focus_nfe_token_production", "focus_nfe_token_homologation"] as const) {
+          if (tokens[k] !== undefined && tokens[k] !== "") { patch[k] = tokens[k] || null; any = true; }
+        }
+        if (any) { const { error } = await admin.from("establishment_secrets").upsert(patch, { onConflict: "establishment_id" }); if (error) throw error; }
+      };
       const { data: t } = await admin.from("tenants").select("cnpj").eq("id", tenant_id).single();
       if (!t) return json({ error: "Empresa não encontrada" }, 404);
       const cnpj = digits(e.cnpj);
@@ -179,7 +202,40 @@ Deno.serve(async (req) => {
       }
       const { data, error } = await admin.from("fiscal_establishments").insert(row).select("id").single();
       if (error) throw error;
+      await saveTokens(data.id);
       return json({ success: true, id: data.id });
+    }
+
+    if (body.action === "set_master_token") {
+      const p = z.object({ tenant_id: z.string().uuid(), token: z.string().trim().max(500).nullable() }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { error } = await admin.from("tenant_secrets").upsert({ tenant_id: p.data.tenant_id, focus_nfe_token_master: p.data.token || null }, { onConflict: "tenant_id" });
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    if (body.action === "sync_certificate") {
+      const p = z.object({ tenant_id: z.string().uuid(), certificate_id: z.string().uuid() }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { data: c } = await admin.from("fiscal_certificates").select("id").eq("id", p.data.certificate_id).eq("tenant_id", p.data.tenant_id).maybeSingle();
+      if (!c) return json({ error: "Certificado não encontrado" }, 404);
+      return json(await syncCertificateToFocus(admin, c.id));
+    }
+
+    if (body.action === "test_focus_token") {
+      const p = z.object({ tenant_id: z.string().uuid(), establishment_id: z.string().uuid(), ambiente: z.enum(["producao", "homologacao"]) }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { data: est } = await admin.from("fiscal_establishments").select("id").eq("id", p.data.establishment_id).eq("tenant_id", p.data.tenant_id).maybeSingle();
+      if (!est) return json({ error: "Estabelecimento não encontrado" }, 404);
+      const { data: sec } = await admin.from("establishment_secrets").select("focus_nfe_token_production,focus_nfe_token_homologation").eq("establishment_id", est.id).maybeSingle();
+      const prod = p.data.ambiente === "producao";
+      const token = prod ? sec?.focus_nfe_token_production : sec?.focus_nfe_token_homologation;
+      if (!token) return json({ ok: false, message: "Token não informado para este ambiente" });
+      const base = prod ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
+      const r = await fetch(`${base}/v2/cte/teste-conexao-agiliza`, { headers: { Authorization: "Basic " + btoa(token + ":") } });
+      await r.text();
+      if (r.status === 401 || r.status === 403) return json({ ok: false, message: "Token recusado pela Focus" });
+      return json({ ok: true, message: "Token aceito pela Focus" });
     }
 
     if (body.action === "set_status") {
