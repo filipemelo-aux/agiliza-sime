@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { parsePfx, syncCertificateToFocus } from "../_shared/focusCertificate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,7 +122,8 @@ async function authenticate(req: Request) {
     throw new Error("FORBIDDEN");
   }
 
-  return { userId, serviceClient };
+  const { data: tenantId } = await supabase.rpc("current_tenant_id");
+  return { userId, serviceClient, tenantId: tenantId as string | null };
 }
 
 // ── Main handler ─────────────────────────────────────────────
@@ -132,7 +134,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, serviceClient } = await authenticate(req);
+    const { userId, serviceClient, tenantId } = await authenticate(req);
+    if (!tenantId) return json({ success: false, error: "Empresa do usuário não identificada" }, 400);
 
     const contentType = req.headers.get("content-type") || "";
 
@@ -158,13 +161,22 @@ Deno.serve(async (req) => {
         return json({ success: false, error: "Arquivo excede o tamanho máximo de 10MB" }, 400);
       }
 
+      const fileBuffer = await file.arrayBuffer();
+      // 0. Valida o certificado: senha, validade e CNPJ da empresa
+      let info;
+      try { info = parsePfx(fileBuffer, senha); } catch (e) { return json({ success: false, error: (e as Error).message }, 400); }
+      if (info.validUntil.getTime() < Date.now()) return json({ success: false, error: `Certificado vencido em ${info.validUntil.toLocaleDateString("pt-BR")}` }, 400);
+      const { data: tenant } = await serviceClient.from("tenants").select("cnpj").eq("id", tenantId).single();
+      const root = String(tenant?.cnpj || "").replace(/\D/g, "").slice(0, 8);
+      if (info.cnpj && root && info.cnpj.slice(0, 8) !== root) {
+        return json({ success: false, error: `Este certificado é do CNPJ ${info.cnpj}, que não pertence a esta empresa` }, 400);
+      }
+
       // 1. Encrypt the password
       const encryptedPassword = await encryptPassword(senha);
 
       // 2. Upload PFX to private bucket
       const filePath = `certificates/${crypto.randomUUID()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-      const fileBuffer = await file.arrayBuffer();
-
       const { error: uploadError } = await serviceClient.storage
         .from("fiscal-certificates")
         .upload(filePath, fileBuffer, {
@@ -184,6 +196,11 @@ Deno.serve(async (req) => {
           nome,
           caminho_storage: filePath,
           senha_criptografada: encryptedPassword,
+          tenant_id: tenantId,
+          cnpj: info.cnpj,
+          titular: info.titular,
+          valid_until: info.validUntil.toISOString(),
+          focus_sync_status: "pendente",
         })
         .select("id, nome, ativo, created_at")
         .single();
@@ -200,9 +217,42 @@ Deno.serve(async (req) => {
         `[certificate-manager] Certificate "${nome}" uploaded by user ${userId} → ${filePath}`
       );
 
+      // 4. Substitui o certificado anterior: herda os vínculos e desativa os antigos
+      const { data: olds } = await serviceClient.from("fiscal_certificates").select("id").eq("tenant_id", tenantId).neq("id", cert.id);
+      const oldIds = (olds || []).map((o: any) => o.id);
+      let estIds: string[] = [];
+      if (oldIds.length) {
+        const { data: links } = await serviceClient.from("establishment_certificates").select("establishment_id").in("certificate_id", oldIds);
+        estIds = [...new Set((links || []).map((l: any) => l.establishment_id as string))];
+        await serviceClient.from("fiscal_certificates").update({ ativo: false }).in("id", oldIds);
+      }
+      if (!estIds.length) {
+        const { data: ests } = await serviceClient.from("fiscal_establishments").select("id").eq("tenant_id", tenantId);
+        estIds = (ests || []).map((e: any) => e.id);
+      }
+      if (estIds.length) {
+        await serviceClient.from("establishment_certificates").delete().in("establishment_id", estIds);
+        await serviceClient.from("establishment_certificates").insert(estIds.map((id) => ({ certificate_id: cert.id, establishment_id: id, tenant_id: tenantId })));
+      }
+
+      // 5. Envia para a Focus e avisa o SuperAdmin
+      const focus = await syncCertificateToFocus(serviceClient, cert.id);
+      const { data: supers } = await serviceClient.from("user_roles").select("user_id").eq("role", "superadmin");
+      if (supers?.length) {
+        await serviceClient.from("notifications").insert(supers.map((s: any) => ({
+          user_id: s.user_id, tenant_id: tenantId, type: "certificado",
+          title: "Novo certificado digital enviado",
+          message: `${info.titular} — válido até ${info.validUntil.toLocaleDateString("pt-BR")}. Focus: ${focus.message}`,
+          data: { certificate_id: cert.id },
+        })));
+      }
+
       return json({
         success: true,
         certificate: cert,
+        valid_until: info.validUntil.toISOString(),
+        titular: info.titular,
+        focus,
       });
     }
 

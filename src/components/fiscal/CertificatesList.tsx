@@ -96,13 +96,13 @@ export function CertificatesList() {
             Certificados Digitais A1
           </CardTitle>
           <Button size="sm" className="gap-1" onClick={() => setUploadOpen(true)}>
-            <Plus className="w-4 h-4" /> Upload
+            <Plus className="w-4 h-4" /> Enviar / atualizar certificado
           </Button>
         </CardHeader>
         <CardContent>
           {certificates.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nenhum certificado cadastrado. Faça upload de um arquivo .pfx para começar.
+              Nenhum certificado cadastrado. Envie o arquivo .pfx (A1) da empresa para começar.
             </p>
           ) : (
             <div className="space-y-4">
@@ -120,26 +120,11 @@ export function CertificatesList() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      Arquivo: {cert.caminho_storage.split("/").pop()}
+                      {(cert as any).titular || cert.caminho_storage.split("/").pop()} · válido até {(cert as any).valid_until ? new Date((cert as any).valid_until).toLocaleDateString("pt-BR") : "—"}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleActive(cert)}
-                      title={cert.ativo ? "Desativar" : "Ativar"}
-                    >
-                      {cert.ativo ? <ToggleRight className="w-4 h-4 text-primary" /> : <ToggleLeft className="w-4 h-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(cert.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <p className="text-[11px] text-muted-foreground">
+                      Focus: {(cert as any).focus_sync_status === "sincronizado" ? "atualizado" : (cert as any).focus_sync_status === "erro" ? "falhou — o suporte foi avisado" : "aguardando o suporte"}
+                    </p>
                   </div>
                 </div>
               ))}

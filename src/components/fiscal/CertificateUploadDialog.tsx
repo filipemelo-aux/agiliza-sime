@@ -55,10 +55,17 @@ export function CertificateUploadDialog({ open, onOpenChange, onSaved }: Props) 
         body: formData,
       });
 
-      if (error) throw error;
+      if (error) {
+        const body = await (error as any).context?.json?.().catch(() => null);
+        throw new Error(body?.error || error.message);
+      }
       if (data && !data.success) throw new Error(data.error || "Erro ao salvar certificado");
 
-      toast({ title: "Certificado salvo com segurança", description: "Senha criptografada no servidor." });
+      const validade = data?.valid_until ? new Date(data.valid_until).toLocaleDateString("pt-BR") : "";
+      toast({
+        title: "Certificado validado e salvo",
+        description: `${data?.titular || ""} — válido até ${validade}. ${data?.focus?.ok ? "Atualizado na Focus." : "O suporte foi avisado para concluir a atualização na Focus."}`,
+      });
       setNome("");
       setSenha("");
       setFile(null);
@@ -77,7 +84,7 @@ export function CertificateUploadDialog({ open, onOpenChange, onSaved }: Props) 
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-primary" />
-            Upload Certificado A1
+            Enviar certificado A1
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
