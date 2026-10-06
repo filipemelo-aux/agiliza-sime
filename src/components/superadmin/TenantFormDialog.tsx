@@ -60,6 +60,14 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
   const [matrizNums, setMatrizNums] = useState({ ultimo_numero_cte: 0, ultimo_numero_cte_servico: 0, ultimo_numero_mdfe: 0 });
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const testFocus = async () => {
+    if (!tenant || !matrizEstId) return;
+    setTesting(true);
+    setHml(await runHomologationTest(tenant.id, matrizEstId, f.razao_social || tenant.razao_social));
+    setTesting(false);
+  };
 
   useEffect(() => {
     if (!open) return;
