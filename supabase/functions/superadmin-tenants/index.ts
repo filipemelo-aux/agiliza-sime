@@ -38,6 +38,7 @@ const SaveSchema = z.object({
   secrets: z.object({
     focus_nfe_token_production: z.string().max(500).optional().nullable(),
     focus_nfe_token_homologation: z.string().max(500).optional().nullable(),
+    focus_nfe_token_master: z.string().max(500).optional().nullable(),
     certificate_password: z.string().max(200).optional().nullable(),
   }).optional(),
   certificate: z.object({ file_name: z.string().max(200), base64: z.string().max(20_000_000) }).optional().nullable(),
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const { data: members } = await admin.from("tenant_members").select("tenant_id");
       const { data: fcerts } = await admin.from("fiscal_certificates").select("tenant_id, nome, ativo, senha_criptografada, created_at").order("created_at", { ascending: false });
-      let { data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, certificate_password");
+      let { data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, focus_nfe_token_master, certificate_password");
       // Adota os tokens já em uso (padrão do servidor) para a empresa que já emite com certificado próprio
       const envProd = Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") || null;
       const envHom = Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO") || null;
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
           changed = true;
         }
       }
-      if (changed) ({ data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, certificate_password"));
+      if (changed) ({ data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, focus_nfe_token_master, certificate_password"));
       const { data: certs } = await admin.from("tenant_certificates").select("tenant_id, file_name, valid_until, is_active").eq("is_active", true);
       return json({
         tenants: (tenants || []).map((t: any) => {
@@ -97,6 +98,7 @@ Deno.serve(async (req) => {
             users_count: members?.filter((m: any) => m.tenant_id === t.id).length || 0,
             has_token_production: !!s?.focus_nfe_token_production,
             has_token_homologation: !!s?.focus_nfe_token_homologation,
+            has_master_token: !!s?.focus_nfe_token_master || !!Deno.env.get("FOCUS_NFE_TOKEN_MASTER"),
             has_certificate_password: !!s?.certificate_password || !!fc?.senha_criptografada,
             certificate: certs?.find((c: any) => c.tenant_id === t.id) || (fc ? { file_name: fc.nome, valid_until: null } : null),
             server_token_production: !!envProd,
@@ -357,7 +359,7 @@ Deno.serve(async (req) => {
 
       if (secrets) {
         const patch: Record<string, unknown> = { tenant_id: tenantId, updated_at: new Date().toISOString() };
-        for (const k of ["focus_nfe_token_production", "focus_nfe_token_homologation", "certificate_password"] as const) {
+        for (const k of ["focus_nfe_token_production", "focus_nfe_token_homologation", "focus_nfe_token_master", "certificate_password"] as const) {
           if (secrets[k]) patch[k] = secrets[k];
         }
         if (Object.keys(patch).length > 2) {
