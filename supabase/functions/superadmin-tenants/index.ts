@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
           const resto = soma % 11; const dv = resto < 2 ? 0 : 11 - resto;
           const chaveNfe = base43 + dv;
           const numero = 900000000 + Math.floor(Math.random() * 99999999);
-          const nomeHml = "CTE EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
+          const nomeHml = "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
           const actor = (p: string) => ({
             [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml, [`razao_social_${p}`]: nomeHml,
             [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
@@ -379,7 +379,7 @@ Deno.serve(async (req) => {
             icms_situacao_tributaria: "40", icms_base_calculo: "0.00", icms_aliquota: "0.00", icms_valor: "0.00",
             valor_total_carga: "1000.00", valor_carga_averbacao: "1000.00", produto_predominante: "TESTE HOMOLOGACAO",
             quantidades: [{ codigo_unidade_medida: "01", tipo_medida: "PESO BRUTO", quantidade: "1000.0000" }],
-            nfes: [{ chave_nfe: chaveNfe }], modal_rodoviario: { rntrc },
+            outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { rntrc },
             ibs_cbs_situacao_tributaria: "000", ibs_cbs_classificacao_tributaria: "000001", ibs_cbs_base_calculo: "100.00",
             ibs_uf_aliquota: "0.00", ibs_uf_valor: "0.00", ibs_mun_aliquota: "0.00", ibs_mun_valor: "0.00", ibs_valor_total: "0.00",
             cbs_aliquota: "0.00", cbs_valor: "0.00", valor_total_dfe: "100.00",
