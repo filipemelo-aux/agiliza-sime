@@ -1845,7 +1845,7 @@ ${hasRecebimentos ? `
               onChange={(i, f) => { setFilterEmissaoInicio(i); setFilterEmissaoFim(f); }}
             />
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="mr-auto flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Venc.</span>
             <PeriodFilter
               size="sm"
