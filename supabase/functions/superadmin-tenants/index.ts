@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
             }
             if (fd?.status === "autorizado") add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
             else if (["processando_autorizacao", "processando"].includes(fd?.status)) add("CT-e de teste na SEFAZ", false, "SEFAZ ainda processando — clique em Testar novamente em instantes");
-            else add("CT-e de teste na SEFAZ", false, String(fd?.status_sefaz) === "646" ? "Rejeitado (646): a Focus está trocando o nome do remetente por um texto antigo exigido em homologação (\"CTE...\" em vez de \"CT-E...\"). Comunicação, token e certificado estão OK — é preciso abrir chamado na Focus para corrigirem esse texto." : `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} `);
+            else add("CT-e de teste na SEFAZ", false, String(fd?.status_sefaz) === "646" ? "Rejeitado (646): o sistema enviou o nome exigido para o remetente, mas ele chegou diferente na SEFAZ. Comunicação, token e certificado estão OK — confirme com o suporte da Focus o texto que eles aplicam em homologação." : `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} `);
           }
         } catch (err) { add("CT-e de teste na SEFAZ", false, `Falha no envio: ${(err as Error).message}`); }
       }
