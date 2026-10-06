@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
   const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave" || action === "cte_por_chave" || action === "nfe_pdf_por_chave";
   const ambiente = isQuery && tok(true) ? "producao" : "homologacao";
   const token = tok(ambiente === "producao");
-  if (!token) return json({ error: "Token Focus NFe não configurado" }, 500);
+  if (!token && isQuery) return json({ error: "Token Focus NFe não configurado" }, 500);
   const base = BASES[ambiente];
 
   let path: string;
