@@ -381,8 +381,9 @@ Deno.serve(async (req) => {
             quantidades: [{ codigo_unidade_medida: "01", tipo_medida: "PESO BRUTO", quantidade: "1000.0000" }],
             outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { rntrc },
             ibs_cbs_situacao_tributaria: "000", ibs_cbs_classificacao_tributaria: "000001", ibs_cbs_base_calculo: "100.00",
-            ibs_uf_aliquota: "0.00", ibs_uf_valor: "0.00", ibs_mun_aliquota: "0.00", ibs_mun_valor: "0.00", ibs_valor_total: "0.00",
-            cbs_aliquota: "0.00", cbs_valor: "0.00", valor_total_dfe: "100.00",
+            // 2026: alíquotas de teste obrigatórias (IBS UF 0,10%, IBS Mun 0%, CBS 0,90%)
+            ibs_uf_aliquota: "0.10", ibs_uf_valor: "0.10", ibs_mun_aliquota: "0.00", ibs_mun_valor: "0.00", ibs_valor_total: "0.10",
+            cbs_aliquota: "0.90", cbs_valor: "0.90", valor_total_dfe: "100.00",
           };
           const HML = "https://homologacao.focusnfe.com.br";
           const ref = `teste-hml-${est.id.slice(0, 8)}-${Date.now()}`;
