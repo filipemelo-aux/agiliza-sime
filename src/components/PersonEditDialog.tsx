@@ -858,6 +858,10 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
             </div>
           </div>
           <div className="space-y-1.5">
+            <Label className="text-xs">Descrição (opcional)</Label>
+            <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Descrição opcional — anote algum detalhe sobre este cadastro (ex.: Filial Pará)" />
+          </div>
+          <div className="space-y-1.5">
             <Label className="text-xs">Inscrição Estadual (IE)</Label>
             <Input value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value.replace(/\D/g, "") }))} placeholder="Somente números" />
           </div>
@@ -866,10 +870,16 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
 
       {/* Nome — somente Pessoa Física. Para PJ o nome é a própria Razão Social. */}
       {!showCNPJ && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">Nome Completo *</Label>
-          <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: maskName(e.target.value) }))} />
-        </div>
+        <>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nome Completo *</Label>
+            <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: maskName(e.target.value) }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Descrição (opcional)</Label>
+            <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Descrição opcional — anote algum detalhe sobre este cadastro (ex.: Filial Pará)" />
+          </div>
+        </>
       )}
 
       {/* Phone + Email */}
@@ -969,11 +979,6 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {showBank && <BankFields form={form} setForm={setForm} />}
 
       {/* Notes */}
-      <Separator />
-      <div className="space-y-1.5">
-        <Label className="text-xs">Descrição (opcional)</Label>
-        <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Descrição opcional — anote algum detalhe sobre este cadastro (ex.: Filial Pará)" />
-      </div>
     </div>
   );
 }
