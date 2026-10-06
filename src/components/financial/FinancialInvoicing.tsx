@@ -1852,7 +1852,6 @@ ${hasRecebimentos ? `
             <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Status: todos</SelectItem>
-              <SelectItem value="rascunho">Rascunho</SelectItem>
               <SelectItem value="faturada">Em aberto</SelectItem>
               <SelectItem value="parcial">Parcial</SelectItem>
               <SelectItem value="paga">Paga</SelectItem>
