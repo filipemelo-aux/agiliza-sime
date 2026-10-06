@@ -69,34 +69,68 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
   const scan = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("ctes")
-        .select("id, numero, numero_interno, data_emissao, placa_veiculo, peso_bruto, remetente_nome, destinatario_nome, valor_frete, status, tipo_talao")
-        .not("data_emissao", "is", null)
-        .not("placa_veiculo", "is", null)
-        .not("peso_bruto", "is", null)
-        .gt("peso_bruto", 0)
-        .order("data_emissao", { ascending: false })
-        .limit(20000);
-      if (error) throw error;
-
-      const map = new Map<string, DupGroup>();
-      for (const row of (data as CteRow[]) || []) {
-        const dataKey = brDate(String(row.data_emissao));
-        const placa = String(row.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const peso = Math.round(Number(row.peso_bruto || 0));
-        const valor = Number(row.valor_frete || 0);
-        if (!dataKey || !placa || !peso || peso <= 0) continue;
-        const key = `${dataKey}|${placa}|${peso}|${valor.toFixed(2)}`;
-        if (!map.has(key)) {
-          map.set(key, { key, data: dataKey, placa, peso, valor, items: [] });
-        }
-        map.get(key)!.items.push(row);
-      }
+      const cols = "id, numero, numero_interno, data_emissao, placa_veiculo, peso_bruto, remetente_nome, destinatario_nome, valor_frete, status, tipo_talao";
+      const normPlaca = (p: any) => String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       const focus = focusIds?.length ? new Set(focusIds) : null;
-      const dups = Array.from(map.values()).filter((g) =>
-        g.items.length > 1 && (!focus || g.items.some((i) => focus.has(i.id))),
-      );
+      // Busca paginada (o servidor limita 1000 linhas por requisição)
+      const fetchAll = async (build: (q: any) => any) => {
+        const out: CteRow[] = [];
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await build(supabase.from("ctes").select(cols)).range(from, from + 999);
+          if (error) throw error;
+          out.push(...((data as CteRow[]) || []));
+          if (!data || data.length < 1000) break;
+        }
+        return out;
+      };
+      const base = (q: any) => q.not("data_emissao", "is", null).not("placa_veiculo", "is", null).gt("peso_bruto", 0).order("data_emissao", { ascending: false });
+
+      let dups: DupGroup[] = [];
+      if (focus) {
+        // Compara cada selecionado com qualquer talão: mesma placa + peso + valor, data até 3 dias de diferença
+        const focusRows: CteRow[] = [];
+        const fids = Array.from(focus);
+        for (let k = 0; k < fids.length; k += 200) {
+          focusRows.push(...(await fetchAll((q) => base(q).in("id", fids.slice(k, k + 200)))));
+        }
+        const pesos = Array.from(new Set(focusRows.map((r) => Number(r.peso_bruto)).filter((p) => p > 0)));
+        const cands: CteRow[] = [];
+        for (let k = 0; k < pesos.length; k += 100) {
+          cands.push(...(await fetchAll((q) => base(q).in("peso_bruto", pesos.slice(k, k + 100)))));
+        }
+        const day = (d: any) => new Date(String(d).slice(0, 10) + "T12:00:00").getTime() / 86400000;
+        const used = new Set<string>();
+        for (const f of focusRows) {
+          if (used.has(f.id)) continue;
+          const placa = normPlaca(f.placa_veiculo);
+          const peso = Math.round(Number(f.peso_bruto || 0));
+          const valor = Number(f.valor_frete || 0);
+          const items = cands.filter((c) =>
+            normPlaca(c.placa_veiculo) === placa &&
+            Math.round(Number(c.peso_bruto || 0)) === peso &&
+            Math.abs(Number(c.valor_frete || 0) - valor) < 0.01 &&
+            Math.abs(day(c.data_emissao) - day(f.data_emissao)) <= 3,
+          );
+          if (items.length > 1) {
+            items.forEach((i) => used.add(i.id));
+            dups.push({ key: f.id, data: brDate(String(f.data_emissao)), placa, peso, valor, items });
+          }
+        }
+      } else {
+        const rows = await fetchAll(base);
+        const map = new Map<string, DupGroup>();
+        for (const row of rows) {
+          const dataKey = brDate(String(row.data_emissao));
+          const placa = normPlaca(row.placa_veiculo);
+          const peso = Math.round(Number(row.peso_bruto || 0));
+          const valor = Number(row.valor_frete || 0);
+          if (!dataKey || !placa || !peso || peso <= 0) continue;
+          const key = `${dataKey}|${placa}|${peso}|${valor.toFixed(2)}`;
+          if (!map.has(key)) map.set(key, { key, data: dataKey, placa, peso, valor, items: [] });
+          map.get(key)!.items.push(row);
+        }
+        dups = Array.from(map.values()).filter((g) => g.items.length > 1);
+      }
       setGroups(dups);
       const allIds = dups.flatMap((g) => g.items.map((i) => i.id));
       const cmap: Record<string, number> = {};
