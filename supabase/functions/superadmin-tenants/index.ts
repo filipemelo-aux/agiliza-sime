@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
             }
             if (fd?.status === "autorizado") add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
             else if (["processando_autorizacao", "processando"].includes(fd?.status)) add("CT-e de teste na SEFAZ", false, "SEFAZ ainda processando — clique em Testar novamente em instantes");
-            else add("CT-e de teste na SEFAZ", false, `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} DEBUG ${JSON.stringify(fd).slice(0,1500)}`);
+            else add("CT-e de teste na SEFAZ", false, `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} DEBUG ${(JSON.stringify(await (await fetch(`${HML}/v2/cte/${ref}?completa=1`, { headers: auth })).json().catch(()=>({})))).match(/.{0,300}rem.{0,600}/i)?.[0]}`);
           }
         } catch (err) { add("CT-e de teste na SEFAZ", false, `Falha no envio: ${(err as Error).message}`); }
       }
