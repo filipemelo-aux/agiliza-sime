@@ -117,6 +117,11 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
           action: "save", tenant: tenantPayload,
           secrets: { focus_nfe_token_production: tokProd || null, focus_nfe_token_homologation: tokHom || null, certificate_password: certPass || null },
           certificate, admin: wantsAdmin ? adm : null,
+          matriz_numeracao: tenant ? {
+            ultimo_numero_cte: Number(matrizNums.ultimo_numero_cte) || 0,
+            ultimo_numero_cte_servico: Number(matrizNums.ultimo_numero_cte_servico) || 0,
+            ultimo_numero_mdfe: Number(matrizNums.ultimo_numero_mdfe) || 0,
+          } : undefined,
         },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
