@@ -971,7 +971,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* Notes */}
       <Separator />
       <div className="space-y-1.5">
-        <Label className="text-xs">Observações</Label>
+        <Label className="text-xs">Descrição (opcional)</Label>
         <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Descrição opcional — anote algum detalhe sobre este cadastro (ex.: Filial Pará)" />
       </div>
     </div>
