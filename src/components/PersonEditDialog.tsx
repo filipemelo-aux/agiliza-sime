@@ -413,7 +413,8 @@ async function findDuplicate(form: FormState, excludeId?: string): Promise<strin
       }
     }
   }
-  if (name) {
+  // Empresas com CNPJ (ex.: filiais) podem repetir a razão social; o CNPJ é o identificador.
+  if (name && !(isPJ && doc)) {
     let q = supabase.from("profiles").select("id, full_name").ilike("full_name", name.replace(/[%_]/g, "")).limit(1);
     if (excludeId) q = q.neq("id", excludeId);
     const { data } = await q;
