@@ -106,3 +106,58 @@ export async function syncCertificateToFocus(svc: any, certificateId: string): P
   for (const c of cnpjs) { const r = await pushCertificateToFocus(master, c, b64, senha); ok &&= r.ok; msgs.push(`${c}: ${r.message}`); }
   return save({ ok, message: msgs.join(" | ") });
 }
+
+/**
+ * Ponto único de cadastro de certificado A1 (tela do usuário, SuperAdmin e filial):
+ * valida, guarda, vincula aos estabelecimentos e envia à Focus.
+ * Sem `establishmentIds`, substitui o certificado do mesmo CNPJ (herdando os vínculos)
+ * e também cobre estabelecimentos que ainda não têm certificado.
+ */
+// deno-lint-ignore no-explicit-any
+export async function registerCertificate(svc: any, opts: { tenantId: string; bin: Uint8Array; fileName: string; password: string; establishmentIds?: string[] }) {
+  const { tenantId, bin, fileName, password } = opts;
+  const info = parsePfx(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength) as ArrayBuffer, password);
+  if (info.validUntil.getTime() < Date.now()) throw new Error(`Certificado vencido em ${info.validUntil.toLocaleDateString("pt-BR")}`);
+  const { data: tenant } = await svc.from("tenants").select("cnpj").eq("id", tenantId).single();
+  const root = String(tenant?.cnpj || "").replace(/\D/g, "").slice(0, 8);
+  if (info.cnpj && root && info.cnpj.slice(0, 8) !== root) throw new Error(`Este certificado é do CNPJ ${info.cnpj}, que não pertence a esta empresa`);
+
+  const path = `certificates/${crypto.randomUUID()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+  const { error: upErr } = await svc.storage.from("fiscal-certificates").upload(path, bin, { contentType: "application/x-pkcs12", upsert: false });
+  if (upErr) throw new Error("Erro ao armazenar certificado");
+  const { data: cert, error: insErr } = await svc.from("fiscal_certificates").insert({
+    nome: fileName, caminho_storage: path, senha_criptografada: await encryptCertPassword(password), tenant_id: tenantId,
+    cnpj: info.cnpj, titular: info.titular, valid_until: info.validUntil.toISOString(), focus_sync_status: "pendente",
+  }).select("id, nome, ativo, created_at").single();
+  if (insErr) { await svc.storage.from("fiscal-certificates").remove([path]); throw new Error("Erro ao salvar certificado"); }
+
+  const { data: ests } = await svc.from("fiscal_establishments").select("id").eq("tenant_id", tenantId);
+  const allIds: string[] = (ests || []).map((e: any) => e.id);
+  const { data: links } = await svc.from("establishment_certificates").select("establishment_id,certificate_id").eq("tenant_id", tenantId);
+  let targets: string[];
+  if (opts.establishmentIds?.length) targets = opts.establishmentIds.filter((id) => allIds.includes(id));
+  else {
+    const { data: olds } = await svc.from("fiscal_certificates").select("id,cnpj").eq("tenant_id", tenantId).neq("id", cert.id);
+    const sameIds = (olds || []).filter((o: any) => !o.cnpj || !info.cnpj || o.cnpj === info.cnpj).map((o: any) => o.id);
+    const linked = new Set((links || []).map((l: any) => l.establishment_id));
+    targets = [...new Set([
+      ...(links || []).filter((l: any) => sameIds.includes(l.certificate_id)).map((l: any) => l.establishment_id),
+      ...allIds.filter((id) => !linked.has(id)),
+    ])];
+    if (!targets.length) targets = allIds;
+  }
+  if (targets.length) {
+    await svc.from("establishment_certificates").delete().in("establishment_id", targets);
+    const { error } = await svc.from("establishment_certificates").insert(targets.map((id) => ({ certificate_id: cert.id, establishment_id: id, tenant_id: tenantId })));
+    if (error) throw error;
+  }
+  // desativa certificados antigos que ficaram sem nenhum estabelecimento
+  const { data: still } = await svc.from("establishment_certificates").select("certificate_id").eq("tenant_id", tenantId);
+  const used = new Set((still || []).map((l: any) => l.certificate_id));
+  const { data: others } = await svc.from("fiscal_certificates").select("id").eq("tenant_id", tenantId).eq("ativo", true).neq("id", cert.id);
+  const orphan = (others || []).map((o: any) => o.id).filter((id: string) => !used.has(id));
+  if (orphan.length) await svc.from("fiscal_certificates").update({ ativo: false }).in("id", orphan);
+
+  const focus = await syncCertificateToFocus(svc, cert.id);
+  return { cert, info, focus };
+}
