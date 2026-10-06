@@ -152,6 +152,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
             </div>
             <span className="text-muted-foreground text-right">{e.ambiente === "producao" ? "Produção" : "Homologação"}{!e.active && " · Inativo"}
               <span className="block text-[10px]">Token prod. {e.has_token_production ? "✓" : "—"} · homol. {e.has_token_homologation ? "✓" : "—"} · CT-e nº {e.ultimo_numero_cte ?? 0} · MDF-e nº {e.ultimo_numero_mdfe ?? 0}</span></span>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" title="Tokens da Focus" onClick={() => openEdit({ ...e } as Est)}><KeyRound className="h-3.5 w-3.5 mr-1" />Tokens Focus</Button>
             <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Editar" onClick={() => openEdit({ ...e } as Est)}><Pencil className="h-3.5 w-3.5" /></Button>
           </div>
         ))}
