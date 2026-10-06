@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
           const resto = soma % 11; const dv = resto < 2 ? 0 : 11 - resto;
           const chaveNfe = base43 + dv;
           const numero = 900000000 + Math.floor(Math.random() * 99999999);
-          const nomeHml = "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
+          const nomeHml = "CTE EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
           const actor = (p: string) => ({
             [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml, [`razao_social_${p}`]: nomeHml,
             [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
             }
             if (fd?.status === "autorizado") add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
             else if (["processando_autorizacao", "processando"].includes(fd?.status)) add("CT-e de teste na SEFAZ", false, "SEFAZ ainda processando — clique em Testar novamente em instantes");
-            else add("CT-e de teste na SEFAZ", false, `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status}`);
+            else add("CT-e de teste na SEFAZ", false, `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} DEBUG ${JSON.stringify(fd).slice(0,1500)}`);
           }
         } catch (err) { add("CT-e de teste na SEFAZ", false, `Falha no envio: ${(err as Error).message}`); }
       }
