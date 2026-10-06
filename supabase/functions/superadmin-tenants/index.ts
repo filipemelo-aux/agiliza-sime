@@ -288,6 +288,18 @@ Deno.serve(async (req) => {
         if (mErr) throw new Error("Erro ao atualizar a matriz: " + mErr.message);
       }
 
+      if (matriz_numeracao) {
+        const nums: Record<string, number> = {};
+        for (const k of ["ultimo_numero_cte", "ultimo_numero_cte_servico", "ultimo_numero_mdfe"] as const) {
+          const v = matriz_numeracao[k];
+          if (v !== undefined && v !== null) nums[k] = v;
+        }
+        if (Object.keys(nums).length > 0) {
+          const { error: nErr } = await admin.from("fiscal_establishments").update(nums).eq("tenant_id", tenantId).eq("type", "matriz");
+          if (nErr) throw new Error("Erro ao atualizar a numeração da matriz: " + nErr.message);
+        }
+      }
+
       if (secrets) {
         const patch: Record<string, unknown> = { tenant_id: tenantId, updated_at: new Date().toISOString() };
         for (const k of ["focus_nfe_token_production", "focus_nfe_token_homologation", "certificate_password"] as const) {

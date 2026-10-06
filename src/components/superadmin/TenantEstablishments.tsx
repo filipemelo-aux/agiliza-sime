@@ -142,7 +142,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
       </div>
       <div className="p-3 space-y-2">
         {loading && <p className="text-xs text-muted-foreground">Carregando…</p>}
-        {!loading && list.length === 0 && !edit && <p className="text-xs text-muted-foreground">Nenhuma filial cadastrada. A matriz usa os dados cadastrais do bloco 1.</p>}
+        {!loading && list.length === 0 && !edit && <p className="text-xs text-muted-foreground">Nenhuma filial cadastrada. A matriz é configurada nos blocos 1 e 2.</p>}
         {!loading && list.map((e) => (
           <div key={e.id} className={`flex items-center gap-3 rounded border p-2 text-xs ${e.active ? "" : "opacity-60"}`}>
             <Badge variant={e.type === "matriz" ? "default" : "secondary"} className="w-14 justify-center uppercase">{e.type}</Badge>
