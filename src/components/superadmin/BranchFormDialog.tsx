@@ -57,6 +57,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
   const [hml, setHml] = useState<HmlResult | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -65,7 +66,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
       for (const k of Object.keys(emptyEst)) t[k] = (branch as any)[k] ?? (emptyEst as any)[k];
       setF(t); setMatrizId(branch.tenant_id); setCertMode("keep");
     } else { setF(emptyEst); setMatrizId(""); setCertMode("matriz"); }
-    setQ(""); setCertFile(null); setCertPass(""); setTokProd(""); setTokHom(""); setHml(null);
+    setQ(""); setCertFile(null); setCertPass(""); setTokProd(""); setTokHom(""); setHml(null); setSavedId(null);
   }, [open, branch]);
 
   const matriz = tenants.find((t) => t.id === matrizId) || null;
@@ -105,7 +106,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
     setSaving(true); setHml(null);
     try {
       const payload: any = {
-        ...f, id: branch?.id ?? null, type: "filial",
+        ...f, id: branch?.id ?? savedId ?? null, type: "filial",
         serie_cte: Number(f.serie_cte) || 1, serie_mdfe: Number(f.serie_mdfe) || 1,
         ultimo_numero_cte: Number(f.ultimo_numero_cte) || 0, ultimo_numero_mdfe: Number(f.ultimo_numero_mdfe) || 0,
         ultimo_numero_cte_servico: Number(f.ultimo_numero_cte_servico) || 0,
@@ -122,6 +123,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
       if (error || data?.error) throw new Error(data?.error || error?.message);
       toast.success(branch ? "Filial atualizada" : "Filial cadastrada");
       if (data.focus) (data.focus.ok ? toast.success : toast.error)(`Certificado na Focus: ${data.focus.message}`);
+      setSavedId(data.id); setCertMode("keep"); setTokProd(""); setTokHom("");
       onSaved();
       if (f.ambiente === "homologacao") {
         setHml(await runHomologationTest(matriz.id, data.id, f.razao_social));
@@ -202,9 +204,9 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
                 <F label="Último nº MDF-e"><Input type="number" className="h-9" value={f.ultimo_numero_mdfe ?? 0} onChange={set("ultimo_numero_mdfe")} /></F>
                 <F label="Certificado digital A1" span={6}>
                   <div className="flex flex-wrap gap-4 text-xs h-9 items-center">
-                    {branch && (
+                    {(branch || savedId) && (
                       <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "keep"} onChange={() => setCertMode("keep")} />
-                        Manter o atual ({branch.has_certificate ? (branch.same_certificate_as_matriz ? "mesmo da matriz" : "certificado próprio") : "nenhum"})</label>
+                        Manter o atual{branch ? ` (${branch.has_certificate ? (branch.same_certificate_as_matriz ? "mesmo da matriz" : "certificado próprio") : "nenhum"})` : ""}</label>
                     )}
                     <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "matriz"} onChange={() => setCertMode("matriz")} />Usar o mesmo certificado da matriz</label>
                     <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "new"} onChange={() => setCertMode("new")} />Inserir um novo certificado</label>
