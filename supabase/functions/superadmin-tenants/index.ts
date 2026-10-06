@@ -357,7 +357,7 @@ Deno.serve(async (req) => {
           const numero = 900000000 + Math.floor(Math.random() * 99999999);
           const nomeHml = "CTE EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
           const actor = (p: string) => ({
-            [`cnpj_${p}`]: cnpj, [`inscricao_estadual_${p}`]: e.inscricao_estadual, [`nome_${p}`]: nomeHml,
+            [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml, [`razao_social_${p}`]: nomeHml,
             [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
             [`bairro_${p}`]: e.endereco_bairro || "NAO INFORMADO", [`codigo_municipio_${p}`]: ibge, [`municipio_${p}`]: cidade, [`uf_${p}`]: uf,
           });
@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
             codigo_municipio_envio: ibge, municipio_envio: cidade, uf_envio: uf,
             codigo_municipio_inicio: ibge, municipio_inicio: cidade, uf_inicio: uf,
             codigo_municipio_fim: ibge, municipio_fim: cidade, uf_fim: uf,
-            retirar_mercadoria: 1, indicador_inscricao_estadual_tomador: 1, tomador: 0,
+            retirar_mercadoria: 1, indicador_inscricao_estadual_tomador: 9, tomador: 0,
             cnpj_emitente: cnpj, inscricao_estadual_emitente: e.inscricao_estadual, nome_emitente: e.razao_social,
             nome_fantasia_emitente: e.nome_fantasia || e.razao_social, logradouro_emitente: e.endereco_logradouro || "NAO INFORMADO",
             numero_emitente: e.endereco_numero || "S/N", bairro_emitente: e.endereco_bairro || "NAO INFORMADO",
