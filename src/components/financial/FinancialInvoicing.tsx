@@ -113,6 +113,40 @@ interface Cliente {
   full_name: string;
 }
 
+/**
+ * Estorna todos os recebimentos de uma fatura: apaga os lançamentos de recebimento
+ * (os gatilhos do banco removem a movimentação bancária e reabrem o título) e, para
+ * títulos baixados diretamente (sem lançamento), volta o status para "aberto"
+ * (gatilho remove a movimentação de origem contas_receber).
+ */
+async function estornarRecebimentosFatura(faturaId: string) {
+  const { data: contas, error: errFetch } = await supabase
+    .from("contas_receber")
+    .select("id, status")
+    .eq("fatura_id", faturaId);
+  if (errFetch) throw errFetch;
+  const ids = (contas || []).map((c: any) => c.id);
+  if (!ids.length) return;
+
+  const { error: errPay } = await supabase
+    .from("receivable_payments" as any)
+    .delete()
+    .in("conta_receber_id", ids);
+  if (errPay) throw errPay;
+
+  const { error: errUpd } = await supabase
+    .from("contas_receber")
+    .update({ status: "aberto" as any, data_recebimento: null, valor_recebido: 0, forma_recebimento: null })
+    .in("id", ids);
+  if (errUpd) throw errUpd;
+
+  const { error: errMov } = await supabase
+    .from("movimentacoes_bancarias")
+    .delete()
+    .in("origem_id", ids);
+  if (errMov) throw errMov;
+}
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   rascunho: { label: "Rascunho", variant: "outline" },
   faturada: { label: "Faturada", variant: "default" },
@@ -741,9 +775,11 @@ export function FinancialInvoicing() {
 
     try {
       // Delete contas_receber
-      await supabase.from("contas_receber").delete().eq("fatura_id", fatura.id);
+      const r1 = await supabase.from("contas_receber").delete().eq("fatura_id", fatura.id);
+      if (r1.error) throw r1.error;
       // Delete links (trigger reverts previsões to pendente)
-      await supabase.from("fatura_previsoes").delete().eq("fatura_id", fatura.id);
+      const r2 = await supabase.from("fatura_previsoes").delete().eq("fatura_id", fatura.id);
+      if (r2.error) throw r2.error;
       // Delete fatura
       const { error } = await supabase.from("faturas_recebimento").delete().eq("id", fatura.id);
       if (error) throw error;
@@ -1536,25 +1572,7 @@ ${hasRecebimentos ? `
     });
     if (!ok) return;
     try {
-      const { data: contas, error: errFetch } = await supabase
-        .from("contas_receber")
-        .select("id")
-        .eq("fatura_id", fatura.id)
-        .eq("status", "recebido");
-      if (errFetch) throw errFetch;
-
-      for (const c of (contas || [])) {
-        const { error } = await supabase
-          .from("contas_receber")
-          .update({
-            status: "aberto" as any,
-            data_recebimento: null,
-            valor_recebido: null,
-            forma_recebimento: null,
-          })
-          .eq("id", (c as any).id);
-        if (error) throw error;
-      }
+      await estornarRecebimentosFatura(fatura.id);
       toast.success("Recebimento estornado com sucesso");
       fetchFaturas();
     } catch (err: any) {
@@ -1601,8 +1619,10 @@ ${hasRecebimentos ? `
     try {
       for (const f of bulkDeletable) {
         try {
-          await supabase.from("contas_receber").delete().eq("fatura_id", f.id);
-          await supabase.from("fatura_previsoes").delete().eq("fatura_id", f.id);
+          const r1 = await supabase.from("contas_receber").delete().eq("fatura_id", f.id);
+          if (r1.error) throw r1.error;
+          const r2 = await supabase.from("fatura_previsoes").delete().eq("fatura_id", f.id);
+          if (r2.error) throw r2.error;
           const { error } = await supabase.from("faturas_recebimento").delete().eq("id", f.id);
           if (error) throw error;
           okCount++;
@@ -1641,24 +1661,7 @@ ${hasRecebimentos ? `
     try {
       for (const f of bulkReversible) {
         try {
-          const { data: contas, error: errFetch } = await supabase
-            .from("contas_receber")
-            .select("id")
-            .eq("fatura_id", f.id)
-            .eq("status", "recebido");
-          if (errFetch) throw errFetch;
-          for (const c of contas || []) {
-            const { error } = await supabase
-              .from("contas_receber")
-              .update({
-                status: "aberto" as any,
-                data_recebimento: null,
-                valor_recebido: null,
-                forma_recebimento: null,
-              })
-              .eq("id", (c as any).id);
-            if (error) throw error;
-          }
+          await estornarRecebimentosFatura(f.id);
           okCount++;
         } catch (err: any) {
           errors.push(`#${String(f.numero).padStart(4, "0")}: ${err.message}`);
