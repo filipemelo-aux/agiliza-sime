@@ -49,7 +49,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
   const [f, setF] = useState(emptyEst);
   const [matrizId, setMatrizId] = useState("");
   const [q, setQ] = useState("");
-  const [certMode, setCertMode] = useState<"keep" | "matriz" | "new">("matriz");
+  const [certMode, setCertMode] = useState<"matriz" | "new">("matriz");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [certPass, setCertPass] = useState("");
   const [tokProd, setTokProd] = useState("");
@@ -64,7 +64,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
     if (branch) {
       const t: any = { ...emptyEst };
       for (const k of Object.keys(emptyEst)) t[k] = (branch as any)[k] ?? (emptyEst as any)[k];
-      setF(t); setMatrizId(branch.tenant_id); setCertMode("keep");
+      setF(t); setMatrizId(branch.tenant_id); setCertMode("matriz");
     } else { setF(emptyEst); setMatrizId(""); setCertMode("matriz"); }
     setQ(""); setCertFile(null); setCertPass(""); setTokProd(""); setTokHom(""); setHml(null); setSavedId(null);
   }, [open, branch]);
@@ -123,7 +123,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
       if (error || data?.error) throw new Error(data?.error || error?.message);
       toast.success(branch ? "Filial atualizada" : "Filial cadastrada");
       if (data.focus) (data.focus.ok ? toast.success : toast.error)(`Certificado na Focus: ${data.focus.message}`);
-      setSavedId(data.id); setCertMode("keep"); setTokProd(""); setTokHom("");
+      setSavedId(data.id); setCertMode("matriz"); setTokProd(""); setTokHom("");
       onSaved();
       if (f.ambiente === "homologacao") {
         setHml(await runHomologationTest(matriz.id, data.id, f.razao_social));
