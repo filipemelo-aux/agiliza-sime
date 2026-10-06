@@ -1858,7 +1858,6 @@ ${hasRecebimentos ? `
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </FilterPrimaryRow>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
           <Select value={filterCondicao} onValueChange={setFilterCondicao}>
             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1876,6 +1875,7 @@ ${hasRecebimentos ? `
               <SelectItem value="paga">Paga</SelectItem>
             </SelectContent>
           </Select>
+          <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
           <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 min-w-[180px] flex-1 text-xs" />
           {hasFaturaFilters && (
             <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFaturaFilters}>
