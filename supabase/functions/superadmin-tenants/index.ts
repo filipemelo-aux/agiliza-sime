@@ -357,7 +357,7 @@ Deno.serve(async (req) => {
           const numero = 900000000 + Math.floor(Math.random() * 99999999);
           const nomeHml = "CT-E EMITIDO EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL";
           const actor = (p: string) => ({
-            [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml, [`razao_social_${p}`]: nomeHml,
+            [`cnpj_${p}`]: "07504505000132", [`nome_${p}`]: nomeHml,
             [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
             [`bairro_${p}`]: e.endereco_bairro || "NAO INFORMADO", [`codigo_municipio_${p}`]: ibge, [`municipio_${p}`]: cidade, [`uf_${p}`]: uf,
           });
@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
             }
             if (fd?.status === "autorizado") add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
             else if (["processando_autorizacao", "processando"].includes(fd?.status)) add("CT-e de teste na SEFAZ", false, "SEFAZ ainda processando — clique em Testar novamente em instantes");
-            else add("CT-e de teste na SEFAZ", false, `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} DEBUG ${(JSON.stringify(await (await fetch(`${HML}/v2/cte/${ref}?completa=1`, { headers: auth })).json().catch(()=>({})))).match(/.{0,300}rem.{0,600}/i)?.[0]}`);
+            else add("CT-e de teste na SEFAZ", false, String(fd?.status_sefaz) === "646" ? "Rejeitado (646): a Focus está trocando o nome do remetente por um texto antigo exigido em homologação (\"CTE...\" em vez de \"CT-E...\"). Comunicação, token e certificado estão OK — é preciso abrir chamado na Focus para corrigirem esse texto." : `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} `);
           }
         } catch (err) { add("CT-e de teste na SEFAZ", false, `Falha no envio: ${(err as Error).message}`); }
       }
