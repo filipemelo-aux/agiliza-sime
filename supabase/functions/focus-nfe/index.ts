@@ -43,6 +43,17 @@ Deno.serve(async (req) => {
   }
   const tok = (prod: boolean) => (prod ? tenantTok?.focus_nfe_token_production || Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") : tenantTok?.focus_nfe_token_homologation || Deno.env.get("FOCUS_NFE_TOKEN_HOMOLOGACAO"));
 
+  // Token próprio do estabelecimento (matriz/filial, definido no SuperAdmin) tem prioridade sobre o da empresa.
+  const estTok = async (estId: string | null | undefined, prod: boolean) => {
+    if (estId) {
+      const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data } = await svc.from("establishment_secrets").select("focus_nfe_token_production, focus_nfe_token_homologation").eq("establishment_id", estId).maybeSingle();
+      const t = prod ? data?.focus_nfe_token_production : data?.focus_nfe_token_homologation;
+      if (t) return t;
+    }
+    return tok(prod);
+  };
+
   let body: { action?: string; cnpj?: string; versao?: number; ref?: string; cte?: Record<string, unknown>; cte_id?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
   const action = body.action ?? "ping";
@@ -77,7 +88,7 @@ Deno.serve(async (req) => {
     if (cte.status === "processando") {
       const { data: estSync } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
       const syncAmb = String(estSync?.ambiente) === "producao" ? "producao" : "homologacao";
-      const syncToken = tok(syncAmb === "producao") || token;
+      const syncToken = (await estTok(cte.establishment_id, syncAmb === "producao")) || token;
       const syncRes = await fetch(`${BASES[syncAmb]}/v2/cte/cte-${cteId}?completa=1`, {
         headers: { Authorization: "Basic " + btoa(syncToken + ":") },
       });
@@ -109,7 +120,7 @@ Deno.serve(async (req) => {
 
     // Ambiente da emissão segue o cadastro do estabelecimento emitente (matriz=produção, filial=homologação).
     const emitAmb: keyof typeof BASES = String(est.ambiente) === "producao" ? "producao" : "homologacao";
-    const emitToken = tok(emitAmb === "producao");
+    const emitToken = await estTok(cte.establishment_id, emitAmb === "producao");
     if (!emitToken) return json({ error: `Token de ${emitAmb === "producao" ? "produção" : "homologação"} não configurado no backend` }, 500);
     const emitBase = BASES[emitAmb];
 
@@ -264,7 +275,7 @@ Deno.serve(async (req) => {
     if (!cte) return json({ error: "CT-e não encontrado" }, 404);
     const { data: estOp } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
     const opAmb: keyof typeof BASES = String(estOp?.ambiente) === "producao" ? "producao" : "homologacao";
-    const opToken = tok(opAmb === "producao") || token;
+    const opToken = (await estTok(cte.establishment_id, opAmb === "producao")) || token;
     const opBase = BASES[opAmb];
     const hdr = { Authorization: "Basic " + btoa(opToken + ":"), "Content-Type": "application/json" };
     const url = `${opBase}/v2/cte/cte-${cteId}`;
