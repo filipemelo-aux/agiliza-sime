@@ -182,8 +182,44 @@ export function RevenueForecasts() {
     return doc && doc !== "—" ? `${getOrigemTipoLabel(p)} ${doc}` : getOrigemTipoLabel(p);
   };
 
+  const filteredPrevisoes = useMemo(() => {
+    return previsoes.filter((p) => {
+      if (filterEmpresa && (p.empresa_id || "") !== filterEmpresa) return false;
+      if (filterOrigem !== "todas" && p.origem_tipo !== filterOrigem) return false;
+      if (filterDoc.trim()) {
+        const doc = getDocumentoLabel(p).toLowerCase();
+        if (!doc.includes(filterDoc.trim().toLowerCase())) return false;
+      }
+      if (filterBusca.trim()) {
+        const q = filterBusca.trim().toLowerCase();
+        const hay = `${p.cliente_nome || ""} ${p.metadata?.descricao || ""} ${p.metadata?.observacao || ""} ${p.metadata?.descricao_manual || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filterDataInicio && p.data_prevista < filterDataInicio) return false;
+      if (filterDataFim && p.data_prevista > filterDataFim) return false;
+      return true;
+    });
+  }, [previsoes, filterEmpresa, filterOrigem, filterDoc, filterBusca, filterDataInicio, filterDataFim, cteMap]);
+
+  const hasFilters =
+    filterOrigem !== "todas" ||
+    !!filterDoc.trim() ||
+    !!filterBusca.trim() ||
+    !!filterDataInicio ||
+    !!filterDataFim ||
+    !!filterEmpresa;
+
+  const clearFilters = () => {
+    setFilterOrigem("todas");
+    setFilterDoc("");
+    setFilterBusca("");
+    setFilterDataInicio("");
+    setFilterDataFim("");
+    setFilterEmpresa("");
+  };
+
   const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "documento" | "status">(
-    previsoes,
+    filteredPrevisoes,
     { key: "data", direction: "asc" },
     {
       cliente: (row) => row.cliente_nome || "",
