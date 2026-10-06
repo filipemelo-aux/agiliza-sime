@@ -236,9 +236,15 @@ export default function AdminPeople() {
         const driverVehicles = d.category === "motorista" ? vehicles.filter((v) => v.driver_id === d.user_id) : [];
         return (
           <div>
-            <div className="font-medium text-foreground">{d.full_name}</div>
-            {d.person_type === "cnpj" && d.razao_social && (
-              <div className="text-[11px] text-muted-foreground truncate">{d.razao_social}</div>
+            {d.person_type === "cnpj" ? (
+              <>
+                <div className="font-medium text-foreground">{d.razao_social || d.full_name}</div>
+                {d.nome_fantasia && (
+                  <div className="text-[11px] text-muted-foreground truncate">{d.nome_fantasia}</div>
+                )}
+              </>
+            ) : (
+              <div className="font-medium text-foreground">{d.full_name}</div>
             )}
             {driverVehicles.length > 0 && (
               <div className="flex flex-wrap gap-x-2 mt-0.5 text-[11px] text-muted-foreground">
