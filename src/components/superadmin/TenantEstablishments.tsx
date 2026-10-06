@@ -33,7 +33,7 @@ const F = ({ label, span = 2, children }: { label: string; span?: number; childr
 export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { tenantId: string; tenantCnpj: string; tenantName: string }) {
   const [all, setAll] = useState<Est[]>([]);
   const [certs, setCerts] = useState<Cert[]>([]);
-  const list = all;
+  const list = all.filter((e) => e.type === "filial");
   const [tokProd, setTokProd] = useState("");
   const [tokHom, setTokHom] = useState("");
   const [hasMaster, setHasMaster] = useState(false);
@@ -137,12 +137,12 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   return (
     <section className="rounded-lg border">
       <div className="flex items-center px-3 py-2 bg-muted/50 border-b">
-        <h3 className="text-xs font-bold uppercase tracking-wide">3. Estabelecimentos fiscais (matriz e filiais)</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide">3. Filiais</h3>
         {!edit && <Button type="button" size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={novaFilial}><Plus className="h-3.5 w-3.5 mr-1" />Nova filial</Button>}
       </div>
       <div className="p-3 space-y-2">
         {loading && <p className="text-xs text-muted-foreground">Carregando…</p>}
-        {!loading && list.length === 0 && !edit && <p className="text-xs text-muted-foreground">Nenhuma filial cadastrada. A matriz usa os dados cadastrais do bloco 1.</p>}
+        {!loading && list.length === 0 && !edit && <p className="text-xs text-muted-foreground">Nenhuma filial cadastrada. A matriz é configurada nos blocos 1 e 2.</p>}
         {!loading && list.map((e) => (
           <div key={e.id} className={`flex items-center gap-3 rounded border p-2 text-xs ${e.active ? "" : "opacity-60"}`}>
             <Badge variant={e.type === "matriz" ? "default" : "secondary"} className="w-14 justify-center uppercase">{e.type}</Badge>

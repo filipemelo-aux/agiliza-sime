@@ -53,6 +53,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
   const [certPass, setCertPass] = useState("");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [adm, setAdm] = useState({ full_name: "", email: "", password: "" });
+  const [matrizNums, setMatrizNums] = useState({ ultimo_numero_cte: 0, ultimo_numero_cte_servico: 0, ultimo_numero_mdfe: 0 });
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
 
@@ -62,6 +63,14 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       const t: any = { ...empty };
       for (const k of Object.keys(empty)) t[k] = (tenant as any)[k] ?? (empty as any)[k];
       setF(t);
+      supabase.functions.invoke("superadmin-tenants", { body: { action: "list_establishments", tenant_id: tenant.id } }).then(({ data }) => {
+        const m = (data?.establishments || []).find((e: any) => e.type === "matriz");
+        if (m) setMatrizNums({
+          ultimo_numero_cte: m.ultimo_numero_cte ?? 0,
+          ultimo_numero_cte_servico: m.ultimo_numero_cte_servico ?? 0,
+          ultimo_numero_mdfe: m.ultimo_numero_mdfe ?? 0,
+        });
+      });
     } else setF(empty);
     setTokProd(""); setTokHom(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
   }, [open, tenant]);
@@ -108,6 +117,11 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
           action: "save", tenant: tenantPayload,
           secrets: { focus_nfe_token_production: tokProd || null, focus_nfe_token_homologation: tokHom || null, certificate_password: certPass || null },
           certificate, admin: wantsAdmin ? adm : null,
+          matriz_numeracao: tenant ? {
+            ultimo_numero_cte: Number(matrizNums.ultimo_numero_cte) || 0,
+            ultimo_numero_cte_servico: Number(matrizNums.ultimo_numero_cte_servico) || 0,
+            ultimo_numero_mdfe: Number(matrizNums.ultimo_numero_mdfe) || 0,
+          } : undefined,
         },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
@@ -162,6 +176,13 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
             <F label={`Certificado A1 (.pfx)${tenant?.certificate ? ` — atual: ${tenant.certificate.file_name}` : ""}`} span={3}>
               <Input type="file" accept=".pfx,.p12" className="h-9" onChange={(e) => setCertFile(e.target.files?.[0] || null)} /></F>
             <F label={`Senha do certificado (${saved(tenant?.has_certificate_password)})`} span={3}><Input type="password" className="h-9" placeholder={tenant?.has_certificate_password ? "•••••••• cadastrada" : ""} value={certPass} onChange={(e) => setCertPass(e.target.value)} autoComplete="new-password" /></F>
+            {tenant && (
+              <>
+                <F label="Último nº CT-e (produção)" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_cte} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_cte: Number(e.target.value) || 0 }))} /></F>
+                <F label="Último nº CT-e (serviço)" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_cte_servico} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_cte_servico: Number(e.target.value) || 0 }))} /></F>
+                <F label="Último nº MDF-e" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_mdfe} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_mdfe: Number(e.target.value) || 0 }))} /></F>
+              </>
+            )}
             <F label="Sincronização automática de NF-e recebidas">
               <Select value={f.nfe_sync_enabled ? "on" : "off"} onValueChange={(v) => setF((p) => ({ ...p, nfe_sync_enabled: v === "on" }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>

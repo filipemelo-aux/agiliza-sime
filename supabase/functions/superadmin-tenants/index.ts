@@ -46,6 +46,11 @@ const SaveSchema = z.object({
     email: z.string().trim().email().max(200),
     password: z.string().min(8).max(100),
   }).optional().nullable(),
+  matriz_numeracao: z.object({
+    ultimo_numero_cte: z.number().int().min(0).max(999999999).optional().nullable(),
+    ultimo_numero_cte_servico: z.number().int().min(0).max(999999999).optional().nullable(),
+    ultimo_numero_mdfe: z.number().int().min(0).max(999999999).optional().nullable(),
+  }).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -250,7 +255,7 @@ Deno.serve(async (req) => {
     if (body.action === "save") {
       const p = SaveSchema.safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos", details: p.error.flatten().fieldErrors }, 400);
-      const { tenant, secrets, certificate, admin: firstAdmin } = p.data;
+      const { tenant, secrets, certificate, admin: firstAdmin, matriz_numeracao } = p.data;
       const row = { ...tenant, cnpj: digits(tenant.cnpj), cep: digits(tenant.cep) || null };
       const isNew = !tenant.id;
       let tenantId = tenant.id;
@@ -281,6 +286,18 @@ Deno.serve(async (req) => {
           ambiente: row.focus_environment === "production" ? "producao" : "homologacao",
         }).eq("tenant_id", tenantId).eq("type", "matriz");
         if (mErr) throw new Error("Erro ao atualizar a matriz: " + mErr.message);
+      }
+
+      if (matriz_numeracao) {
+        const nums: Record<string, number> = {};
+        for (const k of ["ultimo_numero_cte", "ultimo_numero_cte_servico", "ultimo_numero_mdfe"] as const) {
+          const v = matriz_numeracao[k];
+          if (v !== undefined && v !== null) nums[k] = v;
+        }
+        if (Object.keys(nums).length > 0) {
+          const { error: nErr } = await admin.from("fiscal_establishments").update(nums).eq("tenant_id", tenantId).eq("type", "matriz");
+          if (nErr) throw new Error("Erro ao atualizar a numeração da matriz: " + nErr.message);
+        }
       }
 
       if (secrets) {
