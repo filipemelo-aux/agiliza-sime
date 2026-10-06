@@ -36,8 +36,6 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   const list = all.filter((e) => e.type === "filial");
   const [tokProd, setTokProd] = useState("");
   const [tokHom, setTokHom] = useState("");
-  const [hasMaster, setHasMaster] = useState(false);
-  const [master, setMaster] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [hml, setHml] = useState<{ nome: string; ok: boolean; steps: { label: string; ok: boolean; message: string }[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +50,6 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
     if (error || data?.error) return toast.error(data?.error || "Erro ao carregar estabelecimentos");
     setAll(data.establishments || []);
     setCerts(data.certificates || []);
-    setHasMaster(!!data.has_master_token);
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
 
@@ -65,14 +62,6 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   };
 
   const openEdit = (e: Est | null) => { setTokProd(""); setTokHom(""); setEdit(e); };
-
-  const saveMaster = async () => {
-    setBusy("master");
-    const { data, error } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "set_master_token", tenant_id: tenantId, token: master.trim() || null } });
-    setBusy(null);
-    if (error || data?.error) return toast.error(data?.error || "Erro ao salvar token principal");
-    toast.success("Token principal salvo"); setMaster(""); load();
-  };
 
   const syncCert = async (id: string) => {
     setBusy(id);
