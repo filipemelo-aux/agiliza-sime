@@ -42,7 +42,8 @@ import { downloadDactePdf } from "@/components/freight/dactePdf";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { EmpresaFilter } from "@/components/financial/EmpresaControls";
 
 
 // Colunas da listagem: exclui xml_enviado/xml_autorizado (grandes) — a edição busca a linha completa por id.
@@ -97,6 +98,7 @@ export default function FreightCte() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "producao" | "servico">("todos");
+  const [empresa, setEmpresa] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [chooserOpen, setChooserOpen] = useState(false);
@@ -188,6 +190,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     const isServico = c.tipo_talao === "servico";
     if (tipoFilter === "producao" && isServico) return false;
     if (tipoFilter === "servico" && !isServico) return false;
+    if (empresa && c.establishment_id !== empresa) return false;
 
     const emissao = normalizeDateInput(getEmissaoDate(c));
     if (dateFrom && (!emissao || emissao < dateFrom)) return false;
@@ -602,16 +605,23 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         <PageTitle>CT-e</PageTitle>
 
 
-        <SearchFilterCard>
-          <div className="relative min-w-[240px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+        <SearchFilterCard contentClassName="block space-y-2">
+          <FilterPrimaryRow>
+            <div className="mr-auto">
+              <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
+            </div>
+            <EmpresaFilter value={empresa} onChange={setEmpresa} />
+          </FilterPrimaryRow>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="relative min-w-[240px] flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+            </div>
+            <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
+              <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
+            </Select>
           </div>
-          <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
-          <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
-            <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
-          </Select>
         </SearchFilterCard>
 
         <GlobalToolbar
