@@ -55,6 +55,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
   const [groups, setGroups] = useState<DupGroup[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [contractsByCte, setContractsByCte] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (open) scan();
@@ -97,6 +98,16 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
         g.items.length > 1 && (!focus || g.items.some((i) => focus.has(i.id))),
       );
       setGroups(dups);
+      const allIds = dups.flatMap((g) => g.items.map((i) => i.id));
+      const cmap: Record<string, number> = {};
+      for (let k = 0; k < allIds.length; k += 200) {
+        const { data: cs } = await supabase
+          .from("freight_contracts")
+          .select("cte_id, numero")
+          .in("cte_id", allIds.slice(k, k + 200));
+        for (const c of cs || []) cmap[c.cte_id] = c.numero;
+      }
+      setContractsByCte(cmap);
       // Pré-marca os registros antigos (não selecionados) para exclusão
       setSelected(focus ? new Set(dups.flatMap((g) => g.items.filter((i) => !focus.has(i.id)).map((i) => i.id))) : new Set());
     } catch (err: any) {
@@ -117,7 +128,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
     if (selected.size === 0) return;
     const ok = await confirm({
       title: "Excluir CT-es duplicados",
-      description: `Confirma excluir ${selected.size} CT-e(s) e seus contratos de frete vinculados?\n\nEsta ação é irreversível.`,
+      description: `Confirma excluir ${selected.size} CT-e(s)?\n\nContratos de frete dos CT-es excluídos serão transferidos para o CT-e mantido do mesmo grupo (preferindo o importado). Se não houver CT-e mantido sem contrato, o contrato será excluído.\n\nEsta ação é irreversível.`,
       confirmLabel: "Excluir",
       variant: "destructive",
     });
@@ -175,11 +186,6 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
       toast({
         title: errors.length ? "Concluído com erros" : "Duplicidades removidas",
         description: `${okCount} CT-e(s) excluído(s).${moved ? ` ${moved} contrato(s) de frete transferido(s) para o CT-e importado.` : ""}${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
-
-
-      toast({
-        title: errors.length ? "Concluído com erros" : "Duplicidades removidas",
-        description: `${okCount} CT-e(s) excluído(s).${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
         variant: errors.length ? "destructive" : "default",
       });
       onDeleted?.();
