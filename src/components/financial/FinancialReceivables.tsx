@@ -256,6 +256,7 @@ export function FinancialReceivables() {
                   );
                 })}
               </tbody>
+              <tfoot className="bg-muted/60"><tr><td colSpan={8} className="px-3 py-1.5 text-[11px] text-muted-foreground">{filteredSorted.length} registro(s)</td></tr></tfoot>
             </table>
           </div>
         </div>

@@ -279,15 +279,15 @@ export function DataGrid<T>({
               })
             )}
           </tbody>
-          {footer && (
-            <tfoot className="sticky bottom-0 bg-muted/60">
-              <tr>
-                <td colSpan={columns.length + 1} className="px-2 py-1.5">
-                  {footer}
-                </td>
-              </tr>
-            </tfoot>
-          )}
+          <tfoot className="sticky bottom-0 bg-muted/60">
+            <tr>
+              <td colSpan={columns.length + 1} className="px-2 py-1.5">
+                {footer ?? (
+                  <div className="text-[11px] text-muted-foreground">{rows.length} registro(s)</div>
+                )}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

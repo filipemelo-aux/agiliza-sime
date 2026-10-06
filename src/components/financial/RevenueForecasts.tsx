@@ -766,7 +766,7 @@ export function RevenueForecasts() {
               <tr>
                 <td colSpan={8} className="px-2 py-1.5">
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>{previsoes.length} previsão(ões)</span>
+                    <span>{filteredPrevisoes.length} previsão(ões)</span>
                     <span className="font-mono">
                       {selected.size > 0 && (
                         <span className={cn("mr-4", sameClient ? "text-primary" : "text-destructive")}>
