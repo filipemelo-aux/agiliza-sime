@@ -269,8 +269,13 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
           {hml && <HomologationResult r={hml} />}
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button className="h-10" onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar</Button>
+          {hml ? (<>
+            <Button variant="outline" className="h-10" onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Testar novamente</Button>
+            <Button className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Concluir</Button>
+          </>) : (<>
+            <Button variant="outline" className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+            <Button className="h-10" onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}{saving ? "Salvando e testando..." : "Salvar"}</Button>
+          </>)}
         </DialogFooter>
       </DialogContent>
     </Dialog>
