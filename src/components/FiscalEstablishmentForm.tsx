@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RntrcField } from "@/components/RntrcField";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -304,7 +305,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">RNTRC</Label>
-              <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+              <RntrcField value={form.rntrc} cnpj={form.cnpj} onChange={(v) => set("rntrc", v)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Seguradora padrão</Label>

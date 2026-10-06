@@ -6,6 +6,7 @@ import { buscarCodigoIbgePorMunicipio } from "@/lib/ibgeLookup";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RntrcField } from "@/components/RntrcField";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -187,7 +188,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
             <F label="Razão social *" span={4}><Input className="h-9" value={f.razao_social} onChange={set("razao_social")} /></F>
             <F label="Nome fantasia" span={2}><Input className="h-9" value={f.nome_fantasia} onChange={set("nome_fantasia")} /></F>
             <F label="Inscrição estadual"><Input className="h-9" value={f.ie} onChange={set("ie")} /></F>
-            <F label="RNTRC"><Input className="h-9" value={f.rntrc} onChange={set("rntrc")} /></F>
+            <F label="RNTRC"><RntrcField className="h-9" value={f.rntrc} cnpj={f.cnpj} onChange={(v) => setF((p) => ({ ...p, rntrc: v }))} /></F>
             <F label="CEP" span={1}><Input className="h-9" value={f.cep} onChange={set("cep")} /></F>
             <F label="Logradouro" span={4}><Input className="h-9" value={f.logradouro} onChange={set("logradouro")} /></F>
             <F label="Número" span={1}><Input className="h-9" value={f.numero} onChange={set("numero")} /></F>
