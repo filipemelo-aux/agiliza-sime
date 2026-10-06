@@ -26,6 +26,10 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { PeriodFilter } from "@/components/PeriodFilter";
+import { EmpresaFilter } from "./EmpresaControls";
+import { Search, X } from "lucide-react";
 
 
 interface Previsao {
@@ -64,6 +68,12 @@ export function RevenueForecasts() {
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
   const [cteMap, setCteMap] = useState<Record<string, number>>({});
+  const [filterOrigem, setFilterOrigem] = useState<string>("todas");
+  const [filterDoc, setFilterDoc] = useState<string>("");
+  const [filterBusca, setFilterBusca] = useState<string>("");
+  const [filterDataInicio, setFilterDataInicio] = useState<string>("");
+  const [filterDataFim, setFilterDataFim] = useState<string>("");
+  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   // Individual invoice dialog: per-previsao due dates
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
@@ -172,8 +182,44 @@ export function RevenueForecasts() {
     return doc && doc !== "—" ? `${getOrigemTipoLabel(p)} ${doc}` : getOrigemTipoLabel(p);
   };
 
+  const filteredPrevisoes = useMemo(() => {
+    return previsoes.filter((p) => {
+      if (filterEmpresa && (p.empresa_id || "") !== filterEmpresa) return false;
+      if (filterOrigem !== "todas" && p.origem_tipo !== filterOrigem) return false;
+      if (filterDoc.trim()) {
+        const doc = getDocumentoLabel(p).toLowerCase();
+        if (!doc.includes(filterDoc.trim().toLowerCase())) return false;
+      }
+      if (filterBusca.trim()) {
+        const q = filterBusca.trim().toLowerCase();
+        const hay = `${p.cliente_nome || ""} ${p.metadata?.descricao || ""} ${p.metadata?.observacao || ""} ${p.metadata?.descricao_manual || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filterDataInicio && p.data_prevista < filterDataInicio) return false;
+      if (filterDataFim && p.data_prevista > filterDataFim) return false;
+      return true;
+    });
+  }, [previsoes, filterEmpresa, filterOrigem, filterDoc, filterBusca, filterDataInicio, filterDataFim, cteMap]);
+
+  const hasFilters =
+    filterOrigem !== "todas" ||
+    !!filterDoc.trim() ||
+    !!filterBusca.trim() ||
+    !!filterDataInicio ||
+    !!filterDataFim ||
+    !!filterEmpresa;
+
+  const clearFilters = () => {
+    setFilterOrigem("todas");
+    setFilterDoc("");
+    setFilterBusca("");
+    setFilterDataInicio("");
+    setFilterDataFim("");
+    setFilterEmpresa("");
+  };
+
   const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "documento" | "status">(
-    previsoes,
+    filteredPrevisoes,
     { key: "data", direction: "asc" },
     {
       cliente: (row) => row.cliente_nome || "",
@@ -506,6 +552,43 @@ export function RevenueForecasts() {
       </div>
 
       <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
+
+      <SearchFilterCard contentClassName="block space-y-2">
+        <FilterPrimaryRow>
+          <div className="mr-auto flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Data prevista</span>
+            <PeriodFilter
+              size="sm"
+              allowClear
+              inicio={filterDataInicio}
+              fim={filterDataFim}
+              onChange={(i, f) => { setFilterDataInicio(i); setFilterDataFim(f); }}
+            />
+          </div>
+          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+        </FilterPrimaryRow>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Origem: todas</SelectItem>
+              <SelectItem value="cte">CT-e</SelectItem>
+              <SelectItem value="colheita">Colheita</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input placeholder="Nº documento" value={filterDoc} onChange={(e) => setFilterDoc(e.target.value)} className="h-8 w-[120px] text-xs" />
+          <div className="relative min-w-[180px] flex-1">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar cliente ou descrição..." value={filterBusca} onChange={(e) => setFilterBusca(e.target.value)} className="pl-8 h-8 text-xs" />
+          </div>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFilters}>
+              <X className="h-3 w-3" /> Limpar
+            </Button>
+          )}
+        </div>
+      </SearchFilterCard>
 
       <div className="rounded-lg border border-border bg-card">
         <div className="overflow-x-auto">
