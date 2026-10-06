@@ -854,7 +854,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Nome Fantasia</Label>
-              <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: maskName(e.target.value) }))} placeholder="Opcional" />
+              <Input value={form.nome_fantasia} readOnly className="bg-muted/50" placeholder="Preenchido pela consulta do CNPJ" title="Nome fantasia oficial, obtido pela consulta do CNPJ" />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -972,7 +972,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       <Separator />
       <div className="space-y-1.5">
         <Label className="text-xs">Observações</Label>
-        <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Anotações..." />
+        <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Descrição opcional — anote algum detalhe sobre este cadastro (ex.: Filial Pará)" />
       </div>
     </div>
   );
