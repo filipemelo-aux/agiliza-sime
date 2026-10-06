@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { syncCertificateToFocus, parsePfx, encryptCertPassword } from "../_shared/focusCertificate.ts";
+import { syncCertificateToFocus, registerCertificate } from "../_shared/focusCertificate.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       const { data: tenants, error } = await admin.from("tenants").select("*").order("razao_social");
       if (error) throw error;
       const { data: members } = await admin.from("tenant_members").select("tenant_id");
-      const { data: fcerts } = await admin.from("fiscal_certificates").select("tenant_id, nome, ativo, senha_criptografada, created_at").order("created_at", { ascending: false });
+      const { data: fcerts } = await admin.from("fiscal_certificates").select("tenant_id, nome, ativo, senha_criptografada, created_at, valid_until, focus_sync_status").order("created_at", { ascending: false });
       let { data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, focus_nfe_token_master, certificate_password");
       // Adota os tokens já em uso (padrão do servidor) para a empresa que já emite com certificado próprio
       const envProd = Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO") || null;
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
             has_token_homologation: !!s?.focus_nfe_token_homologation,
             has_master_token: !!s?.focus_nfe_token_master || !!Deno.env.get("FOCUS_NFE_TOKEN_MASTER"),
             has_certificate_password: !!s?.certificate_password || !!fc?.senha_criptografada,
-            certificate: certs?.find((c: any) => c.tenant_id === t.id) || (fc ? { file_name: fc.nome, valid_until: null } : null),
+            certificate: fc ? { file_name: fc.nome, valid_until: fc.valid_until, focus_sync_status: fc.focus_sync_status } : (certs?.find((c: any) => c.tenant_id === t.id) || null),
             server_token_production: !!envProd,
             server_token_homologation: !!envHom,
           };
@@ -220,21 +220,8 @@ Deno.serve(async (req) => {
         }
         if (!certificate) throw new Error("Envie o arquivo do certificado e a senha");
         const bin = Uint8Array.from(atob(certificate.base64), (c) => c.charCodeAt(0));
-        const info = parsePfx(bin.buffer, certificate.password);
-        if (info.validUntil.getTime() < Date.now()) throw new Error(`Certificado vencido em ${info.validUntil.toLocaleDateString("pt-BR")}`);
-        if (info.cnpj && info.cnpj.slice(0, 8) !== digits(e.cnpj).slice(0, 8)) throw new Error(`Este certificado é do CNPJ ${info.cnpj}, que não pertence a esta empresa`);
-        const path = `certificates/${crypto.randomUUID()}_${certificate.file_name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-        const { error: upErr } = await admin.storage.from("fiscal-certificates").upload(path, bin, { contentType: "application/x-pkcs12", upsert: false });
-        if (upErr) throw new Error("Erro ao armazenar certificado");
-        const { data: cert, error: insErr } = await admin.from("fiscal_certificates").insert({
-          nome: certificate.file_name, caminho_storage: path, senha_criptografada: await encryptCertPassword(certificate.password),
-          tenant_id, cnpj: info.cnpj, titular: info.titular, valid_until: info.validUntil.toISOString(), focus_sync_status: "pendente",
-        }).select("id").single();
-        if (insErr) { await admin.storage.from("fiscal-certificates").remove([path]); throw new Error("Erro ao salvar certificado"); }
-        await admin.from("establishment_certificates").delete().eq("establishment_id", estId);
-        const { error } = await admin.from("establishment_certificates").insert({ certificate_id: cert.id, establishment_id: estId, tenant_id });
-        if (error) throw error;
-        return await syncCertificateToFocus(admin, cert.id);
+        const { focus } = await registerCertificate(admin, { tenantId: tenant_id, bin, fileName: certificate.file_name, password: certificate.password, establishmentIds: [estId] });
+        return focus;
       };
       const { data: t } = await admin.from("tenants").select("cnpj").eq("id", tenant_id).single();
       if (!t) return json({ error: "Empresa não encontrada" }, 404);
@@ -417,13 +404,13 @@ Deno.serve(async (req) => {
         }
       }
 
+      let certFocus: { ok: boolean; message: string } | null = null;
       if (certificate) {
+        let pass = secrets?.certificate_password || null;
+        if (!pass) { const { data: ts } = await admin.from("tenant_secrets").select("certificate_password").eq("tenant_id", tenantId).maybeSingle(); pass = ts?.certificate_password || null; }
+        if (!pass) throw new Error("Informe a senha do certificado");
         const bin = Uint8Array.from(atob(certificate.base64), (c) => c.charCodeAt(0));
-        const path = `${tenantId}/${Date.now()}.pfx`;
-        const { error: upErr } = await admin.storage.from("tenant-certificates").upload(path, bin, { contentType: "application/x-pkcs12" });
-        if (upErr) throw upErr;
-        await admin.from("tenant_certificates").update({ is_active: false }).eq("tenant_id", tenantId);
-        await admin.from("tenant_certificates").insert({ tenant_id: tenantId, storage_path: path, file_name: certificate.file_name, is_active: true });
+        ({ focus: certFocus } = await registerCertificate(admin, { tenantId: tenantId!, bin, fileName: certificate.file_name, password: pass }));
       }
 
       if (firstAdmin) {
@@ -438,7 +425,7 @@ Deno.serve(async (req) => {
         await admin.from("profiles").insert({ user_id: uid, full_name: firstAdmin.full_name, email, category: "Colaborador", person_type: "fisica", tenant_id: tenantId });
       }
 
-      return json({ success: true, id: tenantId });
+      return json({ success: true, id: tenantId, focus: certFocus });
     }
 
     return json({ error: "Ação inválida" }, 400);

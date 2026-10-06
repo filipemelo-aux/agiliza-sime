@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { parsePfx, syncCertificateToFocus } from "../_shared/focusCertificate.ts";
+import { registerCertificate } from "../_shared/focusCertificate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -161,82 +161,13 @@ Deno.serve(async (req) => {
         return json({ success: false, error: "Arquivo excede o tamanho máximo de 10MB" }, 400);
       }
 
-      const fileBuffer = await file.arrayBuffer();
-      // 0. Valida o certificado: senha, validade e CNPJ da empresa
-      let info;
-      try { info = parsePfx(fileBuffer, senha); } catch (e) { return json({ success: false, error: (e as Error).message }, 400); }
-      if (info.validUntil.getTime() < Date.now()) return json({ success: false, error: `Certificado vencido em ${info.validUntil.toLocaleDateString("pt-BR")}` }, 400);
-      const { data: tenant } = await serviceClient.from("tenants").select("cnpj").eq("id", tenantId).single();
-      const root = String(tenant?.cnpj || "").replace(/\D/g, "").slice(0, 8);
-      if (info.cnpj && root && info.cnpj.slice(0, 8) !== root) {
-        return json({ success: false, error: `Este certificado é do CNPJ ${info.cnpj}, que não pertence a esta empresa` }, 400);
-      }
-
-      // 1. Encrypt the password
-      const encryptedPassword = await encryptPassword(senha);
-
-      // 2. Upload PFX to private bucket
-      const filePath = `certificates/${crypto.randomUUID()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-      const { error: uploadError } = await serviceClient.storage
-        .from("fiscal-certificates")
-        .upload(filePath, fileBuffer, {
-          contentType: "application/x-pkcs12",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("[certificate-manager] Upload error:", uploadError.message);
-        return json({ success: false, error: "Erro ao armazenar certificado" }, 500);
-      }
-
-      // 3. Save to DB with encrypted password
-      const { data: cert, error: insertError } = await serviceClient
-        .from("fiscal_certificates")
-        .insert({
-          nome,
-          caminho_storage: filePath,
-          senha_criptografada: encryptedPassword,
-          tenant_id: tenantId,
-          cnpj: info.cnpj,
-          titular: info.titular,
-          valid_until: info.validUntil.toISOString(),
-          focus_sync_status: "pendente",
-        })
-        .select("id, nome, ativo, created_at")
-        .single();
-
-      if (insertError) {
-        // Cleanup uploaded file
-        await serviceClient.storage.from("fiscal-certificates").remove([filePath]);
-        console.error("[certificate-manager] Insert error:", insertError.message);
-        return json({ success: false, error: "Erro ao salvar certificado" }, 500);
-      }
-
-      // Log (never log password)
-      console.log(
-        `[certificate-manager] Certificate "${nome}" uploaded by user ${userId} → ${filePath}`
-      );
-
-      // 4. Substitui o certificado anterior: herda os vínculos e desativa os antigos
-      const { data: olds } = await serviceClient.from("fiscal_certificates").select("id").eq("tenant_id", tenantId).neq("id", cert.id);
-      const oldIds = (olds || []).map((o: any) => o.id);
-      let estIds: string[] = [];
-      if (oldIds.length) {
-        const { data: links } = await serviceClient.from("establishment_certificates").select("establishment_id").in("certificate_id", oldIds);
-        estIds = [...new Set((links || []).map((l: any) => l.establishment_id as string))];
-        await serviceClient.from("fiscal_certificates").update({ ativo: false }).in("id", oldIds);
-      }
-      if (!estIds.length) {
-        const { data: ests } = await serviceClient.from("fiscal_establishments").select("id").eq("tenant_id", tenantId);
-        estIds = (ests || []).map((e: any) => e.id);
-      }
-      if (estIds.length) {
-        await serviceClient.from("establishment_certificates").delete().in("establishment_id", estIds);
-        await serviceClient.from("establishment_certificates").insert(estIds.map((id) => ({ certificate_id: cert.id, establishment_id: id, tenant_id: tenantId })));
-      }
-
+      let reg;
+      try {
+        reg = await registerCertificate(serviceClient, { tenantId, bin: new Uint8Array(await file.arrayBuffer()), fileName: nome.endsWith(".pfx") || nome.endsWith(".p12") ? nome : file.name, password: senha });
+      } catch (e) { return json({ success: false, error: (e as Error).message }, 400); }
+      const { cert, info, focus } = reg;
+      console.log(`[certificate-manager] Certificate "${nome}" uploaded by user ${userId}`);
       // 5. Envia para a Focus e avisa o SuperAdmin
-      const focus = await syncCertificateToFocus(serviceClient, cert.id);
       const { data: supers } = await serviceClient.from("user_roles").select("user_id").eq("role", "superadmin");
       if (supers?.length) {
         await serviceClient.from("notifications").insert(supers.map((s: any) => ({
