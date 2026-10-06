@@ -58,6 +58,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
   const [hml, setHml] = useState<HmlResult | null>(null);
+  const retest = async () => { if (!matriz || !(branch?.id || savedId)) return; setSaving(true); setHml(await runHomologationTest(matriz.id, (branch?.id || savedId)!, f.razao_social)); setSaving(false); };
   const [savedId, setSavedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -231,7 +232,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
         </div>
         <DialogFooter>
           {hml ? (<>
-            <Button variant="outline" className="h-10" onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Testar novamente</Button>
+            <Button variant="outline" className="h-10" onClick={retest} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Testar novamente</Button>
             <Button className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Concluir</Button>
           </>) : (<>
             <Button variant="outline" className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
