@@ -63,6 +63,14 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
       const t: any = { ...empty };
       for (const k of Object.keys(empty)) t[k] = (tenant as any)[k] ?? (empty as any)[k];
       setF(t);
+      supabase.functions.invoke("superadmin-tenants", { body: { action: "list_establishments", tenant_id: tenant.id } }).then(({ data }) => {
+        const m = (data?.establishments || []).find((e: any) => e.type === "matriz");
+        if (m) setMatrizNums({
+          ultimo_numero_cte: m.ultimo_numero_cte ?? 0,
+          ultimo_numero_cte_servico: m.ultimo_numero_cte_servico ?? 0,
+          ultimo_numero_mdfe: m.ultimo_numero_mdfe ?? 0,
+        });
+      });
     } else setF(empty);
     setTokProd(""); setTokHom(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
   }, [open, tenant]);
