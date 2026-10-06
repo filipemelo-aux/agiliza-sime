@@ -129,22 +129,38 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
     const errors: string[] = [];
 
     try {
-      // Buscar contratos vinculados
+      // Contratos vinculados aos CT-es que serão excluídos
       const { data: contracts } = await supabase
         .from("freight_contracts")
         .select("id, expense_id, cte_id")
         .in("cte_id", ids);
 
-      const expenseIds = (contracts || []).map((c: any) => c.expense_id).filter(Boolean);
-      const contractIds = (contracts || []).map((c: any) => c.id);
+      const focus = new Set(focusIds || []);
+      const taken = new Set(Object.keys(contractsByCte));
+      const toDelete: any[] = [];
+      let moved = 0;
 
-      // Deletar contratos
+      for (const c of contracts || []) {
+        const group = groups.find((g) => g.items.some((i) => i.id === c.cte_id));
+        const candidates = (group?.items || []).filter((i) => !selected.has(i.id) && !taken.has(i.id));
+        const target = candidates.find((i) => focus.has(i.id)) || candidates[0];
+        if (target) {
+          const { error } = await supabase.from("freight_contracts").update({ cte_id: target.id }).eq("id", c.id);
+          if (error) { errors.push(`Contrato: ${error.message}`); toDelete.push(c); }
+          else { taken.add(target.id); moved++; }
+        } else {
+          toDelete.push(c);
+        }
+      }
+
+      const contractIds = toDelete.map((c) => c.id);
+      const expenseIds = toDelete.map((c) => c.expense_id).filter(Boolean);
+
       if (contractIds.length) {
         const { error } = await supabase.from("freight_contracts").delete().in("id", contractIds);
         if (error) errors.push(`Contratos: ${error.message}`);
       }
 
-      // Deletar contas a pagar pendentes vinculadas
       if (expenseIds.length) {
         await supabase.from("expenses").delete().in("id", expenseIds).in("status", ["pendente", "atrasado"]);
       }
@@ -155,6 +171,11 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds
         if (error) errors.push(`CT-e ${id.slice(0, 8)}: ${error.message}`);
         else okCount++;
       }
+
+      toast({
+        title: errors.length ? "Concluído com erros" : "Duplicidades removidas",
+        description: `${okCount} CT-e(s) excluído(s).${moved ? ` ${moved} contrato(s) de frete transferido(s) para o CT-e importado.` : ""}${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
+
 
       toast({
         title: errors.length ? "Concluído com erros" : "Duplicidades removidas",
