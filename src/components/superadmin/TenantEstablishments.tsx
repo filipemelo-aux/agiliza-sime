@@ -255,14 +255,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
             ))}
           </div>
         )}
-        <div className="rounded border p-2 flex flex-wrap items-end gap-2">
-          <div className="flex-1 min-w-[240px]">
-            <Label className="text-[11px] text-muted-foreground flex items-center gap-1"><KeyRound className="h-3 w-3" />Token principal da conta Focus {hasMaster ? "(configurado)" : "(não configurado)"}</Label>
-            <Input type="password" autoComplete="new-password" className="h-9" placeholder="Usado para atualizar o certificado das empresas na Focus" value={master} onChange={(e) => setMaster(e.target.value)} />
-          </div>
-          <Button type="button" className="h-9" disabled={busy === "master" || !master.trim()} onClick={saveMaster}>{busy === "master" && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar token principal</Button>
-        </div>
-        <p className="text-[11px] text-muted-foreground">Cada estabelecimento usa o próprio token da Focus; sem token próprio, vale o token da empresa. Quando o cliente envia um novo certificado, ele é validado, vinculado e enviado à Focus automaticamente.</p>
+        <p className="text-[11px] text-muted-foreground">Cada estabelecimento usa o próprio token da Focus; sem token próprio, vale o token da empresa. O token principal da conta Focus é configurado no bloco 2 (vale para a matriz e todas as filiais). Quando o cliente envia um novo certificado, ele é validado, vinculado e enviado à Focus automaticamente.</p>
       </div>
     </section>
   );

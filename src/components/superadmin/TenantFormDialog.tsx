@@ -204,7 +204,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved }: {
               </Select>
             </F>
             <p className="md:col-span-3 self-end text-[11px] text-muted-foreground">Cada sincronização consulta a SEFAZ uma vez por CNPJ (horário de Brasília) e as notas ficam disponíveis para todos os usuários da empresa.</p>
-            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
+            <p className="md:col-span-6 text-[11px] text-muted-foreground">Tokens e senha ficam guardados só no servidor e nunca são exibidos novamente. Token próprio da empresa tem prioridade sobre o padrão do servidor. O token principal é o da conta Focus da empresa: vale para a matriz e todas as filiais e é usado para atualizar o certificado na Focus automaticamente quando o cliente envia um novo. Os vínculos de certificado por estabelecimento ficam no bloco 3.</p>
           </Block>
 
           {tenant && <TenantEstablishments tenantId={tenant.id} tenantCnpj={tenant.cnpj} tenantName={tenant.razao_social} />}
