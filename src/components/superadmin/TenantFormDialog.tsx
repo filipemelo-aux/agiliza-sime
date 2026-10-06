@@ -50,6 +50,8 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
   open: boolean; onOpenChange: (v: boolean) => void; tenant: TenantRow | null; onSaved: () => void; onMarkBranch?: () => void;
 }) {
   const [hml, setHml] = useState<HmlResult | null>(null);
+  const [lastTest, setLastTest] = useState<{ tid: string; estId: string } | null>(null);
+  const retest = async () => { if (!lastTest) return; setSaving(true); setHml(await runHomologationTest(lastTest.tid, lastTest.estId, f.razao_social)); setSaving(false); };
   const [matrizEstId, setMatrizEstId] = useState<string | null>(null);
   const [f, setF] = useState<typeof empty>(empty);
   const [tokProd, setTokProd] = useState("");
@@ -159,7 +161,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
           const { data: le } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "list_establishments", tenant_id: tid } });
           estId = (le?.establishments || []).find((e: any) => e.type === "matriz")?.id || null;
         }
-        if (estId && tid) setHml(await runHomologationTest(tid, estId, f.razao_social));
+        if (estId && tid) { setLastTest({ tid, estId }); setHml(await runHomologationTest(tid, estId, f.razao_social)); }
         else onOpenChange(false);
       } else onOpenChange(false);
     } catch (e: any) { toast.error(e.message || "Erro ao salvar"); }
@@ -269,8 +271,13 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
           {hml && <HomologationResult r={hml} />}
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button className="h-10" onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar</Button>
+          {hml ? (<>
+            <Button variant="outline" className="h-10" onClick={retest} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Testar novamente</Button>
+            <Button className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Concluir</Button>
+          </>) : (<>
+            <Button variant="outline" className="h-10" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+            <Button className="h-10" onClick={save} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}{saving ? "Salvando e testando..." : "Salvar"}</Button>
+          </>)}
         </DialogFooter>
       </DialogContent>
     </Dialog>
