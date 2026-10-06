@@ -1858,7 +1858,6 @@ ${hasRecebimentos ? `
           <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
         </FilterPrimaryRow>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
           <Select value={filterCondicao} onValueChange={setFilterCondicao}>
             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
