@@ -35,6 +35,7 @@ import AdminRH from "./pages/AdminRH";
 import NotFound from "./pages/NotFound";
 import SuperAdminTenants from "./pages/superadmin/SuperAdminTenants";
 import { UpdateNotification } from "./components/UpdateNotification";
+import { GlobalWriteOverlay } from "./components/ui/global-write-overlay";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <UpdateNotification />
+      <GlobalWriteOverlay />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
