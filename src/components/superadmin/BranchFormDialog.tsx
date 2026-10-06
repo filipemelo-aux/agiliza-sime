@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Loader2, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupCnpj } from "@/lib/cnpjLookup";
+import { buscarCodigoIbgePorMunicipio } from "@/lib/ibgeLookup";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,15 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
     setF((p) => ({ ...p, cnpj: p.cnpj || t.cnpj.slice(0, 8), razao_social: p.razao_social || `${t.razao_social} - Filial `, rntrc: p.rntrc || t.rntrc || "" }));
   };
 
+  useEffect(() => {
+    const m = (f.endereco_municipio || "").trim(), u = (f.endereco_uf || "").trim();
+    if (!m || u.length !== 2) return;
+    const t = setTimeout(async () => {
+      const c = await buscarCodigoIbgePorMunicipio(u, m);
+      if (c) setF((p) => (p.endereco_municipio === f.endereco_municipio && p.endereco_uf === f.endereco_uf ? { ...p, codigo_municipio_ibge: c } : p));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [f.endereco_municipio, f.endereco_uf]);
   const set = (k: keyof typeof emptyEst) => (e: React.ChangeEvent<HTMLInputElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
 
   const buscar = async () => {
