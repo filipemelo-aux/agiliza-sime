@@ -14,7 +14,16 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onDeleted?: () => void;
+  /** Quando informado, mostra apenas duplicidades que envolvem estes CT-es. */
+  focusIds?: string[];
 }
+
+const brDate = (v: string) => {
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? s.slice(0, 10) : d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+};
 
 interface CteRow {
   id: string;
@@ -39,7 +48,7 @@ interface DupGroup {
   items: CteRow[];
 }
 
-export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props) {
+export function CteInconsistencyDialog({ open, onOpenChange, onDeleted, focusIds }: Props) {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [loading, setLoading] = useState(false);
@@ -67,14 +76,14 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
         .not("peso_bruto", "is", null)
         .gt("peso_bruto", 0)
         .order("data_emissao", { ascending: false })
-        .limit(5000);
+        .limit(20000);
       if (error) throw error;
 
       const map = new Map<string, DupGroup>();
       for (const row of (data as CteRow[]) || []) {
-        const dataKey = String(row.data_emissao).slice(0, 10);
+        const dataKey = brDate(String(row.data_emissao));
         const placa = String(row.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const peso = Number(row.peso_bruto || 0);
+        const peso = Math.round(Number(row.peso_bruto || 0));
         const valor = Number(row.valor_frete || 0);
         if (!dataKey || !placa || !peso || peso <= 0) continue;
         const key = `${dataKey}|${placa}|${peso}|${valor.toFixed(2)}`;
@@ -83,9 +92,13 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
         }
         map.get(key)!.items.push(row);
       }
-      const dups = Array.from(map.values()).filter((g) => g.items.length > 1);
+      const focus = focusIds?.length ? new Set(focusIds) : null;
+      const dups = Array.from(map.values()).filter((g) =>
+        g.items.length > 1 && (!focus || g.items.some((i) => focus.has(i.id))),
+      );
       setGroups(dups);
-      setSelected(new Set());
+      // Pré-marca os registros antigos (não selecionados) para exclusão
+      setSelected(focus ? new Set(dups.flatMap((g) => g.items.filter((i) => !focus.has(i.id)).map((i) => i.id))) : new Set());
     } catch (err: any) {
       toast({ title: "Erro ao verificar", description: err.message, variant: "destructive" });
     } finally {
@@ -167,7 +180,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
               Verificação de Inconsistências
             </DialogTitle>
             <DialogDescription>
-              Procura CT-es com mesma <strong>data de emissão + placa + peso + valor</strong>. CT-es com peso zero são ignorados.
+              Procura CT-es com mesma <strong>data de emissão + placa + peso + valor</strong>. CT-es com peso zero são ignorados.{focusIds?.length ? ` Analisando ${focusIds.length} CT-e(s) selecionado(s) contra todos os talões; os registros não selecionados vêm marcados para exclusão.` : ""}
             </DialogDescription>
           </DialogHeader>
 
@@ -212,6 +225,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
                           <span className="text-[11px] font-mono w-14">Nº {num}</span>
                           <Badge variant="outline" className="text-[9px]">{item.tipo_talao === "servico" ? "Serviço" : "Produção"}</Badge>
                           <Badge variant="outline" className="text-[9px]">{item.status}</Badge>
+                          {focusIds?.includes(item.id) && <Badge className="text-[9px]">Selecionado</Badge>}
                           <span className="text-[11px] truncate flex-1">
                             {item.destinatario_nome || item.remetente_nome || "—"}
                           </span>
