@@ -49,7 +49,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
   const [f, setF] = useState(emptyEst);
   const [matrizId, setMatrizId] = useState("");
   const [q, setQ] = useState("");
-  const [certMode, setCertMode] = useState<"keep" | "matriz" | "new">("matriz");
+  const [certMode, setCertMode] = useState<"matriz" | "new">("matriz");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [certPass, setCertPass] = useState("");
   const [tokProd, setTokProd] = useState("");
@@ -64,7 +64,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
     if (branch) {
       const t: any = { ...emptyEst };
       for (const k of Object.keys(emptyEst)) t[k] = (branch as any)[k] ?? (emptyEst as any)[k];
-      setF(t); setMatrizId(branch.tenant_id); setCertMode("keep");
+      setF(t); setMatrizId(branch.tenant_id); setCertMode("matriz");
     } else { setF(emptyEst); setMatrizId(""); setCertMode("matriz"); }
     setQ(""); setCertFile(null); setCertPass(""); setTokProd(""); setTokHom(""); setHml(null); setSavedId(null);
   }, [open, branch]);
@@ -123,7 +123,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
       if (error || data?.error) throw new Error(data?.error || error?.message);
       toast.success(branch ? "Filial atualizada" : "Filial cadastrada");
       if (data.focus) (data.focus.ok ? toast.success : toast.error)(`Certificado na Focus: ${data.focus.message}`);
-      setSavedId(data.id); setCertMode("keep"); setTokProd(""); setTokHom("");
+      setSavedId(data.id); setCertMode("matriz"); setTokProd(""); setTokHom("");
       onSaved();
       if (f.ambiente === "homologacao") {
         setHml(await runHomologationTest(matriz.id, data.id, f.razao_social));
@@ -200,15 +200,10 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
                 <F label={`Token Focus homologação ${branch?.has_token_homologation ? "(cadastrado)" : ""}`} span={3}>
                   <Input type="password" autoComplete="new-password" className="h-9" placeholder={branch?.has_token_homologation ? "•••••• deixe vazio para manter" : "Cole o token de homologação desta filial"} value={tokHom} onChange={(e) => setTokHom(e.target.value)} /></F>
                 <F label="Último nº CT-e (produção)"><Input type="number" className="h-9" value={f.ultimo_numero_cte ?? 0} onChange={set("ultimo_numero_cte")} /></F>
-                <F label="Último nº CT-e (serviço)"><Input type="number" className="h-9" value={f.ultimo_numero_cte_servico ?? 0} onChange={set("ultimo_numero_cte_servico")} /></F>
                 <F label="Último nº MDF-e"><Input type="number" className="h-9" value={f.ultimo_numero_mdfe ?? 0} onChange={set("ultimo_numero_mdfe")} /></F>
                 <F label="Certificado digital A1" span={6}>
                   <div className="flex flex-wrap gap-4 text-xs h-9 items-center">
-                    {(branch || savedId) && (
-                      <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "keep"} onChange={() => setCertMode("keep")} />
-                        Manter o atual{branch ? ` (${branch.has_certificate ? (branch.same_certificate_as_matriz ? "mesmo da matriz" : "certificado próprio") : "nenhum"})` : ""}</label>
-                    )}
-                    <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "matriz"} onChange={() => setCertMode("matriz")} />Usar o mesmo certificado da matriz</label>
+                    <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "matriz"} onChange={() => setCertMode("matriz")} />Usar o mesmo certificado da matriz{branch?.has_certificate && branch.same_certificate_as_matriz ? " (atual)" : ""}</label>
                     <label className="inline-flex items-center gap-1.5"><input type="radio" checked={certMode === "new"} onChange={() => setCertMode("new")} />Inserir um novo certificado</label>
                   </div>
                 </F>

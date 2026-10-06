@@ -210,7 +210,6 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
             {tenant && (
               <>
                 <F label="Último nº CT-e (produção)" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_cte} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_cte: Number(e.target.value) || 0 }))} /></F>
-                <F label="Último nº CT-e (serviço)" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_cte_servico} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_cte_servico: Number(e.target.value) || 0 }))} /></F>
                 <F label="Último nº MDF-e" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_mdfe} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_mdfe: Number(e.target.value) || 0 }))} /></F>
               </>
             )}
