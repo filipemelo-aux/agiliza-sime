@@ -46,6 +46,11 @@ const SaveSchema = z.object({
     email: z.string().trim().email().max(200),
     password: z.string().min(8).max(100),
   }).optional().nullable(),
+  matriz_numeracao: z.object({
+    ultimo_numero_cte: z.number().int().min(0).max(999999999).optional().nullable(),
+    ultimo_numero_cte_servico: z.number().int().min(0).max(999999999).optional().nullable(),
+    ultimo_numero_mdfe: z.number().int().min(0).max(999999999).optional().nullable(),
+  }).optional(),
 });
 
 Deno.serve(async (req) => {

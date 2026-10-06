@@ -33,7 +33,7 @@ const F = ({ label, span = 2, children }: { label: string; span?: number; childr
 export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { tenantId: string; tenantCnpj: string; tenantName: string }) {
   const [all, setAll] = useState<Est[]>([]);
   const [certs, setCerts] = useState<Cert[]>([]);
-  const list = all;
+  const list = all.filter((e) => e.type === "filial");
   const [tokProd, setTokProd] = useState("");
   const [tokHom, setTokHom] = useState("");
   const [hasMaster, setHasMaster] = useState(false);
