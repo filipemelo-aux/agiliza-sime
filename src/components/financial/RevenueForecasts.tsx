@@ -553,6 +553,43 @@ export function RevenueForecasts() {
 
       <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
 
+      <SearchFilterCard contentClassName="block space-y-2">
+        <FilterPrimaryRow>
+          <div className="mr-auto flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Data prevista</span>
+            <PeriodFilter
+              size="sm"
+              allowClear
+              inicio={filterDataInicio}
+              fim={filterDataFim}
+              onChange={(i, f) => { setFilterDataInicio(i); setFilterDataFim(f); }}
+            />
+          </div>
+          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+        </FilterPrimaryRow>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Origem: todas</SelectItem>
+              <SelectItem value="cte">CT-e</SelectItem>
+              <SelectItem value="colheita">Colheita</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input placeholder="Nº documento" value={filterDoc} onChange={(e) => setFilterDoc(e.target.value)} className="h-8 w-[120px] text-xs" />
+          <div className="relative min-w-[180px] flex-1">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar cliente ou descrição..." value={filterBusca} onChange={(e) => setFilterBusca(e.target.value)} className="pl-8 h-8 text-xs" />
+          </div>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFilters}>
+              <X className="h-3 w-3" /> Limpar
+            </Button>
+          )}
+        </div>
+      </SearchFilterCard>
+
       <div className="rounded-lg border border-border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs" style={{ minWidth: 900 }}>
