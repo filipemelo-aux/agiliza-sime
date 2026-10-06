@@ -137,7 +137,7 @@ export function TenantEstablishments({ tenantId, tenantCnpj, tenantName }: { ten
   return (
     <section className="rounded-lg border">
       <div className="flex items-center px-3 py-2 bg-muted/50 border-b">
-        <h3 className="text-xs font-bold uppercase tracking-wide">3. Estabelecimentos fiscais (matriz e filiais)</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide">3. Filiais</h3>
         {!edit && <Button type="button" size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={novaFilial}><Plus className="h-3.5 w-3.5 mr-1" />Nova filial</Button>}
       </div>
       <div className="p-3 space-y-2">

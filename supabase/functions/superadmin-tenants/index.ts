@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
     if (body.action === "save") {
       const p = SaveSchema.safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos", details: p.error.flatten().fieldErrors }, 400);
-      const { tenant, secrets, certificate, admin: firstAdmin } = p.data;
+      const { tenant, secrets, certificate, admin: firstAdmin, matriz_numeracao } = p.data;
       const row = { ...tenant, cnpj: digits(tenant.cnpj), cep: digits(tenant.cep) || null };
       const isNew = !tenant.id;
       let tenantId = tenant.id;
