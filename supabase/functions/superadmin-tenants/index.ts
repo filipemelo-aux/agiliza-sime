@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { syncCertificateToFocus } from "../_shared/focusCertificate.ts";
+import { syncCertificateToFocus, parsePfx, encryptCertPassword } from "../_shared/focusCertificate.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -101,10 +101,9 @@ Deno.serve(async (req) => {
           const link = (blinks || []).find((l: any) => l.establishment_id === b.id);
           const m = (mlinks || []).find((r: any) => r.tenant_id === b.tenant_id);
           const mLink = m ? (blinks || []).find((l: any) => l.establishment_id === m.id) : null;
-          const cert = link ? (fcerts as any[] || []).find(() => false) : null;
           return {
             ...b, has_token_production: !!x?.focus_nfe_token_production, has_token_homologation: !!x?.focus_nfe_token_homologation,
-            has_certificate: !!link, same_certificate_as_matriz: !!link && !!mLink && link.certificate_id === mLink.certificate_id, _c: cert,
+            has_certificate: !!link, same_certificate_as_matriz: !!link && !!mLink && link.certificate_id === mLink.certificate_id,
           };
         }),
         tenants: (tenants || []).map((t: any) => {
