@@ -41,6 +41,8 @@ interface ParsedCte {
   cst: string; bc: number; aliq: number; icms: number;
   protocolo: string | null; dhAut: string | null; cStat: string | null;
   chavesNfe: string[];
+  estId?: string | null;
+  estLabel?: string;
   // resultado
   state?: "ok" | "dup" | "err" | "pending";
   msg?: string;
@@ -107,7 +109,7 @@ function parseCteXml(file: string, xml: string): ParsedCte {
     numero: num(txt(ide, "nCT")),
     serie: num(txt(ide, "serie")),
     dhEmi: txt(ide, "dhEmi"),
-    emitCnpj: txt(first("emit"), "CNPJ"),
+    emitCnpj: txt(first("emit"), "CNPJ").replace(/\D/g, ""),
     cfop: txt(ide, "CFOP"),
     natOp: txt(ide, "natOp"),
     tpCte: num(txt(ide, "tpCTe")),
@@ -170,7 +172,18 @@ export function CteXmlBatchImportDialog({ open, onOpenChange, onImported }: Prop
       const { data } = await supabase.from("ctes").select("chave_acesso").in("chave_acesso", chaves.slice(i, i + 200));
       (data || []).forEach((r: any) => existing.add(r.chave_acesso));
     }
-    parsed.forEach((p) => { if (existing.has(p.chave)) { p.state = "dup"; p.msg = "Já existe no sistema"; } });
+    // Empresa emitente: identifica Matriz/Filial pelo CNPJ do emitente no XML
+    const { data: ests } = await supabase.from("fiscal_establishments").select("id, cnpj, type, nome_fantasia, razao_social");
+    const estByCnpj = new Map((ests || []).map((e: any) => [String(e.cnpj || "").replace(/\D/g, ""), e]));
+    parsed.forEach((p) => {
+      const est: any = estByCnpj.get(p.emitCnpj);
+      p.estId = est?.id ?? null;
+      p.estLabel = est
+        ? (est.type === "matriz" ? "Matriz" : (est.nome_fantasia || est.razao_social || "Filial").replace(/^.*-\s*/, ""))
+        : "Não cadastrada";
+      if (existing.has(p.chave)) { p.state = "dup"; p.msg = "Já existe no sistema"; }
+      else if (!est) { p.state = "err"; p.msg = `Emitente CNPJ ${p.emitCnpj} não é uma empresa cadastrada`; }
+    });
     parsed.sort((a, b) => a.numero - b.numero);
     setItems(parsed);
     setReadErrors(errs);
@@ -180,14 +193,12 @@ export function CteXmlBatchImportDialog({ open, onOpenChange, onImported }: Prop
 
   const handleImport = async () => {
     setBusy(true);
-    const { data: ests } = await supabase.from("fiscal_establishments").select("id, cnpj");
-    const estByCnpj = new Map((ests || []).map((e: any) => [String(e.cnpj || "").replace(/\D/g, ""), e.id]));
     const created: string[] = [];
     const next = [...items];
     for (const p of next) {
       if (p.state !== "pending") continue;
       try {
-        const estId = estByCnpj.get(p.emitCnpj);
+        const estId = p.estId;
         if (!estId) throw new Error(`Emitente ${p.emitCnpj} não é um estabelecimento cadastrado`);
         let tomadorId: string | null = null;
         if (p.toma.cnpj) {
@@ -279,12 +290,13 @@ export function CteXmlBatchImportDialog({ open, onOpenChange, onImported }: Prop
           <div className="max-h-[50vh] overflow-y-auto border border-border rounded-md">
             <table className="w-full text-[11px]">
               <thead className="bg-muted/50 sticky top-0">
-                <tr className="text-left"><th className="p-1.5">Nº</th><th>Emissão</th><th>Tomador</th><th>Placa</th><th className="text-right">Peso (kg)</th><th className="text-right">Valor</th><th className="pl-2">Situação</th></tr>
+                <tr className="text-left"><th className="p-1.5">Nº</th><th>Empresa</th><th>Emissão</th><th>Tomador</th><th>Placa</th><th className="text-right">Peso (kg)</th><th className="text-right">Valor</th><th className="pl-2">Situação</th></tr>
               </thead>
               <tbody>
                 {items.map((p) => (
                   <tr key={p.chave} className="border-t border-border/60">
                     <td className="p-1.5 font-mono">{p.numero}</td>
+                    <td className={p.estId ? "font-medium" : "text-destructive"} title={p.emitCnpj}>{p.estLabel}</td>
                     <td>{formatDateBR(p.dhEmi.slice(0, 10))}</td>
                     <td className="truncate max-w-[220px]">{p.toma.nome || "—"}</td>
                     <td>{p.placa || "—"}</td>
