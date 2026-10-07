@@ -14,10 +14,19 @@ const notify = () => listeners.forEach((l) => l(pending, lastLabel));
 const backendUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
 
 function labelFor(method: string, url: string) {
-  if (method === "DELETE") return "Excluindo...";
-  if (url.includes("/rpc/") || url.includes("/functions/v1/")) return "Processando...";
-  if (method === "POST") return "Salvando...";
-  return "Atualizando...";
+  let resource = "";
+  const table = url.match(/\/rest\/v1\/([^/?]+)/)?.[1];
+  const rpc = url.match(/\/rpc\/([^/?]+)/)?.[1];
+  const fn = url.match(/\/functions\/v1\/([^/?]+)/)?.[1];
+  if (rpc) resource = rpc.replace(/_/g, " ");
+  else if (fn) resource = fn.replace(/-/g, " ");
+  else if (table) resource = table.replace(/_/g, " ");
+
+  if (rpc) return `Executando ${resource}...`;
+  if (fn) return `Processando ${resource}...`;
+  if (method === "DELETE") return resource ? `Excluindo registro em ${resource}...` : "Excluindo...";
+  if (method === "POST") return resource ? `Salvando ${resource}...` : "Salvando...";
+  return resource ? `Atualizando ${resource}...` : "Atualizando...";
 }
 
 let installed = false;
