@@ -199,7 +199,7 @@ export default function NotasFiscaisConsulta() {
               <FilterField label="Período">
                 <PeriodFilter inicio={fInicio} fim={fFim} size="sm" onChange={(i: string, f: string) => { setFInicio(i); setFFim(f); }} />
               </FilterField>
-              <FilterField label="Papel">
+              <FilterField label="Papel na nota">
                 <Select value={ator} onValueChange={(v) => setAtor(v as any)}>
                   <SelectTrigger className="h-8 w-[220px] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
