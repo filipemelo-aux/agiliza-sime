@@ -660,10 +660,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => setXmlBatchOpen(true),
             },
             {
-              key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
-              onClick: () => setBatchOpen(true),
-            },
-            {
               key: "resumo", label: "Importar planilha resumida (Serviço)", icon: FileText, mode: "always", variant: "outline",
               onClick: () => setResumoOpen(true),
             },
@@ -776,12 +772,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
           }}
         />
       )}
-      <CteBatchImportDialog
-        open={batchOpen}
-        onOpenChange={setBatchOpen}
-        onImported={fetchCtes}
-      />
-      <CteInconsistencyDialog
+  <CteInconsistencyDialog
         open={inconsistencyOpen}
         onOpenChange={setInconsistencyOpen}
         onDeleted={() => { fetchCtes(); setSelectedIds(new Set()); }}
