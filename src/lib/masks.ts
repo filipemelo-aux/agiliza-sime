@@ -54,11 +54,10 @@ export const maskPlateInput = (value: string): string => {
     const isDigit = ch >= "0" && ch <= "9";
     if (!isLetter && !isDigit) continue;
     const pos = out.length;
+    // Mercosul only: LLL N L NN
     if (pos === 3 || pos >= 5) {
       if (!isDigit) continue;
-    } else if (pos < 3) {
-      if (!isLetter) continue;
-    }
+    } else if (!isLetter) continue;
     out += ch;
   }
   return out.length <= 3 ? out : `${out.slice(0, 3)}-${out.slice(3)}`;
