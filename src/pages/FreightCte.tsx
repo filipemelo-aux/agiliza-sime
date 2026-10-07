@@ -630,10 +630,13 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
             </div>
-            <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
-              <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
-            </Select>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Talão</Label>
+              <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
+                <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
+              </Select>
+            </div>
           </div>
         </SearchFilterCard>
 
