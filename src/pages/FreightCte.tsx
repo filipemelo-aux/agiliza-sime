@@ -39,6 +39,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { downloadDactePdf } from "@/components/freight/dactePdf";
+import { cteXmlToPrintFields } from "@/lib/cteXmlToPrint";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
@@ -126,8 +127,11 @@ export default function FreightCte() {
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
     if (error || !data) throw new Error(error?.message || "CT-e não encontrado");
-    const num = (data as any).numero ?? (data as any).numero_interno ?? "";
-    await downloadDactePdf(data as any, `DACTE-${num || cteId.slice(0, 8)}.pdf`);
+    // CT-e com XML guardado (ex.: importado): o modelo padrão é preenchido pelo próprio XML, sem consultar a Focus.
+    const fromXml = cteXmlToPrintFields((data as any).xml_autorizado);
+    const input = fromXml ? { ...(data as any), ...fromXml, status: (data as any).status } : (data as any);
+    const num = input.numero ?? input.numero_interno ?? "";
+    await downloadDactePdf(input, `DACTE-${num || cteId.slice(0, 8)}.pdf`);
   };
 
   const handlePrintSelected = () => {
