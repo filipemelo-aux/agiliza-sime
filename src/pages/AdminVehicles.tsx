@@ -24,6 +24,7 @@ import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { matchesText } from "@/lib/search";
+import { maskPlateInput, unmaskPlate } from "@/lib/masks";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
@@ -190,11 +191,12 @@ export default function AdminVehicles() {
     }
   };
 
+  const plateQuery = unmaskPlate(plateSearch);
   const filteredVehicles = vehicles.filter((v) => {
     const matchType = filterType === "__all__" ||
       (filterType === "caminhao" && TRUCK_TYPES.has(v.vehicle_type)) ||
       (filterType === "leve" && !TRUCK_TYPES.has(v.vehicle_type));
-    const matchPlate = !plateSearch || matchesText(v.plate, plateSearch);
+    const matchPlate = !plateQuery || matchesText(unmaskPlate(v.plate), plateQuery);
     const matchDriver = !driverSearch || matchesText(v.driver_name ?? "", driverSearch);
     const matchOwner = !ownerSearch || matchesText(v.owner_name ?? "", ownerSearch);
     return matchType && matchPlate && matchDriver && matchOwner;
@@ -322,10 +324,16 @@ export default function AdminVehicles() {
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Placa"
+                placeholder="ABC-1234"
+                aria-label="Placa"
                 value={plateSearch}
-                onChange={(e) => setPlateSearch(e.target.value)}
-                className="pl-8 h-8 text-xs"
+                onChange={(e) => setPlateSearch(maskPlateInput(e.target.value))}
+                className="pl-8 h-8 text-xs uppercase"
+                maxLength={8}
+                inputMode="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
               />
             </div>
           </FilterField>
