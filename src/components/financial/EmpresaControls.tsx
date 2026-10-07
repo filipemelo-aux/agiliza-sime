@@ -117,7 +117,7 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
   const isMatriz = est.type === "matriz";
   return (
     <span
-      title={est.razao_social}
+      title={est.nome_fantasia || est.razao_social}
       className={cn(
         "inline-flex h-4 items-center justify-center rounded border px-1.5 text-[9px] font-medium leading-none",
         isMatriz
