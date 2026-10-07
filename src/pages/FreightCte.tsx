@@ -770,7 +770,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
           }}
         />
       )}
-  <CteInconsistencyDialog
+      <CteInconsistencyDialog
         open={inconsistencyOpen}
         onOpenChange={setInconsistencyOpen}
         onDeleted={() => { fetchCtes(); setSelectedIds(new Set()); }}
