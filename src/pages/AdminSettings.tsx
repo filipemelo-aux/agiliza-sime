@@ -34,7 +34,7 @@ import { maskName } from "@/lib/masks";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
 import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
 import { SignaturePad } from "@/components/SignaturePad";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 interface SystemUser {
   id: string;
@@ -528,10 +528,12 @@ export default function AdminSettings() {
             </div>
 
             <SearchFilterCard>
-              <div className="relative min-w-[260px] flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Buscar por nome, e-mail ou perfil..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-              </div>
+              <FilterField label="Busca" className="min-w-[260px] flex-1">
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Buscar por nome, e-mail ou perfil..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                </div>
+              </FilterField>
             </SearchFilterCard>
 
             <div className="space-y-1.5">

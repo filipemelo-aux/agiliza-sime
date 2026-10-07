@@ -23,7 +23,7 @@ import { QuotationDetailDialog } from "@/components/quotation/QuotationDetailDia
 import { exportQuotationPDF } from "@/components/quotation/exportQuotationPdf";
 import { getLocalDateISO } from "@/lib/date";
 import { limitDisplayText } from "@/lib/displayText";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 interface Quotation {
   id: string;
@@ -267,10 +267,12 @@ export default function AdminQuotations() {
         <PageTitle>Cotações</PageTitle>
 
         <SearchFilterCard>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-8 w-[210px] text-xs gap-2"><ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" /><SelectValue placeholder="Ordenar por" /></SelectTrigger>
-            <SelectContent><SelectItem value="data_desc">Data emissão (mais recente)</SelectItem><SelectItem value="data_asc">Data emissão (mais antiga)</SelectItem><SelectItem value="numero_desc">Nº (maior)</SelectItem><SelectItem value="numero_asc">Nº (menor)</SelectItem><SelectItem value="valor_desc">Valor (maior)</SelectItem><SelectItem value="valor_asc">Valor (menor)</SelectItem><SelectItem value="cliente_asc">Cliente (A→Z)</SelectItem><SelectItem value="cliente_desc">Cliente (Z→A)</SelectItem></SelectContent>
-          </Select>
+          <FilterField label="Ordenar por">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-8 w-[210px] text-xs gap-2"><ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" /><SelectValue placeholder="Ordenar por" /></SelectTrigger>
+              <SelectContent><SelectItem value="data_desc">Data emissão (mais recente)</SelectItem><SelectItem value="data_asc">Data emissão (mais antiga)</SelectItem><SelectItem value="numero_desc">Nº (maior)</SelectItem><SelectItem value="numero_asc">Nº (menor)</SelectItem><SelectItem value="valor_desc">Valor (maior)</SelectItem><SelectItem value="valor_asc">Valor (menor)</SelectItem><SelectItem value="cliente_asc">Cliente (A→Z)</SelectItem><SelectItem value="cliente_desc">Cliente (Z→A)</SelectItem></SelectContent>
+            </Select>
+          </FilterField>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selectedIds.size} />
 

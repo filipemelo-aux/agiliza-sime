@@ -24,7 +24,7 @@ import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { limitDisplayText } from "@/lib/displayText";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { quickPrintVisibleTable } from "@/lib/pdfDownload";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 import {
   BarChart,
   Bar,
@@ -405,7 +405,7 @@ export function FinancialCashFlow() {
           filters={filters}
           onChange={setFilters}
           chartAccounts={chartAccounts}
-          primaryFilter={<EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />}
+          primaryFilter={<FilterField label="Empresa" className="shrink-0"><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></FilterField>}
         />
       </SearchFilterCard>
 

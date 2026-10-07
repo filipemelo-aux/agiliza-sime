@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 type ReportType = "pessoas" | "veiculos" | "cargas" | "plano_contas";
 
@@ -238,16 +238,20 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
   return (
     <div className="space-y-2">
       <SearchFilterCard>
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input placeholder="Buscar nome, CPF/CNPJ, telefone, cidade..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
-        </div>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
-          <SelectContent>
-            {PERSON_CATEGORIES.map(c => <SelectItem key={c} value={c}>{PERSON_CAT_LABELS[c]}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <FilterField label="Busca" className="flex-1 min-w-[180px]">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input placeholder="Buscar nome, CPF/CNPJ, telefone, cidade..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
+          </div>
+        </FilterField>
+        <FilterField label="Categoria">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              {PERSON_CATEGORIES.map(c => <SelectItem key={c} value={c}>{PERSON_CAT_LABELS[c]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FilterField>
       </SearchFilterCard>
       <ExportButtons onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
@@ -373,27 +377,33 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   return (
     <div className="space-y-2">
       <SearchFilterCard>
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input placeholder="Buscar placa, RENAVAM, marca, modelo, motorista..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
-        </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos os tipos</SelectItem>
-            <SelectItem value="caminhao">Caminhão</SelectItem>
-            <SelectItem value="passeio">Passeio</SelectItem>
-            <SelectItem value="utilitario">Utilitário</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={fleetFilter} onValueChange={setFleetFilter}>
-          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Frota" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todas as frotas</SelectItem>
-            <SelectItem value="propria">Própria</SelectItem>
-            <SelectItem value="terceiros">Terceiros</SelectItem>
-          </SelectContent>
-        </Select>
+        <FilterField label="Busca" className="flex-1 min-w-[180px]">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input placeholder="Buscar placa, RENAVAM, marca, modelo, motorista..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
+          </div>
+        </FilterField>
+        <FilterField label="Tipo">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos os tipos</SelectItem>
+              <SelectItem value="caminhao">Caminhão</SelectItem>
+              <SelectItem value="passeio">Passeio</SelectItem>
+              <SelectItem value="utilitario">Utilitário</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterField>
+        <FilterField label="Frota">
+          <Select value={fleetFilter} onValueChange={setFleetFilter}>
+            <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Frota" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas as frotas</SelectItem>
+              <SelectItem value="propria">Própria</SelectItem>
+              <SelectItem value="terceiros">Terceiros</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterField>
       </SearchFilterCard>
       <ExportButtons onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
@@ -500,24 +510,30 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
   return (
     <div className="space-y-2">
       <SearchFilterCard>
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input placeholder="Buscar produto, NCM, sinônimos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
-        </div>
-        <Select value={tipoFilter} onValueChange={setTipoFilter}>
-          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            {tipos.map(t => <SelectItem key={t} value={t}>{t === "__all__" ? "Todos os tipos" : t}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[100px] h-7 text-[11px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos</SelectItem>
-            <SelectItem value="ativo">Ativo</SelectItem>
-            <SelectItem value="inativo">Inativo</SelectItem>
-          </SelectContent>
-        </Select>
+        <FilterField label="Busca" className="flex-1 min-w-[180px]">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input placeholder="Buscar produto, NCM, sinônimos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
+          </div>
+        </FilterField>
+        <FilterField label="Tipo">
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              {tipos.map(t => <SelectItem key={t} value={t}>{t === "__all__" ? "Todos os tipos" : t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FilterField>
+        <FilterField label="Status">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[100px] h-7 text-[11px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              <SelectItem value="ativo">Ativo</SelectItem>
+              <SelectItem value="inativo">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterField>
       </SearchFilterCard>
       <ExportButtons onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
@@ -625,24 +641,30 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
   return (
     <div className="space-y-2">
       <SearchFilterCard>
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input placeholder="Buscar código ou nome..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
-        </div>
-        <Select value={tipoFilter} onValueChange={setTipoFilter}>
-          <SelectTrigger className="w-[120px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            {Object.entries(ACCOUNT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[100px] h-7 text-[11px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos</SelectItem>
-            <SelectItem value="ativo">Ativo</SelectItem>
-            <SelectItem value="inativo">Inativo</SelectItem>
-          </SelectContent>
-        </Select>
+        <FilterField label="Busca" className="flex-1 min-w-[180px]">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input placeholder="Buscar código ou nome..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
+          </div>
+        </FilterField>
+        <FilterField label="Tipo">
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-[120px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(ACCOUNT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FilterField>
+        <FilterField label="Status">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[100px] h-7 text-[11px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              <SelectItem value="ativo">Ativo</SelectItem>
+              <SelectItem value="inativo">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterField>
       </SearchFilterCard>
       <ExportButtons onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())} onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), matriz, cnpjsFooter)} disabled={filtered.length === 0} />
       <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>

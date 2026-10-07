@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { SummaryCard } from "@/components/SummaryCard";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 type ReportType =
   | "cte"
@@ -899,29 +899,26 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           />
           <SearchFilterCard contentClassName="block space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                <div className="space-y-1 col-span-2">
-                  <Label className="text-xs">Período</Label>
+                <FilterField label="Período" className="col-span-2">
                   <PeriodFilter
                     size="sm"
                     inicio={filters.dataInicio}
                     fim={filters.dataFim}
                     onChange={(i, f) => setFilters((prev) => ({ ...prev, dataInicio: i, dataFim: f }))}
                   />
-                </div>
+                </FilterField>
                 {showStatus && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Status</Label>
+                  <FilterField label="Status">
                     <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {STATUS_OPTIONS[reportType].map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
                 {showCliente && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Cliente</Label>
+                  <FilterField label="Cliente">
                     <Select value={filters.clienteId} onValueChange={(v) => updateFilter("clienteId", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -936,11 +933,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         {clienteList.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
                 {showMotorista && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Motorista</Label>
+                  <FilterField label="Motorista">
                     <Select value={filters.motoristaId} onValueChange={(v) => updateFilter("motoristaId", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -955,11 +951,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         {motoristaList.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
                 {showVehicle && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Veículo</Label>
+                  <FilterField label="Veículo">
                     <Select value={filters.vehicleId} onValueChange={(v) => updateFilter("vehicleId", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -974,11 +969,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         {vehicleList.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
                 {showProprietario && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Proprietário</Label>
+                  <FilterField label="Proprietário">
                     <Select value={filters.proprietarioId} onValueChange={(v) => updateFilter("proprietarioId", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -993,7 +987,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         {proprietarioList.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
               </div>
           </SearchFilterCard>

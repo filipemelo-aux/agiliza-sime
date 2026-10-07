@@ -21,7 +21,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -270,15 +270,17 @@ export default function AdminDrivers() {
 
         {/* Search */}
         <SearchFilterCard className="mb-3">
-          <div className="relative min-w-[260px] flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={isVehicleTab ? "Buscar por placa, marca, modelo ou proprietário..." : "Buscar por nome, CNPJ, razão social ou e-mail..."}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <FilterField label="Busca" className="min-w-[260px] flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={isVehicleTab ? "Buscar por placa, marca, modelo ou proprietário..." : "Buscar por nome, CNPJ, razão social ou e-mail..."}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </FilterField>
         </SearchFilterCard>
 
         {loading ? (

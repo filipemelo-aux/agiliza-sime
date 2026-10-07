@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 
 
@@ -315,47 +315,55 @@ export default function AdminMaintenances() {
         </div>
 
         <SearchFilterCard>
-          <div className="relative flex-1 min-w-[180px]">
+          <FilterField label="Busca" className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar descrição, placa, fornecedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
-          </div>
-          <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
-            <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Veículos</SelectItem>
-              {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterTipo} onValueChange={setFilterTipo}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Tipos</SelectItem>
-              <SelectItem value="preventiva">Preventiva</SelectItem>
-              <SelectItem value="corretiva">Corretiva</SelectItem>
-            </SelectContent>
-          </Select>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-xs font-normal", filterPeriodoInicio && "text-foreground")}>
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {filterPeriodoInicio ? format(filterPeriodoInicio, "dd/MM/yy") : "De"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={filterPeriodoInicio} onSelect={setFilterPeriodoInicio} locale={ptBR} className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-xs font-normal", filterPeriodoFim && "text-foreground")}>
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {filterPeriodoFim ? format(filterPeriodoFim, "dd/MM/yy") : "Até"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={filterPeriodoFim} onSelect={setFilterPeriodoFim} locale={ptBR} className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
+          </FilterField>
+          <FilterField label="Veículo">
+            <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
+              <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Veículos</SelectItem>
+                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Tipo">
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Tipos</SelectItem>
+                <SelectItem value="preventiva">Preventiva</SelectItem>
+                <SelectItem value="corretiva">Corretiva</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="De">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-xs font-normal", filterPeriodoInicio && "text-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {filterPeriodoInicio ? format(filterPeriodoInicio, "dd/MM/yy") : "De"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={filterPeriodoInicio} onSelect={setFilterPeriodoInicio} locale={ptBR} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </FilterField>
+          <FilterField label="Até">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-xs font-normal", filterPeriodoFim && "text-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {filterPeriodoFim ? format(filterPeriodoFim, "dd/MM/yy") : "Até"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={filterPeriodoFim} onSelect={setFilterPeriodoFim} locale={ptBR} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </FilterField>
           {(filterPeriodoInicio || filterPeriodoFim) && (
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => { setFilterPeriodoInicio(undefined); setFilterPeriodoFim(undefined); }} title="Limpar período">
               <X className="h-4 w-4" />

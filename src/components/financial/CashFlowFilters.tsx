@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Filter, RotateCcw, X } from "lucide-react";
 import { PlanoContasCombobox, PlanoContaOption } from "./PlanoContasCombobox";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { FilterField } from "@/components/ui/search-filter-card";
 
 export type QuickPeriod = "todos" | "mes_atual" | "mes_anterior";
 
@@ -79,8 +79,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
   return (
     <div className="space-y-2">
       <div className="flex min-w-0 flex-wrap items-end justify-end gap-2">
-        <div className="mr-auto space-y-1">
-          <Label className="text-[11px] text-muted-foreground">Período</Label>
+        <FilterField label="Período" className="mr-auto">
           <PeriodFilter
             size="sm"
             inicio={filters.dataInicio ? format(filters.dataInicio, "yyyy-MM-dd") : ""}
@@ -94,7 +93,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
               })
             }
           />
-        </div>
+        </FilterField>
         {primaryFilter}
       </div>
 
@@ -106,8 +105,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
             </Button>
           ))}
         </div>
-        <div className="space-y-1">
-          <Label className="text-[11px] text-muted-foreground">Tipo</Label>
+        <FilterField label="Tipo">
           <Select value={filters.tipo} onValueChange={(v) => update({ tipo: v as CashFlowFilterValues["tipo"] })}>
             <SelectTrigger className="w-[130px] h-9">
               <SelectValue />
@@ -118,10 +116,9 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
               <SelectItem value="saida">Saídas</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </FilterField>
 
-        <div className="space-y-1">
-          <Label className="text-[11px] text-muted-foreground">Origem</Label>
+        <FilterField label="Origem">
           <Select value={filters.origem} onValueChange={(v) => update({ origem: v as CashFlowFilterValues["origem"] })}>
             <SelectTrigger className="w-[160px] h-9">
               <SelectValue />
@@ -135,11 +132,10 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
               <SelectItem value="manual">Manual</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </FilterField>
 
         {chartAccounts && (
-          <div className="min-w-[220px] space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Plano de Contas</Label>
+          <FilterField label="Plano de Contas" className="min-w-[220px]">
             <PlanoContasCombobox
               value={filters.planoContasId}
               onChange={(v) => update({ planoContasId: v })}
@@ -152,7 +148,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
               includeSemClassificacao
               allowCreate={false}
             />
-          </div>
+          </FilterField>
         )}
         <Button
           variant={hasAdvancedFilters ? "secondary" : "ghost"}
@@ -183,8 +179,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
 
       {showAdvanced && (
         <div className="flex flex-wrap items-end gap-2 rounded-md border border-border bg-muted/30 p-2">
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Valor mínimo</Label>
+          <FilterField label="Valor mínimo">
             <Input
               type="number"
               placeholder="0,00"
@@ -192,9 +187,8 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
               value={filters.valorMin}
               onChange={(e) => update({ valorMin: e.target.value })}
             />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Valor máximo</Label>
+          </FilterField>
+          <FilterField label="Valor máximo">
             <Input
               type="number"
               placeholder="0,00"
@@ -202,7 +196,7 @@ export function CashFlowFilters({ filters, onChange, chartAccounts, primaryFilte
               value={filters.valorMax}
               onChange={(e) => update({ valorMax: e.target.value })}
             />
-          </div>
+          </FilterField>
           {hasAdvancedFilters && (
             <Button variant="ghost" size="sm" className="h-9" onClick={clearAdvanced}>
               <X className="h-3.5 w-3.5 mr-1" /> Limpar
