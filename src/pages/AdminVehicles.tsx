@@ -22,7 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
+import { matchesText } from "@/lib/search";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
@@ -109,7 +110,9 @@ export default function AdminVehicles() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [fuelingsByVehicle, setFuelingsByVehicle] = useState<Record<string, FuelingRow[]>>({});
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [plateSearch, setPlateSearch] = useState("");
+  const [driverSearch, setDriverSearch] = useState("");
+  const [ownerSearch, setOwnerSearch] = useState("");
   const [filterType, setFilterType] = useState("__all__");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -191,13 +194,10 @@ export default function AdminVehicles() {
     const matchType = filterType === "__all__" ||
       (filterType === "caminhao" && TRUCK_TYPES.has(v.vehicle_type)) ||
       (filterType === "leve" && !TRUCK_TYPES.has(v.vehicle_type));
-    const matchSearch =
-      v.plate.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
-      v.brand.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
-      v.model.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
-      (v.driver_name && v.driver_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ||
-      (v.owner_name && v.owner_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
-    return matchType && matchSearch;
+    const matchPlate = !plateSearch || matchesText(v.plate, plateSearch);
+    const matchDriver = !driverSearch || matchesText(v.driver_name ?? "", driverSearch);
+    const matchOwner = !ownerSearch || matchesText(v.owner_name ?? "", ownerSearch);
+    return matchType && matchPlate && matchDriver && matchOwner;
   });
 
   const selectedRows = filteredVehicles.filter((v) => selected.has(v.id));
@@ -318,7 +318,40 @@ export default function AdminVehicles() {
         })()}
 
         <SearchFilterCard>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
+          <FilterField label="Placa" className="w-full md:w-40 shrink-0">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Placa"
+                value={plateSearch}
+                onChange={(e) => setPlateSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </FilterField>
+          <FilterField label="Motorista" className="w-full md:w-52 shrink-0">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Motorista"
+                value={driverSearch}
+                onChange={(e) => setDriverSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </FilterField>
+          <FilterField label="Proprietário" className="w-full md:w-52 shrink-0">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Proprietário"
+                value={ownerSearch}
+                onChange={(e) => setOwnerSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </FilterField>
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-md bg-muted/60 p-0.5">
             {[
               { v: "__all__", label: "Todos" },
               { v: "caminhao", label: "Caminhões" },
@@ -335,15 +368,6 @@ export default function AdminVehicles() {
                 <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByFilter(opt.v)}</Badge>
               </Button>
             ))}
-          </div>
-          <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar placa, marca, modelo ou proprietário..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
-            />
           </div>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />

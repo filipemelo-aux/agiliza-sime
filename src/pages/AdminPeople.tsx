@@ -22,8 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
-import { Label } from "@/components/ui/label";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -342,20 +341,21 @@ export default function AdminPeople() {
         <PageTitle>Pessoas</PageTitle>
 
         <SearchFilterCard>
-          <div className="relative min-w-[240px] flex-1 basis-full md:basis-auto">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
-            />
-          </div>
+          <FilterField label="Busca" className="min-w-[240px] flex-1 basis-full md:basis-auto">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Nome, CNPJ, razão social ou e-mail..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </FilterField>
 
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Categoria</Label>
+          <FilterField label="Categoria" className="w-full md:w-auto shrink-0">
             <Select value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setSelected(new Set()); }}>
-              <SelectTrigger className="h-8 w-[175px] text-xs">
+              <SelectTrigger className="h-8 w-full md:w-[175px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -366,12 +366,11 @@ export default function AdminPeople() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FilterField>
 
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Papel</Label>
+          <FilterField label="Papel" className="w-full md:w-auto shrink-0">
             <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
-              <SelectTrigger className="h-8 w-[120px] text-xs">
+              <SelectTrigger className="h-8 w-full md:w-[120px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -380,7 +379,7 @@ export default function AdminPeople() {
                 <SelectItem value="non_rh" className="text-xs">Sem RH</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </FilterField>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
 
