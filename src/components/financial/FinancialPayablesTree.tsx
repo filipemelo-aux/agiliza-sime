@@ -331,24 +331,26 @@ export function FinancialPayablesTree() {
             </FilterField>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[
-              { v: "all" as const, label: "Todos" },
-              { v: "atrasado" as const, label: "🔴 Atrasados" },
-              { v: "a_vencer" as const, label: "🟡 Em Aberto" },
-              { v: "pago" as const, label: "🟢 Pagos" },
-            ].map((opt) => (
-              <Button
-                key={opt.v}
-                size="sm"
-                variant={statusFilter === opt.v ? "default" : "outline"}
-                className="h-7 text-xs"
-                onClick={() => setStatusFilter(opt.v)}
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </div>
+          <FilterField label="Situação" className="w-fit">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { v: "all" as const, label: "Todos" },
+                { v: "atrasado" as const, label: "🔴 Atrasados" },
+                { v: "a_vencer" as const, label: "🟡 Em Aberto" },
+                { v: "pago" as const, label: "🟢 Pagos" },
+              ].map((opt) => (
+                <Button
+                  key={opt.v}
+                  size="sm"
+                  variant={statusFilter === opt.v ? "default" : "outline"}
+                  className="h-7 text-xs"
+                  onClick={() => setStatusFilter(opt.v)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </FilterField>
       </SearchFilterCard>
 
       <Card>

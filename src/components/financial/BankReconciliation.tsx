@@ -3281,18 +3281,22 @@ export function BankReconciliation() {
             <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
           </div>
         </FilterField>
-        <div className="flex items-center gap-1 shrink-0">
-          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pend.", icon: AlertCircle }, { tab: "conciliado", label: "Concil.", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
-            const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
-            return <ToolbarIconButton key={tab} label={`${label} (${count})`} icon={Icon} active={statusFilter === tab} showLabel onClick={() => setStatusFilter(tab)} />;
-          })}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "debito", label: "Débito", icon: ArrowDownCircle }, { tab: "credito", label: "Crédito", icon: ArrowUpCircle }] as const)).map(({ tab, label, icon: Icon }) => {
-            const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
-            return <ToolbarIconButton key={tab} label={`${label} (${count})`} icon={Icon} active={tipoFilter === tab} showLabel onClick={() => setTipoFilter(tab)} />;
-          })}
-        </div>
+        <FilterField label="Situação" className="shrink-0">
+          <div className="flex items-center gap-1">
+            {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pendente", icon: AlertCircle }, { tab: "conciliado", label: "Conciliado", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
+              const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
+              return <ToolbarIconButton key={tab} label={`${label} (${count})`} icon={Icon} active={statusFilter === tab} showLabel onClick={() => setStatusFilter(tab)} />;
+            })}
+          </div>
+        </FilterField>
+        <FilterField label="Tipo de lançamento" className="shrink-0">
+          <div className="flex items-center gap-1">
+            {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "debito", label: "Débito", icon: ArrowDownCircle }, { tab: "credito", label: "Crédito", icon: ArrowUpCircle }] as const)).map(({ tab, label, icon: Icon }) => {
+              const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
+              return <ToolbarIconButton key={tab} label={`${label} (${count})`} icon={Icon} active={tipoFilter === tab} showLabel onClick={() => setTipoFilter(tab)} />;
+            })}
+          </div>
+        </FilterField>
       </SearchFilterCard>
 
       <GlobalToolbar

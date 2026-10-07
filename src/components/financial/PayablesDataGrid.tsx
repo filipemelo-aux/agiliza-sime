@@ -463,13 +463,15 @@ tfoot{display:table-row-group}
             <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
           </div>
         </FilterField>
-        <div className="flex gap-0.5">
-          {statusButtons.map((b) => (
-            <Button key={b.v} size="sm" variant={status === b.v ? "default" : "outline"} className="h-7 text-[11px] px-2 py-0" onClick={() => setStatus(b.v)}>
-              {b.label}
-            </Button>
-          ))}
-        </div>
+        <FilterField label="Situação" className="shrink-0">
+          <div className="flex gap-0.5">
+            {statusButtons.map((b) => (
+              <Button key={b.v} size="sm" variant={status === b.v ? "default" : "outline"} className="h-7 text-[11px] px-2 py-0" onClick={() => setStatus(b.v)}>
+                {b.label}
+              </Button>
+            ))}
+          </div>
+        </FilterField>
         <FilterField label="Placa">
           <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
         </FilterField>
