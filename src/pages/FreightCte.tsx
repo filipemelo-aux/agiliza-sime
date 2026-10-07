@@ -15,8 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, FileDown, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +39,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
-import { downloadDactePdf } from "@/components/freight/dactePdf";
+import { buildDactePdf } from "@/components/freight/dactePdf";
 import { cteXmlToPrintFields } from "@/lib/cteXmlToPrint";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
@@ -123,6 +124,7 @@ export default function FreightCte() {
   const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
   const [sefazOpen, setSefazOpen] = useState(false);
+  const [dactePreview, setDactePreview] = useState<{ url: string; filename: string } | null>(null);
 
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
@@ -131,7 +133,10 @@ export default function FreightCte() {
     const fromXml = cteXmlToPrintFields((data as any).xml_autorizado);
     const input = fromXml ? { ...(data as any), ...fromXml, status: (data as any).status } : (data as any);
     const num = input.numero ?? input.numero_interno ?? "";
-    await downloadDactePdf(input, `DACTE-${num || cteId.slice(0, 8)}.pdf`);
+    const pdf = await buildDactePdf([input]);
+    const url = URL.createObjectURL(pdf.output("blob"));
+    setSefazOpen(false);
+    setDactePreview({ url, filename: `DACTE-${num || cteId.slice(0, 8)}.pdf` });
   };
 
   const handlePrintSelected = () => {
@@ -753,6 +758,18 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         cte={editingCte}
         onSaved={fetchCtes}
       />
+
+      <Dialog open={!!dactePreview} onOpenChange={(o) => { if (!o && dactePreview) { URL.revokeObjectURL(dactePreview.url); setDactePreview(null); } }}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader><DialogTitle>{dactePreview?.filename}</DialogTitle></DialogHeader>
+          {dactePreview && <iframe src={dactePreview.url} title="DACTE" className="w-full h-[70vh] rounded border" />}
+          <DialogFooter>
+            <Button asChild className="h-10">
+              <a href={dactePreview?.url} download={dactePreview?.filename}><FileDown className="h-4 w-4 mr-2" />Baixar PDF</a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <CteSefazDialog
         cte={singleCte}
