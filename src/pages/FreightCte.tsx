@@ -31,7 +31,6 @@ import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
-import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteXmlBatchImportDialog } from "@/components/freight/CteXmlBatchImportDialog";
 import { CteServicoResumoImportDialog } from "@/components/freight/CteServicoResumoImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
@@ -105,7 +104,6 @@ export default function FreightCte() {
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
-  const [batchOpen, setBatchOpen] = useState(false);
   const [resumoOpen, setResumoOpen] = useState(false);
   const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
   const [xmlBatchOpen, setXmlBatchOpen] = useState(false);
@@ -660,10 +658,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => setXmlBatchOpen(true),
             },
             {
-              key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
-              onClick: () => setBatchOpen(true),
-            },
-            {
               key: "resumo", label: "Importar planilha resumida (Serviço)", icon: FileText, mode: "always", variant: "outline",
               onClick: () => setResumoOpen(true),
             },
@@ -776,11 +770,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
           }}
         />
       )}
-      <CteBatchImportDialog
-        open={batchOpen}
-        onOpenChange={setBatchOpen}
-        onImported={fetchCtes}
-      />
       <CteInconsistencyDialog
         open={inconsistencyOpen}
         onOpenChange={setInconsistencyOpen}
