@@ -1498,7 +1498,9 @@ tfoot{display:table-row-group}
 
         {/* Row 3: Quick filters + Plano de Contas (visible on small screens inside card) */}
         <div className="flex items-center gap-2 flex-wrap">
-          {quickFilterButtons.map(f => {
+          <FilterField label="Situação" className="w-fit">
+            <div className="flex items-center gap-2 flex-wrap">
+              {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
             return (
               <Button
@@ -1536,7 +1538,9 @@ tfoot{display:table-row-group}
                 )}
               </Button>
             );
-          })}
+              })}
+            </div>
+          </FilterField>
 
           <FilterField label="Plano de Contas" className="min-w-[200px] max-w-[260px]">
             <PlanoContasCombobox
