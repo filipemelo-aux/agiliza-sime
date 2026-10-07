@@ -15,8 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, FileDown, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { useNavigate } from "react-router-dom";
@@ -39,7 +40,6 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { openPrintWindow } from "@/components/freight/freightContractPrint";
 import { buildDactePdf } from "@/components/freight/dactePdf";
-import { Dialog as PdfDialog } from "@/components/ui/dialog";
 import { cteXmlToPrintFields } from "@/lib/cteXmlToPrint";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
@@ -124,6 +124,7 @@ export default function FreightCte() {
   const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
   const [sefazOpen, setSefazOpen] = useState(false);
+  const [dactePreview, setDactePreview] = useState<{ url: string; filename: string } | null>(null);
 
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
