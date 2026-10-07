@@ -293,10 +293,10 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
           </div>
         </FilterField>
         <FilterField label="Situação">
-          <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-[118px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todas situações</SelectItem><SelectItem value="emitido" className="text-xs">Emitidos</SelectItem><SelectItem value="compensado" className="text-xs">Compensados</SelectItem><SelectItem value="cancelado" className="text-xs">Cancelados</SelectItem></SelectContent></Select>
+          <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todas situações</SelectItem><SelectItem value="emitido" className="text-xs">Emitidos</SelectItem><SelectItem value="compensado" className="text-xs">Compensados</SelectItem><SelectItem value="cancelado" className="text-xs">Cancelados</SelectItem></SelectContent></Select>
         </FilterField>
-        <FilterField label="Tipo">
-          <Select value={type} onValueChange={setType}><SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todos os vínculos</SelectItem><SelectItem value="conta_pagar" className="text-xs">Conta a pagar</SelectItem><SelectItem value="contrato_frete" className="text-xs">Contrato de frete</SelectItem><SelectItem value="movimentacao" className="text-xs">Movimentação</SelectItem></SelectContent></Select>
+        <FilterField label="Tipo de vínculo">
+          <Select value={type} onValueChange={setType}><SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todos os vínculos</SelectItem><SelectItem value="conta_pagar" className="text-xs">Conta a pagar</SelectItem><SelectItem value="contrato_frete" className="text-xs">Contrato de frete</SelectItem><SelectItem value="movimentacao" className="text-xs">Movimentação</SelectItem></SelectContent></Select>
         </FilterField>
         </div>
       </SearchFilterCard>
