@@ -33,7 +33,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { GlobalToolbar, ToolbarIconButton } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 type MatchPrecision = "exato" | "proximo";
@@ -3275,10 +3275,12 @@ export function BankReconciliation() {
 
 
       <SearchFilterCard>
-        <div className="relative w-full lg:w-[240px] shrink-0">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
-        </div>
+        <FilterField label="Busca" className="w-full lg:w-[240px] shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
+          </div>
+        </FilterField>
         <div className="flex items-center gap-1 shrink-0">
           {(([{ tab: "todos", label: "Todos", icon: List }, { tab: "pendente", label: "Pend.", icon: AlertCircle }, { tab: "conciliado", label: "Concil.", icon: CheckCircle2 }] as const)).map(({ tab, label, icon: Icon }) => {
             const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;

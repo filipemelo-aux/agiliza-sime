@@ -14,7 +14,7 @@ import { MdfeFormDialog } from "@/components/freight/MdfeFormDialog";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { buildMdfeHtml } from "@/components/freight/mdfePrint";
 import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho", autorizado: "Autorizado", encerrado: "Encerrado", cancelado: "Cancelado", rejeitado: "Rejeitado", processando: "Processando",
@@ -105,10 +105,12 @@ export default function FreightMdfe() {
       <div className="container mx-auto px-4 py-3 space-y-3">
         <PageTitle>MDF-e — Manifestos de Carga</PageTitle>
         <SearchFilterCard>
-          <div className="relative min-w-[260px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input className="h-8 pl-8 text-xs" placeholder="Buscar por número, placa, motorista ou cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+          <FilterField label="Busca" className="min-w-[260px] flex-1">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input className="h-8 pl-8 text-xs" placeholder="Buscar por número, placa, motorista ou cidade..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </FilterField>
         </SearchFilterCard>
         <GlobalToolbar
           actions={[

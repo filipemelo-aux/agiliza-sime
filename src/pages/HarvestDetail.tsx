@@ -24,7 +24,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 interface HarvestJob {
   id: string;
@@ -2092,37 +2092,40 @@ export default function HarvestDetail() {
               )}
         </div>
         <SearchFilterCard className="mb-4" contentClassName="gap-2">
-            <div className="flex min-w-[280px] flex-1 items-center gap-1.5">
-              <Calendar className="h-4 w-4 text-primary shrink-0" />
-              <Label className="text-xs font-medium whitespace-nowrap">Período:</Label>
+            <FilterField label="Período" className="min-w-[280px] flex-1">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-primary shrink-0" />
+                <Input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  className="h-8 text-xs flex-1 min-w-0"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">até</span>
+                <Input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  className="h-8 text-xs flex-1 min-w-0"
+                />
+                {(filterStartDate || filterEndDate) && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+            </FilterField>
+          <FilterField label="Busca" className="min-w-[240px] flex-1">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                type="date"
-                value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
-                className="h-8 text-xs flex-1 min-w-0"
+                placeholder="Buscar motorista ou placa..."
+                value={driverSearch}
+                onChange={(e) => setDriverSearch(e.target.value)}
+                className="h-8 text-xs pl-8"
               />
-              <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <Input
-                type="date"
-                value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
-                className="h-8 text-xs flex-1 min-w-0"
-              />
-              {(filterStartDate || filterEndDate) && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
-                  Limpar
-                </Button>
-              )}
             </div>
-          <div className="relative min-w-[240px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar motorista ou placa..."
-              value={driverSearch}
-              onChange={(e) => setDriverSearch(e.target.value)}
-              className="h-8 text-xs pl-8"
-            />
-          </div>
+          </FilterField>
         </SearchFilterCard>
 
         {assignments.length === 0 ? (

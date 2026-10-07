@@ -5,7 +5,6 @@ import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2, Search, Printer, Filter, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { limitDisplayText } from "@/lib/displayText";
@@ -19,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 type StatusFilter = "todos" | "atrasado" | "aberto" | "pago";
 
@@ -457,9 +456,13 @@ tfoot{display:table-row-group}
   return (
     <div className="flex flex-col gap-1 h-[calc(100vh-132px)]">
       <SearchFilterCard contentClassName="gap-1.5">
-        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-        <span className="text-[10px] text-muted-foreground">até</span>
-        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        <FilterField label="Vencimento">
+          <div className="flex items-center gap-1.5">
+            <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            <span className="text-[10px] text-muted-foreground">até</span>
+            <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+          </div>
+        </FilterField>
         <div className="flex gap-0.5">
           {statusButtons.map((b) => (
             <Button key={b.v} size="sm" variant={status === b.v ? "default" : "outline"} className="h-7 text-[11px] px-2 py-0" onClick={() => setStatus(b.v)}>
@@ -467,11 +470,15 @@ tfoot{display:table-row-group}
             </Button>
           ))}
         </div>
-        <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
-        <div className="relative flex-1 min-w-[160px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Razão social, nome fantasia ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
-        </div>
+        <FilterField label="Placa">
+          <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
+        </FilterField>
+        <FilterField label="Busca" className="flex-1 min-w-[160px]">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Razão social, nome fantasia ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
+          </div>
+        </FilterField>
         <Popover>
           <PopoverTrigger asChild>
             <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 py-0 gap-1" disabled={loading || categoriasDisponiveis.length === 0}>

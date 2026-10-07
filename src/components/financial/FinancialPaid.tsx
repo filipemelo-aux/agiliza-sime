@@ -21,7 +21,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 
 interface InstallmentInfo {
@@ -797,38 +797,36 @@ export function FinancialPaid() {
 
       <SearchFilterCard contentClassName="block space-y-2">
         <FilterPrimaryRow>
-          <div className="mr-auto flex items-end gap-2">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <CalendarIcon className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
-            </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <PeriodFilter
-                size="sm"
-                allowClear
-                inicio={periodoInicio}
-                fim={periodoFim}
-                onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
-              />
-            </div>
-          </div>
-          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          <FilterField label="Período" className="mr-auto">
+            <PeriodFilter
+              size="sm"
+              allowClear
+              inicio={periodoInicio}
+              fim={periodoFim}
+              onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
+            />
+          </FilterField>
+          <FilterField label="Empresa" className="shrink-0">
+            <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
         </FilterPrimaryRow>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex-1 min-w-0 relative">
+          <FilterField label="Busca" className="flex-1 min-w-0 relative">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input placeholder="Buscar por nome, descrição ou nº da nota..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
-          </div>
-          <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
-            <SelectTrigger className="w-[150px] h-8 text-xs">
-              <SelectValue placeholder="Tipo Pgto" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os tipos</SelectItem>
-              <SelectItem value="expense_payment">Despesas</SelectItem>
-              <SelectItem value="legacy">Legado</SelectItem>
-            </SelectContent>
-          </Select>
+          </FilterField>
+          <FilterField label="Tipo">
+            <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
+              <SelectTrigger className="w-[150px] h-8 text-xs">
+                <SelectValue placeholder="Tipo Pgto" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os tipos</SelectItem>
+                <SelectItem value="expense_payment">Despesas</SelectItem>
+                <SelectItem value="legacy">Legado</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
         </div>
         {hasFilters && (
           <div className="flex items-center">

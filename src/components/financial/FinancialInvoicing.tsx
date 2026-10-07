@@ -31,7 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 import { PeriodFilter } from "@/components/PeriodFilter";
 
 import { SortableTh } from "@/components/ui/sortable-th";
@@ -1835,8 +1835,7 @@ ${hasRecebimentos ? `
 
       <SearchFilterCard contentClassName="block space-y-2">
         <FilterPrimaryRow>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Emissão</span>
+          <FilterField label="Emissão">
             <PeriodFilter
               size="sm"
               allowClear
@@ -1844,9 +1843,8 @@ ${hasRecebimentos ? `
               fim={filterEmissaoFim}
               onChange={(i, f) => { setFilterEmissaoInicio(i); setFilterEmissaoFim(f); }}
             />
-          </div>
-          <div className="mr-auto flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Venc.</span>
+          </FilterField>
+          <FilterField label="Vencimento" className="mr-auto">
             <PeriodFilter
               size="sm"
               allowClear
@@ -1854,29 +1852,39 @@ ${hasRecebimentos ? `
               fim={filterVencFim}
               onChange={(i, f) => { setFilterVencInicio(i); setFilterVencFim(f); }}
             />
-          </div>
-          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
+          <FilterField label="Empresa" className="shrink-0">
+            <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
         </FilterPrimaryRow>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Select value={filterCondicao} onValueChange={setFilterCondicao}>
-            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Condição: todas</SelectItem>
-              <SelectItem value="avista">À vista</SelectItem>
-              <SelectItem value="prazo">A prazo / Parcelada</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterStatusFatura} onValueChange={setFilterStatusFatura}>
-            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Status: todos</SelectItem>
-              <SelectItem value="faturada">Em aberto</SelectItem>
-              <SelectItem value="parcial">Parcial</SelectItem>
-              <SelectItem value="paga">Paga</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
-          <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 min-w-[180px] flex-1 text-xs" />
+          <FilterField label="Condição">
+            <Select value={filterCondicao} onValueChange={setFilterCondicao}>
+              <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Condição: todas</SelectItem>
+                <SelectItem value="avista">À vista</SelectItem>
+                <SelectItem value="prazo">A prazo / Parcelada</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Status">
+            <Select value={filterStatusFatura} onValueChange={setFilterStatusFatura}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Status: todos</SelectItem>
+                <SelectItem value="faturada">Em aberto</SelectItem>
+                <SelectItem value="parcial">Parcial</SelectItem>
+                <SelectItem value="paga">Paga</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Nº do documento">
+            <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
+          </FilterField>
+          <FilterField label="Favorecido" className="min-w-[180px] flex-1">
+            <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 w-full text-xs" />
+          </FilterField>
           {hasFaturaFilters && (
             <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFaturaFilters}>
               <X className="h-3 w-3" /> Limpar

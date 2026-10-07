@@ -26,7 +26,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 import type { Cte } from "@/pages/FreightCte";
 
@@ -335,17 +335,23 @@ export default function FreightContracts() {
         </div>
 
         <SearchFilterCard>
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-8 h-9" placeholder="Nº, contratado, motorista, placa, trecho..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Status do pagamento" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem><SelectItem value="pendente">Pendente</SelectItem><SelectItem value="atrasado">Atrasado</SelectItem><SelectItem value="parcial">Parcial</SelectItem><SelectItem value="pago">Pago</SelectItem><SelectItem value="cancelado">Cancelado</SelectItem><SelectItem value="sem_titulo">Sem título</SelectItem>
-            </SelectContent>
-          </Select>
-          <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
+          <FilterField label="Busca" className="min-w-[220px] flex-1">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-8 h-9" placeholder="Nº, contratado, motorista, placa, trecho..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </FilterField>
+          <FilterField label="Status">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Status do pagamento" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os status</SelectItem><SelectItem value="pendente">Pendente</SelectItem><SelectItem value="atrasado">Atrasado</SelectItem><SelectItem value="parcial">Parcial</SelectItem><SelectItem value="pago">Pago</SelectItem><SelectItem value="cancelado">Cancelado</SelectItem><SelectItem value="sem_titulo">Sem título</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Período">
+            <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
+          </FilterField>
           <Button variant="outline" className="h-8 w-8 p-0" onClick={clearFilters} title="Limpar filtros"><X className="w-4 h-4" /></Button>
         </SearchFilterCard>
 

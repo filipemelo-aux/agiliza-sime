@@ -5,7 +5,6 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +17,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { PeriodFilter } from "@/components/PeriodFilter";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface ChartAccount {
   id: string;
@@ -305,17 +304,15 @@ export function FinancialPayablesTree() {
 
       <SearchFilterCard contentClassName="block space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end">
-            <div className="space-y-1 col-span-2">
-              <Label className="text-xs">Vencimento</Label>
+            <FilterField label="Vencimento" className="col-span-2">
               <PeriodFilter
                 size="sm"
                 inicio={periodoInicio}
                 fim={periodoFim}
                 onChange={(i, f) => { setPeriodoInicio(i); setPeriodoFim(f); }}
               />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <Label className="text-xs">Veículo / Placa</Label>
+            </FilterField>
+            <FilterField label="Veículo" className="md:col-span-2">
               <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -325,18 +322,16 @@ export function FinancialPayablesTree() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <Label className="text-xs">Buscar (Fornecedor / Descrição)</Label>
+            </FilterField>
+            <FilterField label="Busca" className="md:col-span-2">
               <div className="relative">
                 <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input className="h-8 text-xs pl-7" placeholder="Digite para filtrar..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-            </div>
+            </FilterField>
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] text-muted-foreground mr-1">Status:</span>
             {[
               { v: "all" as const, label: "Todos" },
               { v: "atrasado" as const, label: "🔴 Atrasados" },
