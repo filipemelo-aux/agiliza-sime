@@ -75,7 +75,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
   const matriz = tenants.find((t) => t.id === matrizId) || null;
   const found = q.trim().length >= 2 ? tenants.filter((t) => {
     const s = q.toLowerCase(); const d = q.replace(/\D/g, "");
-    return t.razao_social.toLowerCase().includes(s) || (t.nome_fantasia || "").toLowerCase().includes(s) || (d.length > 2 && t.cnpj.includes(d));
+    return t.razao_social.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) || (t.nome_fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) || (d.length > 2 && t.cnpj.includes(d));
   }).slice(0, 8) : [];
 
   const pickMatriz = (t: TenantRow) => {

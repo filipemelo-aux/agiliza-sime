@@ -427,10 +427,10 @@ export default function AdminSettings() {
   };
 
   const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return (
-      (u.profile_name || "").toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
+      (u.profile_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      u.email.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
       u.roles.some((r) => r.includes(q))
     );
   });

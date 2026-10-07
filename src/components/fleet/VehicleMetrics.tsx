@@ -273,10 +273,10 @@ export default function VehicleMetrics() {
       placa: plateOf(x.veiculo_id), valor: Number(x.valor_total || 0),
     }));
     const all = [...a, ...b, ...c, ...d];
-    const q = busca.trim().toLowerCase();
+    const q = busca.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return all.filter(r => {
       if (!tiposDespesa.has(r.tipo)) return false;
-      if (q && !`${r.descricao} ${r.fornecedor} ${r.placa}`.toLowerCase().includes(q)) return false;
+      if (q && !`${r.descricao} ${r.fornecedor} ${r.placa}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)) return false;
       return true;
     });
   }, [fuelings, maints, cardItems, expensesV, plateById, busca, tiposDespesa]);
@@ -361,7 +361,7 @@ export default function VehicleMetrics() {
                   </div>
                   <SelectItem value={ALL}>Todos os veículos ({vehicles.length})</SelectItem>
                   {vehicles
-                    .filter(v => v.plate.toLowerCase().includes(vehicleSearch.toLowerCase()))
+                    .filter(v => v.plate.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(vehicleSearch.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
                     .map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
                 </SelectContent>
               </Select>

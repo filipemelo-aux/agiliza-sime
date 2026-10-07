@@ -190,10 +190,10 @@ export default function AdminPeople() {
     const isRH = !!(d as any).is_colaborador_rh;
     const matchRole = roleFilter === "all" || (roleFilter === "rh" ? isRH : !isRH);
     const matchSearch =
-      d.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      d.full_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
       (d.cnpj && d.cnpj.includes(search)) ||
-      (d.razao_social && d.razao_social.toLowerCase().includes(search.toLowerCase())) ||
-      (d.email && d.email.toLowerCase().includes(search.toLowerCase()));
+      (d.razao_social && d.razao_social.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ||
+      (d.email && d.email.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
     return matchCategory && matchRole && matchSearch;
   });
 

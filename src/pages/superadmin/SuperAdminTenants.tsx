@@ -35,11 +35,11 @@ export default function SuperAdminTenants() {
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
-    const t = q.trim().toLowerCase();
+    const t = q.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!t) return rows;
     const d = t.replace(/\D/g, "");
     return rows.filter((r) =>
-      r.razao_social.toLowerCase().includes(t) || (r.nome_fantasia || "").toLowerCase().includes(t) || (d && r.cnpj.includes(d))
+      r.razao_social.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t) || (r.nome_fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t) || (d && r.cnpj.includes(d))
       || branches.some((b) => b.tenant_id === r.id && (b.razao_social.toLowerCase().includes(t) || (d && b.cnpj.includes(d)))));
   }, [rows, q, branches]);
 

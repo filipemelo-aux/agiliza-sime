@@ -206,12 +206,12 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
     let result = data;
     if (category !== "__all__") result = result.filter(p => p.category === category);
     if (search) {
-      const s = search.toLowerCase();
+      const s = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       result = result.filter(p =>
-        (p.full_name || "").toLowerCase().includes(s) ||
+        (p.full_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
         (p.cnpj || "").includes(s) ||
         (p.phone || "").includes(s) ||
-        (p.address_city || "").toLowerCase().includes(s)
+        (p.address_city || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s)
       );
     }
     return result;
@@ -328,14 +328,14 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     }
     if (fleetFilter !== "__all__") result = result.filter(v => v.fleet_type === fleetFilter);
     if (search) {
-      const s = search.toLowerCase();
+      const s = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       result = result.filter(v =>
-        (v.plate || "").toLowerCase().includes(s) ||
-        (v.renavam || "").toLowerCase().includes(s) ||
-        (v.brand || "").toLowerCase().includes(s) ||
-        (v.model || "").toLowerCase().includes(s) ||
-        getName(v.driver_id).toLowerCase().includes(s) ||
-        getName(v.owner_id).toLowerCase().includes(s)
+        (v.plate || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
+        (v.renavam || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
+        (v.brand || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
+        (v.model || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
+        getName(v.driver_id).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
+        getName(v.owner_id).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s)
       );
     }
     return result;
@@ -468,11 +468,11 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
       result = result.filter(c => c.ativo === isActive);
     }
     if (search) {
-      const s = search.toLowerCase();
+      const s = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       result = result.filter(c =>
-        (c.produto_predominante || "").toLowerCase().includes(s) ||
+        (c.produto_predominante || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
         (c.ncm || "").includes(s) ||
-        (c.sinonimos || "").toLowerCase().includes(s)
+        (c.sinonimos || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s)
       );
     }
     return result;
@@ -585,9 +585,9 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
       result = result.filter(c => c.ativo === isActive);
     }
     if (search) {
-      const s = search.toLowerCase();
+      const s = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       result = result.filter(c =>
-        (c.nome || "").toLowerCase().includes(s) ||
+        (c.nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s) ||
         (c.codigo || "").includes(s)
       );
     }

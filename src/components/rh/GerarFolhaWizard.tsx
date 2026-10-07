@@ -440,7 +440,7 @@ function PeriodoStep({
     (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
   );
   const ativosFiltrados = ativos.filter((c: ColaboradorRH) =>
-    (c.full_name || "").toLowerCase().includes(buscaColab.trim().toLowerCase())
+    (c.full_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(buscaColab.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
   );
   const excluidosQuinzena = quinzenal
     ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length

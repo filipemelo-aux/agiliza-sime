@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -281,7 +282,7 @@ export function FiscalDocImportDialog({
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, razao_social, nome_fantasia, cnpj")
-        .or(`razao_social.ilike.%${termo}%,full_name.ilike.%${termo}%,nome_fantasia.ilike.%${termo}%`)
+        .or(`razao_social.ilike.%${accentLike(termo)}%,full_name.ilike.%${accentLike(termo)}%,nome_fantasia.ilike.%${accentLike(termo)}%`)
         .limit(1);
       if (data && data.length > 0) {
         setFornecedorId(data[0].id);

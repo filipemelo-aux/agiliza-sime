@@ -209,18 +209,18 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     if (dateFrom && (!emissao || emissao < dateFrom)) return false;
     if (dateTo && (!emissao || emissao > dateTo)) return false;
 
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return (
       !q ||
-      c.tomador_nome?.toLowerCase().includes(q) ||
-      c.remetente_nome?.toLowerCase().includes(q) ||
-      c.expedidor_nome?.toLowerCase().includes(q) ||
-      c.recebedor_nome?.toLowerCase().includes(q) ||
-      c.destinatario_nome?.toLowerCase().includes(q) ||
+      c.tomador_nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.remetente_nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.expedidor_nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.recebedor_nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.destinatario_nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
       String(c.numero).includes(q) ||
       String(c.numero_interno).includes(q) ||
       c.chave_acesso?.includes(q) ||
-      c.placa_veiculo?.toLowerCase().includes(q)
+      c.placa_veiculo?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)
     );
   });
 

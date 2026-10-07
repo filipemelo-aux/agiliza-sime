@@ -135,9 +135,9 @@ export function PageAccessSettings() {
     );
   };
 
-  const f = filter.toLowerCase();
-  const visible = pages.filter((p) => `${p.group} ${p.title}`.toLowerCase().includes(f));
-  const visibleMenus = menus.filter((m) => m.name.toLowerCase().includes(f));
+  const f = filter.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const visible = pages.filter((p) => `${p.group} ${p.title}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(f));
+  const visibleMenus = menus.filter((m) => m.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(f));
 
   return (
     <div className="space-y-4">

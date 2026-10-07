@@ -99,8 +99,8 @@ export default function AdminFuelings() {
 
   const filtered = items.filter(i => {
     const matchSearch = !search ||
-      (vehicles.get(i.veiculo_id) || "").toLowerCase().includes(search.toLowerCase()) ||
-      (i.posto_combustivel || "").toLowerCase().includes(search.toLowerCase());
+      (vehicles.get(i.veiculo_id) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+      (i.posto_combustivel || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
     const matchStatus = filterStatus === "all" || i.status_faturamento === filterStatus;
     return matchSearch && matchStatus;
   });

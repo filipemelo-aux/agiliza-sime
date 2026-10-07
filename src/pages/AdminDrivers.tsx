@@ -207,19 +207,19 @@ export default function AdminDrivers() {
   const filteredDrivers = drivers.filter((d) => {
     const matchCategory = activeTab === "__all__" || d.category === activeTab;
     const matchSearch =
-      d.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      d.full_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
       (d.cnpj && d.cnpj.includes(search)) ||
-      (d.razao_social && d.razao_social.toLowerCase().includes(search.toLowerCase())) ||
-      (d.email && d.email.toLowerCase().includes(search.toLowerCase()));
+      (d.razao_social && d.razao_social.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ||
+      (d.email && d.email.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
     return matchCategory && matchSearch;
   });
 
   const filteredVehicles = vehicles.filter((v) =>
-    v.plate.toLowerCase().includes(search.toLowerCase()) ||
-    v.brand.toLowerCase().includes(search.toLowerCase()) ||
-    v.model.toLowerCase().includes(search.toLowerCase()) ||
-    (v.driver_name && v.driver_name.toLowerCase().includes(search.toLowerCase())) ||
-    (v.owner_name && v.owner_name.toLowerCase().includes(search.toLowerCase()))
+    v.plate.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+    v.brand.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+    v.model.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+    (v.driver_name && v.driver_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ||
+    (v.owner_name && v.owner_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
   );
 
   const countByTab = (tab: string) => {

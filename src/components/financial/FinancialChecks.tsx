@@ -166,13 +166,13 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
 
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return rows.filter((row) => {
       if (status !== "todos" && row.status !== status) return false;
       if (type !== "todos" && row.vinculo_tipo !== type) return false;
       if (empresa && row.empresa_id !== empresa) return false;
       if (!term) return true;
-      return [row.numero_cheque, row.favorecido_nome, row.historico, typeLabel[row.vinculo_tipo], row.status].some((value) => String(value || "").toLowerCase().includes(term));
+      return [row.numero_cheque, row.favorecido_nome, row.historico, typeLabel[row.vinculo_tipo], row.status].some((value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term));
     });
   }, [rows, search, status, type, empresa]);
 

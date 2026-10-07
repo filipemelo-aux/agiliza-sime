@@ -135,7 +135,7 @@ export default function FreightContracts() {
   };
 
   const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return rows.filter((r) => {
       if (statusFilter !== "todos") {
         const st = r.payable?.status || "sem_titulo";

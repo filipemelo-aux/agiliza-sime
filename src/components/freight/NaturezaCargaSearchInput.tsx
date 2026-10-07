@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
@@ -55,7 +56,7 @@ export function NaturezaCargaSearchInput({
         const { data, error } = await supabase
           .from("cargas")
           .select("produto_predominante, tipo")
-          .ilike("produto_predominante", `%${q}%`)
+          .ilike("produto_predominante", `%${accentLike(q)}%`)
           .eq("ativo", true)
           .order("produto_predominante", { ascending: true })
           .limit(10);

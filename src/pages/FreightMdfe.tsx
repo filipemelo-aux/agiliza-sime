@@ -56,10 +56,10 @@ export default function FreightMdfe() {
   }, []);
 
   const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
+    const s = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!s) return rows;
     return rows.filter((r) => [r.numero, r.placa_veiculo, r.motorista_nome, r.municipio_carregamento_nome, r.municipio_descarregamento_nome]
-      .some((v) => String(v ?? "").toLowerCase().includes(s)));
+      .some((v) => String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(s)));
   }, [rows, search]);
 
   const single = selected.size === 1 ? rows.find((r) => selected.has(r.id)) : null;

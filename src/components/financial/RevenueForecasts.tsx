@@ -188,10 +188,10 @@ export function RevenueForecasts() {
       if (filterOrigem !== "todas" && p.origem_tipo !== filterOrigem) return false;
       if (filterDoc.trim()) {
         const doc = getDocumentoLabel(p).toLowerCase();
-        if (!doc.includes(filterDoc.trim().toLowerCase())) return false;
+        if (!doc.includes(filterDoc.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) return false;
       }
       if (filterBusca.trim()) {
-        const q = filterBusca.trim().toLowerCase();
+        const q = filterBusca.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const hay = `${p.cliente_nome || ""} ${p.metadata?.descricao || ""} ${p.metadata?.observacao || ""} ${p.metadata?.descricao_manual || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }

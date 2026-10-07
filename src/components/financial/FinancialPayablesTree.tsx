@@ -191,7 +191,7 @@ export function FinancialPayablesTree() {
 
   // Apply filters
   const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return allRows.filter((r) => {
       if (!r.data_vencimento) return false;
       if (periodoInicio && r.data_vencimento < periodoInicio) return false;

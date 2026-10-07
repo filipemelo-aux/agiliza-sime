@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -197,7 +198,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
       const s = cteSearch.trim();
       if (s) {
         if (/^\d+$/.test(s)) q = q.eq("numero", Number(s));
-        else q = q.or(`remetente_nome.ilike.%${s}%,destinatario_nome.ilike.%${s}%,placa_veiculo.ilike.%${s}%`);
+        else q = q.or(`remetente_nome.ilike.%${accentLike(s)}%,destinatario_nome.ilike.%${accentLike(s)}%,placa_veiculo.ilike.%${accentLike(s)}%`);
       }
       const { data } = await q;
       setCteOptions(((data as any) || []).filter((c: CteLite) => !ctes.some((x) => x.id === c.id)));
