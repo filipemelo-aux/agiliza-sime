@@ -73,7 +73,7 @@ async function readMatrix(file: File): Promise<any[][]> {
   return XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true, defval: "" });
 }
 
-function extractRows(matrix: any[][]): { rows: Row[]; hasValor: boolean } {
+function extractRows(matrix: any[][]): { rows: Row[]; hasValor: boolean; hasPlaca: boolean } {
   const hIdx = matrix.findIndex((r) => r.some((c) => /conh/i.test(String(c))) && r.some((c) => /emiss/i.test(String(c))));
   if (hIdx < 0) throw new Error("Cabeçalho não encontrado (esperado: Emissão, N.º Conh., Cliente, Peso, Placa…).");
   const h = matrix[hIdx].map((c) => norm(String(c)));
@@ -97,7 +97,7 @@ function extractRows(matrix: any[][]): { rows: Row[]; hasValor: boolean } {
       valor: ci.valor >= 0 ? parseNumBR(r[ci.valor]) : 0,
     });
   }
-  return { rows, hasValor: ci.valor >= 0 };
+  return { rows, hasValor: ci.valor >= 0, hasPlaca: ci.placa >= 0 };
 }
 
 export function CteServicoResumoImportDialog({ open, onOpenChange, onImported }: Props) {
@@ -105,9 +105,33 @@ export function CteServicoResumoImportDialog({ open, onOpenChange, onImported }:
   const { user } = useAuth();
   const { establishments } = useUnifiedCompany();
   const [estId, setEstId] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState<Row[]>([]);
-  const [hasValor, setHasValor] = useState(true);
+  const [files, setFiles] = useState<{ name: string; rows: Row[]; hasValor: boolean; hasPlaca: boolean }[]>([]);
+  // Combina as planilhas pelo número do conhecimento: cada uma completa o que falta na outra
+  const { rows, hasValor, hasPlaca, incompletos } = useMemo(() => {
+    const map = new Map<number, Row>();
+    const seen = new Map<number, number>();
+    for (const f of files) {
+      for (const r of f.rows) {
+        seen.set(r.numero, (seen.get(r.numero) || 0) + 1);
+        const cur = map.get(r.numero);
+        if (!cur) { map.set(r.numero, { ...r, valor: f.hasValor ? r.valor : 0, placa: f.hasPlaca ? r.placa : "" }); continue; }
+        map.set(r.numero, {
+          ...cur,
+          data: cur.data || r.data,
+          cliente: cur.cliente || r.cliente,
+          pesoKg: cur.pesoKg || r.pesoKg,
+          placa: cur.placa || (f.hasPlaca ? r.placa : ""),
+          nota: cur.nota || r.nota,
+          motorista: cur.motorista || r.motorista,
+          valor: cur.valor || (f.hasValor ? r.valor : 0),
+        });
+      }
+    }
+    const rs = Array.from(map.values()).sort((a, b) => a.numero - b.numero);
+    const inc = files.length > 1 ? rs.filter((r) => (seen.get(r.numero) || 0) < files.length).map((r) => r.numero) : [];
+    return { rows: rs, hasValor: files.some((f) => f.hasValor), hasPlaca: files.some((f) => f.hasPlaca), incompletos: inc };
+  }, [files]);
+  const fileName = files.map((f) => f.name).join(" + ");
   const [existing, setExisting] = useState<Set<number>>(new Set());
   const [clientMap, setClientMap] = useState<Record<string, Person | null>>({});
   const [busy, setBusy] = useState(false);
@@ -115,7 +139,7 @@ export function CteServicoResumoImportDialog({ open, onOpenChange, onImported }:
 
   useEffect(() => {
     if (!open) {
-      setRows([]); setFileName(""); setExisting(new Set()); setClientMap({});
+      setFiles([]); setExisting(new Set()); setClientMap({});
       setProgress({ done: 0, total: 0, errors: [] }); setEstId("");
     }
   }, [open]);
@@ -155,15 +179,19 @@ export function CteServicoResumoImportDialog({ open, onOpenChange, onImported }:
     })();
   }, [clients]);
 
-  const handleFile = async (f?: File) => {
-    if (!f) return;
-    try {
-      const { rows: rs, hasValor: hv } = extractRows(await readMatrix(f));
-      if (rs.length === 0) throw new Error("Nenhum conhecimento encontrado na planilha.");
-      setRows(rs); setHasValor(hv); setFileName(f.name);
-    } catch (e: any) {
-      toast({ title: "Planilha inválida", description: e.message, variant: "destructive" });
+  const handleFiles = async (list?: FileList | null) => {
+    if (!list?.length) return;
+    const parsed: typeof files = [];
+    for (const f of Array.from(list)) {
+      try {
+        const r = extractRows(await readMatrix(f));
+        if (r.rows.length === 0) throw new Error("Nenhum conhecimento encontrado.");
+        parsed.push({ name: f.name, ...r });
+      } catch (e: any) {
+        toast({ title: `Planilha inválida: ${f.name}`, description: e.message, variant: "destructive" });
+      }
     }
+    setFiles((prev) => [...prev.filter((p) => !parsed.some((n) => n.name === p.name)), ...parsed]);
   };
 
   const toImport = rows.filter((r) => !existing.has(r.numero));
@@ -265,8 +293,18 @@ export function CteServicoResumoImportDialog({ open, onOpenChange, onImported }:
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Planilha (.xls / .xlsx)</Label>
-            <Input type="file" accept=".xls,.xlsx,.html,.htm" className="h-9 text-xs" onChange={(e) => handleFile(e.target.files?.[0])} />
+            <Label className="text-xs">Planilhas (.xls / .xlsx) — pode enviar duas para combinar</Label>
+            <Input type="file" multiple accept=".xls,.xlsx,.html,.htm" className="h-9 text-xs" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {files.map((f) => (
+                  <span key={f.name} className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                    {f.name} ({f.rows.length}{f.hasPlaca ? " · placa" : ""}{f.hasValor ? " · valor" : ""})
+                    <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setFiles((p) => p.filter((x) => x.name !== f.name))}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -279,10 +317,23 @@ export function CteServicoResumoImportDialog({ open, onOpenChange, onImported }:
               {existing.size > 0 && <span className="text-muted-foreground">{existing.size} já existem no talão (serão ignorados)</span>}
             </div>
 
+            {files.length > 1 && (
+              <div className={`rounded border p-2 text-xs ${incompletos.length ? "border-warning/50 bg-warning/10" : "border-success/50 bg-success/10"}`}>
+                {incompletos.length
+                  ? <>Planilhas combinadas pelo nº do conhecimento. <b>{incompletos.length}</b> número(s) não aparecem em todas as planilhas e podem ficar sem placa ou valor: {incompletos.slice(0, 30).join(", ")}{incompletos.length > 30 ? "…" : ""}</>
+                  : <>Planilhas combinadas pelo nº do conhecimento: todos os {rows.length} números foram encontrados em todas as planilhas.</>}
+              </div>
+            )}
+            {!hasPlaca && (
+              <div className="flex gap-2 rounded border border-warning/50 bg-warning/10 p-2 text-xs">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+                Nenhuma planilha tem coluna de placa. Envie também o relatório "Financeiro Carregamento" para combinar.
+              </div>
+            )}
             {!hasValor && (
               <div className="flex gap-2 rounded border border-warning/50 bg-warning/10 p-2 text-xs">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
-                Esta planilha não tem coluna de valor do frete. Os CT-es entram com valor R$ 0,00 e sem previsão de recebimento; ajuste depois ou exporte o relatório com a coluna de valor.
+                Nenhuma planilha tem coluna de valor do frete. Envie também o relatório "Descritivo CT-e OS" para combinar o valor pelo nº do conhecimento.
               </div>
             )}
 
