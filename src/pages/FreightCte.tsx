@@ -124,8 +124,6 @@ export default function FreightCte() {
   const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
   const [sefazOpen, setSefazOpen] = useState(false);
-  const [dactePreview, setDactePreview] = useState<{ url: string; filename: string } | null>(null);
-
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
     if (error || !data) throw new Error(error?.message || "CT-e não encontrado");
@@ -134,9 +132,15 @@ export default function FreightCte() {
     const input = fromXml ? { ...(data as any), ...fromXml, status: (data as any).status } : (data as any);
     const num = input.numero ?? input.numero_interno ?? "";
     const pdf = await buildDactePdf([input]);
+    // Download direto, sem prévia: o clique no botão SEFAZ é gesto do usuário, então o navegador não bloqueia.
     const url = URL.createObjectURL(pdf.output("blob"));
-    setSefazOpen(false);
-    setDactePreview({ url, filename: `DACTE-${num || cteId.slice(0, 8)}.pdf` });
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `DACTE-${num || cteId.slice(0, 8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
   const handlePrintSelected = () => {
