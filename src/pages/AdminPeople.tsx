@@ -23,6 +23,7 @@ import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/comp
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { Label } from "@/components/ui/label";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -341,30 +342,7 @@ export default function AdminPeople() {
         <PageTitle>Pessoas</PageTitle>
 
         <SearchFilterCard>
-          <Select value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setSelected(new Set()); }}>
-            <SelectTrigger className="h-8 w-[190px] text-xs shrink-0 ml-auto">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(TAB_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key} className="text-xs">
-                  {label} ({countByTab(key)})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
-            <SelectTrigger className="h-8 w-[150px] text-xs shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">Todos os papéis</SelectItem>
-              <SelectItem value="rh" className="text-xs">Apenas RH</SelectItem>
-              <SelectItem value="non_rh" className="text-xs">Sem RH</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
+          <div className="relative min-w-[240px] flex-1 basis-full md:basis-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
@@ -372,6 +350,36 @@ export default function AdminPeople() {
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-8 text-xs"
             />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Categoria</Label>
+            <Select value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setSelected(new Set()); }}>
+              <SelectTrigger className="h-8 w-[175px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(TAB_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key} className="text-xs">
+                    {label} ({countByTab(key)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Papel</Label>
+            <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
+              <SelectTrigger className="h-8 w-[120px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                <SelectItem value="rh" className="text-xs">Somente RH</SelectItem>
+                <SelectItem value="non_rh" className="text-xs">Sem RH</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
