@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, FileSignature, Printer, ExternalLink, X, Pencil, Trash2 } from "lucide-react";
+import { Search, FileSignature, Printer, ExternalLink, X, Pencil, Trash2, Plus } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
+import { ContractCtePickerDialog } from "@/components/freight/ContractCtePickerDialog";
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
@@ -77,6 +78,8 @@ export default function FreightContracts() {
   const [dateTo, setDateTo] = useState<string>("");
   const [editing, setEditing] = useState<{ contractId: string; cte: Cte } | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [creatingCte, setCreatingCte] = useState<Cte | null>(null);
 
   const openCteDetail = async (cteId: string) => {
     const { data } = await supabase.from("ctes").select("*").eq("id", cteId).maybeSingle();
@@ -357,6 +360,7 @@ export default function FreightContracts() {
 
         <GlobalToolbar
           actions={[
+            { key: "new", label: "Novo contrato", icon: Plus, mode: "create", variant: "default", priority: true, onClick: () => setPickerOpen(true) },
             {
               key: "edit", label: "Editar", icon: Pencil, mode: "single",
               disabled: !single || single.payable?.status === "pago" || single.payable?.status === "parcial",
@@ -397,6 +401,15 @@ export default function FreightContracts() {
         cte={editing?.cte ?? null}
         contractId={editing?.contractId ?? null}
         onSaved={() => { setEditing(null); fetchData(); }}
+      />
+
+      <ContractCtePickerDialog open={pickerOpen} onOpenChange={setPickerOpen} onPick={(c) => { setPickerOpen(false); setCreatingCte(c); }} />
+      <FreightContractDialog
+        open={!!creatingCte}
+        onOpenChange={(o) => { if (!o) setCreatingCte(null); }}
+        cte={creatingCte}
+        contractId={null}
+        onSaved={() => { setCreatingCte(null); fetchData(); }}
       />
 
       {detailCte && (
