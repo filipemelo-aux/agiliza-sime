@@ -10,8 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { maskName, maskCNPJ } from "@/lib/masks";
-import { formatCurrency } from "@/lib/utils";
+import { maskName, maskCNPJ, formatCurrency } from "@/lib/masks";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 interface Props {
