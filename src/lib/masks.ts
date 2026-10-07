@@ -41,6 +41,29 @@ export const unmaskPlate = (value: string): string => {
   return value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 };
 
+/**
+ * Máscara de placa com classe por posição: letras nas 3 primeiras, dígito na 4ª,
+ * 5ª aceita letra (Mercosul) ou dígito (formato antigo) e as duas últimas só dígitos.
+ * Símbolos, espaços e acentos são ignorados, o texto vira maiúsculo e há teto de 7 caracteres.
+ */
+export const maskPlateInput = (value: string): string => {
+  let out = "";
+  for (const ch of (value || "").toUpperCase()) {
+    if (out.length >= 7) break;
+    const isLetter = ch >= "A" && ch <= "Z";
+    const isDigit = ch >= "0" && ch <= "9";
+    if (!isLetter && !isDigit) continue;
+    const pos = out.length;
+    if (pos === 3 || pos >= 5) {
+      if (!isDigit) continue;
+    } else if (pos < 3) {
+      if (!isLetter) continue;
+    }
+    out += ch;
+  }
+  return out.length <= 3 ? out : `${out.slice(0, 3)}-${out.slice(3)}`;
+};
+
 export const maskRenavam = (value: string): string => {
   return value.replace(/\D/g, "").slice(0, 11);
 };
