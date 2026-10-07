@@ -1,9 +1,8 @@
 import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel, Gauge, DollarSign, Droplet } from "lucide-react";
+import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -295,29 +294,6 @@ export default function AdminVehicles() {
     <AdminLayout>
       <main className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle>Veículos</PageTitle>
-
-        {(() => {
-          const totals = Object.values(metricsByVehicle).reduce(
-            (acc, m) => {
-              acc.liters += m.litersMonth;
-              acc.spent += m.spentMonth;
-              return acc;
-            },
-            { liters: 0, spent: 0 }
-          );
-          const withAvg = Object.values(metricsByVehicle).filter(m => m.avgKmL && m.avgKmL > 0);
-          const fleetAvg = withAvg.length
-            ? withAvg.reduce((s, m) => s + (m.avgKmL || 0), 0) / withAvg.length
-            : null;
-          return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card><CardContent className="p-3 flex items-center gap-2"><Droplet className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Litros (mês)</p><p className="text-sm font-semibold">{fmtNum(totals.liters, 1)} L</p></div></CardContent></Card>
-              <Card><CardContent className="p-3 flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Gasto (mês)</p><p className="text-sm font-semibold">{fmtBRL(totals.spent)}</p></div></CardContent></Card>
-              <Card><CardContent className="p-3 flex items-center gap-2"><Gauge className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Média Frota</p><p className="text-sm font-semibold">{fleetAvg ? `${fmtNum(fleetAvg, 2)} km/L` : "—"}</p></div></CardContent></Card>
-              <Card><CardContent className="p-3 flex items-center gap-2"><Fuel className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Veículos c/ Abast.</p><p className="text-sm font-semibold">{Object.keys(metricsByVehicle).length}</p></div></CardContent></Card>
-            </div>
-          );
-        })()}
 
         <SearchFilterCard>
           <FilterField label="Placa" className="w-full md:w-auto md:flex-[1_1_9rem]">
