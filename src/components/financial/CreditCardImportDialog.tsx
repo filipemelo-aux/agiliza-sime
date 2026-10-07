@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSortableTable, type SortState } from "@/hooks/useSortableTable";
 import { supabase } from "@/integrations/supabase/client";
@@ -3099,7 +3100,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           .from("profiles")
           .select("id, full_name, category, razao_social, nome_fantasia, cnpj, is_owner")
           .or(`category.in.(cliente,proprietario,fornecedor,colaborador),is_owner.eq.true`)
-          .or(`full_name.ilike.%${q}%,razao_social.ilike.%${q}%,nome_fantasia.ilike.%${q}%,cnpj.ilike.%${q}%`)
+          .or(`full_name.ilike.%${accentLike(q)}%,razao_social.ilike.%${accentLike(q)}%,nome_fantasia.ilike.%${accentLike(q)}%,cnpj.ilike.%${q}%`)
           .order("full_name")
           .limit(8);
         setAutoResults((data as any) || []);

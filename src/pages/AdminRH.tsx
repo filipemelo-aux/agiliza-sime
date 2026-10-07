@@ -129,12 +129,12 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 
   const filteredColabs = colaboradores.filter((c) => {
     if (tipoFilter !== "all" && c.tipo !== tipoFilter) return false;
-    const q = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!q) return true;
     return (
-      c.full_name?.toLowerCase().includes(q) ||
-      c.cargo?.toLowerCase().includes(q) ||
-      c.departamento?.toLowerCase().includes(q)
+      c.full_name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.cargo?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.departamento?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)
     );
   });
 
@@ -1172,11 +1172,11 @@ function SalaryOverridesCard({
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const list = colaboradores.filter((c) => c.ativo);
     if (!q) return list;
     return list.filter(
-      (c) => c.full_name?.toLowerCase().includes(q) || c.cargo?.toLowerCase().includes(q)
+      (c) => c.full_name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) || c.cargo?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)
     );
   }, [colaboradores, search]);
 

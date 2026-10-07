@@ -1700,8 +1700,8 @@ ${hasRecebimentos ? `
       faturasSorted.filter((f) => {
         if (filterEmpresa && f.empresa_id !== filterEmpresa) return false;
         if (filterCliente.trim()) {
-          const q = filterCliente.trim().toLowerCase();
-          if (!(f.cliente_nome || "").toLowerCase().includes(q)) return false;
+          const q = filterCliente.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          if (!(f.cliente_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)) return false;
         }
         if (filterCondicao !== "todas") {
           const cond = (f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : "");

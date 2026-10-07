@@ -71,7 +71,7 @@ export default function NotasFiscaisConsulta() {
   }, []);
 
   const filtered = useMemo(() => {
-    const t = busca.trim().toLowerCase();
+    const t = busca.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const td = t.replace(/\D/g, "");
     return rows.filter((r) => {
       if (empresa && r.establishment_id !== empresa) return false;

@@ -192,11 +192,11 @@ export default function AdminVehicles() {
       (filterType === "caminhao" && TRUCK_TYPES.has(v.vehicle_type)) ||
       (filterType === "leve" && !TRUCK_TYPES.has(v.vehicle_type));
     const matchSearch =
-      v.plate.toLowerCase().includes(search.toLowerCase()) ||
-      v.brand.toLowerCase().includes(search.toLowerCase()) ||
-      v.model.toLowerCase().includes(search.toLowerCase()) ||
-      (v.driver_name && v.driver_name.toLowerCase().includes(search.toLowerCase())) ||
-      (v.owner_name && v.owner_name.toLowerCase().includes(search.toLowerCase()));
+      v.plate.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+      v.brand.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+      v.model.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+      (v.driver_name && v.driver_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ||
+      (v.owner_name && v.owner_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
     return matchType && matchSearch;
   });
 

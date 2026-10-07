@@ -653,27 +653,27 @@ export function TransportReports() {
   }, [reportType]);
 
   const clienteList = useMemo(() => {
-    const term = clienteSearch.trim().toLowerCase();
+    const term = clienteSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const base = profiles.filter((p) => p.category === "cliente");
-    return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term))) : base;
+    return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term))) : base;
   }, [profiles, clienteSearch]);
 
   const motoristaList = useMemo(() => {
-    const term = motoristaSearch.trim().toLowerCase();
+    const term = motoristaSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const base = profiles.filter((p) => p.category === "motorista" || p.category === "colaborador");
-    return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term))) : base;
+    return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term))) : base;
   }, [profiles, motoristaSearch]);
 
   const proprietarioList = useMemo(() => {
-    const term = proprietarioSearch.trim().toLowerCase();
+    const term = proprietarioSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const ownerUserIds = new Set(vehicles.map((v) => v.owner_id).filter(Boolean));
     const base = profiles.filter((p) => p.user_id && (p.is_owner || ownerUserIds.has(p.user_id)));
-    return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term))) : base;
+    return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term))) : base;
   }, [profiles, vehicles, proprietarioSearch]);
 
   const vehicleList = useMemo(() => {
-    const term = vehicleSearch.trim().toLowerCase();
-    return term ? vehicles.filter((v) => [v.plate, v.brand, v.model].some((n) => (n || "").toLowerCase().includes(term))) : vehicles;
+    const term = vehicleSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return term ? vehicles.filter((v) => [v.plate, v.brand, v.model].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term))) : vehicles;
   }, [vehicles, vehicleSearch]);
 
   const getReportMeta = async () => {

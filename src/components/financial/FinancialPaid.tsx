@@ -382,12 +382,12 @@ export function FinancialPaid() {
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
-      const q = search.toLowerCase();
+      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const matchSearch =
         !search ||
-        i.description.toLowerCase().includes(q) ||
-        (i.creditor_name || "").toLowerCase().includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().includes(q);
+        i.description.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.creditor_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q);
 
       let matchPeriodo = true;
       if (periodoInicio || periodoFim) {

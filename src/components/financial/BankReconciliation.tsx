@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,18 +80,18 @@ function matchValueQuery(query: string, valor?: number | null): boolean {
 }
 
 function matchAccountSearch(query: string, account: any, installments: any[] = []): boolean {
-  const q = query.trim().toLowerCase();
+  const q = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (!q) return true;
   return (
-    String(account.descricao || account.description || "").toLowerCase().includes(q) ||
-    String(account.favorecido_nome || account.creditor_name || "").toLowerCase().includes(q) ||
-    String(account.veiculo_placa || "").toLowerCase().includes(q) ||
-    String(account.documento_fiscal_numero || "").toLowerCase().includes(q) ||
-    String(account.chave_nfe || "").toLowerCase().includes(q) ||
-    String(account.numero_multa || "").toLowerCase().includes(q) ||
-    String(account.observacoes || "").toLowerCase().includes(q) ||
-    String(account.fornecedor_cnpj || "").toLowerCase().includes(q) ||
-    String(account.forma_pagamento || "").toLowerCase().includes(q) ||
+    String(account.descricao || account.description || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.favorecido_nome || account.creditor_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+    String(account.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
     matchValueQuery(q, Number(account.valor_total || account.amount || 0)) ||
     matchValueQuery(q, Number(account.valor_pago || account.paid_amount || 0)) ||
     installments.some((inst) => matchValueQuery(q, Number(inst.valor || 0)))
@@ -1345,7 +1346,7 @@ export function BankReconciliation() {
           const needleDigits = safe.replace(/\D/g, "");
           results = results.filter((r) =>
             (r.cliente_nome_lower || "").includes(needle) ||
-            String(r.descricao || "").toLowerCase().includes(needle) ||
+            String(r.descricao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(needle) ||
             (r.documento_fiscal_numero || "").includes(safe) ||
             (needleDigits.length >= 3 && String(r.cliente_documento || "").replace(/\D/g, "").includes(needleDigits)) ||
             (queryDate && r.data_vencimento === queryDate) ||
@@ -1374,7 +1375,7 @@ export function BankReconciliation() {
         .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
         .is("deleted_at", null)
         .or(
-          `descricao.ilike.%${safe}%,favorecido_nome.ilike.%${safe}%,documento_fiscal_numero.ilike.%${safe}%`
+          `descricao.ilike.%${accentLike(safe)}%,favorecido_nome.ilike.%${accentLike(safe)}%,documento_fiscal_numero.ilike.%${accentLike(safe)}%`
         )
         .order("data_vencimento", { ascending: false })
         .limit(50);
@@ -1867,9 +1868,9 @@ export function BankReconciliation() {
       list = list.filter((i) => tipoFilter === "debito" ? i.tipo === "saida" : i.tipo === "entrada");
     }
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
+      const q = searchText.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       list = list.filter((i) =>
-        i.description.toLowerCase().includes(q) ||
+        i.description.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
         formatCurrency(Math.abs(i.amount)).includes(q) ||
         i.date.includes(q)
       );

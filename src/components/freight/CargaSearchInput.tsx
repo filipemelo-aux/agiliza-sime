@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,7 @@ export function CargaSearchInput({
         const { data } = await supabase
           .from("cargas")
           .select("id, produto_predominante, peso_bruto, valor_carga, unidade, remetente_nome, destinatario_nome, uf_origem, uf_destino, municipio_origem_nome, municipio_destino_nome, valor_carga_averb, chaves_nfe_ref")
-          .or(`produto_predominante.ilike.%${q}%,remetente_nome.ilike.%${q}%,destinatario_nome.ilike.%${q}%`)
+          .or(`produto_predominante.ilike.%${accentLike(q)}%,remetente_nome.ilike.%${accentLike(q)}%,destinatario_nome.ilike.%${accentLike(q)}%`)
           .order("created_at", { ascending: false })
           .limit(10);
         setResults((data as any[]) || []);

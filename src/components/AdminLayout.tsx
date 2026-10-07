@@ -232,7 +232,7 @@ function SidebarNav() {
   );
 
   const [query, setQuery] = useState("");
-  const q = query.trim().toLowerCase();
+  const q = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const nq = norm(q);
   const menuItems = !q ? baseMenuItems : (baseMenuItems as any[]).map((i) => {

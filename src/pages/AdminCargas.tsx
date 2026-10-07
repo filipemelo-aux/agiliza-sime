@@ -73,12 +73,12 @@ export default function AdminCargas() {
   };
 
   const filtered = useMemo(() => cargas.filter((c) => {
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return (
       !q ||
-      c.produto_predominante?.toLowerCase().includes(q) ||
-      c.tipo?.toLowerCase().includes(q) ||
-      c.sinonimos?.toLowerCase().includes(q) ||
+      c.produto_predominante?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.tipo?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.sinonimos?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
       c.ncm?.includes(q)
     );
   }), [cargas, search]);

@@ -1111,11 +1111,11 @@ export default function HarvestDetail() {
   const getFilteredAssignmentsForPayment = () => {
     let list = filterByDateRange(assignments);
     if (driverSearch.trim()) {
-      const q = driverSearch.toLowerCase();
+      const q = driverSearch.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       list = list.filter(a =>
-        (a.driver_name || "").toLowerCase().includes(q) ||
-        (a.vehicle_plate || "").toLowerCase().includes(q) ||
-        (a.owner_name || "").toLowerCase().includes(q)
+        (a.driver_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (a.vehicle_plate || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (a.owner_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)
       );
     }
     return list;
@@ -1677,11 +1677,11 @@ export default function HarvestDetail() {
   const filterBySearch = (list: Assignment[]) => {
     const dateFiltered = filterByDateRange(list);
     if (!driverSearch.trim()) return dateFiltered;
-    const q = driverSearch.toLowerCase();
+    const q = driverSearch.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return dateFiltered.filter(a =>
-      (a.driver_name || "").toLowerCase().includes(q) ||
-      (a.vehicle_plate || "").toLowerCase().includes(q) ||
-      (a.owner_name || "").toLowerCase().includes(q)
+      (a.driver_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (a.vehicle_plate || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (a.owner_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)
     );
   };
 

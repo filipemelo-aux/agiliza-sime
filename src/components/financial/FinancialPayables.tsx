@@ -833,19 +833,19 @@ export function FinancialPayables() {
 
     // REGRA: período é SEMPRE aplicado primeiro em tudo
     const baseForCounts = items.filter(i => {
-      const q = search.toLowerCase();
+      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const matchSearch = !search ||
-        i.descricao.toLowerCase().includes(q) ||
-        (i.favorecido_nome || "").toLowerCase().includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().includes(q) ||
-        (i.veiculo_placa || "").toLowerCase().includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
-        (i.chave_nfe || "").toLowerCase().includes(q) ||
-        (i.numero_multa || "").toLowerCase().includes(q) ||
-        (i.observacoes || "").toLowerCase().includes(q) ||
-        (i.fornecedor_cnpj || "").toLowerCase().includes(q) ||
-        (i.forma_pagamento || "").toLowerCase().includes(q) ||
+        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
         matchValueQuery(q, i.valor_total) ||
         matchValueQuery(q, Number(i.valor_pago || 0)) ||
         (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
@@ -908,19 +908,19 @@ export function FinancialPayables() {
         if (!matchesPeriod(expenseDate) || !matchesQuickFilter(expenseDate, i.status)) return false;
       }
 
-      const q = search.toLowerCase();
+      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const matchSearch = !search ||
-        i.descricao.toLowerCase().includes(q) ||
-        (i.favorecido_nome || "").toLowerCase().includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().includes(q) ||
-        (i.veiculo_placa || "").toLowerCase().includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
-        (i.chave_nfe || "").toLowerCase().includes(q) ||
-        (i.numero_multa || "").toLowerCase().includes(q) ||
-        (i.observacoes || "").toLowerCase().includes(q) ||
-        (i.fornecedor_cnpj || "").toLowerCase().includes(q) ||
-        (i.forma_pagamento || "").toLowerCase().includes(q) ||
+        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+        (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
         matchValueQuery(q, i.valor_total) ||
         matchValueQuery(q, Number(i.valor_pago || 0)) ||
         (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));

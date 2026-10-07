@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -116,9 +117,9 @@ export function PersonSearchInput({
           .or(orParts.join(","));
         const digits = q.replace(/\D/g, "");
         const matchParts = [
-          `full_name.ilike.%${q}%`,
-          `razao_social.ilike.%${q}%`,
-          `nome_fantasia.ilike.%${q}%`,
+          `full_name.ilike.%${accentLike(q)}%`,
+          `razao_social.ilike.%${accentLike(q)}%`,
+          `nome_fantasia.ilike.%${accentLike(q)}%`,
           `cnpj.ilike.%${q}%`,
         ];
         // Permite buscar digitando o documento com máscara (05.050.995/0001-19).

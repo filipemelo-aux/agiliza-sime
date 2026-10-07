@@ -644,9 +644,9 @@ export function FinancialReports({ fixedReportType }: { fixedReportType?: Report
   }, [filters]);
 
   const filteredRows = useMemo(() => {
-    const term = nameSearch.trim().toLowerCase();
+    const term = nameSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (!term) return rows;
-    return rows.filter((r) => (r.pessoa || "").toLowerCase().includes(term) || (r.descricao || "").toLowerCase().includes(term));
+    return rows.filter((r) => (r.pessoa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term) || (r.descricao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term));
   }, [rows, nameSearch]);
 
   const grouped = useMemo(() => {
@@ -1079,9 +1079,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                   </div>
                 )}
                 {showFavorecido && (() => {
-                  const term = favorecidoSearch.trim().toLowerCase();
+                  const term = favorecidoSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                   const list = term
-                    ? profiles.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term)))
+                    ? profiles.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term)))
                     : profiles;
                   return (
                     <div className="space-y-1">
@@ -1110,10 +1110,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                   );
                 })()}
                 {showCliente && (() => {
-                  const term = clienteSearch.trim().toLowerCase();
+                  const term = clienteSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                   const baseList = profiles.filter((p) => p.category === "cliente");
                   const list = term
-                    ? baseList.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term)))
+                    ? baseList.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term)))
                     : baseList;
                   return (
                     <div className="space-y-1">

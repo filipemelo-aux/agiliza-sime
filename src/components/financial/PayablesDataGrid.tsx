@@ -195,20 +195,20 @@ export function PayablesDataGrid() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const vterm = veiculoQ.trim().toLowerCase();
     return rows.filter((r) => {
       // 'atrasado' inclui: status='atrasado' OU parcial vencido
       if (status === "atrasado" && !(r.status === "atrasado" || (r.status === "parcial" && r.vencido))) return false;
       if (status === "aberto" && !(r.status === "pendente" || r.status === "parcial")) return false;
       if (status === "pago" && r.status !== "pago") return false;
-      if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
+      if (vterm && !r.veiculo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(vterm)) return false;
       if (term) {
         const t = term;
-        const matchFornecedor = r.fornecedor.toLowerCase().includes(t);
-        const matchRazao = r.razaoSocial.toLowerCase().includes(t);
-        const matchFantasia = r.nomeFantasia.toLowerCase().includes(t);
-        const matchDescricao = r.descricao.toLowerCase().includes(t);
+        const matchFornecedor = r.fornecedor.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t);
+        const matchRazao = r.razaoSocial.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t);
+        const matchFantasia = r.nomeFantasia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t);
+        const matchDescricao = r.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t);
         if (!(matchFornecedor || matchRazao || matchFantasia || matchDescricao)) return false;
       }
       if (excludedCategorias.has(r.categoria)) return false;

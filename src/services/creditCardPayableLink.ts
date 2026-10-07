@@ -1,3 +1,4 @@
+import { accentLike } from "@/lib/search";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -40,7 +41,7 @@ export async function searchOpenPayables(term: string, limit = 40): Promise<Open
 
   const t = term.trim();
   if (t.length >= 2) {
-    q = q.or(`descricao.ilike.%${t}%,favorecido_nome.ilike.%${t}%`);
+    q = q.or(`descricao.ilike.%${accentLike(t)}%,favorecido_nome.ilike.%${accentLike(t)}%`);
   }
 
   const { data, error } = await q;

@@ -97,8 +97,8 @@ export function FinancialReceivables() {
   const filtered = contas.filter(c => {
     if (filterStatus !== "todos" && c.status !== filterStatus) return false;
     if (filterCliente.trim()) {
-      const q = filterCliente.trim().toLowerCase();
-      if (!(c.cliente_nome || "").toLowerCase().includes(q)) return false;
+      const q = filterCliente.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (!(c.cliente_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)) return false;
     }
     return true;
   });

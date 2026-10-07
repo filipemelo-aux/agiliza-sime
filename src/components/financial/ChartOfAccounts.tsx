@@ -127,8 +127,8 @@ export function ChartOfAccounts() {
     let list = accounts;
     if (tipoFilter !== "todos") list = list.filter((a) => a.tipo === tipoFilter);
     if (searching) {
-      const q = searchText.trim().toLowerCase();
-      list = list.filter((a) => a.nome.toLowerCase().includes(q) || a.codigo.toLowerCase().includes(q));
+      const q = searchText.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      list = list.filter((a) => a.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) || a.codigo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q));
     }
     return list;
   }, [accounts, tipoFilter, searchText, searching]);

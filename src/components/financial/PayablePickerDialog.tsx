@@ -105,7 +105,7 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
 
   const filtered = useMemo(() => {
     const today = getLocalDateISO();
-    const t = term.trim().toLowerCase();
+    const t = term.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return payables
       .filter((p) => {
         const balance = Math.max(0, Number(p.valor_total) - Number(p.valor_pago || 0));
@@ -115,7 +115,7 @@ export function PayablePickerDialog({ open, onOpenChange, payables, loading, sel
         if (vencidas === "vencidas" && !(p.data_vencimento && p.data_vencimento < today && balance > 0)) return false;
         if (vencidas === "a_vencer" && !(p.data_vencimento && p.data_vencimento >= today)) return false;
         if (!t) return true;
-        return [p.descricao, p.favorecido_nome, p.plano_contas_nome, p.veiculo_placa, p.fornecedor_cnpj].some((v) => String(v || "").toLowerCase().includes(t));
+        return [p.descricao, p.favorecido_nome, p.plano_contas_nome, p.veiculo_placa, p.fornecedor_cnpj].some((v) => String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(t));
       })
       .sort((a, b) => String(a.data_vencimento || "9999").localeCompare(String(b.data_vencimento || "9999")))
       .slice(0, 300);

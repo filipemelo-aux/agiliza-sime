@@ -165,9 +165,9 @@ export default function AdminMaintenances() {
     return items.filter(i => {
       const v = vehicleMap[i.veiculo_id];
       const matchSearch = !search ||
-        i.descricao.toLowerCase().includes(search.toLowerCase()) ||
-        (v?.plate || "").toLowerCase().includes(search.toLowerCase()) ||
-        (i.fornecedor || "").toLowerCase().includes(search.toLowerCase());
+        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+        (v?.plate || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")) ||
+        (i.fornecedor || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchTipo = filterTipo === "all" || i.tipo_manutencao === filterTipo;
       const dateRef = i.data_manutencao;
