@@ -9,8 +9,11 @@ import { useUnifiedCompany, EstablishmentInfo } from "@/hooks/useUnifiedCompany"
 export function empresaShortLabel(e?: EstablishmentInfo | null) {
   if (!e) return "—";
   if (e.type === "matriz") return "Matriz";
-  const extra = (e.razao_social || "").split("-").slice(1).join("-").trim();
-  return extra ? extra.replace(/^Filial\s*/i, "Filial ") : "Filial";
+  // O complemento da filial pode vir no nome fantasia (ex.: "SIME TRANSPORTE LTDA - FILIAL TOCANTINS")
+  // ou na razão social (ex.: "Sime Transporte Ltda - Filial Tocantins").
+  const fonte = (e.nome_fantasia || e.razao_social || "").split("-").slice(1).join("-").trim();
+  if (fonte) return fonte.replace(/^Filial\s*/i, "Filial ");
+  return (e.nome_fantasia || "").trim() || "Filial";
 }
 
 export function useEmpresaOptions() {
