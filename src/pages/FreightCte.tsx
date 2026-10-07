@@ -17,7 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, FileSignature, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, Handshake, type LucideIcon } from "lucide-react";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
@@ -117,7 +117,7 @@ export default function FreightCte() {
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isConsultor } = useAuth();
   const navigate = useNavigate();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -694,8 +694,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
             },
             {
-              key: "contract", label: "Contrato de frete", icon: FileSignature, mode: "single", variant: "outline",
-              disabled: !singleCte || INACTIVE_CTE_STATUSES.includes(singleCte.status),
+              key: "contract", label: "Contrato de frete", icon: Handshake, mode: "single", variant: "outline",
+              priority: !!singleCte && !INACTIVE_CTE_STATUSES.includes(singleCte.status),
+              disabled: !singleCte || isConsultor || INACTIVE_CTE_STATUSES.includes(singleCte.status),
               onClick: async () => {
                 if (!singleCte) return;
                 const { data } = await supabase.from("freight_contracts").select("numero").eq("cte_id", singleCte.id).maybeSingle();
