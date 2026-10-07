@@ -9,8 +9,14 @@ import { useUnifiedCompany, EstablishmentInfo } from "@/hooks/useUnifiedCompany"
 export function empresaShortLabel(e?: EstablishmentInfo | null) {
   if (!e) return "—";
   if (e.type === "matriz") return "Matriz";
-  const extra = (e.razao_social || "").split("-").slice(1).join("-").trim();
-  return extra ? extra.replace(/^Filial\s*/i, "Filial ") : "Filial";
+  // O complemento da filial pode vir no nome fantasia (ex.: "SIME TRANSPORTE LTDA - FILIAL TOCANTINS")
+  // ou na razão social (ex.: "Sime Transporte Ltda - Filial Tocantins").
+  const fonte = (e.nome_fantasia || e.razao_social || "").split("-").slice(1).join("-").trim();
+  const complemento = (fonte || e.nome_fantasia || "").trim();
+  if (!complemento) return "Filial";
+  const rest = complemento.replace(/^filial\s*/i, "").trim();
+  const pretty = rest ? rest.charAt(0) + rest.slice(1).toLowerCase() : "";
+  return pretty ? `Filial ${pretty}` : "Filial";
 }
 
 export function useEmpresaOptions() {
@@ -111,7 +117,7 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
   const isMatriz = est.type === "matriz";
   return (
     <span
-      title={est.razao_social}
+      title={est.nome_fantasia || est.razao_social}
       className={cn(
         "inline-flex h-4 items-center justify-center rounded border px-1.5 text-[9px] font-medium leading-none",
         isMatriz
@@ -119,8 +125,8 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
           : "bg-amber-500/10 text-amber-700 border-amber-500/30",
         className,
       )}
-    >
-      {isMatriz ? "Matriz" : "Filial"}
-    </span>
+      >
+        {empresaShortLabel(est)}
+      </span>
   );
 }
