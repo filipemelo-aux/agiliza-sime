@@ -297,6 +297,19 @@ export function ChartOfAccounts() {
           )}
           <span className="font-mono text-[11px] text-muted-foreground shrink-0">{r.codigo}</span>
           <span className="font-medium truncate">{r.nome}</span>
+          {r.tipo_operacional && (
+            <span
+              title={
+                r.tipo_operacional === "manutencao"
+                  ? "Manutenção: ao lançar despesa nesta conta, abrem os campos de veículo, KM, tipo de manutenção e tempo parado. É também a conta usada para lançar as manutenções do módulo de frota."
+                  : "Combustível: usada para classificar e separar os lançamentos gerados a partir dos abastecimentos."
+              }
+              className="shrink-0 cursor-help text-[11px] leading-none"
+              aria-label={r.tipo_operacional === "manutencao" ? "Comportamento operacional: manutenção" : "Comportamento operacional: combustível"}
+            >
+              {r.tipo_operacional === "manutencao" ? "🔧" : "⛽"}
+            </span>
+          )}
         </div>
       ),
     },
@@ -310,17 +323,6 @@ export function ChartOfAccounts() {
           {r.tipo === "despesa" ? "Despesa" : "Receita"}
         </Badge>
       ),
-    },
-    {
-      key: "operacional",
-      header: "Operacional",
-      width: "120px",
-      cell: (r) =>
-        r.tipo_operacional ? (
-          <Badge variant="outline" className="text-[10px]">
-            {r.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
-          </Badge>
-        ) : null,
     },
     {
       key: "centro_custo",
@@ -387,7 +389,7 @@ export function ChartOfAccounts() {
         onSelectedChange={setSelected}
         loading={loading}
         emptyMessage={searching ? "Nenhuma conta encontrada para a busca" : "Nenhuma conta cadastrada"}
-        minWidth={760}
+        minWidth={660}
         maxHeight="calc(100vh - 260px)"
         rowClassName={(r) => cn(!r.ativo && "opacity-50")}
         footer={
