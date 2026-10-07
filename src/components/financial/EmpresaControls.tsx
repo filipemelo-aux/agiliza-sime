@@ -12,8 +12,11 @@ export function empresaShortLabel(e?: EstablishmentInfo | null) {
   // O complemento da filial pode vir no nome fantasia (ex.: "SIME TRANSPORTE LTDA - FILIAL TOCANTINS")
   // ou na razão social (ex.: "Sime Transporte Ltda - Filial Tocantins").
   const fonte = (e.nome_fantasia || e.razao_social || "").split("-").slice(1).join("-").trim();
-  if (fonte) return fonte.replace(/^Filial\s*/i, "Filial ");
-  return (e.nome_fantasia || "").trim() || "Filial";
+  const complemento = (fonte || e.nome_fantasia || "").trim();
+  if (!complemento) return "Filial";
+  const rest = complemento.replace(/^filial\s*/i, "").trim();
+  const pretty = rest ? rest.charAt(0) + rest.slice(1).toLowerCase() : "";
+  return pretty ? `Filial ${pretty}` : "Filial";
 }
 
 export function useEmpresaOptions() {
