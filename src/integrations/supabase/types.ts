@@ -2754,6 +2754,7 @@ export type Database = {
           contingency_mode: string | null
           contingency_protocol: string | null
           created_at: string | null
+          descricao: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
           endereco_logradouro: string | null
@@ -2790,6 +2791,7 @@ export type Database = {
           contingency_mode?: string | null
           contingency_protocol?: string | null
           created_at?: string | null
+          descricao?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_logradouro?: string | null
@@ -2826,6 +2828,7 @@ export type Database = {
           contingency_mode?: string | null
           contingency_protocol?: string | null
           created_at?: string | null
+          descricao?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_logradouro?: string | null
@@ -5366,6 +5369,7 @@ export type Database = {
           codigo_municipio: string | null
           complemento: string | null
           created_at: string
+          descricao: string | null
           email: string | null
           focus_environment: string
           id: string
@@ -5393,6 +5397,7 @@ export type Database = {
           codigo_municipio?: string | null
           complemento?: string | null
           created_at?: string
+          descricao?: string | null
           email?: string | null
           focus_environment?: string
           id?: string
@@ -5420,6 +5425,7 @@ export type Database = {
           codigo_municipio?: string | null
           complemento?: string | null
           created_at?: string
+          descricao?: string | null
           email?: string | null
           focus_environment?: string
           id?: string
@@ -5874,6 +5880,7 @@ export type Database = {
         Returns: string
       }
       fn_strip_accents: { Args: { _t: string }; Returns: string }
+      fn_title_case: { Args: { _t: string }; Returns: string }
       get_my_masked_documents: {
         Args: never
         Returns: {

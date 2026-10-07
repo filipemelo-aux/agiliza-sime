@@ -12,6 +12,7 @@ const TenantSchema = z.object({
   id: z.string().uuid().optional(),
   razao_social: z.string().trim().min(2).max(200),
   nome_fantasia: z.string().trim().max(200).optional().nullable(),
+  descricao: z.string().trim().max(500).optional().nullable(),
   cnpj: z.string().trim().min(14).max(18),
   ie: z.string().trim().max(30).optional().nullable(),
   rntrc: z.string().trim().max(20).optional().nullable(),
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
       if (changed) ({ data: secrets } = await admin.from("tenant_secrets").select("tenant_id, focus_nfe_token_production, focus_nfe_token_homologation, focus_nfe_token_master, certificate_password"));
       const { data: certs } = await admin.from("tenant_certificates").select("tenant_id, file_name, valid_until, is_active").eq("is_active", true);
       const { data: branches } = await admin.from("fiscal_establishments")
-        .select("id,tenant_id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active,ultimo_numero_cte,ultimo_numero_mdfe,ultimo_numero_cte_servico")
+        .select("id,tenant_id,type,cnpj,razao_social,nome_fantasia,descricao,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active,ultimo_numero_cte,ultimo_numero_mdfe,ultimo_numero_cte_servico")
         .eq("type", "filial").order("razao_social");
       const { data: bsec } = await admin.from("establishment_secrets").select("establishment_id,focus_nfe_token_production,focus_nfe_token_homologation");
       const { data: blinks } = await admin.from("establishment_certificates").select("establishment_id,certificate_id");
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
       const p = z.object({ tenant_id: z.string().uuid() }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos" }, 400);
       const { data, error } = await admin.from("fiscal_establishments")
-        .select("id,type,cnpj,razao_social,nome_fantasia,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active,ultimo_numero_cte,ultimo_numero_mdfe,ultimo_numero_cte_servico")
+        .select("id,type,cnpj,razao_social,nome_fantasia,descricao,inscricao_estadual,rntrc,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep,codigo_municipio_ibge,ambiente,serie_cte,serie_mdfe,active,ultimo_numero_cte,ultimo_numero_mdfe,ultimo_numero_cte_servico")
         .eq("tenant_id", p.data.tenant_id).order("type").order("razao_social");
       if (error) throw error;
       const { data: es } = await admin.from("establishment_secrets").select("establishment_id,focus_nfe_token_production,focus_nfe_token_homologation").eq("tenant_id", p.data.tenant_id);
@@ -172,6 +173,7 @@ Deno.serve(async (req) => {
           cnpj: z.string().trim().min(14).max(18),
           razao_social: z.string().trim().min(2).max(200),
           nome_fantasia: z.string().max(200).optional().nullable(),
+          descricao: z.string().max(500).optional().nullable(),
           inscricao_estadual: z.string().max(30).optional().nullable(),
           rntrc: z.string().max(20).optional().nullable(),
           endereco_logradouro: z.string().max(200).optional().nullable(),
@@ -431,7 +433,7 @@ Deno.serve(async (req) => {
         tenantId = data.id;
         const { error: estErr } = await admin.from("fiscal_establishments").insert({
           tenant_id: tenantId, type: "matriz", cnpj: row.cnpj, razao_social: row.razao_social,
-          nome_fantasia: row.nome_fantasia, inscricao_estadual: row.ie, rntrc: row.rntrc,
+          nome_fantasia: row.nome_fantasia, descricao: row.descricao ?? null, inscricao_estadual: row.ie, rntrc: row.rntrc,
           endereco_logradouro: row.logradouro, endereco_numero: row.numero, endereco_bairro: row.bairro,
           endereco_municipio: row.municipio, endereco_uf: row.uf, endereco_cep: row.cep,
           codigo_municipio_ibge: row.codigo_municipio,
@@ -444,7 +446,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
         // Matriz fiscal espelha os dados cadastrais da empresa
         const { error: mErr } = await admin.from("fiscal_establishments").update({
-          cnpj: row.cnpj, razao_social: row.razao_social, nome_fantasia: row.nome_fantasia, inscricao_estadual: row.ie, rntrc: row.rntrc,
+          cnpj: row.cnpj, razao_social: row.razao_social, nome_fantasia: row.nome_fantasia, descricao: row.descricao ?? null, inscricao_estadual: row.ie, rntrc: row.rntrc,
           endereco_logradouro: row.logradouro, endereco_numero: row.numero, endereco_bairro: row.bairro,
           endereco_municipio: row.municipio, endereco_uf: row.uf, endereco_cep: row.cep, codigo_municipio_ibge: row.codigo_municipio,
           ambiente: row.focus_environment === "production" ? "producao" : "homologacao",

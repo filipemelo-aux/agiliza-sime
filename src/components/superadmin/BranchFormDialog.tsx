@@ -24,7 +24,7 @@ export interface BranchRow {
 }
 
 const emptyEst = {
-  cnpj: "", razao_social: "", nome_fantasia: "", inscricao_estadual: "", rntrc: "", endereco_logradouro: "", endereco_numero: "",
+  cnpj: "", razao_social: "", nome_fantasia: "", descricao: "" as string | null, inscricao_estadual: "", rntrc: "", endereco_logradouro: "", endereco_numero: "",
   endereco_bairro: "", endereco_municipio: "", endereco_uf: "", endereco_cep: "", codigo_municipio_ibge: "",
   ambiente: "homologacao" as "producao" | "homologacao", serie_cte: 1, serie_mdfe: 1, active: true,
   ultimo_numero_cte: 0, ultimo_numero_cte_servico: 0, ultimo_numero_mdfe: 0,
@@ -184,6 +184,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
                     {looking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}</Button></div></F>
                 <F label="Razão social *" span={4}><Input className="h-9" value={f.razao_social} onChange={set("razao_social")} /></F>
                 <F label="Nome fantasia" span={2}><Input className="h-9" value={f.nome_fantasia || ""} onChange={set("nome_fantasia")} /></F>
+            <F label="Descrição (opcional)" span={6}><Input className="h-9" value={f.descricao || ""} onChange={set("descricao")} placeholder="Anotação livre — espelhada no cadastro de Pessoas" /></F>
                 <F label="Inscrição estadual"><Input className="h-9" value={f.inscricao_estadual || ""} onChange={set("inscricao_estadual")} /></F>
                 <F label="RNTRC"><RntrcField className="h-9" value={f.rntrc || ""} cnpj={f.cnpj} onChange={(v) => setF((p) => ({ ...p, rntrc: v }))} /></F>
                 <F label="CEP" span={1}><Input className="h-9" value={f.endereco_cep || ""} onChange={set("endereco_cep")} /></F>

@@ -25,7 +25,7 @@ export interface TenantRow {
 }
 
 const empty = {
-  razao_social: "", nome_fantasia: "", cnpj: "", ie: "", rntrc: "", logradouro: "", numero: "", complemento: "", bairro: "",
+  razao_social: "", nome_fantasia: "", descricao: "" as string | null, cnpj: "", ie: "", rntrc: "", logradouro: "", numero: "", complemento: "", bairro: "",
   municipio: "", uf: "", cep: "", codigo_municipio: "", telefone: "", email: "", logo_url: "", focus_environment: "homologation" as const,
   nfe_sync_enabled: false as boolean, nfe_sync_start_hour: 8 as number, nfe_sync_interval_hours: 2 as number,
 };
@@ -187,6 +187,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
                 {looking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}</Button></div></F>
             <F label="Razão social *" span={4}><Input className="h-9" value={f.razao_social} onChange={set("razao_social")} /></F>
             <F label="Nome fantasia" span={2}><Input className="h-9" value={f.nome_fantasia} onChange={set("nome_fantasia")} /></F>
+            <F label="Descrição (opcional)" span={6}><Input className="h-9" value={f.descricao || ""} onChange={set("descricao")} placeholder="Anotação livre — espelhada no cadastro de Pessoas" /></F>
             <F label="Inscrição estadual"><Input className="h-9" value={f.ie} onChange={set("ie")} /></F>
             <F label="RNTRC"><RntrcField className="h-9" value={f.rntrc} cnpj={f.cnpj} onChange={(v) => setF((p) => ({ ...p, rntrc: v }))} /></F>
             <F label="CEP" span={1}><Input className="h-9" value={f.cep} onChange={set("cep")} /></F>
