@@ -33,6 +33,7 @@ import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog"
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteXmlBatchImportDialog } from "@/components/freight/CteXmlBatchImportDialog";
+import { CteServicoResumoImportDialog } from "@/components/freight/CteServicoResumoImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -105,6 +106,7 @@ export default function FreightCte() {
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [resumoOpen, setResumoOpen] = useState(false);
   const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
   const [xmlBatchOpen, setXmlBatchOpen] = useState(false);
   const [inconsistencyFocus, setInconsistencyFocus] = useState<string[]>([]);
@@ -661,6 +663,10 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               key: "batch", label: "Importar lote", icon: FileText, mode: "always", variant: "outline",
               onClick: () => setBatchOpen(true),
             },
+            {
+              key: "resumo", label: "Importar planilha resumida (Serviço)", icon: FileText, mode: "always", variant: "outline",
+              onClick: () => setResumoOpen(true),
+            },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
             {
               key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: !!singleCte, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]",
@@ -780,6 +786,11 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         onOpenChange={setInconsistencyOpen}
         onDeleted={() => { fetchCtes(); setSelectedIds(new Set()); }}
         focusIds={inconsistencyFocus}
+      />
+      <CteServicoResumoImportDialog
+        open={resumoOpen}
+        onOpenChange={setResumoOpen}
+        onImported={fetchCtes}
       />
       <CteXmlBatchImportDialog
         open={xmlBatchOpen}
