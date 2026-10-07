@@ -43,7 +43,6 @@ function install() {
       /\/(rest\/v1|functions\/v1|storage\/v1)\//.test(url) &&
       !url.includes("/auth/v1/");
     if (!isWrite) return orig(input as any, init);
-    console.log("[GWOverlay] write detectado", method, url, "backendUrl=", backendUrl);
     pending++;
     lastLabel = labelFor(method, url);
     notify();
@@ -63,21 +62,19 @@ export function GlobalWriteOverlay() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const l: Listener = (c, lb) => { console.log("[GWOverlay] listener", c, lb); setCount(c); setLabel(lb); };
+    const l: Listener = (c, lb) => { setCount(c); setLabel(lb); };
     listeners.add(l);
     return () => { listeners.delete(l); };
   }, []);
 
   useEffect(() => {
-    console.log("[GWOverlay] count=", count);
     if (count > 0) {
-      const t = setTimeout(() => { console.log("[GWOverlay] show=true"); setShow(true); }, 350);
+      const t = setTimeout(() => setShow(true), 350);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setShow(false), 150);
     return () => clearTimeout(t);
   }, [count]);
 
-  console.log("[GWOverlay] render show=", show, "label=", label);
   return <ProcessingOverlay open={show} label={label} />;
 }
