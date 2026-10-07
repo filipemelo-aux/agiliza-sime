@@ -43,6 +43,7 @@ function install() {
       /\/(rest\/v1|functions\/v1|storage\/v1)\//.test(url) &&
       !url.includes("/auth/v1/");
     if (!isWrite) return orig(input as any, init);
+    console.log("[GWOverlay] write detectado", method, url, "backendUrl=", backendUrl);
     pending++;
     lastLabel = labelFor(method, url);
     notify();
