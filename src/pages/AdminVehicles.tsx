@@ -324,7 +324,7 @@ export default function AdminVehicles() {
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="ABC-1234"
+                placeholder="ABC-1D23"
                 aria-label="Placa"
                 value={plateSearch}
                 onChange={(e) => setPlateSearch(maskPlateInput(e.target.value))}

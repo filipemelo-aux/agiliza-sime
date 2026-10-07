@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   maskPlate, unmaskPlate, maskRenavam, maskYear, maskName,
   validatePlate, validateRenavam,
+  maskPlateInput,
 } from "@/lib/masks";
 
 const trailerRequirements: Record<string, { count: number; labels: string[] }> = {
@@ -245,7 +246,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let masked = value;
-    if (name === "plate" || name.startsWith("trailerPlate")) masked = maskPlate(value);
+    if (name === "plate" || name.startsWith("trailerPlate")) masked = maskPlateInput(value);
     else if (name === "renavam" || name.startsWith("trailerRenavam")) masked = maskRenavam(value);
     else if (name === "brand" || name === "model") masked = maskName(value);
     else if (name === "year") masked = maskYear(value);
