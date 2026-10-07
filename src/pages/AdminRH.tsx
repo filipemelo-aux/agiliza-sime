@@ -22,7 +22,7 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
@@ -148,10 +148,9 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
       <div className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle className="!mb-0">{{ colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
         <SearchFilterCard>
-          <div className="flex items-center gap-2 ml-auto">
-            <Label className="text-xs text-muted-foreground">Mês</Label>
+          <FilterField label="Mês" className="ml-auto">
             <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
-          </div>
+          </FilterField>
         </SearchFilterCard>
 
         <RHWorkspace
@@ -388,32 +387,36 @@ function RHWorkspace(props: any) {
         {section === "colaboradores" && (
           <div className="space-y-3">
             <SearchFilterCard>
-              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap ml-auto">
-                {([
-                  { v: "all", label: "Todos" },
-                  { v: "colaborador", label: "Colaboradores" },
-                  { v: "motorista", label: "Motoristas" },
-                ] as const).map((opt) => (
-                  <Button
-                    key={opt.v}
-                    size="sm"
-                    variant={tipoFilter === opt.v ? "default" : "ghost"}
-                    className="h-7 px-2 text-[11px] rounded-sm whitespace-nowrap"
-                    onClick={() => { setTipoFilter(opt.v); setSelectedColabs(new Set()); }}
-                  >
-                    {opt.label}
-                  </Button>
-                ))}
-              </div>
-              <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, cargo ou departamento..."
-                  value={search}
-                  onChange={(e: any) => setSearch(e.target.value)}
-                  className="pl-8 h-8 text-xs"
-                />
-              </div>
+              <FilterField label="Tipo" className="ml-auto shrink-0">
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 shrink-0 flex-nowrap">
+                  {([
+                    { v: "all", label: "Todos" },
+                    { v: "colaborador", label: "Colaboradores" },
+                    { v: "motorista", label: "Motoristas" },
+                  ] as const).map((opt) => (
+                    <Button
+                      key={opt.v}
+                      size="sm"
+                      variant={tipoFilter === opt.v ? "default" : "ghost"}
+                      className="h-7 px-2 text-[11px] rounded-sm whitespace-nowrap"
+                      onClick={() => { setTipoFilter(opt.v); setSelectedColabs(new Set()); }}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+              </FilterField>
+              <FilterField label="Busca" className="w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, cargo ou departamento..."
+                    value={search}
+                    onChange={(e: any) => setSearch(e.target.value)}
+                    className="pl-8 h-8 text-xs"
+                  />
+                </div>
+              </FilterField>
             </SearchFilterCard>
             <GlobalToolbar actions={colabActions} selectedCount={selectedColabs.size} />
 

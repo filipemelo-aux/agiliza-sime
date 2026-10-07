@@ -11,7 +11,7 @@ import { CargaFormDialog } from "@/components/freight/CargaFormDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 export interface Carga {
   id: string;
@@ -148,15 +148,17 @@ export default function AdminCargas() {
         <PageTitle>Natureza de Cargas</PageTitle>
 
         <SearchFilterCard>
-          <div className="relative w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por descrição, tipo, NCM..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
-            />
-          </div>
+          <FilterField label="Busca" className="w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por descrição, tipo, NCM..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </FilterField>
         </SearchFilterCard>
         <GlobalToolbar actions={actions} selectedCount={selected.size} />
 

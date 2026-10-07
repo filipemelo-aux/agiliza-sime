@@ -12,7 +12,7 @@ import { printCreditCardInvoice } from "./printCreditCardInvoice";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface InvoiceRow {
   id: string;
@@ -203,7 +203,7 @@ export function CreditCardInvoices() {
       </div>
 
       <SearchFilterCard contentClassName="block">
-        <FilterPrimaryRow><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></FilterPrimaryRow>
+        <FilterPrimaryRow><FilterField label="Empresa" className="shrink-0"><EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} /></FilterField></FilterPrimaryRow>
       </SearchFilterCard>
       <GlobalToolbar actions={actions} selectedCount={selected.size} />
 

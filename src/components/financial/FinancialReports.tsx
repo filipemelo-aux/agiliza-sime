@@ -6,7 +6,6 @@ import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // tabs removed: reports now driven by sidebar routes
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +23,7 @@ import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { SummaryCard } from "@/components/SummaryCard";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -980,7 +979,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           <SearchFilterCard contentClassName="block space-y-3">
               {TIPO_DATA_OPTIONS[reportType] && (
                 <div className="space-y-1">
-                  <Label className="text-xs">Filtrar período por</Label>
+                  <span className="text-xs font-medium text-muted-foreground">Filtrar período por</span>
                   <div className="flex flex-wrap gap-1.5">
                     {TIPO_DATA_OPTIONS[reportType]!.map((o) => (
                       <Button
@@ -998,17 +997,15 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                 </div>
               )}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                <div className="space-y-1 col-span-2">
-                  <Label className="text-xs">Período</Label>
+                <FilterField label="Período" className="col-span-2">
                   <PeriodFilter
                     size="sm"
                     inicio={filters.dataInicio}
                     fim={filters.dataFim}
                     onChange={(i, f) => setFilters((prev) => ({ ...prev, dataInicio: i, dataFim: f }))}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Status</Label>
+                </FilterField>
+                <FilterField label="Status">
                   {(reportType as string) === "payables" && filters.tipoData === "pagamento" ? (
                     <Input value="Pago" disabled className="h-8 text-xs bg-muted" />
                   ) : (
@@ -1019,21 +1016,19 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       </SelectContent>
                     </Select>
                   )}
-                </div>
+                </FilterField>
                 {showOrigem && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Origem</Label>
+                  <FilterField label="Origem">
                     <Select value={filters.origem} onValueChange={(v) => updateFilter("origem", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ORIGEM_OPTIONS[reportType].map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
                 {showPlanoContas && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Plano de Contas</Label>
+                  <FilterField label="Plano de Contas">
                     <PlanoContasCombobox
                       value={filters.planoContasId}
                       onChange={(v) => updateFilter("planoContasId", v)}
@@ -1045,11 +1040,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       placeholder="Todos"
                       includeSemClassificacao
                     />
-                  </div>
+                  </FilterField>
                 )}
                 {showPlanoContas && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Exceto</Label>
+                  <FilterField label="Exceto">
                     <PlanoContasCombobox
                       value={filters.planoContasExcetoId}
                       onChange={(v) => updateFilter("planoContasExcetoId", v)}
@@ -1061,11 +1055,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       placeholder="Nenhuma exceção"
                       includeSemClassificacao
                     />
-                  </div>
+                  </FilterField>
                 )}
                 {showCentroCusto && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Centro de Custo</Label>
+                  <FilterField label="Centro de Custo">
                     <Select value={filters.centroCusto} onValueChange={(v) => updateFilter("centroCusto", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -1076,7 +1069,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         <SelectItem value="financeiro" className="text-xs">Financeiro</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FilterField>
                 )}
                 {showFavorecido && (() => {
                   const term = favorecidoSearch.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1084,8 +1077,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     ? profiles.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term)))
                     : profiles;
                   return (
-                    <div className="space-y-1">
-                      <Label className="text-xs">Favorecido</Label>
+                    <FilterField label="Favorecido">
                       <Select value={filters.favorecidoId} onValueChange={(v) => updateFilter("favorecidoId", v)}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -1106,7 +1098,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           {list.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                         </SelectContent>
                       </Select>
-                    </div>
+                    </FilterField>
                   );
                 })()}
                 {showCliente && (() => {
@@ -1116,8 +1108,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     ? baseList.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(term)))
                     : baseList;
                   return (
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cliente</Label>
+                    <FilterField label="Cliente">
                       <Select value={filters.clienteId} onValueChange={(v) => updateFilter("clienteId", v)}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -1138,21 +1129,19 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           {list.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                         </SelectContent>
                       </Select>
-                    </div>
+                    </FilterField>
                   );
                 })()}
-                <div className="space-y-1">
-                  <Label className="text-xs">Agrupar por</Label>
+                <FilterField label="Agrupar por">
                   <Select value={filters.groupBy} onValueChange={(v) => updateFilter("groupBy", v)}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {groupOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                </div>
+                </FilterField>
               </div>
-              <div className="pt-1">
-                <Label className="text-xs">Buscar por nome</Label>
+              <FilterField label="Buscar por nome" className="pt-1">
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                   <Input
@@ -1163,7 +1152,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     disabled={rows.length === 0}
                   />
                 </div>
-              </div>
+              </FilterField>
           </SearchFilterCard>
 
           {rows.length > 0 && (

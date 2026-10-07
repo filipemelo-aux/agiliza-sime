@@ -25,7 +25,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
 import { limitDisplayText } from "@/lib/displayText";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { cancelarCte } from "@/services/fiscal";
@@ -44,7 +43,7 @@ import { cteXmlToPrintFields } from "@/lib/cteXmlToPrint";
 import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { EmpresaFilter } from "@/components/financial/EmpresaControls";
 
 
@@ -620,23 +619,26 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
         <SearchFilterCard contentClassName="block space-y-2">
           <FilterPrimaryRow>
-            <div className="mr-auto">
+            <FilterField label="Período" className="mr-auto">
               <PeriodFilter inicio={dateFrom} fim={dateTo} allowClear onChange={(i, f) => { setDateFrom(i); setDateTo(f); }} />
-            </div>
-            <EmpresaFilter value={empresa} onChange={setEmpresa} />
+            </FilterField>
+            <FilterField label="Empresa" className="shrink-0">
+              <EmpresaFilter value={empresa} onChange={setEmpresa} />
+            </FilterField>
           </FilterPrimaryRow>
           <div className="flex flex-wrap items-end gap-2">
-            <div className="relative min-w-[240px] flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Talão</Label>
+            <FilterField label="Busca" className="min-w-[240px] flex-1">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+              </div>
+            </FilterField>
+            <FilterField label="Talão">
               <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
                 <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="producao">Produção</SelectItem><SelectItem value="servico">Serviço</SelectItem></SelectContent>
               </Select>
-            </div>
+            </FilterField>
           </div>
         </SearchFilterCard>
 

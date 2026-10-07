@@ -5,7 +5,7 @@ import { SefazIcon } from "@/components/icons/SefazIcon";
 import { Button } from "@/components/ui/button";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
-import { SearchFilterCard, FilterPrimaryRow } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterPrimaryRow, FilterField } from "@/components/ui/search-filter-card";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter } from "@/components/financial/EmpresaControls";
@@ -196,26 +196,36 @@ export default function NotasFiscaisConsulta() {
         <SearchFilterCard>
           <FilterPrimaryRow className="w-full flex-nowrap max-lg:flex-wrap">
             <div className="mr-auto flex flex-wrap items-end gap-2">
-              <PeriodFilter inicio={fInicio} fim={fFim} size="sm" onChange={(i: string, f: string) => { setFInicio(i); setFFim(f); }} />
-              <Select value={ator} onValueChange={(v) => setAtor(v as any)}>
-                <SelectTrigger className="h-8 w-[220px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os atores</SelectItem>
-                  <SelectItem value="destinatario">Destinatário (notas de entrada)</SelectItem>
-                  <SelectItem value="transportadora">Transportadora</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={situacao} onValueChange={setSituacao}>
-                <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas situações</SelectItem>
-                  <SelectItem value="autorizada">Autorizada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input className="h-8 w-[200px] text-xs" placeholder="Emitente, CNPJ, número ou chave" value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aplicar(); }} />
+              <FilterField label="Período">
+                <PeriodFilter inicio={fInicio} fim={fFim} size="sm" onChange={(i: string, f: string) => { setFInicio(i); setFFim(f); }} />
+              </FilterField>
+              <FilterField label="Papel na nota">
+                <Select value={ator} onValueChange={(v) => setAtor(v as any)}>
+                  <SelectTrigger className="h-8 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os atores</SelectItem>
+                    <SelectItem value="destinatario">Destinatário (notas de entrada)</SelectItem>
+                    <SelectItem value="transportadora">Transportadora</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <FilterField label="Situação">
+                <Select value={situacao} onValueChange={setSituacao}>
+                  <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas situações</SelectItem>
+                    <SelectItem value="autorizada">Autorizada</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <FilterField label="Busca">
+                <Input className="h-8 w-[200px] text-xs" placeholder="Emitente, CNPJ, número ou chave" value={busca} onChange={(e) => setBusca(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aplicar(); }} />
+              </FilterField>
             </div>
-            <EmpresaFilter value={empresa} onChange={setEmpresa} />
+            <FilterField label="Empresa" className="shrink-0">
+              <EmpresaFilter value={empresa} onChange={setEmpresa} />
+            </FilterField>
             <Button size="sm" className="h-8 gap-1.5 px-4 text-xs" onClick={aplicar}><Search className="h-3.5 w-3.5" />Filtrar</Button>
           </FilterPrimaryRow>
         </SearchFilterCard>

@@ -19,7 +19,7 @@ import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { limitDisplayText } from "@/lib/displayText";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface ContaReceber {
   id: string;
@@ -138,23 +138,27 @@ export function FinancialReceivables() {
 
       {/* Filter */}
       <SearchFilterCard>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[150px] h-8 text-xs">
-            <SelectValue placeholder="Filtrar status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="aberto">Aberto</SelectItem>
-            <SelectItem value="recebido">Recebido</SelectItem>
-            <SelectItem value="atrasado">Atrasado</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input
-          placeholder="Buscar cliente..."
-          value={filterCliente}
-          onChange={(e) => setFilterCliente(e.target.value)}
-          className="h-8 w-[220px] text-xs"
-        />
+        <FilterField label="Status">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[150px] h-8 text-xs">
+              <SelectValue placeholder="Filtrar status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="aberto">Aberto</SelectItem>
+              <SelectItem value="recebido">Recebido</SelectItem>
+              <SelectItem value="atrasado">Atrasado</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterField>
+        <FilterField label="Cliente">
+          <Input
+            placeholder="Buscar cliente..."
+            value={filterCliente}
+            onChange={(e) => setFilterCliente(e.target.value)}
+            className="h-8 w-[220px] text-xs"
+          />
+        </FilterField>
         <span className="text-xs text-muted-foreground">{filtered.length} título(s)</span>
         <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a receber. Ideal para gestão de cobranças e recebimentos pendentes." />
         {(filterStatus !== "todos" || filterCliente) && (

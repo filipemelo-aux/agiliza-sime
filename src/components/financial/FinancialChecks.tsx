@@ -20,7 +20,7 @@ import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckPdfPreview } from "./CheckPdfPreview";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface CheckRow {
   id: string;
@@ -284,14 +284,20 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     <div className="space-y-3">
       <PageTitle>{reportMode ? "Relatório de Cheques" : "Emissor de Cheques"}</PageTitle>
       <SearchFilterCard contentClassName="block space-y-2">
-        <FilterPrimaryRow><EmpresaFilter value={empresa} onChange={setEmpresa} /></FilterPrimaryRow>
+        <FilterPrimaryRow><FilterField label="Empresa" className="shrink-0"><EmpresaFilter value={empresa} onChange={setEmpresa} /></FilterField></FilterPrimaryRow>
         <div className="flex flex-wrap items-end gap-2">
-        <div className="relative min-w-[260px] flex-1">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input className="h-8 w-full pl-8 text-xs" placeholder="Buscar cheque, favorecido..." value={search} onChange={(event) => setSearch(event.target.value)} />
-        </div>
-        <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-[118px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todas situações</SelectItem><SelectItem value="emitido" className="text-xs">Emitidos</SelectItem><SelectItem value="compensado" className="text-xs">Compensados</SelectItem><SelectItem value="cancelado" className="text-xs">Cancelados</SelectItem></SelectContent></Select>
-        <Select value={type} onValueChange={setType}><SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todos os vínculos</SelectItem><SelectItem value="conta_pagar" className="text-xs">Conta a pagar</SelectItem><SelectItem value="contrato_frete" className="text-xs">Contrato de frete</SelectItem><SelectItem value="movimentacao" className="text-xs">Movimentação</SelectItem></SelectContent></Select>
+        <FilterField label="Busca" className="min-w-[260px] flex-1">
+          <div className="relative w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input className="h-8 w-full pl-8 text-xs" placeholder="Buscar cheque, favorecido..." value={search} onChange={(event) => setSearch(event.target.value)} />
+          </div>
+        </FilterField>
+        <FilterField label="Situação">
+          <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todas situações</SelectItem><SelectItem value="emitido" className="text-xs">Emitidos</SelectItem><SelectItem value="compensado" className="text-xs">Compensados</SelectItem><SelectItem value="cancelado" className="text-xs">Cancelados</SelectItem></SelectContent></Select>
+        </FilterField>
+        <FilterField label="Tipo de vínculo">
+          <Select value={type} onValueChange={setType}><SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todos os vínculos</SelectItem><SelectItem value="conta_pagar" className="text-xs">Conta a pagar</SelectItem><SelectItem value="contrato_frete" className="text-xs">Contrato de frete</SelectItem><SelectItem value="movimentacao" className="text-xs">Movimentação</SelectItem></SelectContent></Select>
+        </FilterField>
         </div>
       </SearchFilterCard>
       <GlobalToolbar actions={actions} selectedCount={selected.size} iconOnlyOnDesktop />

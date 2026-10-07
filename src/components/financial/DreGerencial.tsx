@@ -5,7 +5,6 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2, Search, ChevronRight, ChevronDown, Eye, Download, ScanSearch, Expand, Shrink } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
@@ -17,7 +16,7 @@ import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { EmpresaFilter } from "./EmpresaControls";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 interface ChartAccount {
   id: string;
@@ -670,19 +669,17 @@ export function DreGerencial() {
 
       <SearchFilterCard contentClassName="block space-y-3">
           <FilterPrimaryRow>
-            <div className="mr-auto space-y-1">
-              <Label className="text-xs">Período</Label>
+            <FilterField label="Período" className="mr-auto">
               <PeriodFilter
                 size="sm"
                 inicio={dataInicio}
                 fim={dataFim}
                 onChange={(i, f) => { setDataInicio(i); setDataFim(f); }}
               />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Empresa</Label>
+            </FilterField>
+            <FilterField label="Empresa">
               <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
-            </div>
+            </FilterField>
           </FilterPrimaryRow>
           <p className="text-[11px] text-muted-foreground">
             Regime de <b>competência pura</b>: compras do cartão entram pela <b>data original da compra</b> (posted_date). Compras parceladas são lançadas pelo <b>valor total</b> (parcela × N) no mês em que ocorreram — parcelas 2/N, 3/N... não aparecem em meses futuros. Clique no valor de uma linha de <i>Origem</i> para auditar os lançamentos individuais.

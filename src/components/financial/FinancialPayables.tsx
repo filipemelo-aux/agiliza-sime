@@ -33,7 +33,7 @@ import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
 /**
@@ -1472,11 +1472,7 @@ tfoot{display:table-row-group}
       <SearchFilterCard contentClassName="block space-y-2">
         {/* Row 1: Period label + date pickers */}
         <FilterPrimaryRow>
-          <div className="mr-auto flex items-end gap-2">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <CalendarIcon className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
-            </div>
+          <FilterField label="Período" className="mr-auto shrink-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <PeriodFilter
                 size="sm"
@@ -1486,19 +1482,25 @@ tfoot{display:table-row-group}
                 onChange={(i, f) => { setFilterPeriodoInicio(i); setFilterPeriodoFim(f); }}
               />
             </div>
-          </div>
-          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
+          <FilterField label="Empresa" className="shrink-0">
+            <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
         </FilterPrimaryRow>
 
         {/* Row 2: Search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar descrição, favorecido, placa, valor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
-        </div>
+        <FilterField label="Busca">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar descrição, favorecido, placa, valor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+          </div>
+        </FilterField>
 
         {/* Row 3: Quick filters + Plano de Contas (visible on small screens inside card) */}
         <div className="flex items-center gap-2 flex-wrap">
-          {quickFilterButtons.map(f => {
+          <FilterField label="Situação" className="w-fit">
+            <div className="flex items-center gap-2 flex-wrap">
+              {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
             return (
               <Button
@@ -1536,9 +1538,11 @@ tfoot{display:table-row-group}
                 )}
               </Button>
             );
-          })}
+              })}
+            </div>
+          </FilterField>
 
-          <div className="min-w-[200px] max-w-[260px]">
+          <FilterField label="Plano de Contas" className="min-w-[200px] max-w-[260px]">
             <PlanoContasCombobox
               value={filterPlanoContas}
               onChange={setFilterPlanoContas}
@@ -1549,7 +1553,7 @@ tfoot{display:table-row-group}
               placeholder="Plano de Contas"
               className="rounded-full"
             />
-          </div>
+          </FilterField>
 
           {(quickFilter !== "all" || filterPlanoContas !== "all" || filterEmpresa !== "" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
             <Button

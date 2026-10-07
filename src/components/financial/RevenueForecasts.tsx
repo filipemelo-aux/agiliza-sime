@@ -26,7 +26,7 @@ import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
-import { FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
+import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter } from "./EmpresaControls";
 import { Search, X } from "lucide-react";
@@ -555,8 +555,7 @@ export function RevenueForecasts() {
 
       <SearchFilterCard contentClassName="block space-y-2">
         <FilterPrimaryRow>
-          <div className="mr-auto flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Data prevista</span>
+          <FilterField label="Período" className="mr-auto">
             <PeriodFilter
               size="sm"
               allowClear
@@ -564,24 +563,32 @@ export function RevenueForecasts() {
               fim={filterDataFim}
               onChange={(i, f) => { setFilterDataInicio(i); setFilterDataFim(f); }}
             />
-          </div>
-          <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
+          <FilterField label="Empresa" className="shrink-0">
+            <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
+          </FilterField>
         </FilterPrimaryRow>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Select value={filterOrigem} onValueChange={setFilterOrigem}>
-            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Origem: todas</SelectItem>
-              <SelectItem value="cte">CT-e</SelectItem>
-              <SelectItem value="colheita">Colheita</SelectItem>
-              <SelectItem value="manual">Manual</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input placeholder="Nº documento" value={filterDoc} onChange={(e) => setFilterDoc(e.target.value)} className="h-8 w-[120px] text-xs" />
-          <div className="relative min-w-[180px] flex-1">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar cliente ou descrição..." value={filterBusca} onChange={(e) => setFilterBusca(e.target.value)} className="pl-8 h-8 text-xs" />
-          </div>
+          <FilterField label="Origem">
+            <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Origem: todas</SelectItem>
+                <SelectItem value="cte">CT-e</SelectItem>
+                <SelectItem value="colheita">Colheita</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Nº do documento">
+            <Input placeholder="Nº documento" value={filterDoc} onChange={(e) => setFilterDoc(e.target.value)} className="h-8 w-[120px] text-xs" />
+          </FilterField>
+          <FilterField label="Busca" className="min-w-[180px] flex-1">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="Buscar cliente ou descrição..." value={filterBusca} onChange={(e) => setFilterBusca(e.target.value)} className="pl-8 h-8 text-xs" />
+            </div>
+          </FilterField>
           {hasFilters && (
             <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFilters}>
               <X className="h-3 w-3" /> Limpar

@@ -20,7 +20,7 @@ import { GeneratePayablesDialog } from "@/components/fueling/GeneratePayablesDia
 import { formatCurrency } from "@/lib/masks";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
-import { SearchFilterCard } from "@/components/ui/search-filter-card";
+import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 
 const FUEL_LABELS: Record<string, string> = {
@@ -178,14 +178,18 @@ export default function AdminFuelings() {
         </div>
 
         <SearchFilterCard>
-          <div className="relative min-w-[210px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="nao_faturado">Não faturado</SelectItem><SelectItem value="faturado">Faturado</SelectItem></SelectContent>
-          </Select>
+          <FilterField label="Busca" className="min-w-[210px] flex-1">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+            </div>
+          </FilterField>
+          <FilterField label="Status">
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="nao_faturado">Não faturado</SelectItem><SelectItem value="faturado">Faturado</SelectItem></SelectContent>
+            </Select>
+          </FilterField>
         </SearchFilterCard>
 
         <GlobalToolbar

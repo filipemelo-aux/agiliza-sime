@@ -25,6 +25,22 @@ export function FilterPrimaryRow({ children, className }: FilterPrimaryRowProps)
   );
 }
 
+interface FilterFieldProps {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}
+
+/** Campo de filtro com o nome acima do controle — padrão de todos os cards "Filtrar". */
+export function FilterField({ label, children, className }: FilterFieldProps) {
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
+      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+      <div className="w-full min-w-0">{children}</div>
+    </div>
+  );
+}
+
 /** Faixa única para busca, período, ordenação e filtros de listagens. */
 export function SearchFilterCard({
   children,
