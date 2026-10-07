@@ -359,15 +359,19 @@ export function ChartOfAccounts() {
   return (
     <div className="space-y-3">
       <SearchFilterCard>
-        <FilterField label="Busca" className="relative min-w-[240px] flex-1 basis-full md:basis-auto">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar por código ou nome..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
+        <FilterField label="Busca" className="min-w-[240px] flex-1 basis-full md:basis-auto">
+          <div className="relative w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar por código ou nome..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="h-8 pl-8 text-xs" />
+          </div>
         </FilterField>
-        <div className="flex shrink-0 items-center gap-1">
-          {(([{ tab: "todos", label: `Todos (${totalizadores.total})`, icon: FolderTree }, { tab: "despesa", label: `Despesa (${totalizadores.desp})`, icon: List }, { tab: "receita", label: `Receita (${totalizadores.rec})`, icon: List }] as const)).map(({ tab, label, icon: Icon }) => (
-            <ToolbarIconButton key={tab} label={label} icon={Icon} active={tipoFilter === tab} showLabel onClick={() => setTipoFilter(tab)} />
-          ))}
-        </div>
+        <FilterField label="Tipo" className="shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
+            {(([{ tab: "todos", label: `Todos (${totalizadores.total})`, icon: FolderTree }, { tab: "despesa", label: `Despesa (${totalizadores.desp})`, icon: List }, { tab: "receita", label: `Receita (${totalizadores.rec})`, icon: List }] as const)).map(({ tab, label, icon: Icon }) => (
+              <ToolbarIconButton key={tab} label={label} icon={Icon} active={tipoFilter === tab} showLabel onClick={() => setTipoFilter(tab)} />
+            ))}
+          </div>
+        </FilterField>
       </SearchFilterCard>
 
       <GlobalToolbar

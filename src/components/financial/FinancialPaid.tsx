@@ -811,14 +811,16 @@ export function FinancialPaid() {
           </FilterField>
         </FilterPrimaryRow>
         <div className="flex items-center gap-2 flex-wrap">
-          <FilterField label="Busca" className="flex-1 min-w-0 relative">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar por nome, descrição ou nº da nota..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+          <FilterField label="Busca" className="flex-1 min-w-0">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="Buscar por nome, descrição ou nº da nota..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+            </div>
           </FilterField>
-          <FilterField label="Tipo">
+          <FilterField label="Tipo de pagamento">
             <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
               <SelectTrigger className="w-[150px] h-8 text-xs">
-                <SelectValue placeholder="Tipo Pgto" />
+                <SelectValue placeholder="Todos os tipos" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os tipos</SelectItem>

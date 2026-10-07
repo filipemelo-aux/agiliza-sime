@@ -151,7 +151,7 @@ export function FinancialReceivables() {
             </SelectContent>
           </Select>
         </FilterField>
-        <FilterField label="Favorecido">
+        <FilterField label="Cliente">
           <Input
             placeholder="Buscar cliente..."
             value={filterCliente}

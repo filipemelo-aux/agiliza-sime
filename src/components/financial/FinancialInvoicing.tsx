@@ -1882,7 +1882,7 @@ ${hasRecebimentos ? `
           <FilterField label="Nº do documento">
             <Input placeholder="Nº documento" value={filterNumero} onChange={(e) => setFilterNumero(e.target.value)} className="h-8 w-[120px] text-xs" />
           </FilterField>
-          <FilterField label="Favorecido" className="min-w-[180px] flex-1">
+          <FilterField label="Cliente" className="min-w-[180px] flex-1">
             <Input placeholder="Buscar cliente..." value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="h-8 w-full text-xs" />
           </FilterField>
           {hasFaturaFilters && (

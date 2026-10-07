@@ -286,9 +286,11 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
       <SearchFilterCard contentClassName="block space-y-2">
         <FilterPrimaryRow><FilterField label="Empresa" className="shrink-0"><EmpresaFilter value={empresa} onChange={setEmpresa} /></FilterField></FilterPrimaryRow>
         <div className="flex flex-wrap items-end gap-2">
-        <FilterField label="Busca" className="relative min-w-[260px] flex-1">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input className="h-8 w-full pl-8 text-xs" placeholder="Buscar cheque, favorecido..." value={search} onChange={(event) => setSearch(event.target.value)} />
+        <FilterField label="Busca" className="min-w-[260px] flex-1">
+          <div className="relative w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input className="h-8 w-full pl-8 text-xs" placeholder="Buscar cheque, favorecido..." value={search} onChange={(event) => setSearch(event.target.value)} />
+          </div>
         </FilterField>
         <FilterField label="Situação">
           <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-[118px] text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos" className="text-xs">Todas situações</SelectItem><SelectItem value="emitido" className="text-xs">Emitidos</SelectItem><SelectItem value="compensado" className="text-xs">Compensados</SelectItem><SelectItem value="cancelado" className="text-xs">Cancelados</SelectItem></SelectContent></Select>

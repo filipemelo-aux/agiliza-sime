@@ -178,9 +178,11 @@ export default function AdminFuelings() {
         </div>
 
         <SearchFilterCard>
-          <FilterField label="Busca" className="relative min-w-[210px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+          <FilterField label="Busca" className="min-w-[210px] flex-1">
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+            </div>
           </FilterField>
           <FilterField label="Status">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
