@@ -351,24 +351,26 @@ export default function AdminVehicles() {
               />
             </div>
           </FilterField>
-          <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-md bg-muted/60 p-0.5">
-            {[
-              { v: "__all__", label: "Todos" },
-              { v: "caminhao", label: "Caminhões" },
-              { v: "leve", label: "Leves" },
-            ].map((opt) => (
-              <Button
-                key={opt.v}
-                size="sm"
-                variant={filterType === opt.v ? "default" : "ghost"}
-                className="h-7 px-2 text-[11px] rounded-sm gap-1 whitespace-nowrap"
-                onClick={() => { setFilterType(opt.v); setSelected(new Set()); }}
-              >
-                {opt.label}
-                <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByFilter(opt.v)}</Badge>
-              </Button>
-            ))}
-          </div>
+          <FilterField label="Tipo" className="ml-auto shrink-0">
+            <div className="flex shrink-0 items-center gap-0.5 rounded-md bg-muted/60 p-0.5">
+              {[
+                { v: "__all__", label: "Todos" },
+                { v: "caminhao", label: "Caminhões" },
+                { v: "leve", label: "Leves" },
+              ].map((opt) => (
+                <Button
+                  key={opt.v}
+                  size="sm"
+                  variant={filterType === opt.v ? "default" : "ghost"}
+                  className="h-7 px-2 text-[11px] rounded-sm gap-1 whitespace-nowrap"
+                  onClick={() => { setFilterType(opt.v); setSelected(new Set()); }}
+                >
+                  {opt.label}
+                  <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByFilter(opt.v)}</Badge>
+                </Button>
+              ))}
+            </div>
+          </FilterField>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
 
