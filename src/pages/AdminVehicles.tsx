@@ -320,7 +320,7 @@ export default function AdminVehicles() {
         })()}
 
         <SearchFilterCard>
-          <FilterField label="Placa" className="w-full md:w-40 shrink-0">
+          <FilterField label="Placa" className="w-full md:w-auto md:flex-[1_1_9rem]">
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -337,7 +337,7 @@ export default function AdminVehicles() {
               />
             </div>
           </FilterField>
-          <FilterField label="Motorista" className="w-full md:w-52 shrink-0">
+          <FilterField label="Motorista" className="w-full md:w-auto md:flex-[1_1_12rem]">
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -348,7 +348,7 @@ export default function AdminVehicles() {
               />
             </div>
           </FilterField>
-          <FilterField label="Proprietário" className="w-full md:w-52 shrink-0">
+          <FilterField label="Proprietário" className="w-full md:w-auto md:flex-[1_1_12rem]">
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
