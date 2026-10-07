@@ -17,7 +17,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, FileSignature, type LucideIcon } from "lucide-react";
+import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
+import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { useNavigate } from "react-router-dom";
@@ -106,6 +108,7 @@ export default function FreightCte() {
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
   const [resumoOpen, setResumoOpen] = useState(false);
+  const [contractCte, setContractCte] = useState<Cte | null>(null);
   const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
   const [xmlBatchOpen, setXmlBatchOpen] = useState(false);
   const [inconsistencyFocus, setInconsistencyFocus] = useState<string[]>([]);
@@ -672,11 +675,11 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => { setInconsistencyFocus(Array.from(selectedIds)); setInconsistencyOpen(true); },
             },
             {
-              key: "xmlbatch", label: "Importar XML (Produção)", icon: Upload, mode: "always", variant: "outline",
+              key: "xmlbatch", label: "Importar XML (Produção)", icon: Upload, mode: "create", variant: "outline",
               onClick: () => setXmlBatchOpen(true),
             },
             {
-              key: "resumo", label: "Importar planilha resumida (Serviço)", icon: FileText, mode: "always", variant: "outline",
+              key: "resumo", label: "Importar planilha resumida (Serviço)", icon: FileText, mode: "create", variant: "outline",
               onClick: () => setResumoOpen(true),
             },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
@@ -689,6 +692,17 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: "!h-6 !w-6 md:!h-[23px] md:!w-[23px]",
               disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
               onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
+            },
+            {
+              key: "contract", label: "Contrato de frete", icon: FileSignature, mode: "single", variant: "outline",
+              disabled: !singleCte || INACTIVE_CTE_STATUSES.includes(singleCte.status),
+              onClick: async () => {
+                if (!singleCte) return;
+                const { data } = await supabase.from("freight_contracts").select("numero").eq("cte_id", singleCte.id).maybeSingle();
+                if (data) { toast({ title: "CT-e já possui contrato", description: `Contrato nº ${data.numero}. Edite-o em Contratos de Frete.`, variant: "destructive" }); return; }
+                const { data: full } = await supabase.from("ctes").select("*").eq("id", singleCte.id).maybeSingle();
+                if (full) setContractCte(full as any);
+              },
             },
           ]}
           selectedCount={selectedIds.size}
@@ -793,6 +807,13 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         onOpenChange={setInconsistencyOpen}
         onDeleted={() => { fetchCtes(); setSelectedIds(new Set()); }}
         focusIds={inconsistencyFocus}
+      />
+      <FreightContractDialog
+        open={!!contractCte}
+        onOpenChange={(o) => { if (!o) setContractCte(null); }}
+        cte={contractCte}
+        contractId={null}
+        onSaved={() => { setContractCte(null); toast({ title: "Contrato de frete criado" }); }}
       />
       <CteServicoResumoImportDialog
         open={resumoOpen}
