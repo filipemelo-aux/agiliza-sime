@@ -88,6 +88,7 @@ interface FormState {
   address_city: string;
   address_state: string;
   address_zip: string;
+  address_ibge: string;
   notes: string;
   bank_name: string;
   bank_agency: string;
@@ -124,6 +125,7 @@ const emptyForm: FormState = {
   address_city: "",
   address_state: "",
   address_zip: "",
+  address_ibge: "",
   notes: "",
   bank_name: "",
   bank_agency: "",
@@ -151,6 +153,20 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
       }));
     }, [setForm])
   );
+
+  // Código IBGE sempre derivado de Cidade/UF (vale para CEP, CNPJ ou digitação)
+  useEffect(() => {
+    const city = form.address_city?.trim();
+    const uf = form.address_state;
+    if (!city || !uf) return;
+    let cancel = false;
+    const t = setTimeout(async () => {
+      const { buscarCodigoIbgePorMunicipio } = await import("@/lib/ibgeLookup");
+      const code = await buscarCodigoIbgePorMunicipio(uf, city);
+      if (!cancel && code) setForm((p) => (p.address_ibge === code ? p : { ...p, address_ibge: code }));
+    }, 400);
+    return () => { cancel = true; clearTimeout(t); };
+  }, [form.address_city, form.address_state, setForm]);
 
   return (
     <>
@@ -194,7 +210,7 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
           <Input value={form.address_neighborhood} onChange={(e) => setForm((p) => ({ ...p, address_neighborhood: maskName(e.target.value) }))} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <Label className="text-xs">Cidade</Label>
           <Input value={form.address_city} onChange={(e) => setForm((p) => ({ ...p, address_city: maskName(e.target.value) }))} />
@@ -208,6 +224,10 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
               {STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Código IBGE</Label>
+          <Input value={form.address_ibge} readOnly className="bg-muted/50" placeholder="Automático" title="Preenchido automaticamente pela cidade/UF" />
         </div>
       </div>
     </>
@@ -297,13 +317,21 @@ function CNHFields({ form, setForm }: { form: FormState; setForm: React.Dispatch
   );
 }
 
+function personTypeOf(person: PersonProfile): string {
+  if (person.category === "motorista" || person.category === "colaborador") return "cpf";
+  const t = String(person.person_type || "").toLowerCase();
+  if (t === "cnpj" || t === "pj" || t === "juridica") return "cnpj";
+  if (String(person.cnpj || "").replace(/\D/g, "").length === 14) return "cnpj";
+  return "cpf";
+}
+
 function personToForm(person: PersonProfile): FormState {
   return {
     full_name: person.full_name ? maskName(person.full_name) : "",
     phone: maskPhone(person.phone || ""),
     email: person.email || "",
-    person_type: person.category === "motorista" ? "cpf" : (person.person_type || "cpf"),
-    cpf: person.category !== "motorista" && person.category !== "colaborador" && (person.person_type || "cpf") === "cpf" && person.cnpj ? maskCPF(person.cnpj) : "",
+    person_type: personTypeOf(person),
+    cpf: person.category !== "motorista" && person.category !== "colaborador" && personTypeOf(person) === "cpf" && person.cnpj ? maskCPF(person.cnpj) : "",
     cnpj: person.cnpj && (person.person_type === "cnpj" || String(person.cnpj).replace(/\D/g, "").length > 11) ? maskCNPJ(person.cnpj) : "",
     inscricao_estadual: (person as any).inscricao_estadual || "",
     razao_social: person.razao_social ? maskName(person.razao_social) : "",
@@ -320,6 +348,7 @@ function personToForm(person: PersonProfile): FormState {
     address_city: person.address_city ? maskName(person.address_city) : "",
     address_state: person.address_state || "",
     address_zip: person.address_zip ? maskCEP(person.address_zip) : "",
+    address_ibge: (person as any).address_ibge || "",
     notes: person.notes || "",
     bank_name: person.bank_name || "",
     bank_agency: person.bank_agency || "",
@@ -361,6 +390,7 @@ function formToPayload(form: FormState) {
     address_city: form.address_city.trim() || null,
     address_state: form.address_state || null,
     address_zip: form.address_zip ? unmaskCEP(form.address_zip) : null,
+    address_ibge: form.address_ibge.trim() || null,
     notes: form.notes.trim() || null,
     bank_name: form.bank_name.trim() || null,
     bank_agency: form.bank_agency.trim() || null,
@@ -843,7 +873,9 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
                 placeholder="00.000.000/0000-00"
                 className="flex-1"
               />
-              {cnpjLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" disabled={cnpjLoading || unmaskCNPJ(form.cnpj).length !== 14} onClick={() => handleCnpjLookup()}>
+                {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar dados"}
+              </Button>
             </div>
             {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
           </div>

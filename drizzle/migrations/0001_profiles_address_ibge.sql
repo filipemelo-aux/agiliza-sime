@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS address_ibge text;
+UPDATE public.profiles SET person_type='cnpj' WHERE person_type IN ('pj','juridica') OR (person_type IS NULL AND length(regexp_replace(coalesce(cnpj,''),'\D','','g'))=14);

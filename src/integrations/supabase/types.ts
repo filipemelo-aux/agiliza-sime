@@ -4748,6 +4748,7 @@ export type Database = {
         Row: {
           address_city: string | null
           address_complement: string | null
+          address_ibge: string | null
           address_neighborhood: string | null
           address_number: string | null
           address_state: string | null
@@ -4791,6 +4792,7 @@ export type Database = {
         Insert: {
           address_city?: string | null
           address_complement?: string | null
+          address_ibge?: string | null
           address_neighborhood?: string | null
           address_number?: string | null
           address_state?: string | null
@@ -4834,6 +4836,7 @@ export type Database = {
         Update: {
           address_city?: string | null
           address_complement?: string | null
+          address_ibge?: string | null
           address_neighborhood?: string | null
           address_number?: string | null
           address_state?: string | null
