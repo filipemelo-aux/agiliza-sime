@@ -125,8 +125,8 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
           : "bg-amber-500/10 text-amber-700 border-amber-500/30",
         className,
       )}
-    >
-      {isMatriz ? "Matriz" : "Filial"}
-    </span>
+      >
+        {empresaShortLabel(est)}
+      </span>
   );
 }
