@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   maskPlate, unmaskPlate, maskRenavam, maskYear, maskName,
   validatePlate, validateRenavam,
+  maskPlateInput,
 } from "@/lib/masks";
 
 const trailerRequirements: Record<string, { count: number; labels: string[] }> = {
