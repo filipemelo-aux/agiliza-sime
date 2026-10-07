@@ -5,18 +5,17 @@ import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnifiedCompany, EstablishmentInfo } from "@/hooks/useUnifiedCompany";
 
-/** Rótulo curto da empresa: "Matriz" / "Filial <complemento>" */
+const titleCity = (s: string) =>
+  s.toLowerCase().replace(/(^|\s)(\S)/g, (m, sp, c) => sp + c.toUpperCase()).replace(/\b(De|Da|Do|Das|Dos|E)\b/g, (w) => w.toLowerCase());
+
+/** Rótulo curto da empresa: "Matriz · Cidade/UF" / "Filial · Cidade/UF" (fonte: endereço fiscal) */
 export function empresaShortLabel(e?: EstablishmentInfo | null) {
   if (!e) return "—";
-  if (e.type === "matriz") return "Matriz";
-  // O complemento da filial pode vir no nome fantasia (ex.: "SIME TRANSPORTE LTDA - FILIAL TOCANTINS")
-  // ou na razão social (ex.: "Sime Transporte Ltda - Filial Tocantins").
-  const fonte = (e.nome_fantasia || e.razao_social || "").split("-").slice(1).join("-").trim();
-  const complemento = (fonte || e.nome_fantasia || "").trim();
-  if (!complemento) return "Filial";
-  const rest = complemento.replace(/^filial\s*/i, "").trim();
-  const pretty = rest ? rest.charAt(0) + rest.slice(1).toLowerCase() : "";
-  return pretty ? `Filial ${pretty}` : "Filial";
+  const tipo = e.type === "matriz" ? "Matriz" : "Filial";
+  const cidade = e.endereco_municipio ? titleCity(e.endereco_municipio.trim()) : "";
+  const uf = (e.endereco_uf || "").toUpperCase();
+  const local = cidade && uf ? `${cidade}/${uf}` : cidade || uf;
+  return local ? `${tipo} · ${local}` : tipo;
 }
 
 export function useEmpresaOptions() {
