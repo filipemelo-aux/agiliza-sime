@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown } from "lucide-react";
-import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate, formatCurrency } from "@/lib/masks";
+import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, maskPlateInput, unmaskPlate, formatCurrency } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo, resolveProfileId } from "@/lib/vehicleDriverLookup";
@@ -2025,7 +2025,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                     className="h-8 text-xs uppercase"
                     value={form.placa_veiculo}
                     onChange={(e) => {
-                      const masked = maskPlate(e.target.value);
+                      const masked = maskPlateInput(e.target.value);
                       set("placa_veiculo", masked);
                       if (unmaskPlate(masked).length === 7) {
                         lookupDriverByPlate(masked)
@@ -2050,11 +2050,11 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Carreta 1</Label>
-                  <Input className="h-8 text-xs uppercase" value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque1_placa", maskPlate(e.target.value))} />
+                  <Input className="h-8 text-xs uppercase" value={form.reboque1_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque1_placa", maskPlateInput(e.target.value))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Carreta 2</Label>
-                  <Input className="h-8 text-xs uppercase" value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque2_placa", maskPlate(e.target.value))} />
+                  <Input className="h-8 text-xs uppercase" value={form.reboque2_placa} maxLength={8} placeholder="ABC-1D23" onChange={(e) => set("reboque2_placa", maskPlateInput(e.target.value))} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Nº de eixos</Label>

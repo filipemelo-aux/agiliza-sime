@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { Loader2, Users, Truck, Package, DollarSign, FileSignature, Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
+import { maskCurrency, unmaskCurrency, maskName, maskPlate, maskPlateInput, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
@@ -626,7 +626,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                 <Input
                   value={form.placa_veiculo}
                   onChange={(e) => {
-                    const masked = maskPlate(e.target.value);
+                    const masked = maskPlateInput(e.target.value);
                     setForm((f) => ({ ...f, placa_veiculo: masked }));
                     // Busca reversa: placa -> motorista vinculado no cadastro
                     if (unmaskPlate(masked).length === 7) {
