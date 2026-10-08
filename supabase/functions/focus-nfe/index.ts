@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
     }
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
-      tipo_emitente: 1, modal: 1, serie: m.serie || est.serie_mdfe || 1, numero,
+      emitente: 1, serie: m.serie || est.serie_mdfe || 1, numero,
       data_emissao: new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
       uf_inicio: m.uf_carregamento, uf_fim: m.uf_descarregamento,
       cnpj_emitente: digits(est.cnpj), inscricao_estadual_emitente: digits(est.inscricao_estadual), nome_emitente: est.razao_social,
@@ -417,19 +417,19 @@ Deno.serve(async (req) => {
       codigo_municipio_emitente: digits(est.codigo_municipio_ibge), municipio_emitente: est.endereco_municipio, uf_emitente: est.endereco_uf, cep_emitente: digits(est.endereco_cep),
       municipios_carregamento: [{ codigo: digits(m.municipio_carregamento_ibge), nome: m.municipio_carregamento_nome }],
       ...(ufsPercurso.length ? { percursos: ufsPercurso.map((u: string) => ({ uf_percurso: u })) } : {}),
-      municipios_descarregamento: [{ codigo: digits(m.municipio_descarregamento_ibge), nome: m.municipio_descarregamento_nome, ctes: chaves.map((c) => ({ chave_cte: c })) }],
+      municipios_descarregamento: [{ codigo: digits(m.municipio_descarregamento_ibge), nome: m.municipio_descarregamento_nome, conhecimentos_transporte: chaves.map((c) => ({ chave_cte: c })) }],
       quantidade_total_cte: chaves.length, valor_total_carga: Number(m.valor_total || 0).toFixed(2),
       codigo_unidade_medida_peso_bruto: "01", peso_bruto: Number(m.peso_total || 0).toFixed(4),
       modal_rodoviario: {
-        rntrc: normRntrc(m.rntrc || est.rntrc),
+        registro_nacional_transporte: normRntrc(m.rntrc || est.rntrc),
         ...(digits(m.contratado_documento).length >= 11 && digits(m.contratado_documento) !== digits(est.cnpj) ? { contratantes: [digits(m.contratado_documento).length === 14 ? { cnpj: digits(m.contratado_documento) } : { cpf: digits(m.contratado_documento) }] } : {}),
-        ...(m.ciot_numero ? { ciot: [{ ciot: digits(m.ciot_numero), ...(digits(m.ciot_documento).length === 14 ? { cnpj: digits(m.ciot_documento) } : digits(m.ciot_documento).length === 11 ? { cpf: digits(m.ciot_documento) } : {}) }] } : {}),
-        veiculo_tracao: { placa: plate(m.placa_veiculo), tara: isCavalo ? 9000 : 7000, tipo_rodado: tipoRodado, tipo_carroceria: isCavalo ? "00" : "02", uf_licenciamento: ufLic, condutores },
+        ...(m.ciot_numero ? { ciot: [{ ciot: digits(m.ciot_numero), ...(digits(m.ciot_documento).length === 14 ? { cnpj_responsavel: digits(m.ciot_documento) } : digits(m.ciot_documento).length === 11 ? { cpf_responsavel: digits(m.ciot_documento) } : {}) }] } : {}),
+        placa_veiculo: plate(m.placa_veiculo), tara_veiculo: isCavalo ? 9000 : 7000, tipo_rodado_veiculo: tipoRodado, tipo_carroceria_veiculo: isCavalo ? "00" : "02", uf_licenciamento_veiculo: ufLic, condutores,
         ...(reboques.length ? { veiculos_reboque: reboques.map((p) => ({ placa: p, tara: 7000, capacidade_kg: 35000, tipo_carroceria: "02", uf_licenciamento: ufLic })) } : {}),
       },
-      ...(m.produto_predominante ? { produto_predominante: { tipo_carga: String(m.tipo_carga || "05").padStart(2, "0").slice(0, 2), descricao: String(m.produto_predominante).slice(0, 120), ...(digits(m.ncm).length === 8 ? { ncm: digits(m.ncm) } : {}) } } : {}),
-      ...(m.seguradora_nome && m.apolice_numero ? { seguros_carga: [{ responsavel_seguro: 1, nome_seguradora: m.seguradora_nome, ...(digits(m.seguradora_cnpj).length === 14 ? { cnpj_seguradora: digits(m.seguradora_cnpj) } : {}), numero_apolice: m.apolice_numero, ...(m.averbacao_numero ? { averbacoes: [{ numero: m.averbacao_numero }] } : {}) }] } : {}),
-      ...(m.observacoes ? { informacoes_adicionais_contribuinte: String(m.observacoes).slice(0, 2000) } : {}),
+      ...(m.produto_predominante ? { tipo_carga: String(m.tipo_carga || "05").padStart(2, "0").slice(0, 2), descricao_produto: String(m.produto_predominante).slice(0, 120), ...(digits(m.ncm).length === 8 ? { codigo_ncm_produto: digits(m.ncm) } : {}) } : {}),
+      ...(m.seguradora_nome && m.apolice_numero ? { seguros_carga: [{ responsavel_seguro: 1, nome_seguradora: m.seguradora_nome, ...(digits(m.seguradora_cnpj).length === 14 ? { cnpj_seguradora: digits(m.seguradora_cnpj) } : {}), numero_apolice: m.apolice_numero, ...(m.averbacao_numero ? { numero_averbacao: m.averbacao_numero } : {}) }] } : {}),
+      ...(m.observacoes ? { informacao_complementar: String(m.observacoes).slice(0, 2000) } : {}),
     };
 
     const r = await fetch(`${mBase}/v2/mdfe?ref=${ref}`, { method: "POST", headers: hdr, body: JSON.stringify(payload) });
