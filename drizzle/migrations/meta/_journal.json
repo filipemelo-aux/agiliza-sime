@@ -15,6 +15,13 @@
       "when": 1791379562697,
       "tag": "0001_profiles_address_ibge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791496568799,
+      "tag": "0002_ctes_tipo_carga",
+      "breakpoints": true
     }
   ]
 }

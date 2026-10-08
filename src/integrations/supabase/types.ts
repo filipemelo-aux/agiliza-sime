@@ -1392,6 +1392,7 @@ export type Database = {
           serie: number
           status: string
           tenant_id: string
+          tipo_carga: string | null
           tipo_talao: string
           tomador_cnpj: string | null
           tomador_endereco: string | null
@@ -1515,6 +1516,7 @@ export type Database = {
           serie?: number
           status?: string
           tenant_id?: string
+          tipo_carga?: string | null
           tipo_talao?: string
           tomador_cnpj?: string | null
           tomador_endereco?: string | null
@@ -1638,6 +1640,7 @@ export type Database = {
           serie?: number
           status?: string
           tenant_id?: string
+          tipo_carga?: string | null
           tipo_talao?: string
           tomador_cnpj?: string | null
           tomador_endereco?: string | null
