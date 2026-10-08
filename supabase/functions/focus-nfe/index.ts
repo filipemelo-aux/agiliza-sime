@@ -374,6 +374,7 @@ Deno.serve(async (req) => {
     if (!m.placa_veiculo) pend.push("placa do veículo");
     if (!m.motorista_nome) pend.push("motorista");
     if (!Number(m.peso_total)) pend.push("peso total");
+    if (!m.seguradora_nome || !m.apolice_numero) pend.push("seguro da carga (seguradora e apólice)");
     if (pend.length) return json({ success: false, status: "validacao", motivo_rejeicao: `Faltando: ${pend.join(", ")}.` });
 
     // Motorista: CPF do manifesto ou do cadastro
