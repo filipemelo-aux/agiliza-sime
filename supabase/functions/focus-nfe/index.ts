@@ -267,6 +267,195 @@ Deno.serve(async (req) => {
     });
   }
 
+  // ===================== MDF-e (Focus NFe) =====================
+  if (["emitir_mdfe_salvo", "consultar_mdfe_salvo", "encerrar_mdfe_salvo", "cancelar_mdfe_salvo", "damdfe_mdfe_salvo", "xml_mdfe_salvo"].includes(action)) {
+    const b = body as any;
+    const mdfeId = String(b.mdfe_id ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(mdfeId)) return json({ error: "MDF-e inválido" }, 400);
+    const { data: m, error: mErr } = await supabase.from("mdfe").select("*").eq("id", mdfeId).single();
+    if (mErr || !m) return json({ error: "MDF-e não encontrado" }, 404);
+    if (!m.establishment_id) return json({ error: "MDF-e sem empresa emitente. Edite e selecione o emitente." }, 422);
+    const { data: est } = await supabase.from("fiscal_establishments").select("*").eq("id", m.establishment_id).single();
+    if (!est) return json({ error: "Emitente fiscal não encontrado" }, 422);
+    const amb: keyof typeof BASES = String(est.ambiente) === "producao" ? "producao" : "homologacao";
+    const mTok = await estTok(m.establishment_id, amb === "producao");
+    if (!mTok) return json({ error: `Token de ${amb === "producao" ? "produção" : "homologação"} não configurado para este emitente` }, 500);
+    const mBase = BASES[amb];
+    const hdr = { Authorization: "Basic " + btoa(mTok + ":"), "Content-Type": "application/json" };
+    const ref = `mdfe-${mdfeId}`;
+    const url = `${mBase}/v2/mdfe/${ref}`;
+    const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+    const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const sefazMsg = (d: any) => {
+      const code = d?.status_sefaz ? `Rejeição ${d.status_sefaz}: ` : "";
+      const errs = Array.isArray(d?.erros) ? d.erros.map((x: any) => x?.mensagem || x).join("; ") : "";
+      return `${code}${d?.mensagem_sefaz || d?.mensagem || errs || d?.status || "Sem retorno da SEFAZ"}`;
+    };
+    const applyResult = async (d: any) => {
+      const st = d?.status;
+      const patch: Record<string, unknown> = {};
+      if (st === "autorizado") Object.assign(patch, {
+        status: "autorizado", chave_acesso: d?.chave || d?.chave_mdfe || m.chave_acesso, protocolo_autorizacao: d?.protocolo || m.protocolo_autorizacao,
+        data_autorizacao: m.data_autorizacao || new Date().toISOString(), motivo_rejeicao: null,
+      });
+      else if (st === "encerrado") Object.assign(patch, { status: "encerrado", motivo_rejeicao: null, data_encerramento: m.data_encerramento || new Date().toISOString() });
+      else if (st === "cancelado") Object.assign(patch, { status: "cancelado" });
+      else if (st === "erro_autorizacao" || st === "denegado") Object.assign(patch, { status: "rejeitado", motivo_rejeicao: sefazMsg(d) });
+      else if (["processando_autorizacao", "processando"].includes(st)) Object.assign(patch, { status: "processando" });
+      if (Object.keys(patch).length) await supabase.from("mdfe").update(patch).eq("id", mdfeId);
+      return st;
+    };
+    const fetchFile = async (path: string) => fetch(path.startsWith("http") ? path : mBase + path, { headers: hdr });
+
+    if (action === "consultar_mdfe_salvo") {
+      const r = await fetch(`${url}?completa=1`, { headers: hdr });
+      const d: any = await r.json().catch(() => ({}));
+      if (r.status === 404) return json({ success: false, status: "nao_enviado", mensagem: "Este MDF-e ainda não foi enviado à SEFAZ." });
+      const st = await applyResult(d);
+      return json({ success: true, status: st, mensagem: sefazMsg(d), chave: d?.chave, protocolo: d?.protocolo });
+    }
+    if (action === "damdfe_mdfe_salvo" || action === "xml_mdfe_salvo") {
+      const r = await fetch(`${url}?completa=1`, { headers: hdr });
+      const d: any = await r.json().catch(() => ({}));
+      const path = action === "damdfe_mdfe_salvo" ? d?.caminho_damdfe : d?.caminho_xml_manifesto || d?.caminho_xml;
+      if (!path) return json({ error: action === "damdfe_mdfe_salvo" ? "DAMDFE ainda não disponível — o MDF-e precisa estar autorizado." : "XML ainda não disponível." }, 404);
+      const f = await fetchFile(path);
+      if (!f.ok) return json({ error: `Arquivo indisponível (${f.status})` }, 502);
+      if (action === "xml_mdfe_salvo") return json({ success: true, xml: await f.text() });
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return json({ success: true, pdf_base64: btoa(bin) });
+    }
+    if (action === "cancelar_mdfe_salvo") {
+      const just = String(b.justificativa ?? "").trim();
+      if (just.length < 15 || just.length > 255) return json({ error: "A justificativa deve ter entre 15 e 255 caracteres" }, 400);
+      if (m.status !== "autorizado") return json({ error: "Só é possível cancelar MDF-e autorizado e não encerrado" }, 409);
+      const r = await fetch(url, { method: "DELETE", headers: hdr, body: JSON.stringify({ justificativa: just }) });
+      const d: any = await r.json().catch(() => ({}));
+      if (d?.status === "cancelado") {
+        await supabase.from("mdfe").update({ status: "cancelado", motivo_rejeicao: `Cancelado: ${just}` }).eq("id", mdfeId);
+        return json({ success: true, status: "cancelado" });
+      }
+      return json({ success: false, motivo: sefazMsg(d) });
+    }
+    if (action === "encerrar_mdfe_salvo") {
+      if (m.status !== "autorizado") return json({ error: "Só é possível encerrar MDF-e autorizado" }, 409);
+      const uf = String(b.uf || m.uf_descarregamento || "");
+      const cod = digits(b.codigo_municipio || m.municipio_descarregamento_ibge);
+      if (!uf || cod.length !== 7) return json({ error: "Informe o município de encerramento (código IBGE) do descarregamento" }, 400);
+      const r = await fetch(`${url}/encerrar`, { method: "POST", headers: hdr, body: JSON.stringify({ data: String(b.data || today()), sigla_uf: uf, codigo_municipio: cod, nome_municipio: b.nome_municipio || m.municipio_descarregamento_nome }) });
+      const d: any = await r.json().catch(() => ({}));
+      if (d?.status === "encerrado" || (r.ok && !d?.status_sefaz)) {
+        await supabase.from("mdfe").update({ status: "encerrado", data_encerramento: new Date().toISOString(), protocolo_encerramento: d?.protocolo || null, motivo_rejeicao: null }).eq("id", mdfeId);
+        return json({ success: true, status: "encerrado", protocolo: d?.protocolo });
+      }
+      return json({ success: false, motivo: sefazMsg(d) });
+    }
+
+    // ---------- Emissão ----------
+    if (!["rascunho", "rejeitado", "processando"].includes(m.status)) return json({ error: `MDF-e não elegível para emissão (situação: ${m.status})` }, 409);
+    if (m.status === "processando") {
+      const r = await fetch(`${url}?completa=1`, { headers: hdr });
+      if (r.status !== 404) {
+        const d: any = await r.json().catch(() => ({}));
+        const st = await applyResult(d);
+        if (st === "autorizado") return json({ success: true, status: st, chave_acesso: d?.chave, protocolo: d?.protocolo });
+        if (["processando_autorizacao", "processando"].includes(st)) return json({ success: true, status: st, motivo_rejeicao: "A SEFAZ ainda está processando este MDF-e. Tente novamente em instantes." });
+        if (st === "erro_autorizacao") return json({ success: false, status: st, motivo_rejeicao: `${sefazMsg(d)}. Corrija, salve e transmita novamente.` });
+      } else await r.text();
+    }
+
+    // Validações antes do envio
+    const chaves = [...new Set((m.lista_ctes || []).map(digits).filter((c: string) => c.length === 44))];
+    const pend: string[] = [];
+    if (!chaves.length) pend.push("ao menos um CT-e autorizado (com chave de acesso)");
+    if (!digits(m.municipio_carregamento_ibge)) pend.push("município de carregamento");
+    if (!digits(m.municipio_descarregamento_ibge)) pend.push("município de descarregamento");
+    if (!m.placa_veiculo) pend.push("placa do veículo");
+    if (!m.motorista_nome) pend.push("motorista");
+    if (!Number(m.peso_total)) pend.push("peso total");
+    if (pend.length) return json({ success: false, status: "validacao", motivo_rejeicao: `Faltando: ${pend.join(", ")}.` });
+
+    // Motorista: CPF do manifesto ou do cadastro
+    let cpf = digits(m.motorista_cpf);
+    if (cpf.length !== 11 && m.motorista_id) {
+      const { data: p } = await supabase.from("profiles").select("cnpj").eq("id", m.motorista_id).maybeSingle();
+      cpf = digits((p as any)?.cnpj);
+    }
+    if (cpf.length !== 11) return json({ success: false, status: "validacao", motivo_rejeicao: "CPF do motorista não encontrado. Informe-o no cadastro do motorista." });
+    const condutores: { nome: string; cpf: string }[] = [{ nome: String(m.motorista_nome).slice(0, 60), cpf }];
+    const extras = Array.isArray(m.condutores_extras) ? m.condutores_extras : [];
+    if (extras.length) {
+      const { data: ps } = await supabase.from("profiles").select("id,full_name,cnpj").in("id", extras.map((c: any) => c.id).filter(Boolean));
+      for (const p of (ps || []) as any[]) { const c = digits(p.cnpj); if (c.length === 11 && c !== cpf) condutores.push({ nome: String(p.full_name).slice(0, 60), cpf: c }); }
+    }
+
+    // Veículo: tipo de rodado/carroceria a partir do cadastro
+    const plate = (v: unknown) => String(v ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    let vType = "";
+    { const { data: v } = await supabase.from("vehicles").select("vehicle_type").eq("plate", plate(m.placa_veiculo)).maybeSingle(); vType = String(v?.vehicle_type || ""); }
+    const reboques = [m.reboque1_placa, m.reboque2_placa].map(plate).filter(Boolean);
+    const isCavalo = reboques.length > 0 || ["carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"].includes(vType);
+    const tipoRodado = isCavalo ? "03" : vType === "utilitario" ? "05" : vType === "truck" || vType === "bitruck" ? "01" : "06";
+    const ufLic = est.endereco_uf;
+
+    let numero = m.numero;
+    if (!numero) {
+      const { data: next, error: nErr } = await supabase.rpc("next_mdfe_number", { _establishment_id: m.establishment_id });
+      if (nErr || !next) return json({ error: `Não foi possível reservar o número do MDF-e: ${nErr?.message ?? "sem numeração"}` }, 422);
+      numero = next;
+      await supabase.from("mdfe").update({ numero }).eq("id", mdfeId);
+    }
+    const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
+    const payload: Record<string, unknown> = {
+      tipo_emitente: 1, modal: 1, serie: m.serie || est.serie_mdfe || 1, numero,
+      data_emissao: new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
+      uf_inicio: m.uf_carregamento, uf_fim: m.uf_descarregamento,
+      cnpj_emitente: digits(est.cnpj), inscricao_estadual_emitente: digits(est.inscricao_estadual), nome_emitente: est.razao_social,
+      nome_fantasia_emitente: est.nome_fantasia || est.razao_social, logradouro_emitente: est.endereco_logradouro || "NAO INFORMADO",
+      numero_emitente: est.endereco_numero || "S/N", bairro_emitente: est.endereco_bairro || "NAO INFORMADO",
+      codigo_municipio_emitente: digits(est.codigo_municipio_ibge), municipio_emitente: est.endereco_municipio, uf_emitente: est.endereco_uf, cep_emitente: digits(est.endereco_cep),
+      municipios_carregamento: [{ codigo: digits(m.municipio_carregamento_ibge), nome: m.municipio_carregamento_nome }],
+      ...(ufsPercurso.length ? { percursos: ufsPercurso.map((u: string) => ({ uf_percurso: u })) } : {}),
+      municipios_descarregamento: [{ codigo: digits(m.municipio_descarregamento_ibge), nome: m.municipio_descarregamento_nome, ctes: chaves.map((c) => ({ chave_cte: c })) }],
+      quantidade_total_cte: chaves.length, valor_total_carga: Number(m.valor_total || 0).toFixed(2),
+      codigo_unidade_medida_peso_bruto: "01", peso_bruto: Number(m.peso_total || 0).toFixed(4),
+      modal_rodoviario: {
+        rntrc: normRntrc(m.rntrc || est.rntrc),
+        ...(digits(m.contratado_documento).length >= 11 && digits(m.contratado_documento) !== digits(est.cnpj) ? { contratantes: [digits(m.contratado_documento).length === 14 ? { cnpj: digits(m.contratado_documento) } : { cpf: digits(m.contratado_documento) }] } : {}),
+        ...(m.ciot_numero ? { ciot: [{ ciot: digits(m.ciot_numero), ...(digits(m.ciot_documento).length === 14 ? { cnpj: digits(m.ciot_documento) } : digits(m.ciot_documento).length === 11 ? { cpf: digits(m.ciot_documento) } : {}) }] } : {}),
+        veiculo_tracao: { placa: plate(m.placa_veiculo), tara: isCavalo ? 9000 : 7000, tipo_rodado: tipoRodado, tipo_carroceria: isCavalo ? "00" : "02", uf_licenciamento: ufLic, condutores },
+        ...(reboques.length ? { veiculos_reboque: reboques.map((p) => ({ placa: p, tara: 7000, capacidade_kg: 35000, tipo_carroceria: "02", uf_licenciamento: ufLic })) } : {}),
+      },
+      ...(m.produto_predominante ? { produto_predominante: { tipo_carga: String(m.tipo_carga || "05").padStart(2, "0").slice(0, 2), descricao: String(m.produto_predominante).slice(0, 120), ...(digits(m.ncm).length === 8 ? { ncm: digits(m.ncm) } : {}) } } : {}),
+      ...(m.seguradora_nome && m.apolice_numero ? { seguros_carga: [{ responsavel_seguro: 1, nome_seguradora: m.seguradora_nome, ...(digits(m.seguradora_cnpj).length === 14 ? { cnpj_seguradora: digits(m.seguradora_cnpj) } : {}), numero_apolice: m.apolice_numero, ...(m.averbacao_numero ? { averbacoes: [{ numero: m.averbacao_numero }] } : {}) }] } : {}),
+      ...(m.observacoes ? { informacoes_adicionais_contribuinte: String(m.observacoes).slice(0, 2000) } : {}),
+    };
+
+    const r = await fetch(`${mBase}/v2/mdfe?ref=${ref}`, { method: "POST", headers: hdr, body: JSON.stringify(payload) });
+    let d: any; try { d = await r.json(); } catch { d = {}; }
+    if (!r.ok && d?.codigo !== "already_processed") {
+      const why = sefazMsg(d);
+      await supabase.from("mdfe").update({ status: "rejeitado", motivo_rejeicao: why }).eq("id", mdfeId);
+      return json({ success: false, status: "erro_autorizacao", motivo_rejeicao: why });
+    }
+    await supabase.from("mdfe").update({ status: "processando", data_emissao: new Date().toISOString() }).eq("id", mdfeId);
+    // MDF-e é assíncrono na Focus: consulta até obter retorno.
+    for (let i = 0; i < 15; i++) {
+      await new Promise((res) => setTimeout(res, 1500));
+      const c = await fetch(`${url}?completa=1`, { headers: hdr });
+      d = await c.json().catch(() => d);
+      if (!["processando_autorizacao", "processando"].includes(d?.status)) break;
+    }
+    const st = await applyResult(d);
+    await supabase.from("fiscal_logs").insert({ user_id: uid, entity_type: "mdfe", entity_id: mdfeId, action: st === "autorizado" ? "autorizado" : st === "erro_autorizacao" ? "rejeitado" : "processando", establishment_id: m.establishment_id, cnpj_emissor: digits(est.cnpj), details: { numero, ambiente: amb, chave: d?.chave, protocolo: d?.protocolo, mensagem: sefazMsg(d) } } as any).then(() => {}, () => {});
+    return json({
+      success: st === "autorizado" || ["processando_autorizacao", "processando"].includes(st), status: st, numero,
+      chave_acesso: d?.chave, protocolo: d?.protocolo, ambiente: amb,
+      motivo_rejeicao: st === "autorizado" ? undefined : ["processando_autorizacao", "processando"].includes(st) ? "A SEFAZ ainda está processando. Use \"Consultar\" em instantes." : sefazMsg(d),
+    });
+  }
+
   // Operações SEFAZ sobre um CT-e já emitido pelo sistema (mesmo ambiente da emissão).
   if (["cancelar_cte_salvo", "cce_cte_salvo", "consultar_cte_salvo", "xml_cte_salvo"].includes(action)) {
     const cteId = String(body.cte_id ?? "");
