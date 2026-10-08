@@ -1,5 +1,5 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-const normRntrc = (v: unknown) => { const d = String(v ?? '').replace(/\D/g, ''); if (!d) return 'ISENTO'; return d.slice(-8).padStart(8, '0'); };
+const normRntrc = (v: unknown) => { const d = String(v ?? '').replace(/\D/g, ''); if (!d) return undefined; return d.slice(-8).padStart(8, '0'); };
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Focus NFe connector (homologação by default). Admin/moderator only.
@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
       icms_aliquota: money(cte.aliquota_icms), icms_valor: money(cte.valor_icms), valor_total_carga: money(cte.valor_carga),
       valor_carga_averbacao: money(cte.valor_carga_averb || cte.valor_carga), produto_predominante: cte.produto_predominante,
       quantidades: quantities, nfes: (cte.chaves_nfe_ref || []).map((chave: string) => ({ chave_nfe: digits(chave) })),
-      modal_rodoviario: { rntrc: normRntrc(cte.rntrc || est.rntrc) }, observacao: cte.observacoes || undefined,
+      modal_rodoviario: { ...(normRntrc(cte.rntrc || est.rntrc) ? { rntrc: normRntrc(cte.rntrc || est.rntrc) } : {}) }, observacao: cte.observacoes || undefined,
       ibs_cbs_situacao_tributaria: cte.ibs_cbs_cst || "000", ibs_cbs_classificacao_tributaria: (() => { const cst = String(cte.ibs_cbs_cst || "000"); const ct = String(cte.ibs_cbs_class_trib || ""); return ct.length === 6 && ct.startsWith(cst) ? ct : `${cst}001`; })(),
       ibs_cbs_base_calculo: money(cte.ibs_cbs_base_calculo || cte.valor_frete), ibs_uf_aliquota: money(cte.ibs_uf_aliquota),
       ibs_uf_valor: money(cte.ibs_uf_valor), ibs_mun_aliquota: money(cte.ibs_mun_aliquota), ibs_mun_valor: money(cte.ibs_mun_valor),
@@ -421,7 +421,7 @@ Deno.serve(async (req) => {
       quantidade_total_cte: chaves.length, valor_total_carga: Number(m.valor_total || 0).toFixed(2),
       codigo_unidade_medida_peso_bruto: "01", peso_bruto: Number(m.peso_total || 0).toFixed(4),
       modal_rodoviario: {
-        registro_nacional_transporte: normRntrc(m.rntrc || est.rntrc),
+        ...(normRntrc(m.rntrc || est.rntrc) ? { registro_nacional_transporte: normRntrc(m.rntrc || est.rntrc) } : {}),
         ...(digits(m.contratado_documento).length >= 11 && digits(m.contratado_documento) !== digits(est.cnpj) ? { contratantes: [digits(m.contratado_documento).length === 14 ? { cnpj: digits(m.contratado_documento) } : { cpf: digits(m.contratado_documento) }] } : {}),
         ...(m.ciot_numero ? { ciot: [{ ciot: digits(m.ciot_numero), ...(digits(m.ciot_documento).length === 14 ? { cnpj_responsavel: digits(m.ciot_documento) } : digits(m.ciot_documento).length === 11 ? { cpf_responsavel: digits(m.ciot_documento) } : {}) }] } : {}),
         placa_veiculo: plate(m.placa_veiculo), tara_veiculo: isCavalo ? 9000 : 7000, tipo_rodado_veiculo: tipoRodado, tipo_carroceria_veiculo: isCavalo ? "00" : "02", uf_licenciamento_veiculo: ufLic, condutores,
