@@ -1043,7 +1043,36 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       cfop: n.cfop, ncm: n.ncm, valor_produtos: n.valor_produtos, bc_icms: n.bc_icms, bc_icms_st: n.bc_icms_st, outros: n.outros,
     });
     setDocMode("nfe");
+    void matchNaturezaCadastrada(n.chave, n.produto || "");
     return true;
+  };
+
+  /** A natureza da carga vinda da NF-e precisa corresponder a uma natureza cadastrada no sistema. */
+  const matchNaturezaCadastrada = async (chave: string, produto: string) => {
+    const norm = (t: string) => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const alvo = norm(produto);
+    if (!alvo) return;
+    const { data } = await supabase.from("cargas").select("produto_predominante, tipo").limit(1000);
+    const lista = ((data as any[]) || []).filter((c) => c.produto_predominante);
+    const achada =
+      lista.find((c) => norm(c.produto_predominante) === alvo) ||
+      lista.find((c) => { const k = norm(c.produto_predominante); return k.length >= 4 && (alvo.includes(k) || k.includes(alvo)); });
+    if (!achada) {
+      toast({
+        title: "Natureza da carga não encontrada",
+        description: `"${produto}" (produto da NF-e) não corresponde a nenhuma natureza cadastrada. Cadastre essa natureza da carga no sistema e selecione-a no CT-e.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const nome = achada.produto_predominante as string;
+    const k = tipoCargaKey(achada.tipo);
+    setForm((p) => ({
+      ...p,
+      produto_predominante: !p.produto_predominante || norm(p.produto_predominante) === alvo || norm(p.produto_predominante) === norm(maskName(produto)) ? nome : p.produto_predominante,
+      tipo_carga: p.tipo_carga || k || p.tipo_carga,
+    }));
+    setNfeDetalhe(chave, { natureza: nome.toUpperCase() });
   };
 
 
