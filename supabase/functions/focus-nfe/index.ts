@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
       numero = next;
       await supabase.from("mdfe").update({ numero }).eq("id", mdfeId);
     }
-    // Carga lotação (1 CT-e): SEFAZ exige CEP de carregamento e descarregamento (rejeição 726)
+    // Carga lotação (1 CT-e): SEFAZ exige CEP de carregamento/descarregamento (726) e pagamento do frete (302)
     const findCep = (o: unknown, keys: RegExp): string => {
       if (!o || typeof o !== "object") return "";
       for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -417,11 +417,22 @@ Deno.serve(async (req) => {
       }
       return "";
     };
+    const findField = (o: unknown, scope: RegExp, field: RegExp): string => {
+      if (!o || typeof o !== "object") return "";
+      for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+        if (typeof v === "string" && scope.test(k) && field.test(k)) return v;
+        if (v && typeof v === "object" && scope.test(k)) { const r = findField(v, /./, field); if (r) return r; }
+      }
+      return "";
+    };
     let cepCarrega = digits(m.cep_carregamento), cepDescarrega = digits(m.cep_descarregamento);
-    if (chaves.length === 1 && (cepCarrega.length !== 8 || cepDescarrega.length !== 8)) {
+    let tomadorNome = "", tomadorDoc = "";
+    if (chaves.length === 1) {
       const { data: c1 } = await supabase.from("ctes").select("*").eq("chave_acesso", chaves[0]).maybeSingle();
       if (cepCarrega.length !== 8) cepCarrega = findCep(c1, /remet|expedi|coleta|origem/i) || digits(est.endereco_cep);
       if (cepDescarrega.length !== 8) cepDescarrega = findCep(c1, /destin|receb|entrega/i) || cepCarrega;
+      tomadorNome = String(findField(c1, /tomador/i, /nome|razao/i) || findField(c1, /remet|expedi/i, /nome|razao/i) || "").slice(0, 60);
+      tomadorDoc = digits(findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet|expedi/i, /cnpj|cpf|documento/i));
     }
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
@@ -443,6 +454,8 @@ Deno.serve(async (req) => {
         ...(m.ciot_numero ? { ciot: [{ ciot: digits(m.ciot_numero), ...(digits(m.ciot_documento).length === 14 ? { cnpj_responsavel: digits(m.ciot_documento) } : digits(m.ciot_documento).length === 11 ? { cpf_responsavel: digits(m.ciot_documento) } : {}) }] } : {}),
         placa_veiculo: plate(m.placa_veiculo), tara_veiculo: isCavalo ? 9000 : 7000, tipo_rodado_veiculo: tipoRodado, tipo_carroceria_veiculo: isCavalo ? "00" : "02", uf_licenciamento_veiculo: ufLic, condutores,
         ...(reboques.length ? { veiculos_reboque: reboques.map((p) => ({ placa: p, tara: 7000, capacidade_kg: 35000, tipo_carroceria: "02", uf_licenciamento: ufLic })) } : {}),
+        // Carga lotação: informações de pagamento do frete (rejeição 302)
+        ...(chaves.length === 1 && tomadorDoc.length >= 11 ? { pagamentos: [{ ...(tomadorNome ? { nome: tomadorNome } : {}), ...(tomadorDoc.length === 14 ? { cnpj: tomadorDoc } : { cpf: tomadorDoc }), componentes: [{ tipo: "04", valor: Number(m.valor_total || 0).toFixed(2) }], valor_total_contrato: Number(m.valor_total || 0).toFixed(2), forma_pagamento: "0" }] } : {}),
       },
       ...(chaves.length === 1 && cepCarrega.length === 8 && cepDescarrega.length === 8 ? { cep_carregamento: cepCarrega, cep_descarregamento: cepDescarrega } : {}),
       ...(m.produto_predominante ? { tipo_carga: String(m.tipo_carga || "05").padStart(2, "0").slice(0, 2), descricao_produto: String(m.produto_predominante).slice(0, 120), ...(digits(m.ncm).length === 8 ? { codigo_ncm_produto: digits(m.ncm) } : {}) } : {}),
