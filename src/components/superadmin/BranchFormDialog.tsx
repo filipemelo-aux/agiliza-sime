@@ -199,7 +199,14 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
 
               <Block title="2. Fiscal e integrações">
                 <F label="Ambiente fiscal">
-                  <Select value={f.ambiente} onValueChange={(v: any) => setF((p) => ({ ...p, ambiente: v }))}>
+                  <Select value={f.ambiente} onValueChange={async (v: any) => {
+                    setF((p) => ({ ...p, ambiente: v }));
+                    const id = branch?.id || savedId;
+                    if (v !== "producao" || !id) return;
+                    const { data } = await supabase.functions.invoke("superadmin-tenants", { body: { action: "last_cte_production", establishment_id: id } });
+                    const n = Number(data?.numero) || 0;
+                    if (n > 0) { setF((p) => ({ ...p, ultimo_numero_cte: Math.max(Number(p.ultimo_numero_cte) || 0, n) })); toast.success(`Último CT-e de produção preenchido: nº ${n}`); }
+                  }}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="homologacao">Homologação (teste)</SelectItem><SelectItem value="producao">Produção</SelectItem></SelectContent>
                   </Select>

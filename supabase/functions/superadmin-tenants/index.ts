@@ -146,6 +146,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (body.action === "last_cte_production") {
+      const p = z.object({ establishment_id: z.string().uuid() }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const { data } = await admin.from("ctes").select("numero").eq("establishment_id", p.data.establishment_id)
+        .or("tipo_talao.is.null,tipo_talao.neq.servico").not("numero", "is", null).order("numero", { ascending: false }).limit(1).maybeSingle();
+      return json({ numero: Number((data as any)?.numero) || 0 });
+    }
+
     if (body.action === "set_certificate_links") {
       const p = z.object({ tenant_id: z.string().uuid(), certificate_id: z.string().uuid(), establishment_ids: z.array(z.string().uuid()).max(100) }).safeParse(body);
       if (!p.success) return json({ error: "Dados inválidos" }, 400);
