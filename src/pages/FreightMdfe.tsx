@@ -3,7 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Search, FileDown, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, type LucideIcon } from "lucide-react";
+import { SefazIcon } from "@/components/icons/SefazIcon";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
+import { useAuth } from "@/contexts/AuthContext";
+import { mdfeFocus } from "@/services/fiscal/focusMdfeService";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
@@ -32,6 +40,11 @@ export default function FreightMdfe() {
   const [editing, setEditing] = useState<any | null>(null);
   const [initialCteIds, setInitialCteIds] = useState<string[] | undefined>();
   const [printing, setPrinting] = useState(false);
+  const { isConsultor } = useAuth();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [opDialog, setOpDialog] = useState<null | "cancelar" | "encerrar">(null);
+  const [justificativa, setJustificativa] = useState("");
+  const [dataEnc, setDataEnc] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -76,10 +89,66 @@ export default function FreightMdfe() {
     load();
   };
 
+  const run = async (label: string, fn: () => Promise<void>) => {
+    setBusy(label);
+    try { await fn(); } catch (e) { toast({ title: "Erro", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
+    finally { setBusy(null); load(); }
+  };
+
+  const handleEmit = async () => {
+    if (!single) return;
+    const ok = await confirm({ title: `Emitir MDF-e ${single.numero ? "nº " + single.numero : ""} na SEFAZ?`, description: "O manifesto será transmitido pela Focus NFe no ambiente do emitente. Após autorizado não poderá ser editado." });
+    if (!ok) return;
+    await run("Transmitindo MDF-e à SEFAZ...", async () => {
+      const r = await mdfeFocus("emitir_mdfe_salvo", single.id);
+      if (r.status === "autorizado") toast({ title: "MDF-e autorizado", description: `Nº ${r.numero} — protocolo ${r.protocolo || "-"}` });
+      else if (r.success) toast({ title: "MDF-e em processamento", description: r.motivo_rejeicao });
+      else toast({ title: "MDF-e não autorizado", description: r.motivo_rejeicao || r.error, variant: "destructive" });
+    });
+  };
+
+  const handleConsult = () => single && run("Consultando situação na SEFAZ...", async () => {
+    const r = await mdfeFocus("consultar_mdfe_salvo", single.id);
+    toast({ title: r.success ? `Situação: ${STATUS_LABEL[r.status === "erro_autorizacao" ? "rejeitado" : r.status] || r.status}` : "Consulta", description: r.mensagem || r.error, variant: r.error ? "destructive" : undefined });
+  });
+
+  const handleXml = () => single && run("Baixando XML...", async () => {
+    const r = await mdfeFocus("xml_mdfe_salvo", single.id);
+    if (!r.success) throw new Error(r.error || "XML indisponível");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([r.xml], { type: "application/xml" }));
+    a.download = `MDFe-${single.chave_acesso || single.numero}.xml`; a.click();
+  });
+
+  const submitOp = async () => {
+    if (!single || !opDialog) return;
+    if (opDialog === "cancelar" && (justificativa.trim().length < 15)) return toast({ title: "Justificativa deve ter ao menos 15 caracteres", variant: "destructive" });
+    const kind = opDialog;
+    setOpDialog(null);
+    await run(kind === "cancelar" ? "Cancelando MDF-e na SEFAZ..." : "Encerrando MDF-e na SEFAZ...", async () => {
+      const r = kind === "cancelar"
+        ? await mdfeFocus("cancelar_mdfe_salvo", single.id, { justificativa: justificativa.trim() })
+        : await mdfeFocus("encerrar_mdfe_salvo", single.id, { data: dataEnc || undefined });
+      if (r.success) toast({ title: kind === "cancelar" ? "MDF-e cancelado" : "MDF-e encerrado" });
+      else toast({ title: kind === "cancelar" ? "Cancelamento não aceito" : "Encerramento não aceito", description: r.motivo || r.error, variant: "destructive" });
+    });
+  };
+
   const handlePrint = async () => {
     if (!single) return;
     setPrinting(true);
     try {
+      if (["autorizado", "encerrado", "cancelado"].includes(single.status)) {
+        const r = await mdfeFocus("damdfe_mdfe_salvo", single.id);
+        if (r.success && r.pdf_base64) {
+          const bin = atob(r.pdf_base64); const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(new Blob([arr], { type: "application/pdf" }));
+          a.download = `DAMDFE-${single.numero || single.id.slice(0, 8)}.pdf`; a.click();
+          return;
+        }
+      }
       const html = await buildMdfeHtml(single);
       await downloadHtmlAsPdf(html, `DAMDFE-${single.numero || single.id.slice(0, 8)}.pdf`);
     } catch (error) {
@@ -97,7 +166,8 @@ export default function FreightMdfe() {
     { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
     { key: "ctes", header: "CT-es", width: "60px", cell: (r) => (r.lista_ctes || []).length },
     { key: "peso", header: "Peso (kg)", width: "100px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
-    { key: "status", header: "Situação", width: "100px", sortValue: (r) => r.status, cell: (r) => STATUS_LABEL[r.status] || r.status },
+    { key: "status", header: "Situação", width: "100px", sortValue: (r) => r.status, cell: (r) => <span title={r.motivo_rejeicao || undefined}>{STATUS_LABEL[r.status] || r.status}</span> },
+    { key: "motivo", header: "Retorno SEFAZ", cell: (r) => <span className="text-[11px] text-muted-foreground line-clamp-2" title={r.motivo_rejeicao || ""}>{r.status === "autorizado" ? (r.protocolo_autorizacao ? `Prot. ${r.protocolo_autorizacao}` : "") : r.motivo_rejeicao || ""}</span> },
   ] as any;
 
   return (
@@ -115,9 +185,14 @@ export default function FreightMdfe() {
         <GlobalToolbar
           actions={[
             { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
-            { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable, onClick: () => { setEditing(single); setFormOpen(true); } },
+            { key: "transmit", label: "SEFAZ", icon: SefazIcon as unknown as LucideIcon, mode: "single", variant: "secondary", priority: !!single, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: !single || isConsultor || !!busy || !["rascunho", "rejeitado", "processando"].includes(single.status), onClick: handleEmit },
+            { key: "consult", label: "Consultar SEFAZ", icon: RefreshCw, mode: "single", disabled: !single || !!busy || single.status === "rascunho", onClick: handleConsult },
+            { key: "close", label: "Encerrar", icon: Flag, mode: "single", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setDataEnc(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setOpDialog("encerrar"); } },
+            { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },
+            { key: "xml", label: "Baixar XML", icon: FileCode, mode: "single", disabled: !single || !!busy || !["autorizado", "encerrado", "cancelado"].includes(single.status), onClick: handleXml },
+            { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable || isConsultor, onClick: () => { setEditing(single); setFormOpen(true); } },
             { key: "print", label: printing ? "Gerando PDF" : "Baixar DAMDFE", icon: printing ? Loader2 : FileDown, mode: "single", disabled: !single || printing, onClick: handlePrint },
-            { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0, onClick: handleDelete },
+            { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0 || isConsultor, onClick: handleDelete },
           ] as any}
           selectedCount={selected.size}
         />
@@ -130,7 +205,7 @@ export default function FreightMdfe() {
             onSelectedChange={setSelected}
             loading={loading}
             minWidth={860}
-            rowClassName={(r) => rowToneClass(["autorizado", "encerrado"].includes(r.status) ? "resolved" : ["cancelado", "rejeitado"].includes(r.status) ? "overdue" : "pending")}
+            rowClassName={(r) => rowToneClass(["autorizado", "encerrado"].includes(r.status) ? "resolved" : r.status === "rejeitado" ? "overdue" : r.status === "cancelado" ? "neutral" as any : "pending")}
             emptyMessage='Nenhum manifesto. Clique em "Novo MDF-e" ou gere a partir da tela de CT-e.'
           />
         </div>
@@ -138,6 +213,23 @@ export default function FreightMdfe() {
       </div>
       <MdfeFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} initialCteIds={initialCteIds} onSaved={load} />
       {ConfirmDialog}
+      <ProcessingOverlay open={!!busy} label={busy || ""} />
+      <Dialog open={!!opDialog} onOpenChange={(o) => !o && setOpDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{opDialog === "cancelar" ? "Cancelar MDF-e" : "Encerrar MDF-e"} {single?.numero ? `nº ${single.numero}` : ""}</DialogTitle></DialogHeader>
+          {opDialog === "cancelar" ? (
+            <div className="space-y-1"><Label className="text-xs">Justificativa (15 a 255 caracteres)</Label>
+              <Textarea value={justificativa} maxLength={255} onChange={(e) => setJustificativa(e.target.value)} className="text-xs" rows={3} />
+              <p className="text-[10px] text-muted-foreground">{justificativa.trim().length}/255 — só é possível cancelar em até 24h após a autorização e antes do encerramento.</p></div>
+          ) : (
+            <div className="space-y-2 text-xs">
+              <p>Local de encerramento: <b>{single?.municipio_descarregamento_nome}/{single?.uf_descarregamento}</b></p>
+              <div className="space-y-1"><Label className="text-xs">Data do encerramento</Label><Input type="date" className="h-8 text-xs" value={dataEnc} onChange={(e) => setDataEnc(e.target.value)} /></div>
+            </div>
+          )}
+          <DialogFooter><Button variant="outline" onClick={() => setOpDialog(null)}>Voltar</Button><Button variant={opDialog === "cancelar" ? "destructive" : "default"} onClick={submitOp}>{opDialog === "cancelar" ? "Cancelar na SEFAZ" : "Encerrar na SEFAZ"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
