@@ -407,6 +407,21 @@ Deno.serve(async (req) => {
       numero = next;
       await supabase.from("mdfe").update({ numero }).eq("id", mdfeId);
     }
+    // Carga lotação (1 CT-e): SEFAZ exige CEP de carregamento e descarregamento (rejeição 726)
+    const findCep = (o: unknown, keys: RegExp): string => {
+      if (!o || typeof o !== "object") return "";
+      for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+        if (typeof v === "string" && /cep/i.test(k) && keys.test(k) && digits(v).length === 8) return digits(v);
+        if (v && typeof v === "object" && keys.test(k)) { const c = findCep(v, /./); if (c) return c; }
+      }
+      return "";
+    };
+    let cepCarrega = digits(m.cep_carregamento), cepDescarrega = digits(m.cep_descarregamento);
+    if (chaves.length === 1 && (cepCarrega.length !== 8 || cepDescarrega.length !== 8)) {
+      const { data: c1 } = await supabase.from("ctes").select("*").eq("chave_acesso", chaves[0]).maybeSingle();
+      if (cepCarrega.length !== 8) cepCarrega = findCep(c1, /remet|expedi|coleta|origem/i) || digits(est.endereco_cep);
+      if (cepDescarrega.length !== 8) cepDescarrega = findCep(c1, /destin|receb|entrega/i) || cepCarrega;
+    }
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
       emitente: 1, serie: m.serie || est.serie_mdfe || 1, numero,
@@ -428,6 +443,7 @@ Deno.serve(async (req) => {
         placa_veiculo: plate(m.placa_veiculo), tara_veiculo: isCavalo ? 9000 : 7000, tipo_rodado_veiculo: tipoRodado, tipo_carroceria_veiculo: isCavalo ? "00" : "02", uf_licenciamento_veiculo: ufLic, condutores,
         ...(reboques.length ? { veiculos_reboque: reboques.map((p) => ({ placa: p, tara: 7000, capacidade_kg: 35000, tipo_carroceria: "02", uf_licenciamento: ufLic })) } : {}),
       },
+      ...(chaves.length === 1 && cepCarrega.length === 8 && cepDescarrega.length === 8 ? { cep_carregamento: cepCarrega, cep_descarregamento: cepDescarrega } : {}),
       ...(m.produto_predominante ? { tipo_carga: String(m.tipo_carga || "05").padStart(2, "0").slice(0, 2), descricao_produto: String(m.produto_predominante).slice(0, 120), ...(digits(m.ncm).length === 8 ? { codigo_ncm_produto: digits(m.ncm) } : {}) } : {}),
       ...(m.seguradora_nome && m.apolice_numero ? { seguros_carga: [{ responsavel_seguro: 1, nome_seguradora: m.seguradora_nome, ...(digits(m.seguradora_cnpj).length === 14 ? { cnpj_seguradora: digits(m.seguradora_cnpj) } : {}), numero_apolice: m.apolice_numero, ...(m.averbacao_numero ? { numero_averbacao: m.averbacao_numero } : {}) }] } : {}),
       ...(m.observacoes ? { informacao_complementar: String(m.observacoes).slice(0, 2000) } : {}),
