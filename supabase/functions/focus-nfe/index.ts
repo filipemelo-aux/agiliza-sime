@@ -169,6 +169,10 @@ Deno.serve(async (req) => {
     const quantities = Array.isArray(cte.info_quantidade)
       ? cte.info_quantidade.map((item: any) => ({ codigo_unidade_medida: String(item.cUnid || "01"), tipo_medida: String(item.tpMed || "PESO BRUTO"), quantidade: decimal(item.qCarga) }))
       : [{ codigo_unidade_medida: "01", tipo_medida: "PESO BRUTO", quantidade: decimal(cte.peso_bruto) }];
+    const hasDocs = (cte.chaves_nfe_ref || []).length > 0 || (Array.isArray(cte.outros_documentos) && cte.outros_documentos.length > 0);
+    if (!hasDocs && ![2, 4].includes(Number(cte.tp_serv))) {
+      return new Response(JSON.stringify({ success: false, error: "Informe pelo menos uma chave de NF-e ou um documento em Outros documentos antes de transmitir." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const ctePayload: Record<string, unknown> = {
       cfop: String(cte.cfop), natureza_operacao: cte.natureza_operacao, numero, serie: cte.serie || est.serie_cte || 1,
       data_emissao: new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
