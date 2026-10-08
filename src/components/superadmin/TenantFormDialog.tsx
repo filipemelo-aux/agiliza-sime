@@ -153,7 +153,7 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       toast.success(tenant ? "Empresa atualizada" : "Empresa cadastrada com matriz e administrador");
-      if (data?.focus) (data.focus.ok ? toast.success : toast.error)(`Certificado na Focus: ${data.focus.message}`);
+      if (data?.focus) (data.focus.ok ? toast.success : toast.error)(`Emissão fiscal: ${data.focus.message}`);
       onSaved();
       if (f.focus_environment === "homologation") {
         let estId = matrizEstId;

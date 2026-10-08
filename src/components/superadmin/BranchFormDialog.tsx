@@ -134,7 +134,7 @@ export function BranchFormDialog({ open, onOpenChange, branch, tenants, onSaved,
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       toast.success(branch ? "Filial atualizada" : "Filial cadastrada");
-      if (data.focus) (data.focus.ok ? toast.success : toast.error)(`Certificado na Focus: ${data.focus.message}`);
+      if (data.focus) (data.focus.ok ? toast.success : toast.error)(`Emissão fiscal: ${data.focus.message}`);
       setSavedId(data.id); setCertMode("matriz"); setTokProd(""); setTokHom("");
       onSaved();
       if (f.ambiente === "homologacao") {

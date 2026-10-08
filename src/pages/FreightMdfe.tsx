@@ -97,7 +97,7 @@ export default function FreightMdfe() {
 
   const handleEmit = async () => {
     if (!single) return;
-    const ok = await confirm({ title: `Emitir MDF-e ${single.numero ? "nº " + single.numero : ""} na SEFAZ?`, description: "O manifesto será transmitido pela Focus NFe no ambiente do emitente. Após autorizado não poderá ser editado." });
+    const ok = await confirm({ title: `Emitir MDF-e ${single.numero ? "nº " + single.numero : ""} na SEFAZ?`, description: "O manifesto será transmitido à SEFAZ no ambiente do emitente. Após autorizado não poderá ser editado." });
     if (!ok) return;
     await run("Transmitindo MDF-e à SEFAZ...", async () => {
       const r = await mdfeFocus("emitir_mdfe_salvo", single.id);

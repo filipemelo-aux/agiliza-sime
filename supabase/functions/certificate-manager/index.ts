@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
         await serviceClient.from("notifications").insert(supers.map((s: any) => ({
           user_id: s.user_id, tenant_id: tenantId, type: "certificado",
           title: "Novo certificado digital enviado",
-          message: `${info.titular} — válido até ${info.validUntil.toLocaleDateString("pt-BR")}. Focus: ${focus.message}`,
+          message: `${info.titular} — válido até ${info.validUntil.toLocaleDateString("pt-BR")}. Emissão fiscal: ${focus.message}`,
           data: { certificate_id: cert.id },
         })));
       }
