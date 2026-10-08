@@ -1489,7 +1489,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     const h = setTimeout(async () => {
       const { data } = await supabase.from("cargas").select("produto_predominante, tipo").ilike("produto_predominante", nome).not("tipo", "is", null).limit(1);
       const k = tipoCargaKey((data as any)?.[0]?.tipo);
-      if (k) setForm((p) => (p.tipo_carga === k ? p : { ...p, tipo_carga: k }));
+      if (k) setForm((p) => (p.tipo_carga ? p : { ...p, tipo_carga: k }));
     }, 400);
     return () => clearTimeout(h);
   }, [form.produto_predominante]);
