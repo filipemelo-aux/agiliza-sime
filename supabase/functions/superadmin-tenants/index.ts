@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
             icms_situacao_tributaria: "40", icms_base_calculo: "0.00", icms_aliquota: "0.00", icms_valor: "0.00",
             valor_total_carga: "1000.00", valor_carga_averbacao: "1000.00", produto_predominante: "TESTE HOMOLOGACAO",
             quantidades: [{ codigo_unidade_medida: "01", tipo_medida: "PESO BRUTO", quantidade: "1000.0000" }],
-            outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { rntrc },
+            outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { ...(rntrc ? { rntrc } : {}) },
             ibs_cbs_situacao_tributaria: "000", ibs_cbs_classificacao_tributaria: "000001", ibs_cbs_base_calculo: "100.00",
             // 2026: alíquotas de teste obrigatórias (IBS UF 0,10%, IBS Mun 0%, CBS 0,90%)
             ibs_uf_aliquota: "0.10", ibs_uf_valor: "0.10", ibs_mun_aliquota: "0.00", ibs_mun_valor: "0.00", ibs_valor_total: "0.10",
@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
                   municipios_carregamento: [{ codigo: ibge, nome: cidade }],
                   municipios_descarregamento: [{ codigo: ibge, nome: cidade, conhecimentos_transporte: [{ chave_cte: chaveCte }] }],
                   quantidade_total_cte: 1, valor_total_carga: "1000.00", codigo_unidade_medida_peso_bruto: "01", peso_bruto: "1000.0000",
-                  modal_rodoviario: { registro_nacional_transporte: rntrc, placa_veiculo: "ABC1D23", tara_veiculo: 9000, tipo_rodado_veiculo: "03", tipo_carroceria_veiculo: "00", uf_licenciamento_veiculo: uf, condutores: [{ nome: "MOTORISTA TESTE HOMOLOGACAO", cpf: "52998224725" }] },
+                  modal_rodoviario: { ...(rntrc ? { registro_nacional_transporte: rntrc } : {}), placa_veiculo: "ABC1D23", tara_veiculo: 9000, tipo_rodado_veiculo: "03", tipo_carroceria_veiculo: "00", uf_licenciamento_veiculo: uf, condutores: [{ nome: "MOTORISTA TESTE HOMOLOGACAO", cpf: "52998224725" }] },
                   tipo_carga: "05", descricao_produto: "TESTE HOMOLOGACAO",
                 };
                 const mref = `teste-hml-mdfe-${est.id.slice(0, 8)}-${Date.now()}`;
