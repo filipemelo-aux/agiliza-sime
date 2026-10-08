@@ -1312,7 +1312,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       // Campos usados só na tela nunca vão ao banco. Se mesmo assim o banco
       // recusar um campo desconhecido, ele é retirado e o envio é refeito.
       delete payload.contratado_locked;
-      delete payload.tipo_carga;
+      payload.tipo_carga = form.tipo_carga || null;
 
       // Reserva o próximo número do talão já no rascunho: o número fica preso
       // a este CT-e e a transmissão reutiliza o mesmo número (sem gerar outro).
