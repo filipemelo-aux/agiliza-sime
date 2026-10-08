@@ -418,7 +418,7 @@ Deno.serve(async (req) => {
                   municipios_descarregamento: [{ codigo: ibge, nome: cidade, conhecimentos_transporte: [{ chave_cte: chaveCte }] }],
                   quantidade_total_cte: 1, valor_total_carga: "1000.00", codigo_unidade_medida_peso_bruto: "01", peso_bruto: "1000.0000",
                   modal_rodoviario: { ...(rntrc ? { registro_nacional_transporte: rntrc } : {}), ciot: [{ ciot: "123456789012", cnpj_responsavel: cnpj }], placa_veiculo: "ABC1D23", tara_veiculo: 9000, tipo_rodado_veiculo: "01", tipo_carroceria_veiculo: "00", uf_licenciamento_veiculo: uf, condutores: [{ nome: "MOTORISTA TESTE HOMOLOGACAO", cpf: "52998224725" }] },
-                  seguros_carga: [{ responsavel_seguro: 1, nome_seguradora: "SEGURADORA TESTE", cnpj_seguradora: "33164021000100", numero_apolice: "123456", numero_averbacao: "0001" }], tipo_carga: "05", descricao_produto: "TESTE HOMOLOGACAO",
+                  seguros_carga: [{ responsavel_seguro: 1, nome_seguradora: "SEGURADORA TESTE", cnpj_seguradora: "33164021000100", numero_apolice: "123456", numero_averbacao: "0001" }], tipo_carga: "05", descricao_produto: "TESTE HOMOLOGACAO", codigo_ncm_produto: "10059010",
                   cep_carregamento: d(e.endereco_cep).padStart(8, "0").slice(0, 8), cep_descarregamento: d(e.endereco_cep).padStart(8, "0").slice(0, 8),
                 };
                 const mref = `teste-hml-mdfe-${est.id.slice(0, 8)}-${Date.now()}`;
