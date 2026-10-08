@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
                 const chaveCte = String(fd.chave_cte || fd.chave || "").replace(/\D/g, "");
                 const nMdfe = 900000000 + Math.floor(Math.random() * 99999999);
                 const mPayload = {
-                  tipo_emitente: 1, modal: 1, serie: e.serie_mdfe || 1, numero: nMdfe,
+                  emitente: 1, serie: e.serie_mdfe || 1, numero: nMdfe,
                   data_emissao: now.toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
                   uf_inicio: uf, uf_fim: uf,
                   cnpj_emitente: cnpj, inscricao_estadual_emitente: d(e.inscricao_estadual), nome_emitente: e.razao_social,
@@ -415,10 +415,10 @@ Deno.serve(async (req) => {
                   numero_emitente: e.endereco_numero || "S/N", bairro_emitente: e.endereco_bairro || "NAO INFORMADO",
                   codigo_municipio_emitente: ibge, municipio_emitente: cidade, uf_emitente: uf, cep_emitente: d(e.endereco_cep),
                   municipios_carregamento: [{ codigo: ibge, nome: cidade }],
-                  municipios_descarregamento: [{ codigo: ibge, nome: cidade, ctes: [{ chave_cte: chaveCte }] }],
+                  municipios_descarregamento: [{ codigo: ibge, nome: cidade, conhecimentos_transporte: [{ chave_cte: chaveCte }] }],
                   quantidade_total_cte: 1, valor_total_carga: "1000.00", codigo_unidade_medida_peso_bruto: "01", peso_bruto: "1000.0000",
-                  modal_rodoviario: { rntrc, veiculo_tracao: { placa: "ABC1D23", tara: 9000, tipo_rodado: "03", tipo_carroceria: "00", uf_licenciamento: uf, condutores: [{ nome: "MOTORISTA TESTE HOMOLOGACAO", cpf: "52998224725" }] } },
-                  produto_predominante: { tipo_carga: "05", descricao: "TESTE HOMOLOGACAO" },
+                  modal_rodoviario: { registro_nacional_transporte: rntrc, placa_veiculo: "ABC1D23", tara_veiculo: 9000, tipo_rodado_veiculo: "03", tipo_carroceria_veiculo: "00", uf_licenciamento_veiculo: uf, condutores: [{ nome: "MOTORISTA TESTE HOMOLOGACAO", cpf: "52998224725" }] },
+                  tipo_carga: "05", descricao_produto: "TESTE HOMOLOGACAO",
                 };
                 const mref = `teste-hml-mdfe-${est.id.slice(0, 8)}-${Date.now()}`;
                 const mr = await fetch(`${HML}/v2/mdfe?ref=${mref}`, { method: "POST", body: JSON.stringify(mPayload), headers: { ...auth, "Content-Type": "application/json" } });
