@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
             icms_situacao_tributaria: "40", icms_base_calculo: "0.00", icms_aliquota: "0.00", icms_valor: "0.00",
             valor_total_carga: "1000.00", valor_carga_averbacao: "1000.00", produto_predominante: "TESTE HOMOLOGACAO",
             quantidades: [{ codigo_unidade_medida: "01", tipo_medida: "PESO BRUTO", quantidade: "1000.0000" }],
-            outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { ...(rntrc ? { rntrc } : {}) },
+            outros_documentos: [{ tipo_documento: "99", descricao_outros: "TESTE HOMOLOGACAO", numero: "1", data_emissao: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) }], modal_rodoviario: { rntrc: rntrc || "ISENTO" },
             ibs_cbs_situacao_tributaria: "000", ibs_cbs_classificacao_tributaria: "000001", ibs_cbs_base_calculo: "100.00",
             // 2026: alíquotas de teste obrigatórias (IBS UF 0,10%, IBS Mun 0%, CBS 0,90%)
             ibs_uf_aliquota: "0.10", ibs_uf_valor: "0.10", ibs_mun_aliquota: "0.00", ibs_mun_valor: "0.00", ibs_valor_total: "0.10",
