@@ -123,7 +123,7 @@ export function CertificatesList() {
                       {(cert as any).titular || cert.caminho_storage.split("/").pop()} · válido até {(cert as any).valid_until ? new Date((cert as any).valid_until).toLocaleDateString("pt-BR") : "—"}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Focus: {(cert as any).focus_sync_status === "sincronizado" ? "atualizado" : (cert as any).focus_sync_status === "erro" ? "falhou — o suporte foi avisado" : "aguardando o suporte"}
+                      Emissão fiscal: {(cert as any).focus_sync_status === "sincronizado" ? "atualizado" : (cert as any).focus_sync_status === "erro" ? "falhou — o suporte foi avisado" : "aguardando o suporte"}
                     </p>
                   </div>
                 </div>
