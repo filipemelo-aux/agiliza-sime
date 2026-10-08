@@ -712,7 +712,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         gerar_previsao: (cte as any).gerar_previsao ?? true,
         composicao_frete: { ...defaultForm.composicao_frete, ...((cte as any).composicao_frete || { frete_valor: Number(cte.valor_frete) || 0 }) },
         frete_minimo: { ...defaultForm.frete_minimo, ...((cte as any).frete_minimo || {}) },
-        data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })),
+        data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : ""),
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
       const od = (cte as any).outros_documentos;
@@ -733,7 +733,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         setMotoristaNome(undefined);
       }
     } else {
-      setForm({ ...defaultForm, data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) });
+      setForm({ ...defaultForm }); outrosFillComp.current = false;
       setDocMode("nfe");
       setMotoristaNome(undefined);
       setDesconto(emptyDesconto);
@@ -848,6 +848,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   };
   /** Marca campos de valor editados manualmente por documento, para o espelhamento não sobrescrevê-los. */
   const manualDocFields = useRef(new Set<string>());
+  const outrosFillComp = useRef(false);
+  const outrosProdAuto = useRef(false);
   const setNfeDetalhe = (chave: string, patch: Partial<NfeDetalhe>) =>
     setForm((p) => {
       const base = p.nfe_detalhes.find((d) => d.chave === chave) ?? {
@@ -1839,7 +1841,16 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
             ) : (
               <div className="space-y-2">
                 {form.outros_documentos.map((o, i) => {
-                  const upd = (patch: Partial<OutroDoc>) => setForm((p) => { const arr = [...p.outros_documentos]; const base = arr[i]; const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `out:${i}`) }; arr[i] = merged; return { ...p, ...syncAverbado(p, base, patch, merged), outros_documentos: arr }; });
+                  const upd = (patch: Partial<OutroDoc>) => setForm((p) => { const arr = [...p.outros_documentos]; const base = arr[i]; const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `out:${i}`) }; arr[i] = merged;
+                    let comp: Record<string, any> = {};
+                    if (outrosFillComp.current) {
+                      const peso = arr.reduce((a, d) => a + (Number(d.peso) || 0), 0);
+                      const valor = arr.reduce((a, d) => a + (Number(d.valor) || 0), 0);
+                      comp = { peso_bruto: peso, valor_carga: valor, valor_carga_averb: valor };
+                      const nat = (arr[0]?.natureza || "").trim();
+                      if (nat && (!p.produto_predominante || outrosProdAuto.current)) { comp.produto_predominante = maskName(nat); outrosProdAuto.current = true; }
+                    }
+                    return { ...p, ...syncAverbado(p, base, patch, merged), ...comp, outros_documentos: arr }; });
                   return (
                     <div key={i} className="space-y-2 rounded-md border border-border bg-muted/40 p-2.5">
                       <div className="flex items-end gap-2">
@@ -1870,7 +1881,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                     </div>
                   );
                 })}
-                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => set("outros_documentos", [...form.outros_documentos, { ...emptyDoc, tipo: "99", descricao: "" }])}>
+                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setForm((p) => {
+                  const compVazia = !(Number(p.peso_bruto) > 0) && !(Number(p.valor_carga) > 0);
+                  if (p.outros_documentos.length === 0) { outrosFillComp.current = compVazia; outrosProdAuto.current = false; }
+                  const novo = p.outros_documentos.length === 0 && !compVazia
+                    ? { ...emptyDoc, tipo: "99", descricao: "", peso: Number(p.peso_bruto) || 0, valor: Number(p.valor_carga) || 0, natureza: (p.produto_predominante || "").toUpperCase() }
+                    : { ...emptyDoc, tipo: "99", descricao: "", natureza: p.outros_documentos.length === 0 ? (p.produto_predominante || "").toUpperCase() : "" };
+                  return { ...p, outros_documentos: [...p.outros_documentos, novo] };
+                })}>
                   <Plus className="h-3 w-3" /> Adicionar documento
                 </Button>
               </div>
