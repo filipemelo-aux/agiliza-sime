@@ -64,7 +64,7 @@ export function CertificateUploadDialog({ open, onOpenChange, onSaved }: Props) 
       const validade = data?.valid_until ? new Date(data.valid_until).toLocaleDateString("pt-BR") : "";
       toast({
         title: "Certificado validado e salvo",
-        description: `${data?.titular || ""} — válido até ${validade}. ${data?.focus?.ok ? "Atualizado na Focus." : "O suporte foi avisado para concluir a atualização na Focus."}`,
+        description: `${data?.titular || ""} — válido até ${validade}. ${data?.focus?.ok ? "Pronto para emissão fiscal." : "O suporte foi avisado para concluir a ativação."}`,
       });
       setNome("");
       setSenha("");
