@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
       numero = next;
       await supabase.from("mdfe").update({ numero }).eq("id", mdfeId);
     }
-    // Carga lotação (1 CT-e): SEFAZ exige CEP de carregamento e descarregamento (rejeição 726)
+    // Carga lotação (1 CT-e): SEFAZ exige CEP de carregamento/descarregamento (726) e pagamento do frete (302)
     const findCep = (o: unknown, keys: RegExp): string => {
       if (!o || typeof o !== "object") return "";
       for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -417,11 +417,22 @@ Deno.serve(async (req) => {
       }
       return "";
     };
+    const findField = (o: unknown, scope: RegExp, field: RegExp): string => {
+      if (!o || typeof o !== "object") return "";
+      for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+        if (typeof v === "string" && scope.test(k) && field.test(k)) return v;
+        if (v && typeof v === "object" && scope.test(k)) { const r = findField(v, /./, field); if (r) return r; }
+      }
+      return "";
+    };
     let cepCarrega = digits(m.cep_carregamento), cepDescarrega = digits(m.cep_descarregamento);
-    if (chaves.length === 1 && (cepCarrega.length !== 8 || cepDescarrega.length !== 8)) {
+    let tomadorNome = "", tomadorDoc = "";
+    if (chaves.length === 1) {
       const { data: c1 } = await supabase.from("ctes").select("*").eq("chave_acesso", chaves[0]).maybeSingle();
       if (cepCarrega.length !== 8) cepCarrega = findCep(c1, /remet|expedi|coleta|origem/i) || digits(est.endereco_cep);
       if (cepDescarrega.length !== 8) cepDescarrega = findCep(c1, /destin|receb|entrega/i) || cepCarrega;
+      tomadorNome = String(findField(c1, /tomador/i, /nome|razao/i) || findField(c1, /remet|expedi/i, /nome|razao/i) || "").slice(0, 60);
+      tomadorDoc = digits(findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet|expedi/i, /cnpj|cpf|documento/i));
     }
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
