@@ -13,6 +13,14 @@ const notify = () => listeners.forEach((l) => l(pending, lastLabel));
 
 const backendUrl = (import.meta.env.VITE_SUPABASE_URL as string) || "";
 
+/** Nomes de rotina trocados por descrições do processo (sem nomes técnicos). */
+const friendlyFunction: Record<string, string> = {
+  "focus-nfe": "Comunicando com a SEFAZ...",
+  "nfe-auto-sync": "Sincronizando notas recebidas...",
+  "superadmin-tenants": "Aplicando configurações da empresa...",
+  "create-employee-account": "Criando acesso do colaborador...",
+};
+
 function labelFor(method: string, url: string) {
   let resource = "";
   const table = url.match(/\/rest\/v1\/([^/?]+)/)?.[1];
@@ -22,6 +30,7 @@ function labelFor(method: string, url: string) {
   else if (fn) resource = fn.replace(/-/g, " ");
   else if (table) resource = table.replace(/_/g, " ");
 
+  if (fn && friendlyFunction[fn]) return friendlyFunction[fn];
   if (rpc) return `Executando ${resource}...`;
   if (fn) return `Processando ${resource}...`;
   if (method === "DELETE") return resource ? `Excluindo registro em ${resource}...` : "Excluindo...";

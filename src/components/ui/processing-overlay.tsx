@@ -16,8 +16,8 @@ export function ProcessingOverlay({ open, label = "Processando..." }: { open: bo
           <div className="absolute inset-0 rounded-full border-4 border-muted" />
           <Loader2 className="absolute inset-0 h-14 w-14 animate-spin text-primary" />
         </div>
-        <p className="text-sm font-medium text-foreground text-center max-w-sm">{label}</p>
-        <p className="text-[10px] text-muted-foreground">Aguarde, não feche esta tela.</p>
+        <p className="text-sm font-medium text-foreground text-center max-w-sm">Aguarde, não feche esta tela.</p>
+        <p className="text-[10px] text-muted-foreground text-center max-w-sm">{label}</p>
       </div>
     </div>,
     document.body,
