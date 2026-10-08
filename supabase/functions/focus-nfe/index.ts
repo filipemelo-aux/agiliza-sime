@@ -422,7 +422,7 @@ Deno.serve(async (req) => {
       quantidade_total_cte: chaves.length, valor_total_carga: Number(m.valor_total || 0).toFixed(2),
       codigo_unidade_medida_peso_bruto: "01", peso_bruto: Number(m.peso_total || 0).toFixed(4),
       modal_rodoviario: {
-        ...(normRntrc(m.rntrc || est.rntrc) ? { registro_nacional_transporte: normRntrc(m.rntrc || est.rntrc) } : {}),
+        ...(m.ciot_numero && normRntrc(m.rntrc || est.rntrc) ? { registro_nacional_transporte: normRntrc(m.rntrc || est.rntrc) } : {}),
         ...(digits(m.contratado_documento).length >= 11 && digits(m.contratado_documento) !== digits(est.cnpj) ? { contratantes: [digits(m.contratado_documento).length === 14 ? { cnpj: digits(m.contratado_documento) } : { cpf: digits(m.contratado_documento) }] } : {}),
         ...(m.ciot_numero ? { ciot: [{ ciot: digits(m.ciot_numero), ...(digits(m.ciot_documento).length === 14 ? { cnpj_responsavel: digits(m.ciot_documento) } : digits(m.ciot_documento).length === 11 ? { cpf_responsavel: digits(m.ciot_documento) } : {}) }] } : {}),
         placa_veiculo: plate(m.placa_veiculo), tara_veiculo: isCavalo ? 9000 : 7000, tipo_rodado_veiculo: tipoRodado, tipo_carroceria_veiculo: isCavalo ? "00" : "02", uf_licenciamento_veiculo: ufLic, condutores,
