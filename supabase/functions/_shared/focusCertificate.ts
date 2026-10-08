@@ -40,19 +40,19 @@ export async function pushCertificateToFocus(masterToken: string, cnpj: string, 
   try {
     const r = await fetch(`${FOCUS_API}/v2/empresas?cnpj=${cnpj}`, { headers: auth });
     const list = await r.json().catch(() => null);
-    if (r.status === 401 || r.status === 403) return { ok: false, message: "Token principal da Focus sem permissão para gerenciar empresas" };
+    if (r.status === 401 || r.status === 403) return { ok: false, message: "Token principal sem permissão para atualizar o certificado" };
     const emp = Array.isArray(list) ? list.find((e: any) => String(e.cnpj || "").replace(/\D/g, "") === cnpj) || list[0] : null;
-    if (!emp?.id) return { ok: false, message: `Empresa CNPJ ${cnpj} não encontrada na Focus` };
+    if (!emp?.id) return { ok: false, message: `Empresa CNPJ ${cnpj} não cadastrada no serviço de emissão fiscal` };
     const u = await fetch(`${FOCUS_API}/v2/empresas/${emp.id}`, {
       method: "PUT",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ arquivo_certificado_base64: base64, senha_certificado: senha }),
     });
     const res = await u.json().catch(() => ({}));
-    if (!u.ok) return { ok: false, message: res?.mensagem || res?.erros?.[0]?.mensagem || `Focus respondeu ${u.status}` };
-    return { ok: true, message: `Certificado atualizado na Focus (empresa ${emp.id})` };
+    if (!u.ok) return { ok: false, message: res?.mensagem || res?.erros?.[0]?.mensagem || `O serviço de emissão fiscal respondeu ${u.status}` };
+    return { ok: true, message: `Certificado atualizado para emissão fiscal (empresa ${emp.id})` };
   } catch (e) {
-    return { ok: false, message: "Falha de comunicação com a Focus: " + (e as Error).message };
+    return { ok: false, message: "Falha de comunicação com o serviço de emissão fiscal: " + (e as Error).message };
   }
 }
 
@@ -88,7 +88,7 @@ export async function syncCertificateToFocus(svc: any, certificateId: string): P
   };
   const { data: sec } = await svc.from("tenant_secrets").select("focus_nfe_token_master").eq("tenant_id", cert.tenant_id).maybeSingle();
   const master = sec?.focus_nfe_token_master || Deno.env.get("FOCUS_NFE_TOKEN_MASTER");
-  if (!master) return save({ ok: false, message: "Aguardando o SuperAdmin informar o token principal da conta Focus" }, "pendente");
+  if (!master) return save({ ok: false, message: "Aguardando o suporte informar o token principal da conta" }, "pendente");
   const { data: blob } = await svc.storage.from("fiscal-certificates").download(cert.caminho_storage);
   if (!blob) return save({ ok: false, message: "Arquivo do certificado não encontrado" });
   const senha = await decryptCertPassword(cert.senha_criptografada);
