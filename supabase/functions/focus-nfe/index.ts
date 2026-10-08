@@ -455,7 +455,7 @@ Deno.serve(async (req) => {
         placa_veiculo: plate(m.placa_veiculo), tara_veiculo: isCavalo ? 9000 : 7000, tipo_rodado_veiculo: tipoRodado, tipo_carroceria_veiculo: isCavalo ? "00" : "02", uf_licenciamento_veiculo: ufLic, condutores,
         ...(reboques.length ? { veiculos_reboque: reboques.map((p) => ({ placa: p, tara: 7000, capacidade_kg: 35000, tipo_carroceria: "02", uf_licenciamento: ufLic })) } : {}),
         // Carga lotação: informações de pagamento do frete (rejeição 302)
-        ...(chaves.length === 1 && tomadorDoc.length >= 11 ? { pagamentos: [{ ...(tomadorNome ? { nome: tomadorNome } : {}), ...(tomadorDoc.length === 14 ? { cnpj: tomadorDoc } : { cpf: tomadorDoc }), componentes: [{ tipo: "04", valor: Number(m.valor_total || 0).toFixed(2) }], valor_total_contrato: Number(m.valor_total || 0).toFixed(2), forma_pagamento: "0" }] } : {}),
+        ...(chaves.length === 1 && tomadorDoc.length >= 11 ? { pagamentos: [{ ...(tomadorNome ? { nome: tomadorNome } : {}), ...(tomadorDoc.length === 14 ? { cnpj: tomadorDoc } : { cpf: tomadorDoc }), componentes: [{ tipo: "04", valor: Number(m.valor_total || 0).toFixed(2) }], valor_total_contrato: Number(m.valor_total || 0).toFixed(2), forma_pagamento: "0", pix: digits(est.cnpj) }] } : {}),
       },
       ...(chaves.length === 1 && cepCarrega.length === 8 && cepDescarrega.length === 8 ? { cep_carregamento: cepCarrega, cep_descarregamento: cepDescarrega } : {}),
       ...(m.produto_predominante ? { tipo_carga: String(m.tipo_carga || "05").padStart(2, "0").slice(0, 2), descricao_produto: String(m.produto_predominante).slice(0, 120), ...(digits(m.ncm).length === 8 ? { codigo_ncm_produto: digits(m.ncm) } : {}) } : {}),
