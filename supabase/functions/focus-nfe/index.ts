@@ -188,6 +188,13 @@ Deno.serve(async (req) => {
       icms_aliquota: money(cte.aliquota_icms), icms_valor: money(cte.valor_icms), valor_total_carga: money(cte.valor_carga),
       valor_carga_averbacao: money(cte.valor_carga_averb || cte.valor_carga), produto_predominante: cte.produto_predominante,
       quantidades: quantities, nfes: (cte.chaves_nfe_ref || []).map((chave: string) => ({ chave_nfe: digits(chave) })),
+      outros_documentos: (Array.isArray(cte.outros_documentos) ? cte.outros_documentos : []).map((d: any) => ({
+        tipo_documento: String(d.tipo || "99").padStart(2, "0"),
+        descricao_outros: String(d.tipo || "99") === "99" ? String(d.descricao || d.natureza || "DECLARACAO").slice(0, 100) : undefined,
+        numero_documento: d.numero ? String(d.numero).slice(0, 20) : undefined,
+        data_emissao: d.data_emissao || undefined,
+        valor_documento_fiscal: d.valor != null ? money(d.valor) : undefined,
+      })),
       modal_rodoviario: { rntrc: normRntrc(cte.rntrc || est.rntrc) || "ISENTO" }, observacao: cte.observacoes || undefined,
       ibs_cbs_situacao_tributaria: cte.ibs_cbs_cst || "000", ibs_cbs_classificacao_tributaria: (() => { const cst = String(cte.ibs_cbs_cst || "000"); const ct = String(cte.ibs_cbs_class_trib || ""); return ct.length === 6 && ct.startsWith(cst) ? ct : `${cst}001`; })(),
       ibs_cbs_base_calculo: money(cte.ibs_cbs_base_calculo || cte.valor_frete), ibs_uf_aliquota: money(cte.ibs_uf_aliquota),
