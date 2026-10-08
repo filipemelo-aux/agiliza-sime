@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
             [`logradouro_${p}`]: e.endereco_logradouro || "NAO INFORMADO", [`numero_${p}`]: e.endereco_numero || "S/N",
             [`bairro_${p}`]: e.endereco_bairro || "NAO INFORMADO", [`codigo_municipio_${p}`]: ibge, [`municipio_${p}`]: cidade, [`uf_${p}`]: uf,
           });
-          const rntrc = (() => { const v = d(e.rntrc); return v ? v.slice(-8).padStart(8, "0") : "ISENTO"; })();
+          const rntrc = (() => { const v = d(e.rntrc); return v ? v.slice(-8).padStart(8, "0") : ""; })();
           const payload: Record<string, unknown> = {
             cfop: "5353", natureza_operacao: "PRESTACAO DE SERVICO DE TRANSPORTE", numero, serie: e.serie_cte || 1,
             data_emissao: now.toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
