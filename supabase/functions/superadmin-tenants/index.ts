@@ -400,7 +400,44 @@ Deno.serve(async (req) => {
               await new Promise((res) => setTimeout(res, 1500));
               fd = await (await fetch(`${HML}/v2/cte/${ref}?completa=0`, { headers: auth })).json().catch(() => fd);
             }
-            if (fd?.status === "autorizado") add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
+            if (fd?.status === "autorizado") {
+              add("CT-e de teste na SEFAZ", true, `Autorizado — nº ${numero}, protocolo ${fd.protocolo || "-"}`);
+              // MDF-e de teste vinculado ao CT-e recém-autorizado.
+              try {
+                const chaveCte = String(fd.chave_cte || fd.chave || "").replace(/\D/g, "");
+                const nMdfe = 900000000 + Math.floor(Math.random() * 99999999);
+                const mPayload = {
+                  tipo_emitente: 1, modal: 1, serie: e.serie_mdfe || 1, numero: nMdfe,
+                  data_emissao: now.toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
+                  uf_inicio: uf, uf_fim: uf,
+                  cnpj_emitente: cnpj, inscricao_estadual_emitente: d(e.inscricao_estadual), nome_emitente: e.razao_social,
+                  nome_fantasia_emitente: e.nome_fantasia || e.razao_social, logradouro_emitente: e.endereco_logradouro || "NAO INFORMADO",
+                  numero_emitente: e.endereco_numero || "S/N", bairro_emitente: e.endereco_bairro || "NAO INFORMADO",
+                  codigo_municipio_emitente: ibge, municipio_emitente: cidade, uf_emitente: uf, cep_emitente: d(e.endereco_cep),
+                  municipios_carregamento: [{ codigo: ibge, nome: cidade }],
+                  municipios_descarregamento: [{ codigo: ibge, nome: cidade, ctes: [{ chave_cte: chaveCte }] }],
+                  quantidade_total_cte: 1, valor_total_carga: "1000.00", codigo_unidade_medida_peso_bruto: "01", peso_bruto: "1000.0000",
+                  modal_rodoviario: { rntrc, veiculo_tracao: { placa: "ABC1D23", tara: 9000, tipo_rodado: "03", tipo_carroceria: "00", uf_licenciamento: uf, condutores: [{ nome: "MOTORISTA TESTE HOMOLOGACAO", cpf: "52998224725" }] } },
+                  produto_predominante: { tipo_carga: "05", descricao: "TESTE HOMOLOGACAO" },
+                };
+                const mref = `teste-hml-mdfe-${est.id.slice(0, 8)}-${Date.now()}`;
+                const mr = await fetch(`${HML}/v2/mdfe?ref=${mref}`, { method: "POST", body: JSON.stringify(mPayload), headers: { ...auth, "Content-Type": "application/json" } });
+                let md: any; try { md = await mr.json(); } catch { md = {}; }
+                if (!mr.ok) add("MDF-e de teste na SEFAZ", false, `Recusado: ${md?.mensagem || md?.erros?.map?.((x: any) => x.mensagem || x).join("; ") || `Focus respondeu ${mr.status}`}`);
+                else {
+                  for (let i = 0; i < 20 && ["processando_autorizacao", "processando"].includes(md?.status); i++) {
+                    await new Promise((res) => setTimeout(res, 1500));
+                    md = await (await fetch(`${HML}/v2/mdfe/${mref}`, { headers: auth })).json().catch(() => md);
+                  }
+                  if (md?.status === "autorizado") {
+                    add("MDF-e de teste na SEFAZ", true, `Autorizado — nº ${nMdfe}, protocolo ${md.protocolo || "-"}`);
+                    // Encerra o manifesto de teste para não deixá-lo em aberto.
+                    await fetch(`${HML}/v2/mdfe/${mref}/encerrar`, { method: "POST", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify({ data: now.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }), sigla_uf: uf, codigo_municipio: ibge, nome_municipio: cidade }) }).then((x) => x.text()).catch(() => {});
+                  } else if (["processando_autorizacao", "processando"].includes(md?.status)) add("MDF-e de teste na SEFAZ", false, "SEFAZ ainda processando — teste novamente em instantes");
+                  else add("MDF-e de teste na SEFAZ", false, `Rejeitado${md?.status_sefaz ? ` (${md.status_sefaz})` : ""}: ${md?.mensagem_sefaz || md?.mensagem || md?.status}`);
+                }
+              } catch (err) { add("MDF-e de teste na SEFAZ", false, `Falha no envio: ${(err as Error).message}`); }
+            }
             else if (["processando_autorizacao", "processando"].includes(fd?.status)) add("CT-e de teste na SEFAZ", false, "SEFAZ ainda processando — clique em Testar novamente em instantes");
             else add("CT-e de teste na SEFAZ", false, String(fd?.status_sefaz) === "646" ? "Rejeitado (646): o sistema enviou o nome exigido para o remetente, mas ele chegou diferente na SEFAZ. Comunicação, token e certificado estão OK — confirme com o suporte da Focus o texto que eles aplicam em homologação." : `Rejeitado${fd?.status_sefaz ? ` (${fd.status_sefaz})` : ""}: ${fd?.mensagem_sefaz || fd?.mensagem || fd?.status} `);
           }
