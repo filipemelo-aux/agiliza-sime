@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, type LucideIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, FileCode2, Send, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useAuth } from "@/contexts/AuthContext";
 import { mdfeFocus } from "@/services/fiscal/focusMdfeService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { buildMdfeHtml } from "@/components/freight/mdfePrint";
 import { buildHtmlPdf } from "@/lib/htmlToPdf";
 import { base64ToBytes, downloadBytes, mergePdfBytes } from "@/lib/mergePdfs";
+import JSZip from "jszip";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -46,6 +47,8 @@ export default function FreightMdfe() {
   const [opDialog, setOpDialog] = useState<null | "cancelar" | "encerrar">(null);
   const [justificativa, setJustificativa] = useState("");
   const [dataEnc, setDataEnc] = useState("");
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -149,24 +152,76 @@ export default function FreightMdfe() {
   const handlePrint = async () => {
     const list = filtered.filter((r) => selected.has(r.id));
     if (!list.length) return;
+    if (list.length > 1) { setBatchOpen(true); return; }
     setPrinting(true);
     try {
-      if (list.length === 1) {
-        const m = list[0];
-        const bytes = await damdfeBytes(m);
-        downloadBytes(bytes, `DAMDFE-${m.numero || m.id.slice(0, 8)}.pdf`);
-        return;
-      }
-      // Lote: um único PDF, um manifesto por página, na ordem da listagem.
-      const parts: Uint8Array[] = [];
-      for (const m of list) parts.push(await damdfeBytes(m));
-      const merged = await mergePdfBytes(parts);
-      downloadBytes(merged, `DAMDFEs-lote-${list.length}.pdf`);
+      const m = list[0];
+      const bytes = await damdfeBytes(m);
+      downloadBytes(bytes, `DAMDFE-${m.numero || m.id.slice(0, 8)}.pdf`);
     } catch (error) {
       toast({ title: "Erro ao gerar DAMDFE", description: error instanceof Error ? error.message : "Não foi possível gerar o PDF.", variant: "destructive" });
     } finally {
       setPrinting(false);
     }
+  };
+
+  // Lote: um único PDF, um manifesto por página, na ordem da listagem.
+  const handleBatchDamdfe = async () => {
+    const list = filtered.filter((r) => selected.has(r.id));
+    if (!list.length) return;
+    setBatchBusy(true);
+    try {
+      const parts: Uint8Array[] = [];
+      for (const m of list) parts.push(await damdfeBytes(m));
+      const merged = await mergePdfBytes(parts);
+      downloadBytes(merged, `DAMDFEs-lote-${list.length}.pdf`);
+      setBatchOpen(false);
+    } catch (error) {
+      toast({ title: "Erro ao gerar DAMDFEs em lote", description: error instanceof Error ? error.message : "Não foi possível gerar o PDF.", variant: "destructive" });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  // XMLs em lote: um único ZIP com o XML autorizado de cada manifesto selecionado.
+  const handleBatchXml = async () => {
+    const list = filtered.filter((r) => selected.has(r.id));
+    if (!list.length) return;
+    setBatchBusy(true);
+    try {
+      const zip = new JSZip();
+      let count = 0;
+      for (const m of list) {
+        try {
+          const r = await mdfeFocus("xml_mdfe_salvo", m.id);
+          if (r.success && r.xml) {
+            zip.file(`${m.chave_acesso || `MDFe-${m.numero ?? m.id.slice(0, 8)}`}.xml`, r.xml);
+            count++;
+          }
+        } catch { /* manifesto sem XML disponível: ignora */ }
+      }
+      if (!count) throw new Error("Nenhum dos MDF-es selecionados possui XML disponível.");
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MDFEs-XML-lote-${count}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setBatchOpen(false);
+    } catch (error) {
+      toast({ title: "Erro ao gerar XMLs em lote", description: error instanceof Error ? error.message : "Não foi possível gerar o ZIP.", variant: "destructive" });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  // Botão SEFAZ: com vários MDF-es marcados abre o diálogo de lote; com um só, transmite.
+  const handleSefazClick = () => {
+    if (selected.size > 1) { setBatchOpen(true); return; }
+    handleEmit();
   };
 
   const columns: DataGridColumn<any>[] = [
@@ -196,7 +251,7 @@ export default function FreightMdfe() {
         <GlobalToolbar
           actions={[
             { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
-            { key: "transmit", label: "SEFAZ", icon: SefazIcon as unknown as LucideIcon, mode: "single", variant: "secondary", priority: !!single, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: !single || isConsultor || !!busy || !["rascunho", "rejeitado", "processando"].includes(single.status), onClick: handleEmit },
+            { key: "transmit", label: "SEFAZ", icon: SefazIcon as unknown as LucideIcon, mode: "single+batch", variant: "secondary", priority: selected.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: selected.size === 0 || isConsultor || !!busy || (selected.size === 1 && !["rascunho", "rejeitado", "processando"].includes(single?.status)), onClick: handleSefazClick },
             { key: "consult", label: "Consultar SEFAZ", icon: RefreshCw, mode: "single", disabled: !single || !!busy || single.status === "rascunho", onClick: handleConsult },
             { key: "close", label: "Encerrar", icon: Flag, mode: "single", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setDataEnc(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setOpDialog("encerrar"); } },
             { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },
@@ -224,6 +279,40 @@ export default function FreightMdfe() {
       </div>
       <MdfeFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} initialCteIds={initialCteIds} onSaved={load} />
       {ConfirmDialog}
+      <Dialog open={batchOpen} onOpenChange={(v) => !batchBusy && setBatchOpen(v)}>
+        <DialogContent className="max-w-md">
+          <ProcessingOverlay open={batchBusy} label="Gerando arquivos em lote..." />
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2"><SefazIcon size={22} /> SEFAZ — {selected.size} MDF-es selecionados</DialogTitle>
+            <DialogDescription className="text-xs">
+              Opções em lote para os MDF-es selecionados. Transmissão, consulta, encerramento e cancelamento continuam individuais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <Send className="w-4 h-4" /> Transmitir à SEFAZ
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <RefreshCw className="w-4 h-4" /> Consultar situação na SEFAZ
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchBusy} onClick={handleBatchDamdfe}>
+              {batchBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+              Baixar DAMDFEs em lote (PDF único)
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchBusy} onClick={handleBatchXml}>
+              {batchBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode2 className="w-4 h-4" />}
+              Baixar XMLs em lote (ZIP único)
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <Flag className="w-4 h-4" /> Encerrar MDF-e
+            </Button>
+            <Button variant="destructive" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <Ban className="w-4 h-4" /> Cancelar na SEFAZ
+            </Button>
+            <p className="text-[11px] text-muted-foreground">Transmitir, consultar, encerrar e cancelar exigem um único MDF-e selecionado. O ZIP reúne apenas os MDF-es que possuem XML autorizado.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
       <ProcessingOverlay open={!!busy} label={busy || ""} />
       <Dialog open={!!opDialog} onOpenChange={(o) => !o && setOpDialog(null)}>
         <DialogContent className="max-w-md">
