@@ -129,3 +129,19 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
       </span>
   );
 }
+
+/** UF da empresa (ex.: MA, TO, PA) em texto simples, no padrão das demais colunas */
+export function EmpresaUf({ empresaId, className }: { empresaId?: string | null; className?: string }) {
+  const { establishments } = useUnifiedCompany();
+  const est = establishments.find((e) => e.id === empresaId);
+  const uf = (est?.endereco_uf || "").toUpperCase();
+  return (
+    <span
+      className={cn("whitespace-nowrap", className)}
+      title={est ? est.nome_fantasia || est.razao_social : undefined}
+    >
+      {uf || "—"}
+    </span>
+  );
+}
+
