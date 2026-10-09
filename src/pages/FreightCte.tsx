@@ -89,6 +89,8 @@ const statusColors: Record<string, string> = {
   autorizado: "bg-emerald-500/10 text-emerald-600",
   cancelado: "bg-destructive/10 text-destructive",
   rejeitado: "bg-amber-500/10 text-amber-600",
+  processando: "bg-primary/10 text-primary",
+  denegado: "bg-destructive/10 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
@@ -96,6 +98,8 @@ const statusLabels: Record<string, string> = {
   autorizado: "Autorizado",
   cancelado: "Cancelado",
   rejeitado: "Rejeitado",
+  processando: "Em processamento",
+  denegado: "Denegado",
 };
 
 export default function FreightCte() {
@@ -688,7 +692,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       ),
     },
     {
-      key: "status", header: "Status", width: "100px", align: "center",
+      key: "status", header: "Status", width: "130px", align: "center",
       sortValue: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
       cell: (c) =>
         c.tipo_talao === "servico" ? (
