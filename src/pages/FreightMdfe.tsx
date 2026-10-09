@@ -152,6 +152,7 @@ export default function FreightMdfe() {
   const handlePrint = async () => {
     const list = filtered.filter((r) => selected.has(r.id));
     if (!list.length) return;
+    if (list.length > 1) { setBatchOpen(true); return; }
     setPrinting(true);
     try {
       const m = list[0];
