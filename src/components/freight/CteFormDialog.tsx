@@ -13,6 +13,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -592,6 +601,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   const xmlInputRef = useRef<HTMLInputElement>(null);
   const [cteSubLoading, setCteSubLoading] = useState(false);
   const [cteSubInfo, setCteSubInfo] = useState<{ numero: string; data: string; tomador: string; valor: number; emitente: string; fonte: "base" | "sefaz" | "chave" } | null>(null);
+  const [pendenciasAviso, setPendenciasAviso] = useState<string[] | null>(null);
 
   useEffect(() => {
     supabase
@@ -1423,6 +1433,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         toast({ title: "CT-e criado", description: "Rascunho salvo com sucesso." });
         savedId = data.id;
       }
+
+      // Aviso central: pendências que impedem a transmissão (o rascunho já foi salvo)
+      const pendencias: string[] = [];
+      const temDocumento = docMode === "nfe"
+        ? form.chaves_nfe_ref.filter(Boolean).length > 0
+        : form.outros_documentos.some((o) => o.numero || o.descricao);
+      if (!temDocumento) pendencias.push("Nenhum documento da carga incluído (NF-e ou outro documento). A SEFAZ exige pelo menos um para autorizar o CT-e.");
+      if (!form.produto_predominante?.trim()) pendencias.push("Produto predominante não informado (quadro 3).");
+      if (!form.valor_frete || Number(form.valor_frete) <= 0) pendencias.push("Valor do frete não informado.");
+      if (!form.peso_bruto || Number(form.peso_bruto) <= 0) pendencias.push("Peso bruto da carga não informado.");
+      if (!form.municipio_origem_nome?.trim() || !form.municipio_destino_nome?.trim()) pendencias.push("Cidade de origem ou de destino da prestação não informada.");
+      if (form.tomador_tipo === null || form.tomador_tipo === undefined) pendencias.push("Tomador do serviço não definido.");
+      if (pendencias.length > 0) setPendenciasAviso(pendencias);
 
       // Gerar/atualizar previsão de recebimento (interno) — vincula ao tomador
       // Tomador deve ser definido EXPLICITAMENTE pelo usuário (sem default para destinatário)
@@ -2486,6 +2509,24 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         setShowCargaForm(false);
       }}
     />
+    <AlertDialog open={!!pendenciasAviso} onOpenChange={(v) => { if (!v) setPendenciasAviso(null); }}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display">Rascunho salvo — pendências para transmitir</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="text-xs space-y-2">
+              <p>O CT-e foi salvo como rascunho, mas ainda não pode ser transmitido à SEFAZ. Resolva os pontos abaixo:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                {(pendenciasAviso || []).map((p, i) => <li key={i}>{p}</li>)}
+              </ul>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction className="h-10" onClick={() => setPendenciasAviso(null)}>Entendi</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     {ConfirmDialog}
   </>
   );
