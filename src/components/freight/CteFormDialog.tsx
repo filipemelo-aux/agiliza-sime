@@ -858,6 +858,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   const manualDocFields = useRef(new Set<string>());
   const outrosFillComp = useRef(false);
   const outrosProdAuto = useRef(false);
+  // Espelhamento documento → composição para NF-e: guarda as últimas somas
+  // aplicadas na composição, para só atualizar enquanto ela não foi editada à mão.
+  const nfeCompSums = useRef({ peso: 0, valor: 0 });
+  const nfeProdAuto = useRef(false);
   const setNfeDetalhe = (chave: string, patch: Partial<NfeDetalhe>) =>
     setForm((p) => {
       const base = p.nfe_detalhes.find((d) => d.chave === chave) ?? {
@@ -867,7 +871,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         serie: String(Number(chave.slice(22, 25))),
       } as NfeDetalhe;
       const merged = { ...base, ...syncDoc(base, patch, manualDocFields.current, `nfe:${chave}`) };
-      return { ...p, ...syncAverbado(p, base, patch, merged), nfe_detalhes: [...p.nfe_detalhes.filter((d) => d.chave !== chave), merged] };
+      const detalhes = [...p.nfe_detalhes.filter((d) => d.chave !== chave), merged];
+      // Composição do frete recebe os dados do documento quando está vazia
+      // ou ainda sincronizada com as somas anteriores (edição manual é preservada).
+      let comp: Record<string, any> = {};
+      const peso = detalhes.reduce((a, d) => a + (Number(d.peso) || 0), 0);
+      const valor = detalhes.reduce((a, d) => a + (Number(d.valor) || 0), 0);
+      const pesoAtual = Number(p.peso_bruto) || 0;
+      const valorAtual = Number(p.valor_carga) || 0;
+      if (peso > 0 && (pesoAtual === 0 || pesoAtual === nfeCompSums.current.peso)) comp.peso_bruto = peso;
+      if (valor > 0 && (valorAtual === 0 || valorAtual === nfeCompSums.current.valor)) {
+        comp.valor_carga = valor;
+        comp.valor_carga_averb = valor;
+      }
+      nfeCompSums.current = { peso: comp.peso_bruto ?? nfeCompSums.current.peso, valor: comp.valor_carga ?? nfeCompSums.current.valor };
+      const nat = (merged.natureza || "").trim();
+      if (nat && (!p.produto_predominante || nfeProdAuto.current)) { comp.produto_predominante = maskName(nat); nfeProdAuto.current = true; }
+      return { ...p, ...syncAverbado(p, base, patch, merged), ...comp, nfe_detalhes: detalhes };
     });
 
   // Carretas do veículo selecionado (somente se ainda vazias)
