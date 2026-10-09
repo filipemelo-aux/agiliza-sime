@@ -1083,7 +1083,7 @@ export function FinancialPayables() {
     },
     {
       key: "empresa",
-      header: "Empresa",
+      header: "Filial",
       width: "86px",
       align: "center",
       sortValue: (r) => (r.item as any).empresa_id || "",
