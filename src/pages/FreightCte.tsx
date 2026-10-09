@@ -857,18 +857,35 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
       <Dialog open={batchDacteOpen} onOpenChange={(v) => !batchDacteBusy && setBatchDacteOpen(v)}>
         <DialogContent className="max-w-md">
-          <ProcessingOverlay open={batchDacteBusy} label="Gerando DACTEs em lote..." />
+          <ProcessingOverlay open={batchDacteBusy} label="Gerando arquivos em lote..." />
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2"><SefazIcon size={22} /> SEFAZ — {selectedIds.size} CT-es selecionados</DialogTitle>
             <DialogDescription className="text-xs">
-              Impressão em lote dos CT-es de produção selecionados. A emissão, o cancelamento e a carta de correção continuam individuais.
+              Opções em lote para os CT-es de produção selecionados. Transmissão, consulta, cancelamento e carta de correção continuam individuais.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <Send className="w-4 h-4" /> Transmitir à SEFAZ
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <RefreshCw className="w-4 h-4" /> Consultar situação na SEFAZ
+            </Button>
             <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchDacteBusy} onClick={handleBatchDacte}>
-              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
               Baixar DACTEs em lote (PDF único)
             </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchDacteBusy} onClick={handleBatchXml}>
+              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode2 className="w-4 h-4" />}
+              Baixar XMLs em lote (ZIP único)
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <FilePenLine className="w-4 h-4" /> Carta de Correção (CC-e)
+            </Button>
+            <Button variant="destructive" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <Ban className="w-4 h-4" /> Cancelar na SEFAZ
+            </Button>
+            <p className="text-[11px] text-muted-foreground">Transmitir, consultar, cancelar e enviar carta de correção exigem um único CT-e selecionado. O ZIP reúne apenas os CT-es que possuem XML autorizado.</p>
           </div>
         </DialogContent>
       </Dialog>
