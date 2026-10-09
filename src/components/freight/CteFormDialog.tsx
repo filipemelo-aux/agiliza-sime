@@ -1306,6 +1306,16 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       console.warn("Falha na verificação de duplicidade", e);
     }
 
+    const lockedStatus = (cte as any)?.status;
+    if (cte && lockedStatus && !["rascunho", "rejeitado"].includes(lockedStatus)) {
+      toast({
+        title: "CT-e não pode ser alterado",
+        description: "Este CT-e já foi transmitido à SEFAZ. Para corrigir, use a Carta de Correção ou cancele e emita outro.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const { tipo_carga: _tc, contratado_locked: _cl, ...formWithoutExtra } = form;
