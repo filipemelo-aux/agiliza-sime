@@ -2311,7 +2311,23 @@ export function BankReconciliation() {
       await runImport(parsed, `Open Finance · ${parsed.bankName} · ${formatDateBR(new Date())}`);
       if (duplicados > 0) toast.info(`${duplicados} lançamento(s) já existentes foram ignorados`);
     } catch (err: any) {
-      toast.error("Erro ao sincronizar Open Finance: " + (err.message || ""), { duration: 12000 });
+      const raw = String(err?.message || "");
+      let title = "Não foi possível sincronizar com o banco";
+      let description = "Ocorreu um erro inesperado. Tente novamente em alguns minutos.";
+      if (/failed to send a request|failed to fetch|networkerror|load failed|timeout|timed out/i.test(raw)) {
+        description = "A conexão caiu ou o banco demorou demais para responder. Verifique sua internet e tente novamente em 1 ou 2 minutos.";
+      } else if (/rate-?limit|req\/s|fila cheia|429|too many/i.test(raw)) {
+        description = "O serviço do banco recebeu muitas consultas seguidas. Aguarde cerca de 1 minuto e tente novamente.";
+      } else if (/limite do plano|trial_limit|billing/i.test(raw)) {
+        description = "O limite do plano de Open Finance foi atingido. Fale com o administrador para renovar o plano.";
+      } else if (/nenhuma conta/i.test(raw)) {
+        description = raw + ". Conecte a conta do banco no Open Finance antes de sincronizar.";
+      } else if (/401|403|unauthori|forbidden|invalid.*(key|token)/i.test(raw)) {
+        description = "A autorização com o Open Finance expirou ou é inválida. Peça ao administrador para reconectar a conta.";
+      } else if (raw && !/edge function|non-2xx/i.test(raw)) {
+        description = raw;
+      }
+      toast.error(title, { description, duration: 12000 });
 
     } finally {
       setSyncing(false);
