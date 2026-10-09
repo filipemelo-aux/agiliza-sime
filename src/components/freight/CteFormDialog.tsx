@@ -733,7 +733,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         setMotoristaNome(undefined);
       }
     } else {
-      setForm({ ...defaultForm }); outrosFillComp.current = false;
+      setForm({ ...defaultForm }); outrosFillComp.current = false; outrosProdAuto.current = false; nfeCompSums.current = { peso: 0, valor: 0 }; nfeProdAuto.current = false;
       setDocMode("nfe");
       setMotoristaNome(undefined);
       setDesconto(emptyDesconto);
