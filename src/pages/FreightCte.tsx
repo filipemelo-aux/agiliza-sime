@@ -673,7 +673,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       cell: (c) => <span className="tabular-nums whitespace-nowrap">{formatDateBR(getEmissaoDate(c))}</span>,
     },
     {
-      key: "cliente", header: "Cliente",
+      key: "cliente", header: "Cliente", width: "170px",
       sortValue: (c) => getClienteTomador(c) || "",
       cell: (c) => <span className="block" title={getClienteTomador(c) || ""}>{limitDisplayText(getClienteTomador(c))}</span>,
     },

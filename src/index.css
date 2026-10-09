@@ -203,6 +203,15 @@
     max-width: 100%;
   }
 
+  /* Situação: abaixo do desktop a tabela é automática, então a coluna
+     precisa de largura mínima para o selo não ser cortado. */
+  .data-grid-table th[data-column-key="status"],
+  .data-grid-table td[data-column-key="status"],
+  .data-grid-table th[data-column-key="situacao"],
+  .data-grid-table td[data-column-key="situacao"] {
+    min-width: 128px;
+  }
+
   /* Only a fully expanded desktop compresses the grid to the available width.
      Tablets, phones and reduced desktop windows keep their natural column
      widths and use the horizontal scrollbar from the grid container. */
