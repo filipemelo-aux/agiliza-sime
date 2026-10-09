@@ -601,6 +601,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   const xmlInputRef = useRef<HTMLInputElement>(null);
   const [cteSubLoading, setCteSubLoading] = useState(false);
   const [cteSubInfo, setCteSubInfo] = useState<{ numero: string; data: string; tomador: string; valor: number; emitente: string; fonte: "base" | "sefaz" | "chave" } | null>(null);
+  const [pendenciasAviso, setPendenciasAviso] = useState<string[] | null>(null);
 
   useEffect(() => {
     supabase
