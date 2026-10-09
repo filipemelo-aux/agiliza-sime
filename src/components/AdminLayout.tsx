@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { usePageAccess } from "@/hooks/usePageAccess";
 import { NotificationBell } from "@/components/NotificationBell";
+import { HardRefreshButton } from "@/components/HardRefreshButton";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
   Sidebar,
@@ -472,7 +473,8 @@ function TopHeader({ user, handleLogout }: { user: any; handleLogout: () => void
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         {user && (
           <>
-            <NotificationBell userId={user.id} />
+            <HardRefreshButton />
+            <span className="pointer-events-none opacity-50" title="Notificações desativadas"><NotificationBell userId={user.id} /></span>
             <button type="button" onClick={() => navigate("/admin/settings")} title="Meu perfil" className="rounded-md border border-border px-3 py-1 hover:bg-muted transition-colors">
               <UserAvatar userId={user.id} showName size="sm" />
             </button>
