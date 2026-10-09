@@ -244,7 +244,7 @@ export default function FreightMdfe() {
     { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
     { key: "ctes", header: "CT-es", width: "60px", cell: (r) => (r.lista_ctes || []).length },
     { key: "peso", header: "Peso (kg)", width: "100px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
-    { key: "status", header: "Situação", width: "100px", sortValue: (r) => r.status, cell: (r) => <span title={r.motivo_rejeicao || undefined}>{STATUS_LABEL[r.status] || r.status}</span> },
+    { key: "status", header: "Situação", width: "118px", sortValue: (r) => r.status, cell: (r) => <span title={r.motivo_rejeicao || undefined}>{STATUS_LABEL[r.status] || r.status}</span> },
     { key: "motivo", header: "Retorno SEFAZ", cell: (r) => <span className="text-[11px] text-muted-foreground line-clamp-2" title={r.motivo_rejeicao || ""}>{r.status === "autorizado" ? (r.protocolo_autorizacao ? `Prot. ${r.protocolo_autorizacao}` : "") : r.motivo_rejeicao || ""}</span> },
   ] as any;
 
