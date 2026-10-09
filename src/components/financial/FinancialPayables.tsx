@@ -1681,7 +1681,7 @@ tfoot{display:table-row-group}
         selected={selectedIds}
         onSelectedChange={setSelectedIds}
         loading={loading}
-        minWidth={1180}
+        minWidth={900}
         tableLayout="fixed"
         emptyMessage="Nenhuma despesa encontrada"
         rowClassName={(r) =>
