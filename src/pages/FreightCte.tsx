@@ -17,7 +17,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, Send, FileDown, FileCode2, Ban, FilePenLine, RefreshCw, type LucideIcon } from "lucide-react";
+import JSZip from "jszip";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
@@ -174,6 +175,42 @@ export default function FreightCte() {
       setBatchDacteOpen(false);
     } catch (e: any) {
       toast({ title: "Erro ao gerar DACTEs em lote", description: e?.message, variant: "destructive" });
+    } finally {
+      setBatchDacteBusy(false);
+    }
+  };
+
+  // XMLs em lote: um único ZIP com o XML autorizado de cada CT-e selecionado.
+  const handleBatchXml = async () => {
+    const list = sorted.filter((c) => selectedIds.has(c.id) && c.tipo_talao !== "servico");
+    if (!list.length) return;
+    setBatchDacteBusy(true);
+    try {
+      const { data, error } = await supabase.from("ctes").select("id,numero,chave_acesso,xml_autorizado").in("id", list.map((c) => c.id));
+      if (error) throw error;
+      const byId = new Map((data || []).map((r: any) => [r.id, r]));
+      const zip = new JSZip();
+      let count = 0;
+      for (const c of list) {
+        const full: any = byId.get(c.id);
+        const xml = full?.xml_autorizado;
+        if (!xml) continue;
+        zip.file(`${full.chave_acesso || `CTe-${full.numero ?? c.numero}`}.xml`, xml);
+        count++;
+      }
+      if (!count) throw new Error("Nenhum dos CT-es selecionados possui XML autorizado.");
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `CTEs-XML-lote-${count}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setBatchDacteOpen(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar XMLs em lote", description: e?.message, variant: "destructive" });
     } finally {
       setBatchDacteBusy(false);
     }
@@ -820,18 +857,35 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
       <Dialog open={batchDacteOpen} onOpenChange={(v) => !batchDacteBusy && setBatchDacteOpen(v)}>
         <DialogContent className="max-w-md">
-          <ProcessingOverlay open={batchDacteBusy} label="Gerando DACTEs em lote..." />
+          <ProcessingOverlay open={batchDacteBusy} label="Gerando arquivos em lote..." />
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2"><SefazIcon size={22} /> SEFAZ — {selectedIds.size} CT-es selecionados</DialogTitle>
             <DialogDescription className="text-xs">
-              Impressão em lote dos CT-es de produção selecionados. A emissão, o cancelamento e a carta de correção continuam individuais.
+              Opções em lote para os CT-es de produção selecionados. Transmissão, consulta, cancelamento e carta de correção continuam individuais.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <Send className="w-4 h-4" /> Transmitir à SEFAZ
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <RefreshCw className="w-4 h-4" /> Consultar situação na SEFAZ
+            </Button>
             <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchDacteBusy} onClick={handleBatchDacte}>
-              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
               Baixar DACTEs em lote (PDF único)
             </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchDacteBusy} onClick={handleBatchXml}>
+              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode2 className="w-4 h-4" />}
+              Baixar XMLs em lote (ZIP único)
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <FilePenLine className="w-4 h-4" /> Carta de Correção (CC-e)
+            </Button>
+            <Button variant="destructive" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um CT-e selecionado">
+              <Ban className="w-4 h-4" /> Cancelar na SEFAZ
+            </Button>
+            <p className="text-[11px] text-muted-foreground">Transmitir, consultar, cancelar e enviar carta de correção exigem um único CT-e selecionado. O ZIP reúne apenas os CT-es que possuem XML autorizado.</p>
           </div>
         </DialogContent>
       </Dialog>
