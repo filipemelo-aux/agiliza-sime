@@ -342,6 +342,44 @@
     .data-grid-table td[data-column-key="status"] {
       width: 118px !important;
     }
+
+    /* Contas a Pagar: colunas fixas enxutas; a sobra vai para Favorecido e Descrição */
+    .payables-grid .data-grid-table th[data-column-key="vencimento"],
+    .payables-grid .data-grid-table td[data-column-key="vencimento"] {
+      width: 88px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="empresa"],
+    .payables-grid .data-grid-table td[data-column-key="empresa"] {
+      width: 46px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="favorecido"],
+    .payables-grid .data-grid-table td[data-column-key="favorecido"] {
+      width: 150px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="descricao"],
+    .payables-grid .data-grid-table td[data-column-key="descricao"] {
+      width: 160px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="parcela"],
+    .payables-grid .data-grid-table td[data-column-key="parcela"] {
+      width: 50px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="chart"],
+    .payables-grid .data-grid-table td[data-column-key="chart"] {
+      width: 110px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="status"],
+    .payables-grid .data-grid-table td[data-column-key="status"] {
+      width: 88px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="valor"],
+    .payables-grid .data-grid-table td[data-column-key="valor"] {
+      width: 96px !important;
+    }
+    .payables-grid .data-grid-table th[data-column-key="parcial"],
+    .payables-grid .data-grid-table td[data-column-key="parcial"] {
+      width: 112px !important;
+    }
     /* CT-e: o badge "Em processamento" precisa caber inteiro, sem corte */
     .cte-grid .data-grid-table th[data-column-key="status"],
     .cte-grid .data-grid-table td[data-column-key="status"] {
