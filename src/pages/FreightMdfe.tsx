@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, type LucideIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, FileCode2, Send, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useAuth } from "@/contexts/AuthContext";
 import { mdfeFocus } from "@/services/fiscal/focusMdfeService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { buildMdfeHtml } from "@/components/freight/mdfePrint";
 import { buildHtmlPdf } from "@/lib/htmlToPdf";
 import { base64ToBytes, downloadBytes, mergePdfBytes } from "@/lib/mergePdfs";
+import JSZip from "jszip";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -46,6 +47,8 @@ export default function FreightMdfe() {
   const [opDialog, setOpDialog] = useState<null | "cancelar" | "encerrar">(null);
   const [justificativa, setJustificativa] = useState("");
   const [dataEnc, setDataEnc] = useState("");
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
