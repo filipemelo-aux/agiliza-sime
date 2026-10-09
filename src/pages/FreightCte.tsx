@@ -654,7 +654,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   const cteColumns: DataGridColumn<Cte>[] = [
     {
-      key: "numero", header: "N.º", width: "90px",
+      key: "numero", header: "N.º", width: "60px",
       sortValue: (c) => (c.tipo_talao === "servico" ? c.numero_interno ?? 0 : c.numero ?? 0),
       cell: (c) => (
         <span className="font-medium tabular-nums">
@@ -663,12 +663,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       ),
     },
     {
-      key: "talao", header: "Talão", width: "70px",
+      key: "talao", header: "Talão", width: "68px",
       sortValue: (c) => c.tipo_talao || "",
       cell: (c) => <span className="text-muted-foreground whitespace-nowrap">{c.tipo_talao === "servico" ? "Serviço" : "Produção"}</span>,
     },
     {
-      key: "data", header: "Emissão", width: "86px",
+      key: "data", header: "Emissão", width: "84px",
       sortValue: (c) => getEmissaoDate(c),
       cell: (c) => <span className="tabular-nums whitespace-nowrap">{formatDateBR(getEmissaoDate(c))}</span>,
     },
@@ -678,12 +678,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       cell: (c) => <span className="block" title={getClienteTomador(c) || ""}>{limitDisplayText(getClienteTomador(c))}</span>,
     },
     {
-      key: "placa", header: "Placa", width: "90px",
+      key: "placa", header: "Placa", width: "78px",
       sortValue: (c) => c.placa_veiculo || "",
       cell: (c) => <span className="tabular-nums">{c.placa_veiculo || "—"}</span>,
     },
     {
-      key: "valor", header: "Valor", width: "120px", align: "right",
+      key: "valor", header: "Valor", width: "100px", align: "right",
       sortValue: (c) => Number(c.valor_frete),
       cell: (c) => (
         <span className="tabular-nums font-medium">
@@ -692,7 +692,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       ),
     },
     {
-      key: "status", header: "Status", width: "130px", align: "center",
+      key: "status", header: "Status", width: "140px", align: "center",
       sortValue: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
       cell: (c) =>
         c.tipo_talao === "servico" ? (
@@ -815,6 +815,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             onSelectedChange={setSelectedIds}
             loading={loading}
             minWidth={760}
+            tableLayout="fixed"
             emptyMessage='Nenhum CT-e encontrado. Clique em "Novo CT-e" para criar o primeiro.'
           />
 
