@@ -838,13 +838,21 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   // Detalhe de cada NF-e (número/série derivados da chave quando não informados)
   const getNfeDetalhe = (chave: string): NfeDetalhe => {
     const found = form.nfe_detalhes.find((d) => d.chave === chave);
-    if (found) return { ...emptyDoc, ...found } as NfeDetalhe;
+    const base = found
+      ? ({ ...emptyDoc, ...found } as NfeDetalhe)
+      : ({
+          chave,
+          ...emptyDoc,
+          numero: chave.length === 44 ? String(Number(chave.slice(25, 34))) : "",
+          serie: chave.length === 44 ? String(Number(chave.slice(22, 25))) : "",
+        } as NfeDetalhe);
+    // Nota de terceiros sem dados importados: completa com a composição do frete (quadro 3)
     return {
-      chave,
-      ...emptyDoc,
-      numero: chave.length === 44 ? String(Number(chave.slice(25, 34))) : "",
-      serie: chave.length === 44 ? String(Number(chave.slice(22, 25))) : "",
-    } as NfeDetalhe;
+      ...base,
+      peso: Number(base.peso) > 0 ? base.peso : Number(form.peso_bruto) || 0,
+      valor: Number(base.valor) > 0 ? base.valor : Number(form.valor_carga) || 0,
+      natureza: base.natureza || (form.produto_predominante || "").toUpperCase(),
+    };
   };
   /** Marca campos de valor editados manualmente por documento, para o espelhamento não sobrescrevê-los. */
   const manualDocFields = useRef(new Set<string>());
