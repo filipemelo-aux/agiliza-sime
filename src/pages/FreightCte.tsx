@@ -814,7 +814,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             rowClassName={(c) => rowToneClass(c.status === "autorizado" ? "resolved" : ["cancelado", "rejeitado", "denegado"].includes(c.status) ? "overdue" : "pending")}
             onSelectedChange={setSelectedIds}
             loading={loading}
-            minWidth={860}
+            minWidth={760}
             emptyMessage='Nenhum CT-e encontrado. Clique em "Novo CT-e" para criar o primeiro.'
           />
 
