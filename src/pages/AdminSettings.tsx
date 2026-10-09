@@ -376,42 +376,6 @@ export default function AdminSettings() {
     }
   };
 
-  const handleForceUpdate = async () => {
-    toast({ title: "Atualizando sistema...", description: "Buscando a última versão publicada." });
-    try {
-      // 1. Fetch latest version.json bypassing cache
-      try {
-        const res = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.version) localStorage.setItem("app_version", data.version);
-        }
-      } catch { /* ignore network failure, still force reload */ }
-
-      // 2. Unregister service workers (if any) to avoid stale HTML
-      if ("serviceWorker" in navigator) {
-        try {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.unregister()));
-        } catch { /* noop */ }
-      }
-
-      // 3. Clear all Cache Storage entries
-      if ("caches" in window) {
-        try {
-          const names = await caches.keys();
-          await Promise.all(names.map((n) => caches.delete(n)));
-        } catch { /* noop */ }
-      }
-    } finally {
-      // 4. Hard reload with cache-buster to force fresh index.html + assets
-      const url = new URL(window.location.href);
-      url.searchParams.set("_v", Date.now().toString());
-      window.location.replace(url.toString());
-    }
-  };
-
-  const handleSaveSignature = async (dataUrl: string) => {
     if (!user) return;
     try {
       const { error } = await supabase
@@ -467,10 +431,6 @@ export default function AdminSettings() {
           <Badge variant="outline" className="text-xs gap-1.5 h-7 px-3">
             v{currentVersion}
           </Badge>
-          <Button variant="outline" size="sm" className="gap-2 h-8" onClick={handleForceUpdate}>
-            <RefreshCw className="w-3.5 h-3.5" />
-            Atualizar Sistema
-          </Button>
         </div>
 
         <Separator />
@@ -601,11 +561,6 @@ export default function AdminSettings() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Versão atual</span>
                   <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
-                </div>
-                <Separator />
-                <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleForceUpdate}>
-                  <RefreshCw className="w-4 h-4" />
-                  Verificar e Atualizar
                 </Button>
               </CardContent>
             </Card>
