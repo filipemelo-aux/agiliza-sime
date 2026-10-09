@@ -29,7 +29,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { maskName } from "@/lib/masks";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
 import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
@@ -52,7 +51,6 @@ interface ProfileData {
 export default function AdminSettings() {
   const { user, isAdmin, roles } = useAuth();
   const { toast } = useToast();
-  const { currentVersion } = useVersionCheck();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -428,11 +426,6 @@ export default function AdminSettings() {
       <div className="px-4 py-3 md:px-6 space-y-4">
         {/* Header */}
         <PageTitle>Configurações</PageTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs gap-1.5 h-7 px-3">
-            v{currentVersion}
-          </Badge>
-        </div>
 
         <Separator />
 
@@ -553,18 +546,6 @@ export default function AdminSettings() {
               )}
             </div>
 
-            {/* Version / System Info */}
-            <Card className="max-w-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Informações do Sistema</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Versão atual</span>
-                  <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* ===== TAB FISCAL ===== */}
