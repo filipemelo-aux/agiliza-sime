@@ -1434,6 +1434,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         savedId = data.id;
       }
 
+      // Aviso central: pendências que impedem a transmissão (o rascunho já foi salvo)
+      const pendencias: string[] = [];
+      const temDocumento = docMode === "nfe"
+        ? form.chaves_nfe_ref.filter(Boolean).length > 0
+        : form.outros_documentos.some((o) => o.numero || o.descricao);
+      if (!temDocumento) pendencias.push("Nenhum documento da carga incluído (NF-e ou outro documento). A SEFAZ exige pelo menos um para autorizar o CT-e.");
+      if (!form.produto_predominante?.trim()) pendencias.push("Produto predominante não informado (quadro 3).");
+      if (!form.valor_frete || Number(form.valor_frete) <= 0) pendencias.push("Valor do frete não informado.");
+      if (!form.peso_bruto || Number(form.peso_bruto) <= 0) pendencias.push("Peso bruto da carga não informado.");
+      if (!form.municipio_origem_nome?.trim() || !form.municipio_destino_nome?.trim()) pendencias.push("Cidade de origem ou de destino da prestação não informada.");
+      if (form.tomador_tipo === null || form.tomador_tipo === undefined) pendencias.push("Tomador do serviço não definido.");
+      if (pendencias.length > 0) setPendenciasAviso(pendencias);
+
       // Gerar/atualizar previsão de recebimento (interno) — vincula ao tomador
       // Tomador deve ser definido EXPLICITAMENTE pelo usuário (sem default para destinatário)
       const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
