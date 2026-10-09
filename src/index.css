@@ -243,9 +243,10 @@
       max-width: 32px !important;
     }
 
+    /* Empresa: cabeçalho por extenso ("EMPRESA") + seta de ordenação */
     .data-grid-table th[data-column-key="empresa"],
     .data-grid-table td[data-column-key="empresa"] {
-      width: 52px !important;
+      width: 86px !important;
     }
 
     .data-grid-table th[data-column-key="numero"],

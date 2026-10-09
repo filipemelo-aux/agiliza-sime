@@ -32,7 +32,7 @@ import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
-import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
+import { EmpresaFilter, EmpresaUf } from "./EmpresaControls";
 import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
 
@@ -1083,11 +1083,11 @@ export function FinancialPayables() {
     },
     {
       key: "empresa",
-      header: "Emp.",
-      width: "52px",
+      header: "Empresa",
+      width: "86px",
       align: "center",
       sortValue: (r) => (r.item as any).empresa_id || "",
-      cell: (r) => <EmpresaBadge empresaId={(r.item as any).empresa_id} />,
+      cell: (r) => <EmpresaUf empresaId={(r.item as any).empresa_id} />,
     },
     {
       key: "favorecido",
