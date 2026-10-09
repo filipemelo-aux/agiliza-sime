@@ -1074,6 +1074,17 @@ export function FinancialPayables() {
       key: "vencimento",
       header: "Vencimento",
       width: "78px",
+      sortValue: (r) => r.vencimento,
+      cell: (r) => (
+        <span className={`whitespace-nowrap ${r.isOverdue ? "text-destructive font-medium" : ""}`}>
+          {r.vencimento ? formatDateBR(r.vencimento) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "empresa",
+      header: "Emp.",
+      width: "52px",
       align: "center",
       sortValue: (r) => (r.item as any).empresa_id || "",
       cell: (r) => <EmpresaUf empresaId={(r.item as any).empresa_id} />,
