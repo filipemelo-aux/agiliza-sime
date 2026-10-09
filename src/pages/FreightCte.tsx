@@ -180,6 +180,42 @@ export default function FreightCte() {
     }
   };
 
+  // XMLs em lote: um único ZIP com o XML autorizado de cada CT-e selecionado.
+  const handleBatchXml = async () => {
+    const list = sorted.filter((c) => selectedIds.has(c.id) && c.tipo_talao !== "servico");
+    if (!list.length) return;
+    setBatchDacteBusy(true);
+    try {
+      const { data, error } = await supabase.from("ctes").select("id,numero,chave_acesso,xml_autorizado").in("id", list.map((c) => c.id));
+      if (error) throw error;
+      const byId = new Map((data || []).map((r: any) => [r.id, r]));
+      const zip = new JSZip();
+      let count = 0;
+      for (const c of list) {
+        const full: any = byId.get(c.id);
+        const xml = full?.xml_autorizado;
+        if (!xml) continue;
+        zip.file(`${full.chave_acesso || `CTe-${full.numero ?? c.numero}`}.xml`, xml);
+        count++;
+      }
+      if (!count) throw new Error("Nenhum dos CT-es selecionados possui XML autorizado.");
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `CTEs-XML-lote-${count}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setBatchDacteOpen(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar XMLs em lote", description: e?.message, variant: "destructive" });
+    } finally {
+      setBatchDacteBusy(false);
+    }
+  };
+
   const handlePrintSelected = () => {
     const list = sorted.filter((c) => selectedIds.has(c.id));
     if (!list.length) return;
