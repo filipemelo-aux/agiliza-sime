@@ -127,6 +127,8 @@ export default function FreightCte() {
   const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
   const [sefazOpen, setSefazOpen] = useState(false);
+  const [batchDacteOpen, setBatchDacteOpen] = useState(false);
+  const [batchDacteBusy, setBatchDacteBusy] = useState(false);
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
     if (error || !data) throw new Error(error?.message || "CT-e não encontrado");
