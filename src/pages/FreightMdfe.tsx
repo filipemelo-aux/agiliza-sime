@@ -21,7 +21,8 @@ import { formatDateBR } from "@/lib/date";
 import { MdfeFormDialog } from "@/components/freight/MdfeFormDialog";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { buildMdfeHtml } from "@/components/freight/mdfePrint";
-import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
+import { buildHtmlPdf } from "@/lib/htmlToPdf";
+import { base64ToBytes, downloadBytes, mergePdfBytes } from "@/lib/mergePdfs";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -134,23 +135,33 @@ export default function FreightMdfe() {
     });
   };
 
+  // Bytes do DAMDFE de um manifesto: PDF oficial da SEFAZ quando autorizado, senão o modelo interno.
+  const damdfeBytes = async (m: any): Promise<Uint8Array> => {
+    if (["autorizado", "encerrado", "cancelado"].includes(m.status)) {
+      const r = await mdfeFocus("damdfe_mdfe_salvo", m.id);
+      if (r.success && r.pdf_base64) return base64ToBytes(r.pdf_base64);
+    }
+    const html = await buildMdfeHtml(m);
+    const pdf = await buildHtmlPdf(html);
+    return new Uint8Array(pdf.output("arraybuffer"));
+  };
+
   const handlePrint = async () => {
-    if (!single) return;
+    const list = filtered.filter((r) => selected.has(r.id));
+    if (!list.length) return;
     setPrinting(true);
     try {
-      if (["autorizado", "encerrado", "cancelado"].includes(single.status)) {
-        const r = await mdfeFocus("damdfe_mdfe_salvo", single.id);
-        if (r.success && r.pdf_base64) {
-          const bin = atob(r.pdf_base64); const arr = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(new Blob([arr], { type: "application/pdf" }));
-          a.download = `DAMDFE-${single.numero || single.id.slice(0, 8)}.pdf`; a.click();
-          return;
-        }
+      if (list.length === 1) {
+        const m = list[0];
+        const bytes = await damdfeBytes(m);
+        downloadBytes(bytes, `DAMDFE-${m.numero || m.id.slice(0, 8)}.pdf`);
+        return;
       }
-      const html = await buildMdfeHtml(single);
-      await downloadHtmlAsPdf(html, `DAMDFE-${single.numero || single.id.slice(0, 8)}.pdf`);
+      // Lote: um único PDF, um manifesto por página, na ordem da listagem.
+      const parts: Uint8Array[] = [];
+      for (const m of list) parts.push(await damdfeBytes(m));
+      const merged = await mergePdfBytes(parts);
+      downloadBytes(merged, `DAMDFEs-lote-${list.length}.pdf`);
     } catch (error) {
       toast({ title: "Erro ao gerar DAMDFE", description: error instanceof Error ? error.message : "Não foi possível gerar o PDF.", variant: "destructive" });
     } finally {
