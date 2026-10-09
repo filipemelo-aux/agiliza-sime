@@ -52,7 +52,7 @@ interface ProfileData {
 export default function AdminSettings() {
   const { user, isAdmin, roles } = useAuth();
   const { toast } = useToast();
-  const { currentVersion, applyUpdate } = useVersionCheck();
+  const { currentVersion } = useVersionCheck();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -376,6 +376,7 @@ export default function AdminSettings() {
     }
   };
 
+  const handleSaveSignature = async (dataUrl: string) => {
     if (!user) return;
     try {
       const { error } = await supabase
