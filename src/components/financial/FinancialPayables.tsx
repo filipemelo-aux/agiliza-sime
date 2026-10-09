@@ -1673,6 +1673,7 @@ tfoot{display:table-row-group}
       </GlobalToolbar>
 
       {/* Data Grid */}
+      <div className="payables-grid">
       <DataGrid
         rows={flatRows}
         columns={payableColumns}
@@ -1703,6 +1704,7 @@ tfoot{display:table-row-group}
           </div>
         }
       />
+      </div>
 
       <StatusLegend
         className="px-1"
