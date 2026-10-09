@@ -828,7 +828,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
           <div className="grid gap-2">
             <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchDacteBusy} onClick={handleBatchDacte}>
               {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              Baixar DACTEs em lote
+              PDF único
             </Button>
           </div>
         </DialogContent>
