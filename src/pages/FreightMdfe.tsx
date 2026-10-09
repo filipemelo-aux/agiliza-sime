@@ -154,22 +154,73 @@ export default function FreightMdfe() {
     if (!list.length) return;
     setPrinting(true);
     try {
-      if (list.length === 1) {
-        const m = list[0];
-        const bytes = await damdfeBytes(m);
-        downloadBytes(bytes, `DAMDFE-${m.numero || m.id.slice(0, 8)}.pdf`);
-        return;
-      }
-      // Lote: um único PDF, um manifesto por página, na ordem da listagem.
-      const parts: Uint8Array[] = [];
-      for (const m of list) parts.push(await damdfeBytes(m));
-      const merged = await mergePdfBytes(parts);
-      downloadBytes(merged, `DAMDFEs-lote-${list.length}.pdf`);
+      const m = list[0];
+      const bytes = await damdfeBytes(m);
+      downloadBytes(bytes, `DAMDFE-${m.numero || m.id.slice(0, 8)}.pdf`);
     } catch (error) {
       toast({ title: "Erro ao gerar DAMDFE", description: error instanceof Error ? error.message : "Não foi possível gerar o PDF.", variant: "destructive" });
     } finally {
       setPrinting(false);
     }
+  };
+
+  // Lote: um único PDF, um manifesto por página, na ordem da listagem.
+  const handleBatchDamdfe = async () => {
+    const list = filtered.filter((r) => selected.has(r.id));
+    if (!list.length) return;
+    setBatchBusy(true);
+    try {
+      const parts: Uint8Array[] = [];
+      for (const m of list) parts.push(await damdfeBytes(m));
+      const merged = await mergePdfBytes(parts);
+      downloadBytes(merged, `DAMDFEs-lote-${list.length}.pdf`);
+      setBatchOpen(false);
+    } catch (error) {
+      toast({ title: "Erro ao gerar DAMDFEs em lote", description: error instanceof Error ? error.message : "Não foi possível gerar o PDF.", variant: "destructive" });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  // XMLs em lote: um único ZIP com o XML autorizado de cada manifesto selecionado.
+  const handleBatchXml = async () => {
+    const list = filtered.filter((r) => selected.has(r.id));
+    if (!list.length) return;
+    setBatchBusy(true);
+    try {
+      const zip = new JSZip();
+      let count = 0;
+      for (const m of list) {
+        try {
+          const r = await mdfeFocus("xml_mdfe_salvo", m.id);
+          if (r.success && r.xml) {
+            zip.file(`${m.chave_acesso || `MDFe-${m.numero ?? m.id.slice(0, 8)}`}.xml`, r.xml);
+            count++;
+          }
+        } catch { /* manifesto sem XML disponível: ignora */ }
+      }
+      if (!count) throw new Error("Nenhum dos MDF-es selecionados possui XML disponível.");
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MDFEs-XML-lote-${count}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setBatchOpen(false);
+    } catch (error) {
+      toast({ title: "Erro ao gerar XMLs em lote", description: error instanceof Error ? error.message : "Não foi possível gerar o ZIP.", variant: "destructive" });
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  // Botão SEFAZ: com vários MDF-es marcados abre o diálogo de lote; com um só, transmite.
+  const handleSefazClick = () => {
+    if (selected.size > 1) { setBatchOpen(true); return; }
+    handleEmit();
   };
 
   const columns: DataGridColumn<any>[] = [
