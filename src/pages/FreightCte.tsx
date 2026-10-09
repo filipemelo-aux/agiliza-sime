@@ -148,6 +148,37 @@ export default function FreightCte() {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
+  // DACTEs em lote: um único PDF, um CT-e por página, na ordem da listagem.
+  const handleBatchDacte = async () => {
+    const list = sorted.filter((c) => selectedIds.has(c.id) && c.tipo_talao !== "servico");
+    if (!list.length) return;
+    setBatchDacteBusy(true);
+    try {
+      const { data, error } = await supabase.from("ctes").select("*").in("id", list.map((c) => c.id));
+      if (error) throw error;
+      const byId = new Map((data || []).map((r: any) => [r.id, r]));
+      const inputs = list.map((c) => {
+        const full: any = byId.get(c.id) || c;
+        const fromXml = cteXmlToPrintFields(full.xml_autorizado);
+        return fromXml ? { ...full, ...fromXml, status: full.status } : full;
+      });
+      const pdf = await buildDactePdf(inputs as any);
+      const url = URL.createObjectURL(pdf.output("blob"));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DACTEs-lote-${inputs.length}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setBatchDacteOpen(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar DACTEs em lote", description: e?.message, variant: "destructive" });
+    } finally {
+      setBatchDacteBusy(false);
+    }
+  };
+
   const handlePrintSelected = () => {
     const list = sorted.filter((c) => selectedIds.has(c.id));
     if (!list.length) return;
