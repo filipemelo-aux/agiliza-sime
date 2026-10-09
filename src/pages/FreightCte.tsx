@@ -673,6 +673,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             {
               key: "inconsist", label: "Inconsistências", icon: AlertTriangle, mode: "always", variant: "outline",
+              disabled: selectedIds.size === 0,
               onClick: () => { setInconsistencyFocus(Array.from(selectedIds)); setInconsistencyOpen(true); },
             },
             {
