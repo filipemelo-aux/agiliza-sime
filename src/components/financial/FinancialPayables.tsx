@@ -1073,7 +1073,7 @@ export function FinancialPayables() {
     {
       key: "vencimento",
       header: "Vencimento",
-      width: "70px",
+      width: "82px",
       sortValue: (r) => r.vencimento,
       cell: (r) => (
         <span className={`whitespace-nowrap ${r.isOverdue ? "text-destructive font-medium" : ""}`}>
@@ -1084,7 +1084,7 @@ export function FinancialPayables() {
     {
       key: "empresa",
       header: "Emp.",
-      width: "50px",
+      width: "44px",
       align: "center",
       sortValue: (r) => (r.item as any).empresa_id || "",
       cell: (r) => <EmpresaUf empresaId={(r.item as any).empresa_id} />,
@@ -1092,7 +1092,7 @@ export function FinancialPayables() {
     {
       key: "favorecido",
       header: "Favorecido",
-      width: "190px",
+      width: "150px",
       sortValue: (r) => r.favorecido,
       cell: (r) => {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
@@ -1110,7 +1110,7 @@ export function FinancialPayables() {
     {
       key: "descricao",
       header: "Descrição",
-      width: "250px",
+      width: "160px",
       sortValue: (r) => r.descricao,
       cell: (r) => (
         <span className="flex items-center gap-1 min-w-0">
@@ -1123,7 +1123,7 @@ export function FinancialPayables() {
     {
       key: "parcela",
       header: "Parcela",
-      width: "60px",
+      width: "48px",
       align: "center",
       sortValue: (r) => r.parcela || "",
       cell: (r) => (r.parcela ? <Badge variant="secondary" className="text-[10px]">{r.parcela}</Badge> : "—"),
@@ -1131,14 +1131,14 @@ export function FinancialPayables() {
     {
       key: "chart",
       header: "Conta Contábil",
-      width: "140px",
+      width: "110px",
       sortValue: (r) => r.chartLabel,
       cell: (r) => <span className="truncate block text-[11px]">{r.chartLabel}</span>,
     },
     {
       key: "status",
       header: "Status",
-      width: "100px",
+      width: "84px",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => (
@@ -1152,7 +1152,7 @@ export function FinancialPayables() {
     {
       key: "valor",
       header: "Valor",
-      width: "100px",
+      width: "96px",
       align: "right",
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
@@ -1160,7 +1160,7 @@ export function FinancialPayables() {
     {
       key: "parcial",
       header: "Pagto. Parcial",
-      width: "150px",
+      width: "108px",
       align: "right",
       sortValue: (r) => {
         if (r.inst) return 0;
