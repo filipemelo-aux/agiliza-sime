@@ -2509,6 +2509,24 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         setShowCargaForm(false);
       }}
     />
+    <AlertDialog open={!!pendenciasAviso} onOpenChange={(v) => { if (!v) setPendenciasAviso(null); }}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display">Rascunho salvo — pendências para transmitir</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="text-xs space-y-2">
+              <p>O CT-e foi salvo como rascunho, mas ainda não pode ser transmitido à SEFAZ. Resolva os pontos abaixo:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                {(pendenciasAviso || []).map((p, i) => <li key={i}>{p}</li>)}
+              </ul>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction className="h-10" onClick={() => setPendenciasAviso(null)}>Entendi</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     {ConfirmDialog}
   </>
   );
