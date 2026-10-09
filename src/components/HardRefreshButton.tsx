@@ -36,6 +36,18 @@ export function HardRefreshButton() {
     } catch (e) {
       console.error("Falha ao limpar dados locais:", e);
     }
+    // Força o navegador a baixar de novo a página principal e os arquivos do sistema
+    try {
+      const res = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.version) localStorage.setItem("app_version", data.version);
+      }
+      const html = await (await fetch(`/?t=${Date.now()}`, { cache: "reload" })).text();
+      await fetch("/", { cache: "reload" });
+      const assets = Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)).map((m) => m[1]);
+      await Promise.all(assets.map((a) => fetch(a, { cache: "reload" }).catch(() => null)));
+    } catch { /* segue para o recarregamento */ }
     const url = new URL(window.location.href);
     url.searchParams.set("_v", Date.now().toString());
     window.location.replace(url.toString());
