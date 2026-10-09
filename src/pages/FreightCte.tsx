@@ -17,7 +17,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, Send, FileDown, FileCode2, Ban, FilePenLine, RefreshCw, type LucideIcon } from "lucide-react";
+import JSZip from "jszip";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
