@@ -250,7 +250,7 @@ export default function FreightMdfe() {
         <GlobalToolbar
           actions={[
             { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
-            { key: "transmit", label: "SEFAZ", icon: SefazIcon as unknown as LucideIcon, mode: "single", variant: "secondary", priority: !!single, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: !single || isConsultor || !!busy || !["rascunho", "rejeitado", "processando"].includes(single.status), onClick: handleEmit },
+            { key: "transmit", label: "SEFAZ", icon: SefazIcon as unknown as LucideIcon, mode: "single+batch", variant: "secondary", priority: selected.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: selected.size === 0 || isConsultor || !!busy || (selected.size === 1 && !["rascunho", "rejeitado", "processando"].includes(single?.status)), onClick: handleSefazClick },
             { key: "consult", label: "Consultar SEFAZ", icon: RefreshCw, mode: "single", disabled: !single || !!busy || single.status === "rascunho", onClick: handleConsult },
             { key: "close", label: "Encerrar", icon: Flag, mode: "single", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setDataEnc(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setOpDialog("encerrar"); } },
             { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },
@@ -278,6 +278,40 @@ export default function FreightMdfe() {
       </div>
       <MdfeFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} initialCteIds={initialCteIds} onSaved={load} />
       {ConfirmDialog}
+      <Dialog open={batchOpen} onOpenChange={(v) => !batchBusy && setBatchOpen(v)}>
+        <DialogContent className="max-w-md">
+          <ProcessingOverlay open={batchBusy} label="Gerando arquivos em lote..." />
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2"><SefazIcon size={22} /> SEFAZ — {selected.size} MDF-es selecionados</DialogTitle>
+            <DialogDescription className="text-xs">
+              Opções em lote para os MDF-es selecionados. Transmissão, consulta, encerramento e cancelamento continuam individuais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <Send className="w-4 h-4" /> Transmitir à SEFAZ
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <RefreshCw className="w-4 h-4" /> Consultar situação na SEFAZ
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchBusy} onClick={handleBatchDamdfe}>
+              {batchBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+              Baixar DAMDFEs em lote (PDF único)
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchBusy} onClick={handleBatchXml}>
+              {batchBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode2 className="w-4 h-4" />}
+              Baixar XMLs em lote (ZIP único)
+            </Button>
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <Flag className="w-4 h-4" /> Encerrar MDF-e
+            </Button>
+            <Button variant="destructive" className="h-10 justify-start gap-2" disabled title="Disponível apenas com um MDF-e selecionado">
+              <Ban className="w-4 h-4" /> Cancelar na SEFAZ
+            </Button>
+            <p className="text-[11px] text-muted-foreground">Transmitir, consultar, encerrar e cancelar exigem um único MDF-e selecionado. O ZIP reúne apenas os MDF-es que possuem XML autorizado.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
       <ProcessingOverlay open={!!busy} label={busy || ""} />
       <Dialog open={!!opDialog} onOpenChange={(o) => !o && setOpDialog(null)}>
         <DialogContent className="max-w-md">
