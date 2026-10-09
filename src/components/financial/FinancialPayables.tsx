@@ -1073,18 +1073,7 @@ export function FinancialPayables() {
     {
       key: "vencimento",
       header: "Vencimento",
-      width: "86px",
-      sortValue: (r) => r.vencimento,
-      cell: (r) => (
-        <span className={`whitespace-nowrap ${r.isOverdue ? "text-destructive font-medium" : ""}`}>
-          {r.vencimento ? formatDateBR(r.vencimento) : "—"}
-        </span>
-      ),
-    },
-    {
-      key: "empresa",
-      header: "Filial",
-      width: "86px",
+      width: "78px",
       align: "center",
       sortValue: (r) => (r.item as any).empresa_id || "",
       cell: (r) => <EmpresaUf empresaId={(r.item as any).empresa_id} />,
@@ -1092,7 +1081,7 @@ export function FinancialPayables() {
     {
       key: "favorecido",
       header: "Favorecido",
-      width: "22%",
+      width: "26%",
       sortValue: (r) => r.favorecido,
       cell: (r) => {
         const creator = r.item.created_by ? profilesMap[r.item.created_by] : null;
@@ -1110,7 +1099,7 @@ export function FinancialPayables() {
     {
       key: "descricao",
       header: "Descrição",
-      width: "30%",
+      width: "34%",
       sortValue: (r) => r.descricao,
       cell: (r) => (
         <span className="flex items-center gap-1 min-w-0">
