@@ -761,9 +761,14 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => (selectedIds.size > 1 ? setBatchDacteOpen(true) : setSefazOpen(true)),
             },
             {
-              key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: "!h-6 !w-6 md:!h-[23px] md:!w-[23px]",
-              disabled: selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
-              onClick: () => navigate(`/admin/freight/mdfe?ctes=${[...selectedIds].join(",")}`),
+              key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single", variant: "outline", priority: selectedIds.size > 0, iconClassName: "!h-6 !w-6 md:!h-[23px] md:!w-[23px]",
+              disabled: selectedIds.size !== 1 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
+              onClick: async () => {
+                const id = [...selectedIds][0];
+                // CT-e já manifestado: abre as opções SEFAZ do MDF-e; senão cria um novo vinculado.
+                const { data } = await supabase.from("mdfe").select("id,status").contains("cte_ids", [id]).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1);
+                navigate(data?.[0] ? `/admin/freight/mdfe?sefaz=${data[0].id}` : `/admin/freight/mdfe?ctes=${id}`);
+              },
             },
             {
               key: "contract", label: "Contrato de frete", icon: Handshake, mode: "single", variant: "outline",
