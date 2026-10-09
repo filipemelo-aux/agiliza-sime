@@ -17,11 +17,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Upload, Handshake, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, type LucideIcon } from "lucide-react";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
+import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -675,7 +676,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => { setInconsistencyFocus(Array.from(selectedIds)); setInconsistencyOpen(true); },
             },
             {
-              key: "xmlbatch", label: "Importar XML (Produção)", icon: Upload, mode: "create", variant: "outline",
+              key: "xmlbatch", label: "Importar XML (Produção)", icon: XmlUploadIcon as unknown as LucideIcon, mode: "create", variant: "outline",
               onClick: () => setXmlBatchOpen(true),
             },
             {
