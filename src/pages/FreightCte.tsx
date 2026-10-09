@@ -245,7 +245,22 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         .order("data_emissao", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setCtes((data as any[]) || []);
+      const list = (data as any[]) || [];
+      setCtes(list);
+      // CT-es parados em "processando": consulta a SEFAZ em segundo plano e grava o retorno real.
+      const pend = list.filter((c) => c.status === "processando").slice(0, 10);
+      if (pend.length && !(fetchCtes as any)._syncing) {
+        (fetchCtes as any)._syncing = true;
+        Promise.allSettled(pend.map((c) => supabase.functions.invoke("focus-nfe", { body: { action: "consultar_cte_salvo", cte_id: c.id } })))
+          .then(async (res) => {
+            if (res.some((r: any) => r.status === "fulfilled" && r.value?.data?.status && !["processando", "processando_autorizacao"].includes(r.value.data.status))) {
+              const { data: fresh } = await supabase.from("ctes").select(CTE_LIST_COLUMNS)
+                .order("data_emissao", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+              if (fresh) setCtes(fresh as any[]);
+            }
+          })
+          .finally(() => { (fetchCtes as any)._syncing = false; });
+      }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
