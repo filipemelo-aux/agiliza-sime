@@ -562,7 +562,7 @@ export default function AdminSettings() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Versão atual</span>
                   <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
-                </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
