@@ -127,6 +127,8 @@ export default function FreightCte() {
   const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
   const [sefazOpen, setSefazOpen] = useState(false);
+  const [batchDacteOpen, setBatchDacteOpen] = useState(false);
+  const [batchDacteBusy, setBatchDacteBusy] = useState(false);
   const handleDownloadDacte = async (cteId: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", cteId).single();
     if (error || !data) throw new Error(error?.message || "CT-e não encontrado");
@@ -144,6 +146,37 @@ export default function FreightCte() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
+  // DACTEs em lote: um único PDF, um CT-e por página, na ordem da listagem.
+  const handleBatchDacte = async () => {
+    const list = sorted.filter((c) => selectedIds.has(c.id) && c.tipo_talao !== "servico");
+    if (!list.length) return;
+    setBatchDacteBusy(true);
+    try {
+      const { data, error } = await supabase.from("ctes").select("*").in("id", list.map((c) => c.id));
+      if (error) throw error;
+      const byId = new Map((data || []).map((r: any) => [r.id, r]));
+      const inputs = list.map((c) => {
+        const full: any = byId.get(c.id) || c;
+        const fromXml = cteXmlToPrintFields(full.xml_autorizado);
+        return fromXml ? { ...full, ...fromXml, status: full.status } : full;
+      });
+      const pdf = await buildDactePdf(inputs as any);
+      const url = URL.createObjectURL(pdf.output("blob"));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DACTEs-lote-${inputs.length}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setBatchDacteOpen(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar DACTEs em lote", description: e?.message, variant: "destructive" });
+    } finally {
+      setBatchDacteBusy(false);
+    }
   };
 
   const handlePrintSelected = () => {
@@ -686,9 +719,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
             {
-              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: !!singleCte, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]",
-              disabled: transmitting || !singleCte,
-              onClick: () => setSefazOpen(true),
+              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single+batch", variant: "secondary", priority: selectedIds.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]",
+              disabled: transmitting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
+              onClick: () => (selectedIds.size > 1 ? setBatchDacteOpen(true) : setSefazOpen(true)),
             },
             {
               key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: "!h-6 !w-6 md:!h-[23px] md:!w-[23px]",
@@ -784,6 +817,24 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         cte={editingCte}
         onSaved={fetchCtes}
       />
+
+      <Dialog open={batchDacteOpen} onOpenChange={(v) => !batchDacteBusy && setBatchDacteOpen(v)}>
+        <DialogContent className="max-w-md">
+          <ProcessingOverlay open={batchDacteBusy} label="Gerando DACTEs em lote..." />
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2"><SefazIcon size={22} /> SEFAZ — {selectedIds.size} CT-es selecionados</DialogTitle>
+            <DialogDescription className="text-xs">
+              Impressão em lote dos CT-es de produção selecionados. A emissão, o cancelamento e a carta de correção continuam individuais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button variant="outline" className="h-10 justify-start gap-2" disabled={batchDacteBusy} onClick={handleBatchDacte}>
+              {batchDacteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              Baixar DACTEs em lote (PDF único, um por página)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <CteSefazDialog
         cte={singleCte}

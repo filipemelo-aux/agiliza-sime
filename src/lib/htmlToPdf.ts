@@ -1,15 +1,15 @@
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
-/** Renderiza um HTML completo (A4) num iframe oculto e baixa como PDF. */
-export async function downloadHtmlAsPdf(html: string, filename: string): Promise<void> {
+/** Renderiza um HTML completo (A4) num iframe oculto e devolve o jsPDF (uma página por .doc-page). */
+export async function buildHtmlPdf(html: string): Promise<jsPDF> {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
   iframe.style.cssText = "position:fixed;left:0;top:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none;z-index:-1;";
   document.body.appendChild(iframe);
   try {
     const doc = iframe.contentDocument;
-    if (!doc) throw new Error("Não foi possível preparar o DACTE para download.");
+    if (!doc) throw new Error("Não foi possível preparar o documento para download.");
     doc.open();
     doc.write(html);
     doc.close();
@@ -40,17 +40,23 @@ export async function downloadHtmlAsPdf(html: string, filename: string): Promise
       first = false;
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", x, margin, renderWidth, renderHeight);
     }
-    const blob = pdf.output("blob");
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    return pdf;
   } finally {
     iframe.remove();
   }
+}
+
+/** Renderiza um HTML completo (A4) num iframe oculto e baixa como PDF. */
+export async function downloadHtmlAsPdf(html: string, filename: string): Promise<void> {
+  const pdf = await buildHtmlPdf(html);
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
