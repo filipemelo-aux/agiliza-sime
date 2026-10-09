@@ -346,39 +346,39 @@
     /* Contas a Pagar: colunas fixas enxutas; a sobra vai para Favorecido e Descrição */
     .payables-grid .data-grid-table th[data-column-key="vencimento"],
     .payables-grid .data-grid-table td[data-column-key="vencimento"] {
-      width: 70px !important;
+      width: 65px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="empresa"],
     .payables-grid .data-grid-table td[data-column-key="empresa"] {
-      width: 50px !important;
+      width: 48px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="favorecido"],
     .payables-grid .data-grid-table td[data-column-key="favorecido"] {
-      width: 190px !important;
+      width: 165px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="descricao"],
     .payables-grid .data-grid-table td[data-column-key="descricao"] {
-      width: 250px !important;
+      width: 215px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="parcela"],
     .payables-grid .data-grid-table td[data-column-key="parcela"] {
-      width: 60px !important;
+      width: 55px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="chart"],
     .payables-grid .data-grid-table td[data-column-key="chart"] {
-      width: 140px !important;
+      width: 115px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="status"],
     .payables-grid .data-grid-table td[data-column-key="status"] {
-      width: 100px !important;
+      width: 95px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="valor"],
     .payables-grid .data-grid-table td[data-column-key="valor"] {
-      width: 100px !important;
+      width: 95px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="parcial"],
     .payables-grid .data-grid-table td[data-column-key="parcial"] {
-      width: 150px !important;
+      width: 125px !important;
     }
     /* CT-e: o badge "Em processamento" precisa caber inteiro, sem corte */
     .cte-grid .data-grid-table th[data-column-key="status"],
