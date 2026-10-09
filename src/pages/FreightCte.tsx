@@ -719,9 +719,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             { key: "new", label: "Novo CT-e", icon: Plus, mode: "create", variant: "default", priority: true, onClick: handleNew },
             {
-              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single", variant: "secondary", priority: !!singleCte, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]",
-              disabled: transmitting || !singleCte,
-              onClick: () => setSefazOpen(true),
+              key: "transmit", label: transmitting ? "Emitindo..." : "SEFAZ", icon: transmitting ? Loader2 : (SefazIcon as unknown as LucideIcon), mode: "single+batch", variant: "secondary", priority: selectedIds.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]",
+              disabled: transmitting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && c.tipo_talao === "servico"),
+              onClick: () => (selectedIds.size > 1 ? setBatchDacteOpen(true) : setSefazOpen(true)),
             },
             {
               key: "mdfe", label: "MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "outline", priority: selectedIds.size > 0, iconClassName: "!h-6 !w-6 md:!h-[23px] md:!w-[23px]",
