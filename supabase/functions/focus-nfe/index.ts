@@ -540,6 +540,19 @@ Deno.serve(async (req) => {
       const x = await fetch(path.startsWith("http") ? path : opBase + path, { headers: hdr });
       return json({ success: true, xml: await x.text() });
     }
+    // Grava o retorno da consulta para todos os usuários verem a mesma situação.
+    if (cte.status === "processando" || cte.status === "rascunho" || cte.status === "rejeitado") {
+      if (d?.status === "autorizado") {
+        await supabase.from("ctes").update({
+          status: "autorizado", chave_acesso: d?.chave_cte || d?.chave_acesso, protocolo_autorizacao: d?.protocolo,
+          data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
+          data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00",
+        }).eq("id", cteId);
+      } else if (cte.status === "processando" && (d?.status === "erro_autorizacao" || d?.status === "denegado")) {
+        const code = d?.status_sefaz ? `Rejeição ${d.status_sefaz}: ` : "";
+        await supabase.from("ctes").update({ status: "rejeitado", motivo_rejeicao: `${code}${d?.mensagem_sefaz || d?.mensagem || d.status}` }).eq("id", cteId);
+      }
+    }
     return json({ success: true, status: d?.status, mensagem: d?.mensagem_sefaz || d?.mensagem, protocolo: d?.protocolo, chave: d?.chave_cte });
   }
 
