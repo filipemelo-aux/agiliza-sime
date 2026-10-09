@@ -1112,7 +1112,7 @@ export function FinancialPayables() {
     {
       key: "parcela",
       header: "Parcela",
-      width: "80px",
+      width: "64px",
       align: "center",
       sortValue: (r) => r.parcela || "",
       cell: (r) => (r.parcela ? <Badge variant="secondary" className="text-[10px]">{r.parcela}</Badge> : "—"),
@@ -1120,14 +1120,14 @@ export function FinancialPayables() {
     {
       key: "chart",
       header: "Conta Contábil",
-      width: "200px",
+      width: "160px",
       sortValue: (r) => r.chartLabel,
       cell: (r) => <span className="truncate block text-[11px]">{r.chartLabel}</span>,
     },
     {
       key: "status",
       header: "Status",
-      width: "120px",
+      width: "112px",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => (
@@ -1141,7 +1141,7 @@ export function FinancialPayables() {
     {
       key: "valor",
       header: "Valor",
-      width: "120px",
+      width: "108px",
       align: "right",
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
@@ -1149,7 +1149,7 @@ export function FinancialPayables() {
     {
       key: "parcial",
       header: "Pagto. Parcial",
-      width: "150px",
+      width: "170px",
       align: "right",
       sortValue: (r) => {
         if (r.inst) return 0;
