@@ -202,7 +202,7 @@ export default function FreightMdfe() {
             { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },
             { key: "xml", label: "Baixar XML", icon: FileCode, mode: "single", disabled: !single || !!busy || !["autorizado", "encerrado", "cancelado"].includes(single.status), onClick: handleXml },
             { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable || isConsultor, onClick: () => { setEditing(single); setFormOpen(true); } },
-            { key: "print", label: printing ? "Gerando PDF" : "Baixar DAMDFE", icon: printing ? Loader2 : FileDown, mode: "single", disabled: !single || printing, onClick: handlePrint },
+            { key: "print", label: printing ? "Gerando PDF" : "Baixar DAMDFE", icon: printing ? Loader2 : FileDown, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: handlePrint },
             { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0 || isConsultor, onClick: handleDelete },
           ] as any}
           selectedCount={selected.size}
