@@ -1350,7 +1350,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       const routeCfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
       const payload: any = {
         ...formWithoutExtra,
-        chaves_nfe_ref: (form.chaves_nfe_ref || []).map((c) => normChave(c)).filter(Boolean),
         cfop: routeCfop || form.cfop,
         data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj,
@@ -1384,8 +1383,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         averbacao_numero: form.averbacao_numero || null,
         desconto: serializeDesconto(desconto),
         valor_receber: form.valor_receber,
-        chaves_nfe_ref: docMode === "nfe" ? form.chaves_nfe_ref.filter(Boolean) : [],
-        nfe_detalhes: docMode === "nfe" ? form.chaves_nfe_ref.filter((c) => c.length === 44).map((c) => getNfeDetalhe(c)) : [],
+        chaves_nfe_ref: docMode === "nfe" ? form.chaves_nfe_ref.map((c) => normChave(c)).filter(Boolean) : [],
+        nfe_detalhes: docMode === "nfe" ? form.chaves_nfe_ref.map((c) => normChave(c)).filter((c) => c.length === 44).map((c) => getNfeDetalhe(c)) : [],
         outros_documentos: docMode === "outros" ? form.outros_documentos.filter((o) => o.numero || o.descricao) : [],
         componentes_frete: [
           { xNome: "FRETE VALOR", vComp: form.composicao_frete.frete_valor },
