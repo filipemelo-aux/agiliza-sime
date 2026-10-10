@@ -727,7 +727,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
   const isMotorista = form.category === "motorista";
   const isColaborador = form.category === "colaborador";
   const isProprietario = form.category === "proprietario";
-  const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario" || isColaborador;
+  const showAddress = true; // endereço é obrigatório para todas as categorias (validateBasics)
   const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario" || isColaborador;
   const showCNPJ = !isMotorista && !isColaborador && form.person_type === "cnpj";
   const [cnpjLoading, setCnpjLoading] = useState(false);
