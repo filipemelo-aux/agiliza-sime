@@ -1032,10 +1032,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     }));
   }, [selectedEstId, establishments]);
 
+  // Comparação de notas SEMPRE pela chave de 44 dígitos (números de nota podem se repetir)
+  const normChave = (c: string | null | undefined) => String(c || "").replace(/\D/g, "");
+
   const applyNfe = (n: NfeData): boolean => {
-    if (n.chave && form.chaves_nfe_ref.includes(n.chave)) {
-      const numero = n.chave.length === 44 ? String(Number(n.chave.slice(25, 34))) : n.chave;
-      setNfeImportNotice({ tone: "neutral", text: `A nota ${numero} já foi importada neste CT-e. A mesma chave não pode ser adicionada duas vezes.` });
+    const nk = normChave(n.chave);
+    if (nk && form.chaves_nfe_ref.some((c) => normChave(c) === nk)) {
+      const numero = nk.length === 44 ? String(Number(nk.slice(25, 34))) : nk;
+      setNfeImportNotice({ tone: "neutral", text: `A nota ${numero} (chave …${nk.slice(-12)}) já foi importada neste CT-e. A mesma chave não pode ser adicionada duas vezes.` });
       return false;
     }
     if (!(form as any).remetente_nome && n.emitente.municipio) {
