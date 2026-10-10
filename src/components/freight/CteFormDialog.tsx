@@ -1153,8 +1153,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       setNfeImportNotice({ tone: "neutral", text: `A chave da NF-e precisa ter 44 dígitos (${chave.length}/44).` });
       return;
     }
-    if (form.chaves_nfe_ref.includes(chave)) {
-      setNfeImportNotice({ tone: "neutral", text: `A nota ${String(Number(chave.slice(25, 34)))} já foi importada neste CT-e. A mesma chave não pode ser adicionada duas vezes.` });
+    if (form.chaves_nfe_ref.some((c) => normChave(c) === chave)) {
+      setNfeImportNotice({ tone: "neutral", text: `A nota ${String(Number(chave.slice(25, 34)))} (chave …${chave.slice(-12)}) já foi importada neste CT-e. A mesma chave não pode ser adicionada duas vezes.` });
       return;
     }
     const est = establishments.find((e) => e.id === selectedEstId);
@@ -1162,14 +1162,28 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       setNfeImportNotice({ tone: "neutral", text: "Selecione o estabelecimento emitente antes de buscar a nota fiscal." });
       return;
     }
+    // Avisa (sem bloquear) se a MESMA chave já consta em outro CT-e
+    let avisoOutroCte = "";
+    try {
+      const { data: outros } = await supabase
+        .from("ctes")
+        .select("id, numero, numero_interno")
+        .contains("chaves_nfe_ref", [chave])
+        .limit(5);
+      const filtrados = ((outros as any[]) || []).filter((o) => o.id !== (cte as any)?.id);
+      if (filtrados.length) {
+        const nums = filtrados.map((o) => o.numero ?? o.numero_interno ?? "—").join(", ");
+        avisoOutroCte = ` Atenção: esta mesma chave já consta no(s) CT-e(s) Nº ${nums}.`;
+      }
+    } catch { /* verificação opcional */ }
     setNfeImportNotice({ tone: "neutral", text: "Consultando a nota fiscal..." });
     setNfeLoading(true);
     try {
       if (!applyNfe(await fetchNfeFromSefaz(chave, est.cnpj))) return;
       setNovaChave("");
       setNfeImportNotice({
-        tone: "success",
-        text: "Nota importada. Foram preenchidos os dados da nota, emitente, destinatário, municípios, produto, peso, quantidades e valores. Confira as informações antes de salvar.",
+        tone: avisoOutroCte ? "neutral" : "success",
+        text: `Nota importada. Foram preenchidos os dados da nota, emitente, destinatário, municípios, produto, peso, quantidades e valores. Confira as informações antes de salvar.${avisoOutroCte}`,
       });
     } catch {
       // Sem acesso ao conteúdo: aproveita tudo que a própria chave informa
