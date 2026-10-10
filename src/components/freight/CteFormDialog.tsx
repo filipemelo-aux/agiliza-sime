@@ -1189,7 +1189,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       // Sem acesso ao conteúdo: aproveita tudo que a própria chave informa
       const emitCnpj = chave.slice(6, 20);
       const modelo = chave.slice(20, 22);
-      setForm((p) => (p.chaves_nfe_ref.includes(chave) ? p : { ...p, chaves_nfe_ref: [...p.chaves_nfe_ref.filter(Boolean), chave] }));
+      setForm((p) => (p.chaves_nfe_ref.some((c) => normChave(c) === chave) ? p : { ...p, chaves_nfe_ref: [...p.chaves_nfe_ref.filter(Boolean), chave] }));
       setNfeDetalhe(chave, {
         numero: String(Number(chave.slice(25, 34))),
         serie: String(Number(chave.slice(22, 25))),
@@ -1350,6 +1350,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       const routeCfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
       const payload: any = {
         ...formWithoutExtra,
+        chaves_nfe_ref: (form.chaves_nfe_ref || []).map((c) => normChave(c)).filter(Boolean),
         cfop: routeCfop || form.cfop,
         data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj,
