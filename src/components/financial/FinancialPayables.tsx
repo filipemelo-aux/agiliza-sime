@@ -1098,7 +1098,7 @@ export function FinancialPayables() {
     {
       key: "empresa",
       header: "Emp.",
-      width: "44px",
+      width: "76px",
       align: "center",
       sortValue: (r) => (r.item as any).empresa_id || "",
       cell: (r) => <EmpresaUf empresaId={(r.item as any).empresa_id} />,

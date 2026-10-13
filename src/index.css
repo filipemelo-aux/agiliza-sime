@@ -350,7 +350,7 @@
     }
     .payables-grid .data-grid-table th[data-column-key="empresa"],
     .payables-grid .data-grid-table td[data-column-key="empresa"] {
-      width: 44px !important;
+      width: 76px !important;
     }
     .payables-grid .data-grid-table th[data-column-key="favorecido"],
     .payables-grid .data-grid-table td[data-column-key="favorecido"] {
