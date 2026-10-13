@@ -1398,31 +1398,27 @@ export function FinancialPayables() {
 *{box-sizing:border-box}
 @page { margin: 10mm 8mm; size: A4 landscape; }
 html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;z-index:10}
-.toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
 .wrap{padding:4px;background:#fff;width:100%;max-width:100%}
 .head{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
 .head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
 .head .per{font-size:8px;color:#666;text-align:right;margin-top:2px}
 .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:8pt;color:#374151;background:#f4f7fb;border:1px solid #d0d7de;border-radius:4px;padding:5px 8px;margin-bottom:6px}
 .meta b{color:#1f2937}
-table{width:100%;border-collapse:collapse;font-size:7.5pt;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
-thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7pt;letter-spacing:.2px;padding:3px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word;overflow-wrap:anywhere}
-tbody td{padding:2px 3px;border:1px solid #e5e7eb;font-size:7.5pt;line-height:1.15;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
+table{width:100%;border-collapse:collapse;font-size:7pt;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
+thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:6.5pt;letter-spacing:.2px;padding:3px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word;overflow-wrap:anywhere}
+tbody td{padding:2px 3px;border:1px solid #e5e7eb;font-size:7pt;line-height:1.15;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
 tbody tr:nth-child(even) td{background:#fafbfc}
 .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow-wrap:normal}
-.nowrap{white-space:nowrap;overflow-wrap:normal;font-size:7pt}
+.nowrap{white-space:nowrap;overflow-wrap:normal;font-size:6.5pt}
 tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
 tr{page-break-inside:avoid}
 thead{display:table-header-group}
 tfoot{display:table-row-group}
 .foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7pt;color:#6b7280}
 .grand-total{font-size:9pt;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:4px 5px;text-align:right;white-space:nowrap}
-.totals-labels{padding:4px 6px;font-size:8pt;color:#4b5563}
-@media print { .no-print{display:none!important} .toolbar{display:none!important} }
+.totals-labels{padding:4px 6px}
 </style></head>
 <body>
-<div class="toolbar no-print"></div>
 <div class="wrap">
   <div class="head">
     <div style="flex:1"><h1>Composição da Conta Agrupada</h1><div class="per">${rows.length} item(ns) agrupado(s)</div></div>
@@ -1457,15 +1453,6 @@ tfoot{display:table-row-group}
   </table>
   <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
 </div>
-<script>
-  window.addEventListener('load', function () {
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        setTimeout(function () { window.focus(); window.print(); }, 400);
-      });
-    });
-  });
-</script>
 </body></html>`;
 
     downloadHtmlAsPdf(html, titleFromHtml(html, "Composicao Conta Agrupada"));
