@@ -595,6 +595,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
   const [cnpjErrors, setCnpjErrors] = useState<Record<string, string>>({});
+  const [cnpjSteps, setCnpjSteps] = useState<Record<string, string>>({});
   const [nfeLoading, setNfeLoading] = useState(false);
   const [novaChave, setNovaChave] = useState("");
   const [nfeImportNotice, setNfeImportNotice] = useState<{ tone: "success" | "neutral"; text: string } | null>(null);
@@ -917,9 +918,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     if (raw.length !== 14) return;
     setCnpjLoading((p) => ({ ...p, [prefix]: true }));
     setCnpjErrors((p) => ({ ...p, [prefix]: "" }));
+    setCnpjSteps((p) => ({ ...p, [prefix]: "" }));
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, (step) => setCnpjSteps((p) => ({ ...p, [prefix]: step })));
       setForm((p) => ({
         ...p,
         [`${prefix}_nome`]: data.razao_social ? maskName(data.razao_social) : p[`${prefix}_nome` as keyof typeof p],
