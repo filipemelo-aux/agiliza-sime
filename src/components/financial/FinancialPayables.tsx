@@ -1336,25 +1336,48 @@ export function FinancialPayables() {
       .eq("grupo_expense_id", expense.id);
     if (error) return toast.error(error.message);
     const ids = ((links as any[]) || []).map(l => l.original_expense_id).filter(Boolean);
-    if (ids.length === 0) return toast.error("Esta conta não possui itens agrupados.");
 
-    const { data: originals } = await supabase
-      .from("expenses")
-      .select("id, descricao, favorecido_nome, data_emissao, data_vencimento, valor_total, documento_fiscal_numero, veiculo_placa, litros, plano_contas_id")
-      .in("id", ids);
+    let rows: { favorecido: string; descricao: string; data: string; placa: string; litros: number | null; valor: number; planoContas: string }[] = [];
 
-    const rows = ((originals as any[]) || []).map(o => {
-      const chart = o.plano_contas_id ? chartIdMap[o.plano_contas_id] : null;
-      return {
-        favorecido: o.favorecido_nome || "Sem favorecido",
-        descricao: o.documento_fiscal_numero ? `NF ${o.documento_fiscal_numero} — ${o.descricao}` : (o.descricao || "—"),
-        data: o.data_vencimento || o.data_emissao,
-        placa: o.veiculo_placa || "—",
-        litros: o.litros != null ? Number(o.litros) : null,
-        valor: Number(o.valor_total) || 0,
-        planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
-      };
-    }).sort((a, b) => a.data.localeCompare(b.data));
+    if (ids.length > 0) {
+      const { data: originals } = await supabase
+        .from("expenses")
+        .select("id, descricao, favorecido_nome, data_emissao, data_vencimento, valor_total, documento_fiscal_numero, veiculo_placa, litros, plano_contas_id")
+        .in("id", ids);
+
+      rows = ((originals as any[]) || []).map(o => {
+        const chart = o.plano_contas_id ? chartIdMap[o.plano_contas_id] : null;
+        return {
+          favorecido: o.favorecido_nome || "Sem favorecido",
+          descricao: o.documento_fiscal_numero ? `NF ${o.documento_fiscal_numero} — ${o.descricao}` : (o.descricao || "—"),
+          data: o.data_vencimento || o.data_emissao,
+          placa: o.veiculo_placa || "—",
+          litros: o.litros != null ? Number(o.litros) : null,
+          valor: Number(o.valor_total) || 0,
+          planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
+        };
+      });
+    } else {
+      // Faturas de abastecimento agrupadas: itens vêm dos abastecimentos vinculados
+      const { data: fuelings } = await supabase
+        .from("fuelings" as any)
+        .select("id, data_abastecimento, posto_combustivel, tipo_combustivel, quantidade_litros, valor_total, veiculo_id, vehicles:veiculo_id(plate)")
+        .eq("expense_id", expense.id)
+        .is("deleted_at", null);
+
+      rows = ((fuelings as any[]) || []).map(f => ({
+        favorecido: f.posto_combustivel || expense.favorecido_nome || "—",
+        descricao: `Abastecimento${f.tipo_combustivel ? ` — ${f.tipo_combustivel}` : ""}`,
+        data: f.data_abastecimento,
+        placa: f.vehicles?.plate || "—",
+        litros: f.quantidade_litros != null ? Number(f.quantidade_litros) : null,
+        valor: Number(f.valor_total) || 0,
+        planoContas: "",
+      }));
+    }
+
+    if (rows.length === 0) return toast.error("Esta conta não possui itens agrupados.");
+    rows = rows.sort((a, b) => a.data.localeCompare(b.data));
 
     const total = rows.reduce((s, r) => s + r.valor, 0);
     const esc = (s: any) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
