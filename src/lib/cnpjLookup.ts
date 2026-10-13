@@ -95,22 +95,6 @@ const cnpjws: Provider = async (c) => {
   };
 };
 
-const receitaws: Provider = async (c) => {
-  const d = await getJson(`https://receitaws.com.br/v1/cnpj/${c}`);
-  return {
-    razao_social: d.nome ?? null,
-    nome_fantasia: d.fantasia || null,
-    logradouro: d.logradouro ?? null,
-    numero: d.numero ?? null,
-    complemento: d.complemento || null,
-    bairro: d.bairro ?? null,
-    municipio: d.municipio ?? null,
-    uf: d.uf ?? null,
-    cep: d.cep ? String(d.cep).replace(/\D/g, "") : null,
-    ddd_telefone_1: d.telefone ? String(d.telefone).split("/")[0].replace(/\D/g, "") : null,
-    email: d.email || null,
-  };
-};
 
 const brasilapi: Provider = async (c) => {
   const d = await getJson(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
@@ -136,7 +120,7 @@ const brasilapi: Provider = async (c) => {
 export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
   const c = rawCnpj.replace(/\D/g, "");
   const iePromise = fetchIeOnly(c);
-  const providers = [cnpja, receitaws, brasilapi, cnpjws];
+  const providers = [cnpja, brasilapi, cnpjws];
   let lastError: Error | null = null;
   for (const p of providers) {
     try {
