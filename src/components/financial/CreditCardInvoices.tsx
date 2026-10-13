@@ -10,7 +10,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";
 import { printCreditCardInvoice } from "./printCreditCardInvoice";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
-import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
+import { EmpresaFilter, EmpresaUf } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
@@ -119,10 +119,10 @@ export function CreditCardInvoices() {
     {
       key: "empresa",
       header: "Emp.",
-      width: "52px",
+      width: "76px",
       align: "center",
       sortValue: (r) => r.empresa_id || "",
-      cell: (r) => <EmpresaBadge empresaId={r.empresa_id} />,
+      cell: (r) => <EmpresaUf empresaId={r.empresa_id} />,
     },
     {
       key: "card_name",

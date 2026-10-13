@@ -21,7 +21,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { PeriodFilter } from "@/components/PeriodFilter";
-import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
+import { EmpresaFilter, EmpresaUf } from "./EmpresaControls";
 import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 
@@ -441,10 +441,10 @@ export function FinancialPaid() {
     {
       key: "empresa",
       header: "Emp.",
-      width: "52px",
+      width: "76px",
       align: "center",
       sortValue: (r) => r.empresa_id || "",
-      cell: (r) => <EmpresaBadge empresaId={r.empresa_id} />,
+      cell: (r) => <EmpresaUf empresaId={r.empresa_id} />,
     },
     {
       key: "creditor",

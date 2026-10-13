@@ -3,7 +3,7 @@ import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
-import { EmpresaFilter, EmpresaBadge } from "./EmpresaControls";
+import { EmpresaFilter, EmpresaUf } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1755,9 +1755,9 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "empresa", header: "Emp.", width: "52px", align: "center",
+      key: "empresa", header: "Emp.", width: "76px", align: "center",
       sortValue: (f) => f.empresa_id || "",
-      cell: (f) => <EmpresaBadge empresaId={f.empresa_id} />,
+      cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
       key: "numero", header: "Nº", width: "80px",
