@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer, ListTree } from "lucide-react";
 import { toast } from "sonner";
 import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
@@ -1760,6 +1760,12 @@ tfoot{display:table-row-group}
             className: "border-border text-muted-foreground hover:bg-muted",
             disabled: !selectedRows[0],
             onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
+          },
+          {
+            key: "group-detail", label: "Detalhes do grupo", icon: ListTree, mode: "single",
+            className: "border-primary/40 text-primary hover:bg-primary/10",
+            disabled: !selectedRows[0] || !groupedCounts[selectedRows[0].item.id],
+            onClick: () => { const r = selectedRows[0]; if (r) printGroupedDetails(r.item); },
           },
           {
             key: "maintenance", label: "Manutenção", icon: Wrench, mode: "single",
