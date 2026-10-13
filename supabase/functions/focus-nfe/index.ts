@@ -278,6 +278,8 @@ Deno.serve(async (req) => {
     const authorized = focusData?.status === "autorizado";
     const reason = focusData?.mensagem_sefaz || focusData?.mensagem || focusData?.status || "Aguardando retorno da SEFAZ";
     await supabase.from("ctes").update({
+      // Grava a data/hora exatamente como transmitida, para o DACTE e a listagem baterem com o XML.
+      data_emissao: new Date(emissionDateTime).toISOString(),
       numero, status: authorized ? "autorizado" : focusData?.status === "erro_autorizacao" ? "rejeitado" : "processando",
       chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || focusData?.protocolo?.chave || cte.chave_acesso,
       protocolo_autorizacao: focusData?.protocolo || cte.protocolo_autorizacao,
