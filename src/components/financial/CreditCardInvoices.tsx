@@ -10,7 +10,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";
 import { printCreditCardInvoice } from "./printCreditCardInvoice";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
-import { EmpresaFilter, } from "./EmpresaControls";
+import { EmpresaFilter, EmpresaUf } from "./EmpresaControls";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { FilterField, FilterPrimaryRow, SearchFilterCard } from "@/components/ui/search-filter-card";
 
