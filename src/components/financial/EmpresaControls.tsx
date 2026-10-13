@@ -130,17 +130,18 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
   );
 }
 
-/** UF da empresa (ex.: MA, TO, PA) em texto simples, no padrão das demais colunas */
+/** Identificação curta da empresa: "Matriz" ou "Filial - UF" (ex.: Filial - TO), em texto simples */
 export function EmpresaUf({ empresaId, className }: { empresaId?: string | null; className?: string }) {
   const { establishments } = useUnifiedCompany();
   const est = establishments.find((e) => e.id === empresaId);
   const uf = (est?.endereco_uf || "").toUpperCase();
+  const label = !est ? "—" : est.type === "matriz" ? "Matriz" : uf ? `Filial - ${uf}` : "Filial";
   return (
     <span
       className={cn("whitespace-nowrap", className)}
       title={est ? est.nome_fantasia || est.razao_social : undefined}
     >
-      {uf || "—"}
+      {label}
     </span>
   );
 }
