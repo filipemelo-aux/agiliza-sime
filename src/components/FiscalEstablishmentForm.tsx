@@ -136,9 +136,10 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
     if (raw.length !== 14) return;
     setCnpjLoading(true);
     setCnpjError("");
+    setCnpjStep("");
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, setCnpjStep);
       setForm((p) => ({
         ...p,
         razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,

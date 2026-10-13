@@ -42,14 +42,16 @@ export function CteActorSection({
 }: ActorSectionProps) {
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
+  const [cnpjStep, setCnpjStep] = useState("");
 
   const lookupCnpj = useCallback(async (raw: string) => {
     if (raw.length !== 14) return;
     setCnpjLoading(true);
     setCnpjError("");
+    setCnpjStep("");
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, setCnpjStep);
       if (data.razao_social) set(`${prefix}_nome`, maskName(data.razao_social));
       if (data.uf) set(`${prefix}_uf`, data.uf);
       if (data.inscricao_estadual) set(`${prefix}_ie`, data.inscricao_estadual);
