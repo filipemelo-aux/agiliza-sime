@@ -155,6 +155,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
       setCnpjError("Erro ao consultar CNPJ");
     } finally {
       setCnpjLoading(false);
+      setCnpjStep("");
     }
   }, [form.cnpj]);
 

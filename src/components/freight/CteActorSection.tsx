@@ -63,6 +63,7 @@ export function CteActorSection({
       setCnpjError("Erro ao consultar CNPJ");
     } finally {
       setCnpjLoading(false);
+      setCnpjStep("");
     }
   }, [prefix, set]);
 
