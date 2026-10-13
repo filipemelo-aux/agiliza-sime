@@ -31,7 +31,7 @@ function extractIeFromCnpjWs(data: any): string | null {
 async function fetchIeOnly(rawCnpj: string): Promise<string | null> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(`https://publica.cnpj.ws/cnpj/${rawCnpj}`, { signal: controller.signal });
     clearTimeout(timeout);
     if (!res.ok) return null;
@@ -39,6 +39,29 @@ async function fetchIeOnly(rawCnpj: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+const maskCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+
+/** IE já conhecida no sistema (cadastros, empresas ou CT-es anteriores) — usada quando a consulta pública não traz. */
+async function findKnownIe(c: string): Promise<string | null> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const docs = [c, maskCnpj(c)];
+    const clean = (v: any) => {
+      const s = String(v || "").trim();
+      return s && !/^isento$/i.test(s) ? s.replace(/\D/g, "") || null : null;
+    };
+    const { data: p } = await supabase.from("profiles").select("inscricao_estadual").in("cnpj", docs).not("inscricao_estadual", "is", null).limit(5);
+    for (const r of (p as any[]) || []) { const v = clean(r.inscricao_estadual); if (v) return v; }
+    const { data: e } = await supabase.from("fiscal_establishments").select("inscricao_estadual").in("cnpj", docs).limit(1);
+    const ev = clean((e as any)?.[0]?.inscricao_estadual); if (ev) return ev;
+    for (const r of ["tomador", "remetente", "destinatario", "expedidor", "recebedor"]) {
+      const { data } = await (supabase.from("ctes") as any).select(`${r}_ie`).in(`${r}_cnpj`, docs).not(`${r}_ie`, "is", null).order("created_at", { ascending: false }).limit(3);
+      for (const row of (data as any[]) || []) { const v = clean(row[`${r}_ie`]); if (v) return v; }
+    }
+  } catch { /* melhor esforço */ }
+  return null;
 }
 
 async function getJson(url: string, ms = 6000): Promise<any> {
@@ -119,7 +142,7 @@ const brasilapi: Provider = async (c) => {
  */
 export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
   const c = rawCnpj.replace(/\D/g, "");
-  const iePromise = fetchIeOnly(c);
+  const iePromise = fetchIeOnly(c).then(async (ie) => ie || (await findKnownIe(c)));
   const providers = [cnpja, brasilapi, cnpjws];
   let lastError: Error | null = null;
   for (const p of providers) {
