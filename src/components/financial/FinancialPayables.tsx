@@ -169,6 +169,7 @@ export function FinancialPayables() {
   }, [fromNav, initialQuickFilter, initialOpenExpenseId]);
 
   const [items, setItems] = useState<Expense[]>([]);
+  const [groupedCounts, setGroupedCounts] = useState<Record<string, number>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
