@@ -172,18 +172,21 @@ Deno.serve(async (req) => {
     if (!hasDocs && ![2, 4].includes(Number(cte.tp_serv))) {
       return new Response(JSON.stringify({ success: false, error: "Informe pelo menos uma chave de NF-e ou um documento em Outros documentos antes de transmitir." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    // Data de emissão: usa a data salva no CT-e (com a hora atual de Brasília); SEFAZ aceita até 10 dias retroativos.
+    // Data de emissão: usa a data salva no CT-e. SEFAZ (MOC 4.00, rejeição 228) aceita no máximo 168 horas de atraso.
     const nowBr = new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T");
     const todayBr = nowBr.slice(0, 10);
     const savedDate = cte.data_emissao ? new Date(cte.data_emissao).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) : todayBr;
-    const diffDays = Math.round((Date.parse(todayBr + "T12:00:00Z") - Date.parse(savedDate + "T12:00:00Z")) / 86400000);
-    if (diffDays < 0) {
+    const fmtBr = (d: string) => d.split("-").reverse().join("/");
+    if (savedDate > todayBr) {
       return new Response(JSON.stringify({ success: false, error: "A data de emissão do CT-e está no futuro. Corrija a data antes de transmitir." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (diffDays > 10) {
-      return new Response(JSON.stringify({ success: false, error: `A data de emissão (${savedDate.split("-").reverse().join("/")}) passou do limite de 10 dias aceito pela SEFAZ. Altere a data de emissão do CT-e para uma data dentro do prazo.` }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Usa o horário mais tardio possível do dia salvo (hora atual, ou 23:59 se for dia anterior) para ganhar prazo.
+    const emissionLocal = savedDate === todayBr ? nowBr : `${savedDate}T23:59:00`;
+    const ageHours = (Date.parse(nowBr + "-03:00") - Date.parse(emissionLocal + "-03:00")) / 3600000;
+    if (ageHours > 167.5) {
+      return new Response(JSON.stringify({ success: false, error: `A data de emissão (${fmtBr(savedDate)}) passou do limite de 7 dias (168 horas) aceito pela SEFAZ. Altere a data de emissão do CT-e para uma data mais recente e transmita novamente.` }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const emissionDateTime = (diffDays === 0 ? nowBr : `${savedDate}T${nowBr.slice(11, 19)}`) + "-03:00";
+    const emissionDateTime = emissionLocal + "-03:00";
     const ctePayload: Record<string, unknown> = {
       cfop: String(cte.cfop), natureza_operacao: cte.natureza_operacao, numero, serie: cte.serie || est.serie_cte || 1,
       data_emissao: emissionDateTime,
