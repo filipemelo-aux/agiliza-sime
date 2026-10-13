@@ -261,18 +261,23 @@ export function FinancialPayables() {
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }] = await Promise.all([
+    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
       supabase.from("expense_installments").select("*").order("numero_parcela"),
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
+      supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
     ]);
 
     const counts: Record<string, number> = {};
     for (const g of (groupItemsData as any[]) || []) {
       if (g?.grupo_expense_id) counts[g.grupo_expense_id] = (counts[g.grupo_expense_id] || 0) + 1;
+    }
+    // Faturas de abastecimento agrupadas vinculam os itens via fuelings.expense_id
+    for (const f of (fuelingLinksData as any[]) || []) {
+      if (f?.expense_id) counts[f.expense_id] = (counts[f.expense_id] || 0) + 1;
     }
     setGroupedCounts(counts);
 
