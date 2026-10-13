@@ -136,14 +136,78 @@ const brasilapi: Provider = async (c) => {
   };
 };
 
+/** Busca completa no próprio sistema (pessoas e empresas já cadastradas) — instantânea, sem serviço externo. */
+async function findLocalData(c: string): Promise<CnpjData | null> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const docs = [c, maskCnpj(c)];
+    const clean = (v: any) => {
+      const s = String(v || "").trim();
+      return s || null;
+    };
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("razao_social, nome_fantasia, logradouro, numero, complemento, bairro, municipio, uf, cep, telefone, email, inscricao_estadual")
+      .in("cnpj", docs)
+      .not("razao_social", "is", null)
+      .limit(1);
+    const r = (p as any[])?.[0];
+    if (r?.razao_social) {
+      return {
+        razao_social: clean(r.razao_social),
+        nome_fantasia: clean(r.nome_fantasia),
+        logradouro: clean(r.logradouro),
+        numero: clean(r.numero),
+        complemento: clean(r.complemento),
+        bairro: clean(r.bairro),
+        municipio: clean(r.municipio),
+        uf: clean(r.uf),
+        cep: clean(r.cep),
+        ddd_telefone_1: clean(r.telefone),
+        email: clean(r.email),
+        inscricao_estadual: clean(r.inscricao_estadual),
+      };
+    }
+    const { data: e } = await supabase
+      .from("fiscal_establishments")
+      .select("razao_social, nome_fantasia, logradouro, numero, complemento, bairro, municipio, uf, cep, telefone, email, inscricao_estadual")
+      .in("cnpj", docs)
+      .limit(1);
+    const f = (e as any[])?.[0];
+    if (f?.razao_social) {
+      return {
+        razao_social: clean(f.razao_social),
+        nome_fantasia: clean(f.nome_fantasia),
+        logradouro: clean(f.logradouro),
+        numero: clean(f.numero),
+        complemento: clean(f.complemento),
+        bairro: clean(f.bairro),
+        municipio: clean(f.municipio),
+        uf: clean(f.uf),
+        cep: clean(f.cep),
+        ddd_telefone_1: clean(f.telefone),
+        email: clean(f.email),
+        inscricao_estadual: clean(f.inscricao_estadual),
+      };
+    }
+  } catch { /* melhor esforço */ }
+  return null;
+}
+
 /**
- * Consulta em vários serviços públicos (o primeiro que responder vence).
- * A IE é buscada em paralelo no cnpj.ws (único que a retorna gratuitamente).
+ * Ordem de consulta:
+ * 1) Cadastros do próprio sistema (instantâneo);
+ * 2) cnpj.ws — único serviço gratuito que retorna a IE;
+ * 3) CNPJá / BrasilAPI — último recurso (sem IE; a IE é buscada em paralelo no cnpj.ws e nos cadastros).
  */
 export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
   const c = rawCnpj.replace(/\D/g, "");
+
+  const local = await findLocalData(c);
+  if (local) return local;
+
   const iePromise = fetchIeOnly(c).then(async (ie) => ie || (await findKnownIe(c)));
-  const providers = [cnpja, brasilapi, cnpjws];
+  const providers = [cnpjws, cnpja, brasilapi];
   let lastError: Error | null = null;
   for (const p of providers) {
     try {
