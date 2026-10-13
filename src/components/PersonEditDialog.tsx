@@ -766,6 +766,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       setCnpjError("Erro ao consultar CNPJ");
     } finally {
       setCnpjLoading(false);
+      setCnpjStep("");
     }
   }, [form.cnpj, setForm]);
 
