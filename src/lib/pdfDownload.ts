@@ -33,8 +33,11 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
     .replace(/<\/head>/i, `<style>
       @page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${MARGIN_MM}mm!important}
       html,body{background:#fff!important}
-      .print-window-actions{position:sticky;top:0;z-index:99999;display:flex;justify-content:flex-end;padding:8px 12px;background:#fff;border-bottom:1px solid #d1d5db}
-      .print-window-actions button{font:600 12px Arial,sans-serif;padding:7px 12px;border:0;border-radius:4px;color:#fff;background:#2B4C7E;cursor:pointer}
+      .print-window-actions{position:sticky;top:0;z-index:99999;display:flex;gap:8px;justify-content:flex-start;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid #d1d5db}
+      .print-window-actions button{display:inline-flex;align-items:center;gap:6px;font:600 12px Arial,sans-serif;padding:6px 10px;border:0;border-radius:4px;color:#fff;background:#2B4C7E;cursor:pointer}
+      .print-window-actions button.btn-xls{background:#1e7e34}
+      .print-window-actions .lbl{display:none}
+      .print-window-actions button:hover .lbl{display:inline}
       @media print{.print-window-actions,.no-print,.toolbar{display:none!important}}
       @media screen{
         html{background:#e5e7eb!important;padding:0 0 24px}
@@ -42,8 +45,34 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
         .print-window-actions{margin:0 -${MARGIN_MM}mm ${MARGIN_MM}mm}
       }
     </style></head>`)
-    .replace(/<body([^>]*)>/i, `<body$1><div class="print-window-actions"><button type="button" onclick="window.print()">Imprimir / Salvar PDF</button></div>`)
+    .replace(/<body([^>]*)>/i, `<body$1><div class="print-window-actions">
+      <button type="button" title="Imprimir / Salvar PDF" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <span class="lbl">Imprimir / Salvar PDF</span>
+      </button>
+      <button type="button" class="btn-xls" id="btn-export-xls" title="Baixar tabela em Excel (.xls)" onclick="exportXls()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        <span class="lbl">Baixar Excel (.xls)</span>
+      </button>
+    </div>`)
     .replace(/<\/body>/i, `<script>
+      (function(){
+        var btn=document.getElementById('btn-export-xls');
+        var tables=Array.prototype.slice.call(document.querySelectorAll('table'));
+        var main=tables.sort(function(a,b){return b.querySelectorAll('tr').length-a.querySelectorAll('tr').length})[0];
+        if(!main){if(btn)btn.parentNode.removeChild(btn);return;}
+        window.exportXls=function(){
+          var c=main.cloneNode(true);
+          c.querySelectorAll('script,style,button,input,svg,img').forEach(function(n){n.remove()});
+          var h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Planilha</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>'+c.outerHTML+'</body></html>';
+          var blob=new Blob(['\\ufeff'+h],{type:'application/vnd.ms-excel'});
+          var a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);
+          a.download=(document.title||'planilha').replace(/[^\\w\\- ]+/g,'').trim().replace(/\\s+/g,'_')+'.xls';
+          document.body.appendChild(a);a.click();a.remove();
+          setTimeout(function(){URL.revokeObjectURL(a.href)},30000);
+        };
+      })();
       window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print()},200)},{once:true});
     </script></body>`);
 
