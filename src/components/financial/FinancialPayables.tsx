@@ -1801,14 +1801,14 @@ tfoot{display:table-row-group}
             onClick: handleBatchReverse,
           },
           {
-            key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-            disabled: batchPaying || !hasSelectedUnpaid,
-            onClick: handleBatchDelete,
-          },
-          {
             key: "print", label: "Imprimir", icon: Printer, mode: "single+batch",
             className: "border-border text-muted-foreground hover:bg-muted",
             onClick: handlePrintSelected,
+          },
+          {
+            key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
+            disabled: batchPaying || !hasSelectedUnpaid,
+            onClick: handleBatchDelete,
           },
         ]}
 
