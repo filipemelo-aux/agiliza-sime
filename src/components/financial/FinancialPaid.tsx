@@ -421,6 +421,15 @@ export function FinancialPaid() {
     [items, selectedIds]
   );
 
+  useEffect(() => {
+    const id = selectedItems.length === 1 ? selectedItems[0].expense_id : null;
+    setGroupedSelectedId(null);
+    if (!id) return;
+    let alive = true;
+    fetchGroupedExpenseIds([id]).then(set => { if (alive && set.has(id)) setGroupedSelectedId(id); });
+    return () => { alive = false; };
+  }, [selectedItems]);
+
   const paidColumns: DataGridColumn<PaidItem>[] = useMemo(() => [
     {
       key: "paid_at",
