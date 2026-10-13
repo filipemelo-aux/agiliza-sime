@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil } from "lucide-react";
+import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil, ListTree } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { fetchGroupedExpenseIds, printGroupedExpenseDetails } from "@/lib/printGroupedExpense";
 import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -138,6 +139,7 @@ const toDateOnly = (value?: string | null) => {
 
 export function FinancialPaid() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [groupedSelectedId, setGroupedSelectedId] = useState<string | null>(null);
   const [items, setItems] = useState<PaidItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [reversing, setReversing] = useState(false);
@@ -842,6 +844,14 @@ export function FinancialPaid() {
       {/* Global Toolbar */}
       <GlobalToolbar
         actions={[
+          {
+            key: "group-detail",
+            label: "Imprimir Detalhado",
+            icon: ListTree,
+            mode: "single",
+            disabled: !(selectedItems.length === 1 && selectedItems[0].expense_id && groupedSelectedId === selectedItems[0].expense_id),
+            onClick: () => { const id = selectedItems[0]?.expense_id; if (id) printGroupedExpenseDetails(id); },
+          },
           {
             key: "detail",
             label: "Detalhes",
