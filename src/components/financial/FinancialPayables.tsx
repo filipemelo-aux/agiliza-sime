@@ -1777,7 +1777,7 @@ tfoot{display:table-row-group}
             onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
           },
           {
-            key: "group-detail", label: "Detalhes do grupo", icon: ListTree, mode: "single",
+            key: "group-detail", label: "Detalhes da conta", icon: ListTree, mode: "single",
             className: "border-primary/40 text-primary hover:bg-primary/10",
             disabled: !selectedRows[0] || !groupedCounts[selectedRows[0].item.id],
             onClick: () => { const r = selectedRows[0]; if (r) printGroupedDetails(r.item); },
