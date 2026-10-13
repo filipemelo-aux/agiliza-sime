@@ -412,6 +412,7 @@ function ActorSection({
   lookupCnpj,
   cnpjLoading,
   cnpjError,
+  cnpjStep,
   setCnpjError,
   onCityResolved,
 }: {
@@ -423,6 +424,7 @@ function ActorSection({
   lookupCnpj: (raw: string, prefix: string) => void;
   cnpjLoading: boolean;
   cnpjError: string;
+  cnpjStep?: string;
   setCnpjError: (v: string) => void;
   onCityResolved?: (prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => void;
 }) {
@@ -946,6 +948,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       setCnpjErrors((p) => ({ ...p, [prefix]: "Erro ao consultar CNPJ" }));
     } finally {
       setCnpjLoading((p) => ({ ...p, [prefix]: false }));
+      setCnpjSteps((p) => ({ ...p, [prefix]: "" }));
     }
   }, [onCityResolved]);
 
