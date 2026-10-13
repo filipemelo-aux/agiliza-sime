@@ -732,6 +732,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
   const showCNPJ = !isMotorista && !isColaborador && form.person_type === "cnpj";
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
+  const [cnpjStep, setCnpjStep] = useState("");
 
   const handleCnpjLookup = useCallback(async (cnpjValue?: string) => {
     const raw = unmaskCNPJ(cnpjValue || form.cnpj);
@@ -741,9 +742,10 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
     }
     setCnpjLoading(true);
     setCnpjError("");
+    setCnpjStep("");
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, setCnpjStep);
       setForm((p) => ({
         ...p,
         razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,
