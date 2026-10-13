@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
     const reason = focusData?.mensagem_sefaz || focusData?.mensagem || focusData?.status || "Aguardando retorno da SEFAZ";
     await supabase.from("ctes").update({
       numero, status: authorized ? "autorizado" : focusData?.status === "erro_autorizacao" ? "rejeitado" : "processando",
-      chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || cte.chave_acesso,
+      chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || focusData?.protocolo?.chave || cte.chave_acesso,
       protocolo_autorizacao: focusData?.protocolo || cte.protocolo_autorizacao,
       data_autorizacao: authorized ? new Date().toISOString() : cte.data_autorizacao,
       motivo_rejeicao: authorized ? null : reason,
