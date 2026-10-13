@@ -1387,7 +1387,7 @@ export function FinancialPayables() {
       <td class="nowrap">${esc(formatDateBR(r.data))}</td>
       <td>${esc(r.favorecido)}</td>
       <td>${esc(r.descricao)}</td>
-      <td>${esc(r.placa)}</td>
+      <td class="placa">${esc(r.placa)}</td>
       <td class="r">${r.litros != null ? esc(r.litros.toLocaleString("pt-BR", { maximumFractionDigits: 2 })) : "—"}</td>
       <td>${esc(r.planoContas)}</td>
       <td class="r">${esc(formatCurrency(r.valor))}</td>
@@ -1412,6 +1412,7 @@ tbody td{padding:2px 3px;border:1px solid #e5e7eb;font-size:7pt;line-height:1.15
 tbody tr:nth-child(even) td{background:#fafbfc}
 .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow-wrap:normal}
 .nowrap{white-space:nowrap;overflow-wrap:normal;font-size:6.5pt}
+.placa{white-space:nowrap;overflow-wrap:normal;font-size:7pt;letter-spacing:.1px}
 tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
 tr{page-break-inside:avoid}
 thead{display:table-header-group}
@@ -1441,8 +1442,8 @@ tfoot{display:table-row-group}
     <colgroup>
       <col style="width:9%" />
       <col style="width:19%" />
-      <col style="width:28%" />
-      <col style="width:8%" />
+      <col style="width:26%" />
+      <col style="width:10%" />
       <col style="width:8%" />
       <col style="width:16%" />
       <col style="width:12%" />
