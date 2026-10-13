@@ -510,6 +510,11 @@ function ActorSection({
               />
               {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
             </div>
+            {cnpjLoading && cnpjStep && (
+              <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> {cnpjStep}
+              </p>
+            )}
             {cnpjError && <p className="text-[10px] text-destructive">{cnpjError}</p>}
           </div>
           <div className="space-y-1">
