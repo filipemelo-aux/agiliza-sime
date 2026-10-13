@@ -44,16 +44,6 @@ export const allMenuItems = [
     ],
   },
   {
-    title: "Recursos Humanos",
-    icon: UserCog,
-    children: [
-      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
-      { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
-      { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
-      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
-    ],
-  },
-  {
     title: "Bancos",
     icon: Landmark,
     children: [
@@ -87,14 +77,6 @@ export const allMenuItems = [
     ],
   },
   {
-    title: "Notas Fiscais",
-    icon: Receipt,
-    children: [
-      { title: "Consulta de Notas", url: "/admin/notas-fiscais/consulta", icon: FileText },
-      { title: "Download de XML", url: "/admin/notas-fiscais/download-xml", icon: FileSpreadsheet },
-    ],
-  },
-  {
     title: "Frota",
     icon: Car,
     children: [
@@ -103,6 +85,24 @@ export const allMenuItems = [
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
       { title: "Métricas por Veículo", url: "/admin/fleet/metrics", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: "Recursos Humanos",
+    icon: UserCog,
+    children: [
+      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
+      { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
+      { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
+      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
+    ],
+  },
+  {
+    title: "Notas Fiscais",
+    icon: Receipt,
+    children: [
+      { title: "Consulta de Notas", url: "/admin/notas-fiscais/consulta", icon: FileText },
+      { title: "Download de XML", url: "/admin/notas-fiscais/download-xml", icon: FileSpreadsheet },
     ],
   },
   {
