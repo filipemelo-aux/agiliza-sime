@@ -69,6 +69,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
   const [selectedCertId, setSelectedCertId] = useState<string>("");
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
+  const [cnpjStep, setCnpjStep] = useState("");
 
   // Load certificates
   useEffect(() => {
