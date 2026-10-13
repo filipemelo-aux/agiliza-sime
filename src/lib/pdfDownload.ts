@@ -15,9 +15,9 @@ function detectLandscape(html: string) {
   return /@page[^{]*\{[^}]*landscape/i.test(html) || /size:\s*A4\s+landscape/i.test(html);
 }
 
-export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean }) {
+export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean; win?: Window | null }) {
   const landscape = opts?.landscape ?? detectLandscape(html);
-  const printWindow = window.open("", "_blank");
+  const printWindow = opts?.win ?? window.open("", "_blank");
   if (!printWindow) {
     toast.error("Permita a abertura da janela de impressão no navegador.");
     return;
