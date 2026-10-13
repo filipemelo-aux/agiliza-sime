@@ -1393,11 +1393,13 @@ export function FinancialPayables() {
       <td class="r">${esc(formatCurrency(r.valor))}</td>
     </tr>`).join("");
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Composição da Conta Agrupada</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Detalhes da Conta</title>
 <style>
 *{box-sizing:border-box}
-@page { margin: 10mm 8mm; size: A4 landscape; }
+@page { margin: 10mm 8mm; size: A4 portrait; }
 html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;z-index:10}
+.toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
 .wrap{padding:4px;background:#fff;width:100%;max-width:100%}
 .head{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
 .head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
@@ -1415,13 +1417,18 @@ tr{page-break-inside:avoid}
 thead{display:table-header-group}
 tfoot{display:table-row-group}
 .foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7pt;color:#6b7280}
-.grand-total{font-size:9pt;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:4px 5px;text-align:right;white-space:nowrap}
 .totals-labels{padding:4px 6px}
+.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap}
+.total-item{font-size:7.5pt;color:#4b5563}
+.total-item b{font-size:8pt;color:#1f2937;font-weight:800}
+.grand-total{font-size:9pt;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:4px 5px;text-align:right;white-space:nowrap}
+@media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
+<div class="toolbar no-print"></div>
 <div class="wrap">
   <div class="head">
-    <div style="flex:1"><h1>Composição da Conta Agrupada</h1><div class="per">${rows.length} item(ns) agrupado(s)</div></div>
+    <div style="flex:1"><h1>Detalhes da Conta</h1><div class="per">${rows.length} item(ns) agrupado(s)</div></div>
   </div>
   <div class="meta">
     <span>Favorecido: <b>${esc(expense.favorecido_nome || "—")}</b></span>
@@ -1432,13 +1439,13 @@ tfoot{display:table-row-group}
   </div>
   <table>
     <colgroup>
-      <col style="width:8%" />
-      <col style="width:20%" />
-      <col style="width:30%" />
+      <col style="width:9%" />
+      <col style="width:19%" />
+      <col style="width:28%" />
       <col style="width:8%" />
       <col style="width:8%" />
       <col style="width:16%" />
-      <col style="width:10%" />
+      <col style="width:12%" />
     </colgroup>
     <thead><tr>
       <th>Data</th><th>Favorecido</th><th>Descrição</th><th>Placa</th><th class="r">Litros</th><th>Plano de Contas</th><th class="r">Valor</th>
@@ -1446,16 +1453,30 @@ tfoot{display:table-row-group}
     <tbody>${rowsHtml}</tbody>
     <tfoot>
       <tr>
-        <td colspan="6" class="totals-labels"><b>TOTAL DOS ITENS</b></td>
+        <td colspan="6" class="totals-labels">
+          <div class="totals-row">
+            <span class="total-item">Itens: <b>${rows.length}</b></span>
+            <span class="total-item"><b>TOTAL DOS ITENS</b></span>
+          </div>
+        </td>
         <td class="grand-total">${esc(formatCurrency(total))}</td>
       </tr>
     </tfoot>
   </table>
   <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
 </div>
+<script>
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        setTimeout(function () { window.focus(); window.print(); }, 400);
+      });
+    });
+  });
+</script>
 </body></html>`;
 
-    downloadHtmlAsPdf(html, titleFromHtml(html, "Composicao Conta Agrupada"));
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Detalhes da Conta"));
   };
 
   const handlePrintSelected = async () => {
@@ -1777,7 +1798,7 @@ tfoot{display:table-row-group}
             onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
           },
           {
-            key: "group-detail", label: "Detalhes do grupo", icon: ListTree, mode: "single",
+            key: "group-detail", label: "Detalhes da conta", icon: ListTree, mode: "single",
             className: "border-primary/40 text-primary hover:bg-primary/10",
             disabled: !selectedRows[0] || !groupedCounts[selectedRows[0].item.id],
             onClick: () => { const r = selectedRows[0]; if (r) printGroupedDetails(r.item); },
@@ -1801,14 +1822,14 @@ tfoot{display:table-row-group}
             onClick: handleBatchReverse,
           },
           {
-            key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-            disabled: batchPaying || !hasSelectedUnpaid,
-            onClick: handleBatchDelete,
-          },
-          {
             key: "print", label: "Imprimir", icon: Printer, mode: "single+batch",
             className: "border-border text-muted-foreground hover:bg-muted",
             onClick: handlePrintSelected,
+          },
+          {
+            key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
+            disabled: batchPaying || !hasSelectedUnpaid,
+            onClick: handleBatchDelete,
           },
         ]}
 
