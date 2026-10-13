@@ -1999,6 +1999,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.remetente}
               cnpjError={cnpjErrors.remetente || ""}
+              cnpjStep={cnpjSteps.remetente || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2010,6 +2011,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.destinatario}
               cnpjError={cnpjErrors.destinatario || ""}
+              cnpjStep={cnpjSteps.destinatario || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2021,6 +2023,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.expedidor}
               cnpjError={cnpjErrors.expedidor || ""}
+              cnpjStep={cnpjSteps.expedidor || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2032,6 +2035,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.recebedor}
               cnpjError={cnpjErrors.recebedor || ""}
+              cnpjStep={cnpjSteps.recebedor || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2077,6 +2081,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                 lookupCnpj={lookupCnpj}
                 cnpjLoading={!!cnpjLoading.tomador}
                 cnpjError={cnpjErrors.tomador || ""}
+                cnpjStep={cnpjSteps.tomador || ""}
                 setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
               />
             )}
