@@ -100,7 +100,6 @@ Deno.serve(async (req) => {
           status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso || cte.chave_acesso,
           protocolo_autorizacao: sync?.protocolo || cte.protocolo_autorizacao,
           data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
-          data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00",
         }).eq("id", cteId);
         return json({ success: true, status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso, protocolo: sync?.protocolo });
       }
@@ -173,9 +172,21 @@ Deno.serve(async (req) => {
     if (!hasDocs && ![2, 4].includes(Number(cte.tp_serv))) {
       return new Response(JSON.stringify({ success: false, error: "Informe pelo menos uma chave de NF-e ou um documento em Outros documentos antes de transmitir." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    // Data de emissão: usa a data salva no CT-e (com a hora atual de Brasília); SEFAZ aceita até 10 dias retroativos.
+    const nowBr = new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T");
+    const todayBr = nowBr.slice(0, 10);
+    const savedDate = cte.data_emissao ? new Date(cte.data_emissao).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) : todayBr;
+    const diffDays = Math.round((Date.parse(todayBr + "T12:00:00Z") - Date.parse(savedDate + "T12:00:00Z")) / 86400000);
+    if (diffDays < 0) {
+      return new Response(JSON.stringify({ success: false, error: "A data de emissão do CT-e está no futuro. Corrija a data antes de transmitir." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (diffDays > 10) {
+      return new Response(JSON.stringify({ success: false, error: `A data de emissão (${savedDate.split("-").reverse().join("/")}) passou do limite de 10 dias aceito pela SEFAZ. Altere a data de emissão do CT-e para uma data dentro do prazo.` }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const emissionDateTime = (diffDays === 0 ? nowBr : `${savedDate}T${nowBr.slice(11, 19)}`) + "-03:00";
     const ctePayload: Record<string, unknown> = {
       cfop: String(cte.cfop), natureza_operacao: cte.natureza_operacao, numero, serie: cte.serie || est.serie_cte || 1,
-      data_emissao: new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T") + "-03:00",
+      data_emissao: emissionDateTime,
       tipo_documento: Number(cte.tp_cte || 0), modal: "01", tipo_servico: Number(cte.tp_serv || 0),
       codigo_municipio_envio: digits(cte.municipio_envio_ibge || est.codigo_municipio_ibge), municipio_envio: emissionCity, uf_envio: cte.uf_envio || est.endereco_uf,
       codigo_municipio_inicio: digits(cte.municipio_origem_ibge), municipio_inicio: routeOrigin, uf_inicio: cte.uf_origem,
@@ -268,7 +279,6 @@ Deno.serve(async (req) => {
       chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || cte.chave_acesso,
       protocolo_autorizacao: focusData?.protocolo || cte.protocolo_autorizacao,
       data_autorizacao: authorized ? new Date().toISOString() : cte.data_autorizacao,
-      ...(authorized ? { data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00" } : {}),
       motivo_rejeicao: authorized ? null : reason,
     }).eq("id", cteId);
     return json({
@@ -546,7 +556,6 @@ Deno.serve(async (req) => {
         await supabase.from("ctes").update({
           status: "autorizado", chave_acesso: d?.chave_cte || d?.chave_acesso, protocolo_autorizacao: d?.protocolo,
           data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
-          data_emissao: new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00",
         }).eq("id", cteId);
       } else if (cte.status === "processando" && (d?.status === "erro_autorizacao" || d?.status === "denegado")) {
         const code = d?.status_sefaz ? `Rejeição ${d.status_sefaz}: ` : "";
