@@ -1773,7 +1773,7 @@ tfoot{display:table-row-group}
           {
             key: "detail", label: "Detalhes", icon: Eye, mode: "single",
             className: "border-border text-muted-foreground hover:bg-muted",
-            disabled: !selectedRows[0],
+            disabled: !selectedRows[0] || !!groupedCounts[selectedRows[0].item.id],
             onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
           },
           {
