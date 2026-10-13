@@ -200,19 +200,29 @@ async function findLocalData(c: string): Promise<CnpjData | null> {
  * 2) cnpj.ws — único serviço gratuito que retorna a IE;
  * 3) CNPJá / BrasilAPI — último recurso (sem IE; a IE é buscada em paralelo no cnpj.ws e nos cadastros).
  */
-export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
+export async function lookupCnpj(rawCnpj: string, onProgress?: (step: string) => void): Promise<CnpjData> {
   const c = rawCnpj.replace(/\D/g, "");
 
+  onProgress?.("Buscando nos cadastros do sistema…");
   const local = await findLocalData(c);
   if (local) return local;
 
+  onProgress?.("Consultando cnpj.ws (com Inscrição Estadual)…");
   const iePromise = fetchIeOnly(c).then(async (ie) => ie || (await findKnownIe(c)));
-  const providers = [cnpjws, cnpja, brasilapi];
+  const providers: [Provider, string][] = [
+    [cnpjws, "Consultando cnpj.ws (com Inscrição Estadual)…"],
+    [cnpja, "cnpj.ws sem resposta — tentando CNPJá…"],
+    [brasilapi, "CNPJá sem resposta — tentando BrasilAPI…"],
+  ];
   let lastError: Error | null = null;
-  for (const p of providers) {
+  let first = true;
+  for (const [p, label] of providers) {
+    if (!first) onProgress?.(label);
+    first = false;
     try {
       const data = await p(c);
       if (!data.razao_social) throw new Error("Sem dados");
+      onProgress?.("Buscando Inscrição Estadual…");
       const ie = data.inscricao_estadual !== undefined ? data.inscricao_estadual : await iePromise;
       return { ...data, inscricao_estadual: ie ?? null };
     } catch (err: any) {

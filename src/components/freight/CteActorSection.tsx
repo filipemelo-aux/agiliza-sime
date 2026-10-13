@@ -42,14 +42,16 @@ export function CteActorSection({
 }: ActorSectionProps) {
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
+  const [cnpjStep, setCnpjStep] = useState("");
 
   const lookupCnpj = useCallback(async (raw: string) => {
     if (raw.length !== 14) return;
     setCnpjLoading(true);
     setCnpjError("");
+    setCnpjStep("");
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, setCnpjStep);
       if (data.razao_social) set(`${prefix}_nome`, maskName(data.razao_social));
       if (data.uf) set(`${prefix}_uf`, data.uf);
       if (data.inscricao_estadual) set(`${prefix}_ie`, data.inscricao_estadual);
@@ -61,6 +63,7 @@ export function CteActorSection({
       setCnpjError("Erro ao consultar CNPJ");
     } finally {
       setCnpjLoading(false);
+      setCnpjStep("");
     }
   }, [prefix, set]);
 
@@ -122,6 +125,11 @@ export function CteActorSection({
             />
             {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
+          {cnpjLoading && cnpjStep && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> {cnpjStep}
+            </p>
+          )}
           {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
         </div>
         <div className="sm:col-span-3 space-y-1.5">

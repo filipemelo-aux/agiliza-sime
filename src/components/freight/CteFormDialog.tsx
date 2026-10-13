@@ -412,6 +412,7 @@ function ActorSection({
   lookupCnpj,
   cnpjLoading,
   cnpjError,
+  cnpjStep,
   setCnpjError,
   onCityResolved,
 }: {
@@ -423,6 +424,7 @@ function ActorSection({
   lookupCnpj: (raw: string, prefix: string) => void;
   cnpjLoading: boolean;
   cnpjError: string;
+  cnpjStep?: string;
   setCnpjError: (v: string) => void;
   onCityResolved?: (prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => void;
 }) {
@@ -508,6 +510,11 @@ function ActorSection({
               />
               {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
             </div>
+            {cnpjLoading && cnpjStep && (
+              <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> {cnpjStep}
+              </p>
+            )}
             {cnpjError && <p className="text-[10px] text-destructive">{cnpjError}</p>}
           </div>
           <div className="space-y-1">
@@ -595,6 +602,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
   const [cnpjErrors, setCnpjErrors] = useState<Record<string, string>>({});
+  const [cnpjSteps, setCnpjSteps] = useState<Record<string, string>>({});
   const [nfeLoading, setNfeLoading] = useState(false);
   const [novaChave, setNovaChave] = useState("");
   const [nfeImportNotice, setNfeImportNotice] = useState<{ tone: "success" | "neutral"; text: string } | null>(null);
@@ -917,9 +925,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     if (raw.length !== 14) return;
     setCnpjLoading((p) => ({ ...p, [prefix]: true }));
     setCnpjErrors((p) => ({ ...p, [prefix]: "" }));
+    setCnpjSteps((p) => ({ ...p, [prefix]: "" }));
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, (step) => setCnpjSteps((p) => ({ ...p, [prefix]: step })));
       setForm((p) => ({
         ...p,
         [`${prefix}_nome`]: data.razao_social ? maskName(data.razao_social) : p[`${prefix}_nome` as keyof typeof p],
@@ -944,6 +953,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       setCnpjErrors((p) => ({ ...p, [prefix]: "Erro ao consultar CNPJ" }));
     } finally {
       setCnpjLoading((p) => ({ ...p, [prefix]: false }));
+      setCnpjSteps((p) => ({ ...p, [prefix]: "" }));
     }
   }, [onCityResolved]);
 
@@ -1989,6 +1999,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.remetente}
               cnpjError={cnpjErrors.remetente || ""}
+              cnpjStep={cnpjSteps.remetente || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, remetente: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2000,6 +2011,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.destinatario}
               cnpjError={cnpjErrors.destinatario || ""}
+              cnpjStep={cnpjSteps.destinatario || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, destinatario: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2011,6 +2023,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.expedidor}
               cnpjError={cnpjErrors.expedidor || ""}
+              cnpjStep={cnpjSteps.expedidor || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, expedidor: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2022,6 +2035,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               lookupCnpj={lookupCnpj}
               cnpjLoading={!!cnpjLoading.recebedor}
               cnpjError={cnpjErrors.recebedor || ""}
+              cnpjStep={cnpjSteps.recebedor || ""}
               setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, recebedor: v }))}
               onCityResolved={onCityResolved}
             />
@@ -2067,6 +2081,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                 lookupCnpj={lookupCnpj}
                 cnpjLoading={!!cnpjLoading.tomador}
                 cnpjError={cnpjErrors.tomador || ""}
+                cnpjStep={cnpjSteps.tomador || ""}
                 setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
               />
             )}

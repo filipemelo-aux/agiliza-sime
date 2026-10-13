@@ -69,6 +69,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
   const [selectedCertId, setSelectedCertId] = useState<string>("");
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
+  const [cnpjStep, setCnpjStep] = useState("");
 
   // Load certificates
   useEffect(() => {
@@ -135,9 +136,10 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
     if (raw.length !== 14) return;
     setCnpjLoading(true);
     setCnpjError("");
+    setCnpjStep("");
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, setCnpjStep);
       setForm((p) => ({
         ...p,
         razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,
@@ -153,6 +155,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
       setCnpjError("Erro ao consultar CNPJ");
     } finally {
       setCnpjLoading(false);
+      setCnpjStep("");
     }
   }, [form.cnpj]);
 
@@ -297,6 +300,11 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
                 />
                 {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
+              {cnpjLoading && cnpjStep && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> {cnpjStep}
+                </p>
+              )}
               {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
             </div>
             <div className="space-y-1.5">

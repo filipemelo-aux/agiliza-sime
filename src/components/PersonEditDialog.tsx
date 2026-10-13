@@ -732,6 +732,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
   const showCNPJ = !isMotorista && !isColaborador && form.person_type === "cnpj";
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
+  const [cnpjStep, setCnpjStep] = useState("");
 
   const handleCnpjLookup = useCallback(async (cnpjValue?: string) => {
     const raw = unmaskCNPJ(cnpjValue || form.cnpj);
@@ -741,9 +742,10 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
     }
     setCnpjLoading(true);
     setCnpjError("");
+    setCnpjStep("");
     try {
       const { lookupCnpj } = await import("@/lib/cnpjLookup");
-      const data = await lookupCnpj(raw);
+      const data = await lookupCnpj(raw, setCnpjStep);
       setForm((p) => ({
         ...p,
         razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,
@@ -764,6 +766,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       setCnpjError("Erro ao consultar CNPJ");
     } finally {
       setCnpjLoading(false);
+      setCnpjStep("");
     }
   }, [form.cnpj, setForm]);
 
@@ -877,6 +880,11 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
                 {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar dados"}
               </Button>
             </div>
+            {cnpjLoading && cnpjStep && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> {cnpjStep}
+              </p>
+            )}
             {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
