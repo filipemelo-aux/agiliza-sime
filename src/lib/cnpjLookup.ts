@@ -147,7 +147,7 @@ async function findLocalData(c: string): Promise<CnpjData | null> {
     };
     const { data: p } = await supabase
       .from("profiles")
-      .select("razao_social, nome_fantasia, logradouro, numero, complemento, bairro, municipio, uf, cep, telefone, email, inscricao_estadual")
+      .select("razao_social, nome_fantasia, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip, phone, email, inscricao_estadual")
       .in("cnpj", docs)
       .not("razao_social", "is", null)
       .limit(1);
@@ -156,21 +156,21 @@ async function findLocalData(c: string): Promise<CnpjData | null> {
       return {
         razao_social: clean(r.razao_social),
         nome_fantasia: clean(r.nome_fantasia),
-        logradouro: clean(r.logradouro),
-        numero: clean(r.numero),
-        complemento: clean(r.complemento),
-        bairro: clean(r.bairro),
-        municipio: clean(r.municipio),
-        uf: clean(r.uf),
-        cep: clean(r.cep),
-        ddd_telefone_1: clean(r.telefone),
+        logradouro: clean(r.address_street),
+        numero: clean(r.address_number),
+        complemento: clean(r.address_complement),
+        bairro: clean(r.address_neighborhood),
+        municipio: clean(r.address_city),
+        uf: clean(r.address_state),
+        cep: clean(r.address_zip),
+        ddd_telefone_1: clean(r.phone),
         email: clean(r.email),
         inscricao_estadual: clean(r.inscricao_estadual),
       };
     }
     const { data: e } = await supabase
       .from("fiscal_establishments")
-      .select("razao_social, nome_fantasia, logradouro, numero, complemento, bairro, municipio, uf, cep, telefone, email, inscricao_estadual")
+      .select("razao_social, nome_fantasia, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, inscricao_estadual")
       .in("cnpj", docs)
       .limit(1);
     const f = (e as any[])?.[0];
@@ -178,15 +178,15 @@ async function findLocalData(c: string): Promise<CnpjData | null> {
       return {
         razao_social: clean(f.razao_social),
         nome_fantasia: clean(f.nome_fantasia),
-        logradouro: clean(f.logradouro),
-        numero: clean(f.numero),
-        complemento: clean(f.complemento),
-        bairro: clean(f.bairro),
-        municipio: clean(f.municipio),
-        uf: clean(f.uf),
-        cep: clean(f.cep),
-        ddd_telefone_1: clean(f.telefone),
-        email: clean(f.email),
+        logradouro: clean(f.endereco_logradouro),
+        numero: clean(f.endereco_numero),
+        complemento: null,
+        bairro: clean(f.endereco_bairro),
+        municipio: clean(f.endereco_municipio),
+        uf: clean(f.endereco_uf),
+        cep: clean(f.endereco_cep),
+        ddd_telefone_1: null,
+        email: null,
         inscricao_estadual: clean(f.inscricao_estadual),
       };
     }
