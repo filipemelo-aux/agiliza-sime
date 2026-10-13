@@ -18,4 +18,4 @@
 - [x] Atualizar a marca para Agiliza TMS, um produto FSM Systems.
 - [x] Criar novos modelos de logo para a FSM Systems e apresentar para escolha antes de aplicar na tela inicial. (Escolhido: verde esmeralda + cinza, S destacado.)
 - [x] Combinar verde esmeralda com cinza na logomarca FSM Systems e reaplicar na tela inicial.
-- [x] Reordenar o menu lateral: Dashboard, Financeiro, Bancos, Transporte, Frota, Recursos Humanos, Notas Fiscais, Cadastros, Configurações.
+- [x] Reordenar o menu lateral: Dashboard, Financeiro, Bancos, Transporte, Frota, Notas Fiscais, Recursos Humanos, Cadastros, Configurações.
