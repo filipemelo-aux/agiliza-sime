@@ -36,6 +36,11 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       .print-window-actions{position:sticky;top:0;z-index:99999;display:flex;justify-content:flex-end;padding:8px 12px;background:#fff;border-bottom:1px solid #d1d5db}
       .print-window-actions button{font:600 12px Arial,sans-serif;padding:7px 12px;border:0;border-radius:4px;color:#fff;background:#2B4C7E;cursor:pointer}
       @media print{.print-window-actions,.no-print,.toolbar{display:none!important}}
+      @media screen{
+        html{background:#e5e7eb!important;padding:0 0 24px}
+        body{box-sizing:border-box!important;width:${landscape ? 297 : 210}mm!important;max-width:none!important;min-height:${landscape ? 210 : 297}mm;margin:20px auto!important;padding:0 ${MARGIN_MM}mm ${MARGIN_MM}mm!important;background:#fff!important;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+        .print-window-actions{margin:0 -${MARGIN_MM}mm ${MARGIN_MM}mm}
+      }
     </style></head>`)
     .replace(/<body([^>]*)>/i, `<body$1><div class="print-window-actions"><button type="button" onclick="window.print()">Imprimir / Salvar PDF</button></div>`)
     .replace(/<\/body>/i, `<script>
