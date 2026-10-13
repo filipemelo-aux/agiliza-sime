@@ -300,6 +300,11 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
                 />
                 {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
+              {cnpjLoading && cnpjStep && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> {cnpjStep}
+                </p>
+              )}
               {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
             </div>
             <div className="space-y-1.5">
