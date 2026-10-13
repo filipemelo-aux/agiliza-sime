@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer, ListTree } from "lucide-react";
 import { toast } from "sonner";
 import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
@@ -169,6 +169,7 @@ export function FinancialPayables() {
   }, [fromNav, initialQuickFilter, initialOpenExpenseId]);
 
   const [items, setItems] = useState<Expense[]>([]);
+  const [groupedCounts, setGroupedCounts] = useState<Record<string, number>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -260,13 +261,20 @@ export function FinancialPayables() {
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }] = await Promise.all([
+    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
       supabase.from("expense_installments").select("*").order("numero_parcela"),
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
+      supabase.from("expense_group_items" as any).select("grupo_expense_id"),
     ]);
+
+    const counts: Record<string, number> = {};
+    for (const g of (groupItemsData as any[]) || []) {
+      if (g?.grupo_expense_id) counts[g.grupo_expense_id] = (counts[g.grupo_expense_id] || 0) + 1;
+    }
+    setGroupedCounts(counts);
 
     const today = format(new Date(), "yyyy-MM-dd");
     const expenses = ((expData as any) || []) as Expense[];
@@ -1316,6 +1324,125 @@ export function FinancialPayables() {
     return false;
   }, [selectedIds]);
 
+  const printGroupedDetails = async (expense: Expense) => {
+    const { data: links, error } = await supabase
+      .from("expense_group_items" as any)
+      .select("original_expense_id, valor")
+      .eq("grupo_expense_id", expense.id);
+    if (error) return toast.error(error.message);
+    const ids = ((links as any[]) || []).map(l => l.original_expense_id).filter(Boolean);
+    if (ids.length === 0) return toast.error("Esta conta não possui itens agrupados.");
+
+    const { data: originals } = await supabase
+      .from("expenses")
+      .select("id, descricao, favorecido_nome, data_emissao, data_vencimento, valor_total, documento_fiscal_numero, veiculo_placa, litros, plano_contas_id")
+      .in("id", ids);
+
+    const rows = ((originals as any[]) || []).map(o => {
+      const chart = o.plano_contas_id ? chartIdMap[o.plano_contas_id] : null;
+      return {
+        favorecido: o.favorecido_nome || "Sem favorecido",
+        descricao: o.documento_fiscal_numero ? `NF ${o.documento_fiscal_numero} — ${o.descricao}` : (o.descricao || "—"),
+        data: o.data_vencimento || o.data_emissao,
+        placa: o.veiculo_placa || "—",
+        litros: o.litros != null ? Number(o.litros) : null,
+        valor: Number(o.valor_total) || 0,
+        planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
+      };
+    }).sort((a, b) => a.data.localeCompare(b.data));
+
+    const total = rows.reduce((s, r) => s + r.valor, 0);
+    const esc = (s: any) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+    const chartGroup = expense.plano_contas_id ? chartIdMap[expense.plano_contas_id] : null;
+
+    const rowsHtml = rows.map((r) => `<tr>
+      <td class="nowrap">${esc(formatDateBR(r.data))}</td>
+      <td>${esc(r.favorecido)}</td>
+      <td>${esc(r.descricao)}</td>
+      <td>${esc(r.placa)}</td>
+      <td class="r">${r.litros != null ? esc(r.litros.toLocaleString("pt-BR", { maximumFractionDigits: 2 })) : "—"}</td>
+      <td>${esc(r.planoContas)}</td>
+      <td class="r">${esc(formatCurrency(r.valor))}</td>
+    </tr>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Composição da Conta Agrupada</title>
+<style>
+*{box-sizing:border-box}
+@page { margin: 10mm 8mm; size: A4 landscape; }
+html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;z-index:10}
+.toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
+.wrap{padding:4px;background:#fff;width:100%;max-width:100%}
+.head{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
+.head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
+.head .per{font-size:8px;color:#666;text-align:right;margin-top:2px}
+.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:8pt;color:#374151;background:#f4f7fb;border:1px solid #d0d7de;border-radius:4px;padding:5px 8px;margin-bottom:6px}
+.meta b{color:#1f2937}
+table{width:100%;border-collapse:collapse;font-size:7.5pt;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
+thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7pt;letter-spacing:.2px;padding:3px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word;overflow-wrap:anywhere}
+tbody td{padding:2px 3px;border:1px solid #e5e7eb;font-size:7.5pt;line-height:1.15;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
+tbody tr:nth-child(even) td{background:#fafbfc}
+.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow-wrap:normal}
+.nowrap{white-space:nowrap;overflow-wrap:normal;font-size:7pt}
+tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
+tr{page-break-inside:avoid}
+thead{display:table-header-group}
+tfoot{display:table-row-group}
+.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7pt;color:#6b7280}
+.grand-total{font-size:9pt;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:4px 5px;text-align:right;white-space:nowrap}
+.totals-labels{padding:4px 6px;font-size:8pt;color:#4b5563}
+@media print { .no-print{display:none!important} .toolbar{display:none!important} }
+</style></head>
+<body>
+<div class="toolbar no-print"></div>
+<div class="wrap">
+  <div class="head">
+    <div style="flex:1"><h1>Composição da Conta Agrupada</h1><div class="per">${rows.length} item(ns) agrupado(s)</div></div>
+  </div>
+  <div class="meta">
+    <span>Favorecido: <b>${esc(expense.favorecido_nome || "—")}</b></span>
+    <span>Descrição: <b>${esc(expense.descricao || "—")}</b></span>
+    <span>Vencimento: <b>${esc(expense.data_vencimento ? formatDateBR(expense.data_vencimento) : "—")}</b></span>
+    <span>Plano de Contas: <b>${esc(chartGroup ? `${chartGroup.codigo} ${chartGroup.nome}` : "—")}</b></span>
+    <span>Valor Total: <b>${esc(formatCurrency(Number(expense.valor_total) || 0))}</b></span>
+  </div>
+  <table>
+    <colgroup>
+      <col style="width:8%" />
+      <col style="width:20%" />
+      <col style="width:30%" />
+      <col style="width:8%" />
+      <col style="width:8%" />
+      <col style="width:16%" />
+      <col style="width:10%" />
+    </colgroup>
+    <thead><tr>
+      <th>Data</th><th>Favorecido</th><th>Descrição</th><th>Placa</th><th class="r">Litros</th><th>Plano de Contas</th><th class="r">Valor</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="6" class="totals-labels"><b>TOTAL DOS ITENS</b></td>
+        <td class="grand-total">${esc(formatCurrency(total))}</td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
+</div>
+<script>
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        setTimeout(function () { window.focus(); window.print(); }, 400);
+      });
+    });
+  });
+</script>
+</body></html>`;
+
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Composicao Conta Agrupada"));
+  };
+
   const handlePrintSelected = async () => {
     if (selectedIds.size === 0) return;
     const rows: { favorecido: string; descricao: string; vencimento: string; valor: number; status: string; planoContas: string }[] = [];
@@ -1633,6 +1760,12 @@ tfoot{display:table-row-group}
             className: "border-border text-muted-foreground hover:bg-muted",
             disabled: !selectedRows[0],
             onClick: () => { const r = selectedRows[0]; if (r) showExpenseDetail(r.item.id); },
+          },
+          {
+            key: "group-detail", label: "Detalhes do grupo", icon: ListTree, mode: "single",
+            className: "border-primary/40 text-primary hover:bg-primary/10",
+            disabled: !selectedRows[0] || !groupedCounts[selectedRows[0].item.id],
+            onClick: () => { const r = selectedRows[0]; if (r) printGroupedDetails(r.item); },
           },
           {
             key: "maintenance", label: "Manutenção", icon: Wrench, mode: "single",
