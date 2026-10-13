@@ -41,73 +41,116 @@ async function fetchIeOnly(rawCnpj: string): Promise<string | null> {
   }
 }
 
-async function tryFetch(url: string, signal?: AbortSignal): Promise<Response> {
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res;
+async function getJson(url: string, ms = 6000): Promise<any> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data?.status === "ERROR") throw new Error(data?.message || "CNPJ não encontrado");
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
+type Provider = (cnpj: string) => Promise<Omit<CnpjData, "inscricao_estadual"> & { inscricao_estadual?: string | null }>;
+
+const cnpja: Provider = async (c) => {
+  const d = await getJson(`https://open.cnpja.com/office/${c}`);
+  const a = d.address || {};
+  const ph = d.phones?.[0];
+  return {
+    razao_social: d.company?.name ?? null,
+    nome_fantasia: d.alias ?? null,
+    logradouro: a.street ?? null,
+    numero: a.number ?? null,
+    complemento: a.details ?? null,
+    bairro: a.district ?? null,
+    municipio: a.city ?? null,
+    uf: a.state ?? null,
+    cep: a.zip ?? null,
+    ddd_telefone_1: ph ? `${ph.area}${ph.number}` : null,
+    email: d.emails?.[0]?.address ?? null,
+  };
+};
+
+const cnpjws: Provider = async (c) => {
+  const data = await getJson(`https://publica.cnpj.ws/cnpj/${c}`);
+  const e = data.estabelecimento || {};
+  return {
+    razao_social: data.razao_social ?? null,
+    nome_fantasia: e.nome_fantasia ?? null,
+    logradouro: e.logradouro ?? null,
+    numero: e.numero ?? null,
+    complemento: e.complemento ?? null,
+    bairro: e.bairro ?? null,
+    municipio: e.cidade?.nome ?? null,
+    uf: e.estado?.sigla ?? null,
+    cep: e.cep ?? null,
+    ddd_telefone_1: e.ddd1 && e.telefone1 ? `${e.ddd1}${e.telefone1}` : null,
+    email: e.email ?? null,
+    inscricao_estadual: extractIeFromCnpjWs(data),
+  };
+};
+
+const receitaws: Provider = async (c) => {
+  const d = await getJson(`https://receitaws.com.br/v1/cnpj/${c}`);
+  return {
+    razao_social: d.nome ?? null,
+    nome_fantasia: d.fantasia || null,
+    logradouro: d.logradouro ?? null,
+    numero: d.numero ?? null,
+    complemento: d.complemento || null,
+    bairro: d.bairro ?? null,
+    municipio: d.municipio ?? null,
+    uf: d.uf ?? null,
+    cep: d.cep ? String(d.cep).replace(/\D/g, "") : null,
+    ddd_telefone_1: d.telefone ? String(d.telefone).split("/")[0].replace(/\D/g, "") : null,
+    email: d.email || null,
+  };
+};
+
+const brasilapi: Provider = async (c) => {
+  const d = await getJson(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
+  return {
+    razao_social: d.razao_social ?? null,
+    nome_fantasia: d.nome_fantasia ?? null,
+    logradouro: d.logradouro ?? null,
+    numero: d.numero ?? null,
+    complemento: d.complemento ?? null,
+    bairro: d.bairro ?? null,
+    municipio: d.municipio ?? null,
+    uf: d.uf ?? null,
+    cep: d.cep ?? null,
+    ddd_telefone_1: d.ddd_telefone_1 ?? null,
+    email: d.email ?? null,
+  };
+};
+
+/**
+ * Consulta em vários serviços públicos (o primeiro que responder vence).
+ * A IE é buscada em paralelo no cnpj.ws (único que a retorna gratuitamente).
+ */
 export async function lookupCnpj(rawCnpj: string): Promise<CnpjData> {
-  const urls = [
-    `https://brasilapi.com.br/api/cnpj/v1/${rawCnpj}`,
-    `https://publica.cnpj.ws/cnpj/${rawCnpj}`,
-  ];
-
+  const c = rawCnpj.replace(/\D/g, "");
+  const iePromise = fetchIeOnly(c);
+  const providers = [cnpja, receitaws, brasilapi, cnpjws];
   let lastError: Error | null = null;
-
-  for (const url of urls) {
-    // Try each URL up to 2 times
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        const res = await tryFetch(url, controller.signal);
-        clearTimeout(timeout);
-        const data = await res.json();
-
-        // cnpj.ws has a different response shape
-        if (url.includes("cnpj.ws")) {
-          return {
-            razao_social: data.razao_social ?? null,
-            nome_fantasia: data.estabelecimento?.nome_fantasia ?? null,
-            logradouro: data.estabelecimento?.logradouro ?? null,
-            numero: data.estabelecimento?.numero ?? null,
-            complemento: data.estabelecimento?.complemento ?? null,
-            bairro: data.estabelecimento?.bairro ?? null,
-            municipio: data.estabelecimento?.cidade?.nome ?? null,
-            uf: data.estabelecimento?.estado?.sigla ?? null,
-            cep: data.estabelecimento?.cep ?? null,
-            ddd_telefone_1: data.estabelecimento?.ddd1 && data.estabelecimento?.telefone1
-              ? `${data.estabelecimento.ddd1}${data.estabelecimento.telefone1}`
-              : null,
-            email: data.estabelecimento?.email ?? null,
-            inscricao_estadual: extractIeFromCnpjWs(data),
-          };
-        }
-
-        // BrasilAPI shape (default) — BrasilAPI não retorna IE; busca à parte no cnpj.ws
-        const ie = await fetchIeOnly(rawCnpj);
-        return {
-          razao_social: data.razao_social ?? null,
-          nome_fantasia: data.nome_fantasia ?? null,
-          logradouro: data.logradouro ?? null,
-          numero: data.numero ?? null,
-          complemento: data.complemento ?? null,
-          bairro: data.bairro ?? null,
-          municipio: data.municipio ?? null,
-          uf: data.uf ?? null,
-          cep: data.cep ?? null,
-          ddd_telefone_1: data.ddd_telefone_1 ?? null,
-          email: data.email ?? null,
-          inscricao_estadual: ie,
-        };
-      } catch (err: any) {
-        lastError = err;
-        // Small delay before retry
-        if (attempt === 0) await new Promise((r) => setTimeout(r, 500));
-      }
+  for (const p of providers) {
+    try {
+      const data = await p(c);
+      if (!data.razao_social) throw new Error("Sem dados");
+      const ie = data.inscricao_estadual !== undefined ? data.inscricao_estadual : await iePromise;
+      return { ...data, inscricao_estadual: ie ?? null };
+    } catch (err: any) {
+      lastError = err;
     }
   }
-
-  throw lastError || new Error("Falha ao consultar CNPJ");
+  throw new Error(
+    lastError?.name === "AbortError"
+      ? "Os serviços de consulta de CNPJ não responderam a tempo. Tente novamente em instantes."
+      : "Não foi possível consultar o CNPJ agora. Confira o número ou preencha os dados manualmente.",
+  );
 }
