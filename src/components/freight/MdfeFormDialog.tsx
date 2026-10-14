@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, ChevronDown, FileText, Loader2, MapPin, Package, Plus, Search, ShieldCheck, Trash2, Truck } from "lucide-react";
+import { Banknote, Building2, ChevronDown, FileText, Loader2, MapPin, Package, Plus, Search, ShieldCheck, Trash2, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -243,6 +243,28 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     return { peso, valor, qtd };
   }, [ctes]);
 
+  // Contratos de frete vinculados aos CT-es (informação de pagamento do MDF-e)
+  const [contracts, setContracts] = useState<any[]>([]);
+  useEffect(() => {
+    const ids = ctes.map((c) => c.id);
+    if (!ids.length) { setContracts([]); return; }
+    (supabase as any).from("freight_contracts").select("id,numero,cte_id,valor_total,contratado_nome,contratado_documento").in("cte_id", ids)
+      .then(({ data }: any) => setContracts(data || []));
+  }, [ctes]);
+
+  const paymentInfo = useMemo(() => {
+    const items = ctes.map((c) => {
+      const contract = contracts.find((k) => k.cte_id === c.id);
+      return {
+        cte: c,
+        contract,
+        valor: contract ? Number(contract.valor_total || 0) : Number(c.valor_frete || 0),
+        origem: contract ? `Contrato de frete nº ${contract.numero ?? "—"}` : "Frete do CT-e",
+      };
+    });
+    return { items, total: items.reduce((s, i) => s + i.valor, 0) };
+  }, [ctes, contracts]);
+
   const togglePercurso = (uf: string) =>
     set("ufs_percurso", form.ufs_percurso.includes(uf) ? form.ufs_percurso.filter((u) => u !== uf) : [...form.ufs_percurso, uf]);
 
@@ -317,7 +339,32 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
             <div className="grid grid-cols-1 gap-2 rounded-md bg-muted/50 p-2 text-xs sm:grid-cols-3"><div>Peso: <b>{totals.peso.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} kg</b></div><div>Quantidade: <b>{totals.qtd.toLocaleString("pt-BR")}</b></div><div>Valor da carga: <b>{formatCurrency(totals.valor)}</b></div></div>
           </FormBlock>
 
-          <FormBlock icon={Package} title="4. Detalhamento da carga" summary={form.produto_predominante || "Produto e classificação"}>
+          <FormBlock icon={Banknote} title="4. Informações de pagamento" summary={paymentInfo.items.length ? `Total ${formatCurrency(paymentInfo.total)}` : "Vincule um CT-e"}>
+            {paymentInfo.items.length === 0 ? (
+              <p className="text-xs text-muted-foreground">As informações de pagamento aparecem aqui quando um CT-e é vinculado ao manifesto.</p>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="divide-y divide-border rounded-md border border-border">
+                  {paymentInfo.items.map((item) => (
+                    <div key={item.cte.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 text-xs">
+                      <span className="min-w-0">
+                        <b>CT-e {item.cte.numero ?? "—"}</b>
+                        <span className="text-muted-foreground"> · {item.origem}{item.contract ? ` · ${item.contract.contratado_nome || "Contratado não informado"}` : ""}</span>
+                      </span>
+                      <b className="shrink-0">{formatCurrency(item.valor)}</b>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-1.5 text-xs">
+                  <span>Total informado à SEFAZ como pagamento do frete</span>
+                  <b>{formatCurrency(paymentInfo.total)}</b>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Somente leitura. CT-e sem contrato usa o valor do frete do próprio CT-e; CT-e com contrato de frete usa o valor do contrato pago ao subcontratado.</p>
+              </div>
+            )}
+          </FormBlock>
+
+          <FormBlock icon={Package} title="5. Detalhamento da carga" summary={form.produto_predominante || "Produto e classificação"}>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4">
               <F label="Produto predominante" className="md:col-span-2"><Input className="h-8 text-xs" value={form.produto_predominante || ""} onChange={(e) => set("produto_predominante", e.target.value)} /></F>
               <F label="Tipo de carga"><Select value={form.tipo_carga} onValueChange={(v) => set("tipo_carga", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{TIPOS_CARGA.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></F>
@@ -329,13 +376,13 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
             </div>
           </FormBlock>
 
-          <FormBlock icon={Truck} title="5. Motorista e veículo" summary={[form.motorista_nome, form.placa_veiculo].filter(Boolean).join(" · ") || "Transporte"}>
+          <FormBlock icon={Truck} title="6. Motorista e veículo" summary={[form.motorista_nome, form.placa_veiculo].filter(Boolean).join(" · ") || "Transporte"}>
             <F label="Motorista"><PersonSearchInput categories={["motorista"]} placeholder="Buscar motorista..." selectedName={form.motorista_nome || undefined} onSelect={(p) => { set("motorista_id", p.id); set("motorista_nome", p.full_name); }} onClear={() => { set("motorista_id", null); set("motorista_nome", ""); }} /></F>
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4"><F label="Veículo principal *"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.placa_veiculo || ""} onChange={(e) => set("placa_veiculo", maskPlateInput(e.target.value))} /></F><F label="Carreta 1"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.reboque1_placa || ""} onChange={(e) => set("reboque1_placa", maskPlateInput(e.target.value))} /></F><F label="Carreta 2"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.reboque2_placa || ""} onChange={(e) => set("reboque2_placa", maskPlateInput(e.target.value))} /></F><F label="RNTRC"><Input className="h-8 text-xs" value={form.rntrc || ""} onChange={(e) => set("rntrc", e.target.value)} /></F></div>
             <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2"><F label="Contratado (dono do caminhão, quando de terceiro)"><PersonSearchInput categories={["proprietario", "motorista"]} placeholder="Buscar contratado..." selectedName={form.contratado_nome || undefined} onSelect={(p) => { set("contratado_id", p.id); set("contratado_nome", p.razao_social || p.full_name); set("contratado_documento", p.cnpj || ""); }} onClear={() => { set("contratado_id", null); set("contratado_nome", ""); set("contratado_documento", ""); }} /></F><F label="Auxiliares / outros motoristas"><PersonSearchInput categories={["motorista"]} placeholder="Adicionar outro motorista..." onSelect={(p) => { if (!form.condutores_extras.some((c) => c.id === p.id)) set("condutores_extras", [...form.condutores_extras, { id: p.id, nome: p.full_name }]); }} />{form.condutores_extras.map((c) => <div key={c.id} className="flex items-center justify-between text-xs"><span>{c.nome}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => set("condutores_extras", form.condutores_extras.filter((x) => x.id !== c.id))}><Trash2 className="h-3 w-3" /></Button></div>)}</F></div>
           </FormBlock>
 
-          <FormBlock icon={ShieldCheck} title="6. Seguro e CIOT" summary={form.seguro_manual || form.ciot_manual ? "Preenchimento manual" : "Dados automáticos"} defaultOpen={false}>
+          <FormBlock icon={ShieldCheck} title="7. Seguro e CIOT" summary={form.seguro_manual || form.ciot_manual ? "Preenchimento manual" : "Dados automáticos"} defaultOpen={false}>
             <label className="flex items-center gap-2 text-xs"><Checkbox checked={form.seguro_manual} onCheckedChange={(v) => set("seguro_manual", !!v)} /> Definir seguradora manualmente</label>
             {form.seguro_manual && insurers.length > 0 && <F label="Seguradora cadastrada"><select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value="" onChange={(e) => { const i = insurers.find((x) => x.id === e.target.value); if (i) setForm((f) => ({ ...f, seguradora_nome: i.nome, seguradora_cnpj: i.cnpj || "", apolice_numero: i.apolice_numero || "" })); }}><option value="">Selecionar seguradora…</option>{insurers.map((i) => <option key={i.id} value={i.id}>{i.nome}{i.apolice_numero ? ` — Apólice ${i.apolice_numero}` : ""}</option>)}</select></F>}
             {form.seguro_manual && <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4"><F label="Seguradora"><Input className="h-8 text-xs" value={form.seguradora_nome || ""} onChange={(e) => set("seguradora_nome", e.target.value)} /></F><F label="CNPJ seguradora"><Input className="h-8 text-xs" value={form.seguradora_cnpj || ""} onChange={(e) => set("seguradora_cnpj", e.target.value)} /></F><F label="Apólice"><Input className="h-8 text-xs" value={form.apolice_numero || ""} onChange={(e) => set("apolice_numero", e.target.value)} /></F><F label="Averbação"><Input className="h-8 text-xs" value={form.averbacao_numero || ""} onChange={(e) => set("averbacao_numero", e.target.value)} /></F></div>}
@@ -343,7 +390,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
             {form.ciot_manual && <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"><F label="Número do CIOT"><Input className="h-8 text-xs" maxLength={12} value={form.ciot_numero || ""} onChange={(e) => set("ciot_numero", e.target.value.replace(/\D/g, ""))} /></F><F label="CPF/CNPJ do responsável"><Input className="h-8 text-xs" value={form.ciot_documento || ""} onChange={(e) => set("ciot_documento", e.target.value)} /></F></div>}
           </FormBlock>
 
-          <FormBlock icon={MapPin} title="7. Vale-pedágio" summary={`${form.vale_pedagio.length} registro(s)`} defaultOpen={false}>
+          <FormBlock icon={MapPin} title="8. Vale-pedágio" summary={`${form.vale_pedagio.length} registro(s)`} defaultOpen={false}>
             {form.vale_pedagio.map((pedagio, i) => { const updatePedagio = (key: keyof Pedagio, value: string) => set("vale_pedagio", form.vale_pedagio.map((item, index) => index === i ? { ...item, [key]: value } : item)); return <div key={i} className="grid grid-cols-1 items-end gap-2 rounded-md border border-border bg-muted/40 p-2 sm:grid-cols-2 md:grid-cols-6"><F label="Pago por"><Select value={pedagio.pago_por} onValueChange={(v) => updatePedagio("pago_por", v)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="emitente">Emitente</SelectItem><SelectItem value="contratante">Contratante</SelectItem></SelectContent></Select></F><F label="Dispositivo"><Select value={pedagio.dispositivo} onValueChange={(v) => updatePedagio("dispositivo", v)}><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger><SelectContent><SelectItem value="tag">Tag</SelectItem><SelectItem value="cupom">Cupom</SelectItem><SelectItem value="cartao">Cartão</SelectItem></SelectContent></Select></F><F label="Fornecedora"><Input className="h-8 text-xs" value={pedagio.fornecedor_nome} onChange={(e) => updatePedagio("fornecedor_nome", e.target.value)} /></F><F label="CNPJ"><Input className="h-8 text-xs" value={pedagio.fornecedor_cnpj} onChange={(e) => updatePedagio("fornecedor_cnpj", e.target.value)} /></F><F label="Comprovante"><Input className="h-8 text-xs" value={pedagio.comprovante} onChange={(e) => updatePedagio("comprovante", e.target.value)} /></F><div className="flex gap-1"><F label="Valor" className="flex-1"><Input className="h-8 text-xs" value={pedagio.valor} onChange={(e) => updatePedagio("valor", e.target.value)} /></F><Button variant="ghost" size="icon" className="h-8 w-8 self-end" onClick={() => set("vale_pedagio", form.vale_pedagio.filter((_, index) => index !== i))}><Trash2 className="h-4 w-4" /></Button></div></div>; })}
             <Button variant="outline" size="sm" className="h-8 w-fit text-xs" onClick={() => set("vale_pedagio", [...form.vale_pedagio, { pago_por: "emitente", dispositivo: "", fornecedor_nome: "", fornecedor_cnpj: "", comprovante: "", valor: "" }])}><Plus className="mr-1 h-4 w-4" /> Adicionar vale-pedágio</Button>
           </FormBlock>
