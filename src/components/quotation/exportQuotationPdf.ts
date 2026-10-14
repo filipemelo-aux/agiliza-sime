@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 const formatCurrency = (v: number | null) =>
   v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
@@ -14,13 +15,13 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
   const isFrete = q.type === "frete";
   const diaria = q.valor_mensal_por_caminhao ? q.valor_mensal_por_caminhao / 30 : null;
 
-  const logoUrl = window.location.origin + "/favicon.png";
+  const logoUrl = fsmLogoUrl;
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
   body{font-family:Arial,sans-serif;padding:20px 30px;color:#222;font-size:11px;line-height:1.2;max-width:800px;margin:0 auto}
   .header{display:flex;align-items:center;gap:12px;border-bottom:3px solid #2B4C7E;padding-bottom:10px;margin-bottom:14px}
-  .header img{height:40px}
+  .header img{height:26px}
   .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:20px;color:#2B4C7E}
   .brand span{color:#F5C518}
   .meta{display:flex;justify-content:space-between;margin-bottom:12px}
@@ -37,7 +38,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
 </style></head><body>
 
 <div class="header">
-  <img src="${logoUrl}" alt="SIME" />
+  <img src="${logoUrl}" alt="FSM | Sistemas" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
     <div style="font-size:11px;color:#666">${companyName}</div>

@@ -1,3 +1,4 @@
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { formatCurrency } from "@/lib/masks";
@@ -32,7 +33,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   const items = (rows as any[]) || [];
   const total = items.reduce((s, r) => s + Number(r.amount || 0), 0);
 
-  const logoUrl = window.location.origin + "/favicon.png";
+  const logoUrl = fsmLogoUrl;
 
   const tbody = items
     .map((r) => {
@@ -63,7 +64,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { font-family: Arial, sans-serif; color: #222; font-size: 11px; margin: 0; padding: 16px; }
   .header { display: flex; align-items: center; gap: 12px; border-bottom: 3px solid #2B4C7E; padding-bottom: 8px; margin-bottom: 12px; }
-  .header img { height: 36px; }
+  .header img { height: 26px; }
   .brand { font-family: 'Exo', Arial, sans-serif; font-weight: 800; font-style: italic; font-size: 18px; color: #2B4C7E; }
   .brand span { color: #F5C518; }
   h1 { font-size: 15px; color: #2B4C7E; margin: 0 0 10px; text-align: center; }
@@ -88,7 +89,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   .footer { margin-top: 14px; border-top: 2px solid #2B4C7E; padding-top: 6px; text-align: center; font-size: 9px; color: #666; }
 </style></head><body>
 <div class="header">
-  <img src="${logoUrl}" alt="SIME" />
+  <img src="${logoUrl}" alt="FSM | Sistemas" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
     <div style="font-size:10px;color:#666">Fatura de Cartão de Crédito</div>
