@@ -410,7 +410,7 @@ Deno.serve(async (req) => {
       }
     }
     const naoAutorizados = (linked || []).filter((c: any) => c.status !== "autorizado" || digits(c.chave_acesso).length !== 44).map((c: any) => c.numero ?? "s/n");
-    const chaves = [...new Set([...(m.lista_ctes || []), ...(linked || []).map((c: any) => c.chave_acesso)].map(digits).filter((c: string) => c.length === 44))];
+    const chaves = [...new Set([...(m.lista_ctes || []), ...(m.chaves_cte_terceiros || []), ...(linked || []).map((c: any) => c.chave_acesso)].map(digits).filter((c: string) => c.length === 44))];
     if (chaves.length && JSON.stringify(chaves) !== JSON.stringify((m.lista_ctes || []).map(digits))) {
       await supabase.from("mdfe").update({ lista_ctes: chaves }).eq("id", mdfeId);
     }

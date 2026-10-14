@@ -254,7 +254,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
       data_saida: form.data_saida ? new Date(form.data_saida).toISOString() : null,
       km_inicial: form.km_inicial ? Number(form.km_inicial) : null,
       cte_ids: ctes.map((c) => c.id),
-      lista_ctes: [...ctes.map((c) => c.chave_acesso).filter(Boolean), ...form.chaves_cte_terceiros],
+      lista_ctes: ctes.map((c) => c.id), // coluna uuid[]: as chaves vêm dos CT-es vinculados na transmissão
       peso_total: totals.peso, quantidade_total: totals.qtd, valor_total: totals.valor,
       ciot_numero: ciot_manual ? form.ciot_numero : null,
       ciot_documento: ciot_manual ? form.ciot_documento : null,
