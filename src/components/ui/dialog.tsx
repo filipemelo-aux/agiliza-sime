@@ -36,16 +36,12 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] max-w-[480px] translate-x-[-50%] translate-y-[-50%] max-h-[calc(100dvh-2rem)] border border-border/60 bg-background shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-2xl overflow-hidden max-sm:left-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:w-full max-sm:max-w-none max-sm:max-h-[100dvh] max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0",
+        "fixed left-[50%] top-[50%] z-50 flex flex-col gap-4 w-[calc(100%-1.5rem)] max-w-[480px] translate-x-[-50%] translate-y-[-50%] max-h-[calc(100dvh-2rem)] border border-border/60 bg-background shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-2xl overflow-y-auto overflow-x-hidden overscroll-contain p-6 pt-5 pb-8 [&>*]:shrink-0 [&>[data-radix-scroll-area-root]]:shrink [&>[data-radix-scroll-area-root]]:min-h-0 max-sm:left-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:w-full max-sm:max-w-none max-sm:max-h-[100dvh] max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0 max-sm:p-4 max-sm:pb-10",
         className,
-        // The dialog itself owns vertical scrolling, never its padding wrapper.
-        "overflow-y-auto overflow-x-hidden overscroll-contain",
       )}
       {...props}
     >
-      <div data-dialog-body className="min-w-0 p-6 pt-5 pb-8 max-sm:p-4 max-sm:pb-10 flex flex-col gap-4 [&>*]:shrink-0">
-        {children}
-      </div>
+      {children}
       <DialogPrimitive.Close className="absolute right-3.5 top-3.5 rounded-full p-1.5 text-muted-foreground/50 transition-all duration-150 ease-out hover:text-foreground hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
         <X className="h-4 w-4" strokeWidth={1.75} />
         <span className="sr-only">Close</span>
