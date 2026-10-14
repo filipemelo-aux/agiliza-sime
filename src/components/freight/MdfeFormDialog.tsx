@@ -88,6 +88,7 @@ const emptyForm = () => ({
   reboque1_placa: "", reboque2_placa: "", contratado_id: null as string | null, contratado_nome: "", contratado_documento: "",
   condutores_extras: [] as Condutor[], seguro_manual: false, seguradora_nome: "", seguradora_cnpj: "", apolice_numero: "", averbacao_numero: "",
   ciot_manual: false, ciot_numero: "", ciot_documento: "", vale_pedagio: [] as Pedagio[],
+  pagamento_manual: null as { nome: string; documento: string; valor: number } | null,
 });
 
 interface Props {
