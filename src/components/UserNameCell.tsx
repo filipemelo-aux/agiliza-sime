@@ -16,6 +16,15 @@ export function useUserNames() {
   });
 }
 
+/** Corta no último espaço antes do limite, para não partir o sobrenome no meio. */
+function shortenName(full: string, maxLength: number) {
+  if (full.length <= maxLength) return full;
+  const cut = full.slice(0, maxLength);
+  const lastSpace = cut.lastIndexOf(" ");
+  const keep = lastSpace > maxLength * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return `${keep.trimEnd()}…`;
+}
+
 /**
  * Nome de quem criou o registro. Nomes muito longos são cortados com "…"
  * e aparecem por extenso ao passar o mouse, como nas colunas Cliente/Descrição.
@@ -28,7 +37,7 @@ export function UserNameCell({ userId, maxLength = 24 }: { userId?: string | nul
       className="block truncate whitespace-nowrap leading-tight"
       title={full}
     >
-      {limitDisplayText(full || "—", maxLength)}
+      {shortenName(full || "—", maxLength)}
     </span>
   );
 }
