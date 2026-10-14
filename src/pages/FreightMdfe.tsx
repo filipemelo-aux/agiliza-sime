@@ -20,8 +20,7 @@ import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { formatDateBR } from "@/lib/date";
 import { MdfeFormDialog } from "@/components/freight/MdfeFormDialog";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { buildMdfeHtml } from "@/components/freight/mdfePrint";
-import { buildHtmlPdf } from "@/lib/htmlToPdf";
+import { buildDamdfePdf } from "@/components/freight/damdfePdf";
 import { base64ToBytes, downloadBytes, mergePdfBytes } from "@/lib/mergePdfs";
 import JSZip from "jszip";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
@@ -159,14 +158,9 @@ export default function FreightMdfe() {
     });
   };
 
-  // Bytes do DAMDFE de um manifesto: PDF oficial da SEFAZ quando autorizado, senão o modelo interno.
+  // Bytes do DAMDFE: sempre o modelo vetorial fixo aprovado (damdfePdf.ts).
   const damdfeBytes = async (m: any): Promise<Uint8Array> => {
-    if (["autorizado", "encerrado", "cancelado"].includes(m.status)) {
-      const r = await mdfeFocus("damdfe_mdfe_salvo", m.id);
-      if (r.success && r.pdf_base64) return base64ToBytes(r.pdf_base64);
-    }
-    const html = await buildMdfeHtml(m);
-    const pdf = await buildHtmlPdf(html);
+    const pdf = await buildDamdfePdf([m]);
     return new Uint8Array(pdf.output("arraybuffer"));
   };
 
