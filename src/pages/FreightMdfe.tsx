@@ -255,16 +255,16 @@ export default function FreightMdfe() {
   };
 
   const columns: DataGridColumn<any>[] = [
-    { key: "numero", header: "Nº", width: "60px", sortValue: (r) => r.numero ?? 0, cell: (r) => r.numero ?? "—" },
-    { key: "emissao", header: "Emissão", width: "90px", sortValue: (r) => r.data_emissao || "", cell: (r) => formatDateBR(r.data_emissao) },
+    { key: "numero", header: "Nº", width: "55px", sortValue: (r) => r.numero ?? 0, cell: (r) => r.numero ?? "—" },
+    { key: "emissao", header: "Emissão", width: "82px", sortValue: (r) => r.data_emissao || "", cell: (r) => formatDateBR(r.data_emissao) },
     { key: "rota", header: "Percurso", cell: (r) => `${r.municipio_carregamento_nome || ""}/${r.uf_carregamento || ""} → ${r.municipio_descarregamento_nome || ""}/${r.uf_descarregamento || ""}` },
-    { key: "placa", header: "Placa", width: "90px", cell: (r) => r.placa_veiculo },
+    { key: "placa", header: "Placa", width: "82px", cell: (r) => r.placa_veiculo },
     { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
-    { key: "ctes", header: "CT-es", width: "60px", cell: (r) => (r.lista_ctes || []).length },
-    { key: "peso", header: "Peso (kg)", width: "100px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
-    { key: "agencia", header: "Agência", width: "80px", align: "center", sortValue: (r) => r.establishment_id || "", cell: (r) => <EmpresaUf empresaId={r.establishment_id} /> },
-    { key: "usuario", header: "Usuário", width: "150px", cell: (r) => <UserNameCell userId={r.created_by} /> },
-    { key: "status", header: "Status", width: "140px", align: "center", sortValue: (r) => r.status, cell: (r) => <Badge className={statusColors[r.status] || "bg-muted text-muted-foreground"}>{STATUS_LABEL[r.status] || r.status}</Badge> },
+    { key: "ctes", header: "CT-es", width: "52px", cell: (r) => (r.lista_ctes || []).length },
+    { key: "peso", header: "Peso (kg)", width: "90px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
+    { key: "agencia", header: "Agência", width: "72px", align: "center", sortValue: (r) => r.establishment_id || "", cell: (r) => <EmpresaUf empresaId={r.establishment_id} /> },
+    { key: "usuario", header: "Usuário", width: "160px", cell: (r) => <UserNameCell userId={r.created_by} /> },
+    { key: "status", header: "Status", width: "130px", align: "center", sortValue: (r) => r.status, cell: (r) => <Badge className={statusColors[r.status] || "bg-muted text-muted-foreground"}>{STATUS_LABEL[r.status] || r.status}</Badge> },
   ] as any;
 
 
@@ -304,7 +304,8 @@ export default function FreightMdfe() {
             selected={selected}
             onSelectedChange={setSelected}
             loading={loading}
-            minWidth={860}
+            minWidth={940}
+            tableLayout="fixed"
             rowClassName={(r) => rowToneClass(["autorizado", "encerrado"].includes(r.status) ? "resolved" : r.status === "rejeitado" ? "overdue" : r.status === "cancelado" ? "neutral" as any : "pending")}
             emptyMessage='Nenhum manifesto. Clique em "Novo MDF-e" ou gere a partir da tela de CT-e.'
           />
