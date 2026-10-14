@@ -494,13 +494,21 @@ Deno.serve(async (req) => {
     };
     let cepCarrega = digits(m.cep_carregamento), cepDescarrega = digits(m.cep_descarregamento);
     let tomadorNome = "", tomadorDoc = "";
+    let valorFrete = 0;
     if (chaves.length === 1) {
-      const { data: c1 } = await supabase.from("ctes").select("*").eq("chave_acesso", chaves[0]).maybeSingle();
+      // A chave pode estar gravada com prefixo "CTe"; busca nas duas formas
+      const { data: c1 } = await supabase.from("ctes").select("*").or(`chave_acesso.eq.${chaves[0]},chave_acesso.eq.CTe${chaves[0]}`).limit(1).maybeSingle();
       if (cepCarrega.length !== 8) cepCarrega = findCep(c1, /remet|expedi|coleta|origem/i) || digits(est.endereco_cep);
       if (cepDescarrega.length !== 8) cepDescarrega = findCep(c1, /destin|receb|entrega/i) || cepCarrega;
-      tomadorNome = String(findField(c1, /tomador/i, /nome|razao/i) || findField(c1, /remet|expedi/i, /nome|razao/i) || "").slice(0, 60);
-      tomadorDoc = digits(findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet|expedi/i, /cnpj|cpf|documento/i));
+      // Tomador conforme o tipo do CT-e: 0 remetente, 1 expedidor, 2 recebedor, 3 destinatário, 4 outros
+      const tt = String((c1 as any)?.tomador_tipo ?? "0");
+      const scope = tt === "1" ? /expedi/i : tt === "2" ? /receb/i : tt === "3" ? /destin/i : tt === "4" ? /tomador/i : /remet/i;
+      tomadorNome = String(findField(c1, scope, /nome|razao/i) || findField(c1, /tomador/i, /nome|razao/i) || findField(c1, /remet/i, /nome|razao/i) || "").slice(0, 60);
+      tomadorDoc = digits(findField(c1, scope, /cnpj|cpf|documento/i) || findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet/i, /cnpj|cpf|documento/i));
+      valorFrete = Number((c1 as any)?.valor_frete || 0);
     }
+    const valorPag = (valorFrete || Number(m.valor_total || 0)).toFixed(2);
+    if (chaves.length === 1 && tomadorDoc.length < 11) return json({ error: "Carga lotação: a SEFAZ exige as informações de pagamento do frete. Informe o CPF/CNPJ do tomador no CT-e vinculado." }, 422);
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
       emitente: 1, serie: m.serie || est.serie_mdfe || 1, numero,
