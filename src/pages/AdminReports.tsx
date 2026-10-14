@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { useNavigate } from "react-router-dom";
 import { FileSpreadsheet, Search, Download, Users, Car, Package, FolderTree, Printer } from "lucide-react";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 import { format } from "date-fns";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +58,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 
 function printPdf(title: string, headers: string[], rows: string[][], matriz: any, cnpjsFooter: string) {
   const now = format(new Date(), "dd/MM/yyyy HH:mm");
-  const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
+  const logoUrl = fsmLogoUrl;
   const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
 
   const tableRows = rows.map((r, i) => {
@@ -104,7 +105,7 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 <tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
   <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
     <td style="width:48px;vertical-align:middle;padding-right:16px">
-      <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px;border:0" />
+      <img src="${logoUrl}" alt="FSM | Sistemas" style="display:block;height:26px;width:auto;border:0" />
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
