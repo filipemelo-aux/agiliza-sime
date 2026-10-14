@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { dismissErrorNotice, subscribeErrorNotices, type NoticeItem } from "@/lib/notice";
 
@@ -10,14 +11,26 @@ export function NoticeHost() {
   const [items, setItems] = useState<NoticeItem[]>([]);
 
   useEffect(() => subscribeErrorNotices(setItems), []);
+  const ref = useRef<HTMLDivElement>(null);
+  // Impede que janelas abertas por baixo (que bloqueiam cliques fora delas) capturem o clique no aviso.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const stop = (e: Event) => e.stopPropagation();
+    el.addEventListener("pointerdown", stop);
+    el.addEventListener("focusin", stop);
+    return () => { el.removeEventListener("pointerdown", stop); el.removeEventListener("focusin", stop); };
+  });
 
   const current = items[0];
   if (!current) return null;
   const pending = items.length - 1;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+      ref={ref}
+      style={{ pointerEvents: "auto" }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
       onClick={() => dismissErrorNotice(current.id)}
     >
       <div
@@ -56,5 +69,6 @@ export function NoticeHost() {
         )}
       </div>
     </div>
+    ,document.body
   );
 }
