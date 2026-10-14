@@ -1,10 +1,11 @@
 import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, FileCode2, Send, Eye, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
+import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useAuth } from "@/contexts/AuthContext";
 import { mdfeFocus } from "@/services/fiscal/focusMdfeService";
@@ -36,6 +37,7 @@ export default function FreightMdfe() {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -266,7 +268,8 @@ export default function FreightMdfe() {
           actions={[
             { key: "import", label: "Importar XML", icon: XmlUploadIcon as unknown as LucideIcon, mode: "always", disabled: selected.size > 0 || isConsultor, onClick: () => setImportOpen(true) },
             { key: "new", label: "Novo MDF-e", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditing(null); setInitialCteIds(undefined); setFormOpen(true); } },
-            { key: "transmit", label: "SEFAZ", icon: SefazIcon as unknown as LucideIcon, mode: "single+batch", variant: "secondary", priority: selected.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: selected.size === 0 || !!busy, onClick: handleSefazClick },
+            { key: "transmit", label: "SEFAZ MDF-e", icon: MdfeIcon as unknown as LucideIcon, mode: "single+batch", variant: "secondary", priority: selected.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: selected.size === 0 || !!busy, onClick: handleSefazClick },
+            { key: "cteSefaz", label: "SEFAZ CT-e vinculado", icon: SefazIcon as unknown as LucideIcon, mode: "single", variant: "outline", priority: selected.size > 0, iconClassName: "!h-7 !w-7 md:!h-[26px] md:!w-[26px]", disabled: !single || !(single.cte_ids || []).length, onClick: () => single && navigate(`/admin/freight/cte?sefaz=${single.cte_ids[0]}`) },
             { key: "consult", label: "Consultar SEFAZ", icon: RefreshCw, mode: "single", disabled: !single || !!busy || single.status === "rascunho", onClick: handleConsult },
             { key: "close", label: "Encerrar", icon: Flag, mode: "single", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setDataEnc(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setOpDialog("encerrar"); } },
             { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },

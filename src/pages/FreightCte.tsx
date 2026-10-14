@@ -24,7 +24,7 @@ import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDia
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
@@ -125,9 +125,23 @@ export default function FreightCte() {
   const { toast } = useToast();
   const { user, isConsultor } = useAuth();
   const navigate = useNavigate();
+  const [cteParams, setCteParams] = useSearchParams();
+  const [pendingCteSefaz, setPendingCteSefaz] = useState<string | null>(null);
+  // Abertura vinda do MDF-e (?sefaz=id): seleciona o CT-e vinculado e abre as opções SEFAZ do CT-e.
+  useEffect(() => {
+    const id = cteParams.get("sefaz");
+    if (id) { setPendingCteSefaz(id); cteParams.delete("sefaz"); setCteParams(cteParams, { replace: true }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!pendingCteSefaz || loading) return;
+    if (ctes.some((c) => c.id === pendingCteSefaz)) { setSelectedIds(new Set([pendingCteSefaz])); setSefazOpen(true); }
+    setPendingCteSefaz(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCteSefaz, loading, ctes]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [printing] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
