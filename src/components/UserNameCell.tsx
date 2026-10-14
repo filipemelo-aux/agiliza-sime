@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { limitDisplayText } from "@/lib/displayText";
 
 /** Mapa user_id (auth) -> nome do perfil, em cache compartilhado. */
 export function useUserNames() {
