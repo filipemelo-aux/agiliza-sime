@@ -118,7 +118,7 @@ export function CreditCardInvoices() {
   const columns: DataGridColumn<InvoiceRow>[] = [
     {
       key: "empresa",
-      header: "Emp.",
+      header: "Agência",
       width: "76px",
       align: "center",
       sortValue: (r) => r.empresa_id || "",
