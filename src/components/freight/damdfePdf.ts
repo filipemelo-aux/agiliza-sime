@@ -5,7 +5,7 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
-import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal.png";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 type Dict = Record<string, any>;
 
@@ -220,8 +220,8 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
   plates.slice(0, 4).forEach((p, i) => {
     const y = 333 + i * 20;
     P.text(`${plateFmt(p.placa)}/${ufV}`, 34, y, 7.4);
-    P.text(rntrc, 128, y, 7.4, { maxW: 56 });
-    P.text(digits(p.renavam), 188, y, 7.4, { maxW: 70 });
+    P.text(rntrc, 128, y, 6.4, { maxW: 56 });
+    P.text(digits(p.renavam), 190, y, 6.6, { maxW: 70 });
     P.text(ownerDoc, 262, y, 7.4, { maxW: 102 });
     P.text(ownerName, 368, y, 7.4, { maxW: 362 });
   });
@@ -306,8 +306,8 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
   P.hl(35, 1259, 835);
   P.text("Agiliza TMS", 545, 851, 6.6, { align: "right" });
   if (fsmLogo) {
-    const h = 8, w = (fsmLogo.w / fsmLogo.h) * h;
-    pdf.addImage(fsmLogo.data, "PNG", 552, 847.5, w, h);
+    const h = 10, w = (fsmLogo.w / fsmLogo.h) * h;
+    pdf.addImage(fsmLogo.data, "PNG", k(551), k(845), k(w), k(h));
   } else {
     P.text("FSM | Sistemas", 556, 851, 6.6);
   }
