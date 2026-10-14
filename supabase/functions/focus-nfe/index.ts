@@ -397,26 +397,45 @@ Deno.serve(async (req) => {
     }
 
     // Validações antes do envio
-    const chaves = [...new Set((m.lista_ctes || []).map(digits).filter((c: string) => c.length === 44))];
+    // CT-es vinculados: usa sempre a chave atual (o MDF-e pode ter sido salvo antes da autorização do CT-e)
+    const linkedIds: string[] = Array.isArray(m.cte_ids) ? m.cte_ids : [];
+    const { data: linked } = linkedIds.length
+      ? await supabase.from("ctes").select("id,numero,status,chave_acesso,nfe_detalhes,produto_predominante").in("id", linkedIds)
+      : { data: [] as any[] };
+    const naoAutorizados = (linked || []).filter((c: any) => c.status !== "autorizado" || digits(c.chave_acesso).length !== 44).map((c: any) => c.numero ?? "s/n");
+    const chaves = [...new Set([...(m.lista_ctes || []), ...(linked || []).map((c: any) => c.chave_acesso)].map(digits).filter((c: string) => c.length === 44))];
+    if (chaves.length && JSON.stringify(chaves) !== JSON.stringify((m.lista_ctes || []).map(digits))) {
+      await supabase.from("mdfe").update({ lista_ctes: chaves }).eq("id", mdfeId);
+    }
+    // NCM e produto: completa a partir das notas do CT-e
+    let ncm = digits(m.ncm);
+    if (ncm.length !== 8) ncm = digits((linked || []).flatMap((c: any) => Array.isArray(c.nfe_detalhes) ? c.nfe_detalhes : []).find((n: any) => digits(n?.ncm).length === 8)?.ncm);
+    const produto = m.produto_predominante || (linked || [])[0]?.produto_predominante || "";
+    let motoristaNome = m.motorista_nome as string | null;
+    let cpf = digits(m.motorista_cpf);
+    if (m.motorista_id && (cpf.length !== 11 || !motoristaNome)) {
+      const { data: p } = await supabase.from("profiles").select("cnpj,full_name").eq("id", m.motorista_id).maybeSingle();
+      if (cpf.length !== 11) cpf = digits((p as any)?.cnpj);
+      motoristaNome = motoristaNome || (p as any)?.full_name || null;
+    }
     const pend: string[] = [];
-    if (!chaves.length) pend.push("ao menos um CT-e autorizado (com chave de acesso)");
+    if (naoAutorizados.length) pend.push(`CT-e ${naoAutorizados.join(", ")} ainda não autorizado pela SEFAZ`);
+    else if (!chaves.length) pend.push("ao menos um CT-e autorizado (com chave de acesso)");
     if (!digits(m.municipio_carregamento_ibge)) pend.push("município de carregamento");
     if (!digits(m.municipio_descarregamento_ibge)) pend.push("município de descarregamento");
     if (!m.placa_veiculo) pend.push("placa do veículo");
-    if (!m.motorista_nome) pend.push("motorista");
+    if (!motoristaNome) pend.push("motorista");
+    else if (cpf.length !== 11) pend.push(`CPF do motorista ${motoristaNome} (preencha no cadastro de Pessoas)`);
     if (!Number(m.peso_total)) pend.push("peso total");
-    if (!m.seguradora_nome || !m.apolice_numero) pend.push("seguro da carga (seguradora e apólice)");
-    if (chaves.length === 1 && (!m.produto_predominante || digits(m.ncm).length !== 8)) pend.push("produto predominante e NCM (8 dígitos) da carga");
-    if (pend.length) return json({ success: false, status: "validacao", motivo_rejeicao: `Faltando: ${pend.join(", ")}.` });
-
-    // Motorista: CPF do manifesto ou do cadastro
-    let cpf = digits(m.motorista_cpf);
-    if (cpf.length !== 11 && m.motorista_id) {
-      const { data: p } = await supabase.from("profiles").select("cnpj").eq("id", m.motorista_id).maybeSingle();
-      cpf = digits((p as any)?.cnpj);
+    if (!m.seguradora_nome || !m.apolice_numero) pend.push("seguro da carga — seguradora e nº da apólice (preencha no MDF-e ou na configuração da empresa emitente)");
+    if (chaves.length === 1 && (!produto || ncm.length !== 8)) pend.push("produto predominante e NCM (8 dígitos) da carga");
+    if (pend.length) return json({ success: false, status: "validacao", motivo_rejeicao: `Faltando: ${pend.join("; ")}.` });
+    if (ncm !== digits(m.ncm) || produto !== m.produto_predominante) {
+      await supabase.from("mdfe").update({ ncm, produto_predominante: produto }).eq("id", mdfeId);
+      m.ncm = ncm; m.produto_predominante = produto;
     }
-    if (cpf.length !== 11) return json({ success: false, status: "validacao", motivo_rejeicao: "CPF do motorista não encontrado. Informe-o no cadastro do motorista." });
-    const condutores: { nome: string; cpf: string }[] = [{ nome: String(m.motorista_nome).slice(0, 60), cpf }];
+    m.motorista_nome = motoristaNome;
+    const condutores: { nome: string; cpf: string }[] = [{ nome: String(motoristaNome).slice(0, 60), cpf }];
     const extras = Array.isArray(m.condutores_extras) ? m.condutores_extras : [];
     if (extras.length) {
       const { data: ps } = await supabase.from("profiles").select("id,full_name,cnpj").in("id", extras.map((c: any) => c.id).filter(Boolean));
