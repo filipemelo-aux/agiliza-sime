@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, FileCode2, Send, type LucideIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, FileCode2, Send, Eye, type LucideIcon } from "lucide-react";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { pushErrorNotice } from "@/lib/notice";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -106,9 +107,11 @@ export default function FreightMdfe() {
     load();
   };
 
-  const run = async (label: string, fn: () => Promise<void>) => {
+  const run = async (label: string, fn: () => Promise<void>, saveErrorOn?: string) => {
     setBusy(label);
-    try { await fn(); } catch (e) { toast({ title: "Erro", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
+    try { await fn(); } catch (e) {
+      if (saveErrorOn) await supabase.from("mdfe").update({ motivo_rejeicao: e instanceof Error ? e.message : String(e) } as any).eq("id", saveErrorOn);
+      toast({ title: "Erro", description: e instanceof Error ? e.message : String(e), variant: "destructive" }); }
     finally { setBusy(null); load(); }
   };
 
@@ -120,8 +123,12 @@ export default function FreightMdfe() {
       const r = await mdfeFocus("emitir_mdfe_salvo", single.id);
       if (r.status === "autorizado") toast({ title: "MDF-e autorizado", description: `Nº ${r.numero} — protocolo ${r.protocolo || "-"}` });
       else if (r.success) toast({ title: "MDF-e em processamento", description: r.motivo_rejeicao });
-      else toast({ title: "MDF-e não autorizado", description: r.motivo_rejeicao || r.error, variant: "destructive" });
-    });
+      else {
+        const msg = r.motivo_rejeicao || r.error || "Erro não informado";
+        await supabase.from("mdfe").update({ motivo_rejeicao: msg } as any).eq("id", single.id);
+        toast({ title: "MDF-e não autorizado", description: msg, variant: "destructive" });
+      }
+    }, single.id);
   };
 
   const handleConsult = () => single && run("Consultando situação na SEFAZ...", async () => {
@@ -269,6 +276,7 @@ export default function FreightMdfe() {
             { key: "close", label: "Encerrar", icon: Flag, mode: "single", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setDataEnc(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setOpDialog("encerrar"); } },
             { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },
             { key: "xml", label: "Baixar XML", icon: FileCode, mode: "single", disabled: !single || !!busy || !["autorizado", "encerrado", "cancelado"].includes(single.status), onClick: handleXml },
+            { key: "viewerr", label: "Ver erro", icon: Eye, mode: "single", disabled: !single || !single.motivo_rejeicao || ["autorizado", "encerrado", "cancelado"].includes(single.status), onClick: () => pushErrorNotice(`Último erro do MDF-e ${single.numero ? "nº " + single.numero : "(sem número)"}`, single.motivo_rejeicao) },
             { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable || isConsultor, onClick: () => { setEditing(single); setFormOpen(true); } },
             { key: "print", label: printing ? "Gerando PDF" : "Baixar DAMDFE", icon: printing ? Loader2 : FileDown, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: handlePrint },
             { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0 || isConsultor, onClick: handleDelete },
