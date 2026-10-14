@@ -716,7 +716,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       cell: (c) => <EmpresaUf empresaId={c.establishment_id} />,
     },
     {
-      key: "usuario", header: "Usuário", width: "110px",
+      key: "usuario", header: "Usuário", width: "150px",
       cell: (c) => <UserNameCell userId={c.created_by} />,
     },
     {
