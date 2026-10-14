@@ -43,6 +43,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   fornecedor: "Fornecedor",
   colaborador: "Colaborador",
   banco: "Banco",
+  seguradora: "Seguradora",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -52,6 +53,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   fornecedor: "bg-purple-500/10 text-purple-500",
   colaborador: "bg-cyan-500/10 text-cyan-500",
   banco: "bg-rose-500/10 text-rose-500",
+  seguradora: "bg-indigo-500/10 text-indigo-500",
 };
 /**
  * Documento da pessoa (armazenado no campo `cnpj` dos perfis, que também recebe CPF).

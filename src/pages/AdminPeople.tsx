@@ -31,6 +31,7 @@ const TAB_LABELS: Record<string, string> = {
   cliente: "Clientes",
   proprietario: "Proprietários",
   fornecedor: "Fornecedores",
+  seguradora: "Seguradoras",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   cliente: "bg-amber-500/20 text-amber-400",
   proprietario: "bg-emerald-500/20 text-emerald-400",
   fornecedor: "bg-purple-500/20 text-purple-400",
+  seguradora: "bg-indigo-500/20 text-indigo-400",
 };
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
