@@ -127,7 +127,9 @@ async function loadData(m: Dict) {
   const veh = (vehRes.data as Dict) || null;
   let owner: Dict = {};
   if (veh?.owner_id) {
-    const { data } = await supabase.from("profiles").select("full_name,razao_social,cnpj,address_state").eq("id", veh.owner_id).maybeSingle();
+    // vehicles.owner_id guarda o user_id (auth); alguns registros usam profiles.id
+    const { data } = await supabase.from("profiles").select("full_name,razao_social,cnpj,address_state")
+      .or(`user_id.eq.${veh.owner_id},id.eq.${veh.owner_id}`).limit(1).maybeSingle();
     owner = (data as Dict) || {};
   }
   const ctes = ((cteRes.data as Dict[]) || []).sort((a, b) => Number(a.numero || 0) - Number(b.numero || 0));
