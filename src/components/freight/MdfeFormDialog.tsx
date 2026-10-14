@@ -109,6 +109,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
   const [cteOptions, setCteOptions] = useState<CteLite[]>([]);
   const [chaveTerceiro, setChaveTerceiro] = useState("");
   const [showTerceiros, setShowTerceiros] = useState(false);
+  const [showManualPay, setShowManualPay] = useState(false);
+  const [manualPay, setManualPay] = useState({ nome: "", documento: "", valor: "" });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -143,6 +145,10 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         f.ciot_manual = !!editing.ciot_numero;
         setForm(f);
         setShowTerceiros((editing.chaves_cte_terceiros || []).length > 0);
+        if (editing.pagamento_manual) {
+          setManualPay({ nome: editing.pagamento_manual.nome || "", documento: maskDocument(editing.pagamento_manual.documento || ""), valor: editing.pagamento_manual.valor ? maskCurrency(String(Math.round(Number(editing.pagamento_manual.valor) * 100))) : "" });
+        } else setManualPay({ nome: "", documento: "", valor: "" });
+        setShowManualPay(false);
         const ids = editing.cte_ids || [];
         if (ids.length) {
           const { data } = await supabase.from("ctes").select(CTE_FIELDS).in("id", ids);
@@ -152,6 +158,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         setForm(emptyForm());
         setCtes([]);
         setShowTerceiros(false);
+        setManualPay({ nome: "", documento: "", valor: "" });
+        setShowManualPay(false);
         if (initialCteIds?.length) {
           const { data } = await supabase.from("ctes").select(CTE_FIELDS).in("id", initialCteIds);
           const list = ((data as any) || []) as CteLite[];
