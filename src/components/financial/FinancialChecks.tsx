@@ -261,7 +261,7 @@ export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }
     { key: "tipo", header: "Tipo", width: "132px", cell: (row) => <span className="text-[11px] font-medium">{typeLabel[row.vinculo_tipo] || row.vinculo_tipo}</span>, sortValue: (row) => typeLabel[row.vinculo_tipo] || row.vinculo_tipo },
     { key: "vinculo", header: "Vínculo", width: "280px", cell: (row) => <span className="block break-words text-[11px] leading-tight" title={row.historico || ""}>{row.historico || "Sem descrição"}</span>, sortValue: (row) => row.historico || "" },
     { key: "situacao", header: "Situação", width: "104px", cell: (row) => <Badge variant={row.status === "cancelado" ? "secondary" : row.status === "compensado" ? "default" : "outline"} className="whitespace-nowrap text-[10px]">{statusLabel[row.status] || row.status}</Badge>, sortValue: (row) => statusLabel[row.status] || row.status },
-    { key: "empresa", header: "Empresa", width: "76px", cell: (row) => <EmpresaBadge empresaId={row.empresa_id} /> },
+    { key: "empresa", header: "Agência", width: "76px", cell: (row) => <EmpresaBadge empresaId={row.empresa_id} /> },
     { key: "valor", header: "Valor", width: "110px", align: "right", cell: (row) => <span className="font-mono text-xs font-medium">{formatCurrency(Number(row.valor))}</span>, sortValue: (row) => Number(row.valor) },
   ];
 
