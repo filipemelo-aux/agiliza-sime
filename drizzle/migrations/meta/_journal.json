@@ -29,6 +29,13 @@
       "when": 1791985211030,
       "tag": "0003_transport_insurers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791986626779,
+      "tag": "0004_insurer_profile_link",
+      "breakpoints": true
     }
   ]
 }

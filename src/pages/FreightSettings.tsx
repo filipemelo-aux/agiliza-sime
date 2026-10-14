@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, ShieldCheck, Star } from "lucide-react";
 import { toast } from "@/lib/notice";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 type Insurer = {
-  id?: string; nome: string; cnpj: string | null; apolice_numero: string | null; responsavel: string;
+  id?: string; profile_id?: string | null; nome: string; cnpj: string | null; apolice_numero: string | null; responsavel: string;
   vigencia_fim: string | null; observacoes: string | null; is_default: boolean; active: boolean;
 };
 const empty: Insurer = { nome: "", cnpj: "", apolice_numero: "", responsavel: "emitente", vigencia_fim: null, observacoes: "", is_default: false, active: true };
@@ -37,7 +38,9 @@ export default function FreightSettings() {
 
   const save = async () => {
     if (!edit) return;
+    if (!edit.profile_id) return toast.error("Selecione a seguradora cadastrada em Pessoas (categoria Seguradora).");
     if (!edit.nome.trim()) return toast.error("Informe o nome da seguradora.");
+    if (!edit.apolice_numero?.trim()) return toast.error("Informe o número da apólice.");
     const cnpj = (edit.cnpj || "").replace(/\D/g, "");
     if (cnpj && cnpj.length !== 14) return toast.error("CNPJ da seguradora incompleto.");
     setSaving(true);
@@ -105,9 +108,13 @@ export default function FreightSettings() {
           <DialogHeader><DialogTitle>{edit?.id ? "Editar seguradora" : "Nova seguradora"}</DialogTitle></DialogHeader>
           {edit && (
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <label className="col-span-2 space-y-1"><span>Nome da seguradora *</span><Input className="h-8 text-xs" value={edit.nome} onChange={(e) => set("nome", e.target.value)} /></label>
-              <label className="space-y-1"><span>CNPJ</span><Input className="h-8 text-xs" value={edit.cnpj || ""} onChange={(e) => set("cnpj", fmtCnpj(e.target.value))} /></label>
-              <label className="space-y-1"><span>Número da apólice</span><Input className="h-8 text-xs" value={edit.apolice_numero || ""} onChange={(e) => set("apolice_numero", e.target.value)} /></label>
+              <div className="col-span-2 space-y-1"><span>Seguradora (cadastro de Pessoas) *</span>
+                <PersonSearchInput categories={["seguradora"]} placeholder="Buscar seguradora cadastrada..." selectedName={edit.nome || undefined}
+                  onSelect={(p) => setEdit((e) => e ? { ...e, profile_id: p.id, nome: p.razao_social || p.full_name, cnpj: fmtCnpj(p.cnpj) } : e)}
+                  onClear={() => setEdit((e) => e ? { ...e, profile_id: null, nome: "", cnpj: "" } : e)} />
+                <p className="text-[11px] text-muted-foreground">Não encontrou? Cadastre em Cadastros › Pessoas com a categoria Seguradora.</p></div>
+              <label className="space-y-1"><span>CNPJ</span><Input className="h-8 text-xs" value={edit.cnpj || ""} readOnly disabled /></label>
+              <label className="space-y-1"><span>Número da apólice *</span><Input className="h-8 text-xs" value={edit.apolice_numero || ""} onChange={(e) => set("apolice_numero", e.target.value)} /></label>
               <label className="space-y-1"><span>Responsável pelo seguro</span>
                 <select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value={edit.responsavel} onChange={(e) => set("responsavel", e.target.value)}>
                   <option value="emitente">Emitente do MDF-e</option><option value="contratante">Contratante do serviço</option>

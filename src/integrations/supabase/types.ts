@@ -5512,6 +5512,7 @@ export type Database = {
           is_default: boolean
           nome: string
           observacoes: string | null
+          profile_id: string | null
           responsavel: string
           tenant_id: string
           updated_at: string
@@ -5526,6 +5527,7 @@ export type Database = {
           is_default?: boolean
           nome: string
           observacoes?: string | null
+          profile_id?: string | null
           responsavel?: string
           tenant_id?: string
           updated_at?: string
@@ -5540,12 +5542,20 @@ export type Database = {
           is_default?: boolean
           nome?: string
           observacoes?: string | null
+          profile_id?: string | null
           responsavel?: string
           tenant_id?: string
           updated_at?: string
           vigencia_fim?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transport_insurers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transport_insurers_tenant_id_fkey"
             columns: ["tenant_id"]

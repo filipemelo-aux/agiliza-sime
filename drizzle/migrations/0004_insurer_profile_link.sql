@@ -1,0 +1,1 @@
+ALTER TABLE public.transport_insurers ADD COLUMN IF NOT EXISTS profile_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL;
