@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SummaryCard } from "@/components/SummaryCard";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";

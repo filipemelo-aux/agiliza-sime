@@ -16,7 +16,7 @@ import { formatCurrency } from "@/lib/masks";
 import { fetchGroupedExpenseIds, printGroupedExpenseDetails } from "@/lib/printGroupedExpense";
 import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";

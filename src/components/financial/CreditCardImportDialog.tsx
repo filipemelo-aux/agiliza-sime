@@ -21,7 +21,7 @@ import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolba
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR, safeParseDateISO } from "@/lib/date";

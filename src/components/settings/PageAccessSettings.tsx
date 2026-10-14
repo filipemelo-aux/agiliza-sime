@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, ChevronDown } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 
 const MODE_LABEL: Record<PageMode, string> = { active: "Ativa", hidden: "Oculta", maintenance: "Em manutenção" };
 const MODE_VARIANT: Record<PageMode, "outline" | "secondary" | "destructive"> = { active: "outline", hidden: "destructive", maintenance: "secondary" };

@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Save, CalendarRange, Loader2, Info } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 
 type RHConfigRow = { key: string; value: any; description: string | null };
 

@@ -16,7 +16,7 @@ import { formatDateBR } from "@/lib/date";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { SummaryCard } from "@/components/SummaryCard";

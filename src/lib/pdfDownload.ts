@@ -1,7 +1,7 @@
 // Abre um documento HTML leve em uma nova janela e aciona a impressão do navegador.
 // O usuário pode salvar como PDF sem renderização pesada no aplicativo.
 // NÃO usar para cheques (layout próprio em checkPdf.ts).
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 
 const MARGIN_MM = 12;
 

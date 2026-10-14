@@ -7,7 +7,7 @@ import { SummaryCard } from "@/components/SummaryCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { format } from "date-fns";
 import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, FileText, Plus, Trash2, AlertTriangle, Split, Undo2 } from "lucide-react";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { formatCurrency, maskCurrency, unmaskCurrency, maskCNPJ } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";

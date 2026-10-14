@@ -14,7 +14,7 @@ import { Printer, Loader2, FileSpreadsheet, Search, RefreshCw } from "lucide-rea
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { DreGerencial } from "./DreGerencial";
 import { PayablesDataGrid } from "./PayablesDataGrid";

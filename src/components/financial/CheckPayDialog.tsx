@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { CheckCircle2 } from "lucide-react";
 
 export interface PayableCheck {

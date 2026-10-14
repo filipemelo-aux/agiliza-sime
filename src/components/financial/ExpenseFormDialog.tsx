@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer, Split } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

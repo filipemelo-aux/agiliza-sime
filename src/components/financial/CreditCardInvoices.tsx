@@ -4,7 +4,7 @@ import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Printer } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { formatCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";

@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, FileText } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 
 export interface MaintenanceItem {

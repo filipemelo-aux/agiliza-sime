@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { GlobalToolbar, ToolbarIconButton } from "@/components/ui/global-toolbar";
 import { Plus, Pencil, ChevronRight, ChevronDown, Search, FolderTree, List, ListTree } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { cn } from "@/lib/utils";
 import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 

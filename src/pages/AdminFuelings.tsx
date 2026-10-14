@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Pencil, Trash2, DollarSign, Search, Loader2, Fuel } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { format } from "date-fns";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 import { GeneratePayablesDialog } from "@/components/fueling/GeneratePayablesDialog";

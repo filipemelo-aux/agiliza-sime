@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Search, ChevronRight, ChevronDown, Eye, Download, ScanSearch, Expand, Shrink } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { exportToCsv } from "@/lib/csvExport";

@@ -8,7 +8,7 @@ import { BranchFormDialog, type BranchRow } from "@/components/superadmin/Branch
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");

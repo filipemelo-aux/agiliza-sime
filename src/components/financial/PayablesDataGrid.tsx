@@ -9,7 +9,7 @@ import { Loader2, Search, Printer, Filter, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { limitDisplayText } from "@/lib/displayText";
 import { formatDateBR } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { cn } from "@/lib/utils";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { useSortableTable } from "@/hooks/useSortableTable";

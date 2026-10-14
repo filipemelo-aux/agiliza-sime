@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 
 const CENTRO_CUSTO_LABELS: Record<string, string> = {
   frota_propria: "Frota Própria",

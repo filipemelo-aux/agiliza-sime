@@ -10,7 +10,7 @@ import { SummaryCard } from "@/components/SummaryCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { ReceiptPdfCanvasViewer } from "@/components/financial/ReceiptPdfCanvasViewer";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { Plus, FileText, Trash2, Eye, User, Calendar, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { formatDateBR } from "@/lib/date";

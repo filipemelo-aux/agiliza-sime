@@ -16,7 +16,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { personDisplayName } from "@/lib/personName";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { Link2, Plus, Search, WalletCards, X } from "lucide-react";
 
 type LinkType = "conta_pagar" | "movimentacao";

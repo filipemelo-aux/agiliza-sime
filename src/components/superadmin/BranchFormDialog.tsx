@@ -10,7 +10,7 @@ import { RntrcField } from "@/components/RntrcField";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import type { TenantRow } from "./TenantFormDialog";
 import { HomologationResult, runHomologationTest, type HmlResult } from "./HomologationResult";
 

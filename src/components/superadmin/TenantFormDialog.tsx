@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { RntrcField } from "@/components/RntrcField";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { Switch } from "@/components/ui/switch";
 import { HomologationResult, runHomologationTest, type HmlResult } from "./HomologationResult";
 
