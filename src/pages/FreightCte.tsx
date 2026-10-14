@@ -694,7 +694,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     {
       key: "cliente", header: "Cliente", width: "170px",
       sortValue: (c) => getClienteTomador(c) || "",
-      cell: (c) => <span className="block" title={getClienteTomador(c) || ""}>{limitDisplayText(getClienteTomador(c))}</span>,
+      cell: (c) => <span className="block truncate whitespace-nowrap" title={getClienteTomador(c) || ""}>{limitDisplayText(getClienteTomador(c))}</span>,
     },
     {
       key: "placa", header: "Placa", width: "78px",

@@ -561,7 +561,7 @@ tfoot{display:table-row-group}
                   <td className={cn("px-1 py-0 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
-                  <td className="px-1 py-0" title={`${r.fornecedor}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${r.razaoSocial}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${r.nomeFantasia}` : ""}`}>{limitDisplayText(r.fornecedor)}</td>
+                  <td className="px-1 py-0 truncate whitespace-nowrap" title={`${r.fornecedor}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${r.razaoSocial}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${r.nomeFantasia}` : ""}`}>{limitDisplayText(r.fornecedor)}</td>
                   <td className="px-1 py-0 truncate" title={r.descricao}>
                     {r.descricao}
                     {r.status === "parcial" && r.vencido && (

@@ -657,7 +657,7 @@ function ExpenseList({
       key: "favorecido",
       header: "Favorecido",
       sortValue: (e) => (enrichName ? enrichName(e) : e.favorecido_nome) || "",
-      cell: (e) => { const name = (enrichName ? enrichName(e) : e.favorecido_nome) || "—"; return <span className="text-muted-foreground block" title={name}>{limitDisplayText(name)}</span>; },
+      cell: (e) => { const name = (enrichName ? enrichName(e) : e.favorecido_nome) || "—"; return <span className="text-muted-foreground block truncate whitespace-nowrap" title={name}>{limitDisplayText(name)}</span>; },
     },
     {
       key: "emissao",
