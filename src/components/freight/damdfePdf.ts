@@ -5,6 +5,7 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal.png";
 
 type Dict = Record<string, any>;
 
@@ -90,10 +91,10 @@ function drawQr(pdf: jsPDF, url: string) {
   for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (qr.modules.get(r, col)) pdf.rect(x0 + col * c, y0 + r * c, c + 0.05, c + 0.05, "F");
 }
 
-async function loadLogo(): Promise<{ data: string; w: number; h: number } | null> {
+async function loadImage(url: string): Promise<{ data: string; w: number; h: number } | null> {
   if (typeof window === "undefined") return null;
   try {
-    const res = await fetch(`${window.location.origin}/logo.png`);
+    const res = await fetch(url);
     if (!res.ok) return null;
     const blob = await res.blob();
     const data = await new Promise<string>((resolve) => { const r = new FileReader(); r.onloadend = () => resolve(typeof r.result === "string" ? r.result : ""); r.readAsDataURL(blob); });
@@ -139,7 +140,7 @@ async function loadData(m: Dict) {
   return { emit, veh, owner, ctes, estNames };
 }
 
-async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadLogo>>) {
+async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>) {
   const P = new Painter(pdf);
   const { emit, veh, owner, ctes, estNames } = await loadData(m);
   const key = digits(m.chave_acesso).slice(-44);
@@ -303,16 +304,23 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  P.text("Agiliza TMS - FSM Systems", 582, 851, 6.6, { align: "center" });
+  P.text("Agiliza TMS", 545, 851, 6.6, { align: "right" });
+  if (fsmLogo) {
+    const h = 8, w = (fsmLogo.w / fsmLogo.h) * h;
+    pdf.addImage(fsmLogo.data, "PNG", 552, 847.5, w, h);
+  } else {
+    P.text("FSM | Sistemas", 556, 851, 6.6);
+  }
 }
 
 /** Gera o DAMDFE (um MDF-e por página, A4 paisagem) idêntico ao modelo aprovado. */
 export async function buildDamdfePdf(mdfes: Dict[]): Promise<jsPDF> {
   const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape", compress: true });
-  const logo = await loadLogo();
+  const logo = await loadImage(`${window.location.origin}/logo.png`);
+  const fsmLogo = await loadImage(fsmLogoUrl);
   for (let i = 0; i < mdfes.length; i++) {
     if (i > 0) pdf.addPage("a4", "landscape");
-    await drawPage(pdf, mdfes[i], logo);
+    await drawPage(pdf, mdfes[i], logo, fsmLogo);
   }
   return pdf;
 }
