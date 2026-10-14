@@ -318,12 +318,15 @@ Deno.serve(async (req) => {
     const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
     const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
     const sefazMsg = (d: any) => {
-      const code = d?.status_sefaz ? `Rejeição ${d.status_sefaz}: ` : "";
+      const okCodes = ["100", "101", "132", "135", "136", "150"];
+      const sc = String(d?.status_sefaz ?? "");
+      const code = sc ? (okCodes.includes(sc) ? `Código ${sc}: ` : `Rejeição ${sc}: `) : "";
       const errs = Array.isArray(d?.erros) ? d.erros.map((x: any) => x?.mensagem || x).join("; ") : "";
       return `${code}${d?.mensagem_sefaz || d?.mensagem || errs || d?.status || "Sem retorno da SEFAZ"}`;
     };
     const applyResult = async (d: any) => {
-      const st = d?.status;
+      let st = d?.status;
+      if (["100", "150"].includes(String(d?.status_sefaz ?? "")) && !["encerrado", "cancelado"].includes(st)) { st = "autorizado"; if (d) d.status = st; }
       const patch: Record<string, unknown> = {};
       if (st === "autorizado") Object.assign(patch, {
         status: "autorizado", chave_acesso: d?.chave || d?.chave_mdfe || m.chave_acesso, protocolo_autorizacao: d?.protocolo || m.protocolo_autorizacao,
