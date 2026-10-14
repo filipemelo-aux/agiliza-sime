@@ -90,10 +90,10 @@ function drawQr(pdf: jsPDF, url: string) {
   for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (qr.modules.get(r, col)) pdf.rect(x0 + col * c, y0 + r * c, c + 0.05, c + 0.05, "F");
 }
 
-async function loadLogo(): Promise<{ data: string; w: number; h: number } | null> {
+async function loadImage(url: string): Promise<{ data: string; w: number; h: number } | null> {
   if (typeof window === "undefined") return null;
   try {
-    const res = await fetch(`${window.location.origin}/logo.png`);
+    const res = await fetch(url);
     if (!res.ok) return null;
     const blob = await res.blob();
     const data = await new Promise<string>((resolve) => { const r = new FileReader(); r.onloadend = () => resolve(typeof r.result === "string" ? r.result : ""); r.readAsDataURL(blob); });
