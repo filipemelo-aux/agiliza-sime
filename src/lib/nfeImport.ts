@@ -33,6 +33,7 @@ export interface NfeData {
   outros: number;
   emitente: NfeParty;
   destinatario: NfeParty;
+  transportadora?: NfeParty | null;
 }
 
 const txt = (el: Element | null | undefined, tag: string) =>
@@ -48,6 +49,19 @@ function party(el: Element | null | undefined): NfeParty {
     municipio: txt(end, "xMun"),
     municipio_ibge: txt(end, "cMun"),
     uf: txt(end, "UF"),
+  };
+}
+
+function transporta(el: Element | null | undefined): NfeParty | null {
+  if (!el) return null;
+  return {
+    nome: txt(el, "xNome"),
+    documento: txt(el, "CNPJ") || txt(el, "CPF"),
+    ie: txt(el, "IE"),
+    endereco: txt(el, "xEnder"),
+    municipio: txt(el, "xMun"),
+    municipio_ibge: "",
+    uf: txt(el, "UF"),
   };
 }
 
@@ -82,6 +96,7 @@ export function parseNfeXml(xml: string): NfeData {
     outros: Number(txt(tot, "vOutro")) || 0,
     emitente: party(inf.getElementsByTagName("emit")[0]),
     destinatario: party(inf.getElementsByTagName("dest")[0]),
+    transportadora: transporta(inf.getElementsByTagName("transporta")[0]),
   };
 }
 
