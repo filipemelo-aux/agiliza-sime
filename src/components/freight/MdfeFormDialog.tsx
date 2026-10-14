@@ -126,6 +126,11 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
   // Carrega edição ou CT-es iniciais
   useEffect(() => {
     if (!open) return;
+    if (editing && !["rascunho", "rejeitado"].includes(editing.status)) {
+      toast({ title: "MDF-e já transmitido", description: "Manifesto autorizado, encerrado ou cancelado não pode ser editado. Use o menu SEFAZ MDF-e.", variant: "destructive" });
+      onOpenChange(false);
+      return;
+    }
     (async () => {
       if (editing) {
         const f = emptyForm();

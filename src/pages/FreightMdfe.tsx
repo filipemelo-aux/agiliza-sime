@@ -86,11 +86,17 @@ export default function FreightMdfe() {
     if (sefazId) { setPendingSefaz(sefazId); params.delete("sefaz"); setParams(params, { replace: true }); }
     const ids = params.get("ctes");
     if (ids) {
-      setEditing(null);
-      setInitialCteIds(ids.split(",").filter(Boolean));
-      setFormOpen(true);
+      const list = ids.split(",").filter(Boolean);
       params.delete("ctes");
       setParams(params, { replace: true });
+      // Mesmo comportamento em qualquer dispositivo: se o CT-e já tem MDF-e, abre as opções SEFAZ (nunca a edição).
+      (async () => {
+        const { data } = await supabase.from("mdfe").select("id,status").overlaps("cte_ids", list).neq("status", "cancelado").order("created_at", { ascending: false }).limit(1);
+        if (data?.[0]) { setPendingSefaz(data[0].id); return; }
+        setEditing(null);
+        setInitialCteIds(list);
+        setFormOpen(true);
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
