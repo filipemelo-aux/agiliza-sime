@@ -350,11 +350,12 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
             <div className="grid grid-cols-1 gap-2 rounded-md bg-muted/50 p-2 text-xs sm:grid-cols-3"><div>Peso: <b>{totals.peso.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} kg</b></div><div>Quantidade: <b>{totals.qtd.toLocaleString("pt-BR")}</b></div><div>Valor da carga: <b>{formatCurrency(totals.valor)}</b></div></div>
           </FormBlock>
 
-          <FormBlock icon={Banknote} title="4. Informações de pagamento" summary={paymentInfo.items.length ? `Total ${formatCurrency(paymentInfo.total)}` : "Vincule um CT-e"}>
-            {paymentInfo.items.length === 0 ? (
-              <p className="text-xs text-muted-foreground">As informações de pagamento aparecem aqui quando um CT-e é vinculado ao manifesto.</p>
-            ) : (
-              <div className="space-y-1.5">
+          <FormBlock icon={Banknote} title="4. Informações de pagamento" summary={paymentInfo.items.length || paymentInfo.manual ? `Total ${formatCurrency(paymentInfo.total)}` : "Vincule um CT-e"}>
+            <div className="space-y-1.5">
+              {paymentInfo.items.length === 0 && !paymentInfo.manual && !showManualPay && (
+                <p className="text-xs text-muted-foreground">As informações de pagamento aparecem aqui quando um CT-e é vinculado ao manifesto. Para MDF-e avulso (sem CT-e do sistema), insira o pagamento manualmente.</p>
+              )}
+              {paymentInfo.items.length > 0 && (
                 <div className="divide-y divide-border rounded-md border border-border">
                   {paymentInfo.items.map((item) => (
                     <div key={item.cte.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 text-xs">
@@ -366,13 +367,53 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
                     </div>
                   ))}
                 </div>
+              )}
+              {paymentInfo.manual && !showManualPay && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-xs">
+                  <span className="min-w-0">
+                    <b>Pagamento manual</b>
+                    <span className="text-muted-foreground"> · {paymentInfo.manual.nome || "Responsável não informado"}{paymentInfo.manual.documento ? ` · ${maskDocument(paymentInfo.manual.documento)}` : ""}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <b>{formatCurrency(Number(paymentInfo.manual.valor))}</b>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Editar" onClick={() => setShowManualPay(true)}><Plus className="h-3 w-3" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Remover" onClick={() => set("pagamento_manual", null)}><Trash2 className="h-3 w-3" /></Button>
+                  </span>
+                </div>
+              )}
+              {showManualPay && (
+                <div className="space-y-2 rounded-md border border-border bg-muted/30 p-2.5">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <F label="Responsável pelo pagamento"><Input className="h-8 text-xs" value={manualPay.nome} onChange={(e) => setManualPay((p) => ({ ...p, nome: e.target.value }))} /></F>
+                    <F label="CPF/CNPJ *"><Input className="h-8 text-xs" value={manualPay.documento} onChange={(e) => setManualPay((p) => ({ ...p, documento: maskDocument(e.target.value) }))} /></F>
+                    <F label="Valor do frete *"><Input className="h-8 text-xs" inputMode="numeric" placeholder="0,00" value={manualPay.valor} onChange={(e) => setManualPay((p) => ({ ...p, valor: maskCurrency(e.target.value) }))} /></F>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowManualPay(false)}>Cancelar</Button>
+                    <Button type="button" size="sm" className="h-7 text-xs" onClick={() => {
+                      const doc = manualPay.documento.replace(/\D/g, "");
+                      const valor = Number(unmaskCurrency(manualPay.valor) || 0);
+                      if (doc.length < 11) return toast({ title: "Informe o CPF ou CNPJ de quem paga o frete", variant: "destructive" });
+                      if (!(valor > 0)) return toast({ title: "Informe o valor do frete", variant: "destructive" });
+                      set("pagamento_manual", { nome: manualPay.nome.trim(), documento: doc, valor });
+                      setShowManualPay(false);
+                    }}>Aplicar</Button>
+                  </div>
+                </div>
+              )}
+              {!paymentInfo.manual && !showManualPay && paymentInfo.items.length === 0 && (
+                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowManualPay(true)}>
+                  <Plus className="mr-1 h-3 w-3" /> Inserir pagamento manualmente
+                </Button>
+              )}
+              {(paymentInfo.items.length > 0 || paymentInfo.manual) && (
                 <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-1.5 text-xs">
                   <span>Total informado à SEFAZ como pagamento do frete</span>
                   <b>{formatCurrency(paymentInfo.total)}</b>
                 </div>
-                <p className="text-[11px] text-muted-foreground">Somente leitura. CT-e sem contrato usa o valor do frete do próprio CT-e; CT-e com contrato de frete usa o valor do contrato pago ao subcontratado.</p>
-              </div>
-            )}
+              )}
+              <p className="text-[11px] text-muted-foreground">CT-e sem contrato usa o valor do frete do próprio CT-e; CT-e com contrato de frete usa o valor do contrato pago ao subcontratado. Em MDF-e avulso, o pagamento é informado manualmente.</p>
+            </div>
           </FormBlock>
 
           <FormBlock icon={Package} title="5. Detalhamento da carga" summary={form.produto_predominante || "Produto e classificação"}>
