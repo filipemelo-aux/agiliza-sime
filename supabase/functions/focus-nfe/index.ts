@@ -63,7 +63,12 @@ Deno.serve(async (req) => {
   // Consultas de documentos recebidos usam produção (somente leitura). Emissão segue em homologação.
   const isQuery = action === "ping" || action === "nfes_recebidas" || action === "ctes_recebidas" || action === "nfe_por_chave" || action === "cte_por_chave" || action === "nfe_pdf_por_chave";
   const ambiente = isQuery && tok(true) ? "producao" : "homologacao";
-  const token = tok(ambiente === "producao");
+  let token = tok(ambiente === "producao");
+  // Consultas por CNPJ usam o token do estabelecimento dono desse CNPJ (filial tem conta própria na Focus).
+  if (isQuery && cnpj) {
+    const { data: estQ } = await supabase.from("fiscal_establishments").select("id").eq("cnpj", cnpj).maybeSingle();
+    if (estQ?.id) token = (await estTok(estQ.id, ambiente === "producao")) || token;
+  }
   if (!token && isQuery) return json({ error: "Token Focus NFe não configurado" }, 500);
   const base = BASES[ambiente];
 
