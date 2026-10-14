@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { mdfeFocus } from "@/services/fiscal/focusMdfeService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,9 +31,19 @@ import { MdfeXmlImportDialog } from "@/components/freight/MdfeXmlImportDialog";
 import { MdfeDetailDialog } from "@/components/freight/MdfeDetailDialog";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 
-const STATUS_LABEL: Record<string, string> = {
-  rascunho: "Rascunho", autorizado: "Autorizado", encerrado: "Encerrado", cancelado: "Cancelado", rejeitado: "Rejeitado", processando: "Processando",
+const statusColors: Record<string, string> = {
+  rascunho: "bg-muted text-muted-foreground",
+  autorizado: "bg-emerald-500/10 text-emerald-600",
+  encerrado: "bg-emerald-500/10 text-emerald-600",
+  cancelado: "bg-destructive/10 text-destructive",
+  rejeitado: "bg-amber-500/10 text-amber-600",
+  processando: "bg-primary/10 text-primary",
 };
+
+const STATUS_LABEL: Record<string, string> = {
+  rascunho: "Rascunho", autorizado: "Autorizado", encerrado: "Encerrado", cancelado: "Cancelado", rejeitado: "Rejeitado", processando: "Em processamento",
+};
+
 
 export default function FreightMdfe() {
   const { toast } = useToast();
@@ -248,9 +260,9 @@ export default function FreightMdfe() {
     { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
     { key: "ctes", header: "CT-es", width: "60px", cell: (r) => (r.lista_ctes || []).length },
     { key: "peso", header: "Peso (kg)", width: "100px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
-    { key: "status", header: "Situação", width: "118px", sortValue: (r) => r.status, cell: (r) => <span title={r.motivo_rejeicao || undefined}>{STATUS_LABEL[r.status] || r.status}</span> },
-    { key: "motivo", header: "Retorno SEFAZ", cell: (r) => <span className="text-[11px] text-muted-foreground line-clamp-2" title={r.motivo_rejeicao || ""}>{r.status === "autorizado" ? (r.protocolo_autorizacao ? `Prot. ${r.protocolo_autorizacao}` : "") : r.motivo_rejeicao || ""}</span> },
+    { key: "status", header: "Status", width: "140px", align: "center", sortValue: (r) => r.status, cell: (r) => <Badge className={statusColors[r.status] || "bg-muted text-muted-foreground"}>{STATUS_LABEL[r.status] || r.status}</Badge> },
   ] as any;
+
 
   return (
     <AdminLayout>
