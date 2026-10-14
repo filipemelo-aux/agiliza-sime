@@ -5,6 +5,7 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal.png";
 
 type Dict = Record<string, any>;
 
@@ -139,7 +140,7 @@ async function loadData(m: Dict) {
   return { emit, veh, owner, ctes, estNames };
 }
 
-async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadLogo>>) {
+async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>) {
   const P = new Painter(pdf);
   const { emit, veh, owner, ctes, estNames } = await loadData(m);
   const key = digits(m.chave_acesso).slice(-44);
