@@ -414,8 +414,13 @@ Deno.serve(async (req) => {
     let motoristaNome = m.motorista_nome as string | null;
     let cpf = digits(m.motorista_cpf);
     if (m.motorista_id && (cpf.length !== 11 || !motoristaNome)) {
-      const { data: p } = await supabase.from("profiles").select("cnpj,full_name").eq("id", m.motorista_id).maybeSingle();
+      const { data: p } = await supabase.from("profiles").select("cnpj,full_name,user_id").eq("id", m.motorista_id).maybeSingle();
       if (cpf.length !== 11) cpf = digits((p as any)?.cnpj);
+      if (cpf.length !== 11) {
+        const ids = [m.motorista_id, (p as any)?.user_id].filter(Boolean);
+        const { data: dd } = await supabase.from("driver_documents").select("cpf").in("user_id", ids).limit(1).maybeSingle();
+        cpf = digits((dd as any)?.cpf);
+      }
       motoristaNome = motoristaNome || (p as any)?.full_name || null;
     }
     const pend: string[] = [];
