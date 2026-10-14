@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { limitDisplayText } from "@/lib/displayText";
 
 /** Mapa user_id (auth) -> nome do perfil, em cache compartilhado. */
 export function useUserNames() {
@@ -15,15 +16,19 @@ export function useUserNames() {
   });
 }
 
-export function UserNameCell({ userId }: { userId?: string | null }) {
+/**
+ * Nome de quem criou o registro. Nomes muito longos são cortados com "…"
+ * e aparecem por extenso ao passar o mouse, como nas colunas Cliente/Descrição.
+ */
+export function UserNameCell({ userId, maxLength = 24 }: { userId?: string | null; maxLength?: number }) {
   const { data } = useUserNames();
   const full = (userId && data?.[userId]) || "";
   return (
     <span
-      className="block break-words leading-tight"
+      className="block truncate whitespace-nowrap leading-tight"
       title={full}
     >
-      {full || "—"}
+      {limitDisplayText(full || "—", maxLength)}
     </span>
   );
 }
