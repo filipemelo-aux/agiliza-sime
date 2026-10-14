@@ -439,6 +439,7 @@ Deno.serve(async (req) => {
     if (!motoristaNome) pend.push("motorista");
     else if (cpf.length !== 11) pend.push(`CPF do motorista ${motoristaNome} (preencha no cadastro de Pessoas)`);
     if (!Number(m.peso_total)) pend.push("peso total");
+    if (m.seguradora_nome && m.apolice_numero && digits(m.seguradora_cnpj).length !== 14) pend.push("CNPJ da seguradora (obrigatório pela SEFAZ — preencha no cadastro da seguradora em Transporte › Configurações ou no MDF-e)");
     if (!m.seguradora_nome || !m.apolice_numero) pend.push("seguro da carga — seguradora e nº da apólice (preencha no MDF-e ou na configuração da empresa emitente)");
     if (chaves.length === 1 && (!produto || ncm.length !== 8)) pend.push("produto predominante e NCM (8 dígitos) da carga");
     if (pend.length) return json({ success: false, status: "validacao", motivo_rejeicao: `Faltando: ${pend.join("; ")}.` });
