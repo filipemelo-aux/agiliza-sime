@@ -538,7 +538,7 @@ Deno.serve(async (req) => {
       tomadorDoc = digits(findField(c1, scope, /cnpj|cpf|documento/i) || findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet/i, /cnpj|cpf|documento/i));
       valorFrete = Number((c1 as any)?.valor_frete || 0);
     }
-    const valorPag = (valorFrete || Number(m.valor_total || 0)).toFixed(2);
+    const valorPag = (valorContratos > 0 ? valorContratos : (valorFrete || Number(m.valor_total || 0))).toFixed(2);
     if (chaves.length === 1 && tomadorDoc.length < 11) return json({ error: "Carga lotação: a SEFAZ exige as informações de pagamento do frete. Informe o CPF/CNPJ do tomador no CT-e vinculado." }, 422);
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
