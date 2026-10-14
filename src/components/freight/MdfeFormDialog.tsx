@@ -271,9 +271,10 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         origem: contract ? `Contrato de frete nº ${contract.numero ?? "—"}` : "Frete do CT-e",
       };
     });
-    const manual = form.pagamento_manual && Number(form.pagamento_manual.valor) > 0 ? form.pagamento_manual : null;
+    const avulso = ctes.length === 0;
+    const manual = avulso && form.pagamento_manual && Number(form.pagamento_manual.valor) > 0 ? form.pagamento_manual : null;
     const total = items.reduce((s, i) => s + i.valor, 0) + (manual ? Number(manual.valor) : 0);
-    return { items, manual, total };
+    return { items, manual, total, avulso };
   }, [ctes, contracts, form.pagamento_manual]);
 
   const togglePercurso = (uf: string) =>
@@ -288,6 +289,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     const { seguro_manual, ciot_manual, ...rest } = form;
     const payload: any = {
       ...rest,
+      pagamento_manual: ctes.length === 0 ? form.pagamento_manual : null,
       data_emissao: new Date(form.data_emissao).toISOString(),
       data_saida: form.data_saida ? new Date(form.data_saida).toISOString() : null,
       km_inicial: form.km_inicial ? Number(form.km_inicial) : null,
@@ -352,8 +354,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
 
           <FormBlock icon={Banknote} title="4. Informações de pagamento" summary={paymentInfo.items.length || paymentInfo.manual ? `Total ${formatCurrency(paymentInfo.total)}` : "Vincule um CT-e"}>
             <div className="space-y-1.5">
-              {paymentInfo.items.length === 0 && !paymentInfo.manual && !showManualPay && (
-                <p className="text-xs text-muted-foreground">As informações de pagamento aparecem aqui quando um CT-e é vinculado ao manifesto. Para MDF-e avulso (sem CT-e do sistema), insira o pagamento manualmente.</p>
+              {paymentInfo.avulso && !paymentInfo.manual && !showManualPay && (
+                <p className="text-xs text-muted-foreground">MDF-e sem CT-e do sistema vinculado: informe o pagamento do frete manualmente.</p>
               )}
               {paymentInfo.items.length > 0 && (
                 <div className="divide-y divide-border rounded-md border border-border">
@@ -381,7 +383,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
                   </span>
                 </div>
               )}
-              {showManualPay && (
+              {showManualPay && paymentInfo.avulso && (
                 <div className="space-y-2 rounded-md border border-border bg-muted/30 p-2.5">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <F label="Responsável pelo pagamento"><Input className="h-8 text-xs" value={manualPay.nome} onChange={(e) => setManualPay((p) => ({ ...p, nome: e.target.value }))} /></F>
@@ -401,7 +403,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
                   </div>
                 </div>
               )}
-              {!paymentInfo.manual && !showManualPay && paymentInfo.items.length === 0 && (
+              {!paymentInfo.manual && !showManualPay && paymentInfo.avulso && (
                 <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowManualPay(true)}>
                   <Plus className="mr-1 h-3 w-3" /> Inserir pagamento manualmente
                 </Button>
@@ -412,7 +414,6 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
                   <b>{formatCurrency(paymentInfo.total)}</b>
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground">CT-e sem contrato usa o valor do frete do próprio CT-e; CT-e com contrato de frete usa o valor do contrato pago ao subcontratado. Em MDF-e avulso, o pagamento é informado manualmente.</p>
             </div>
           </FormBlock>
 
