@@ -2,7 +2,14 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" id="app-viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Celular/tablet exibem exatamente o layout do desktop (mesma tela, mesmas tabelas), com zoom por pinça.
+      (function () {
+        var w = Math.min(screen.width, screen.height) < 1024 ? Math.min(screen.width, window.innerWidth || screen.width) : 0;
+        if (w && w < 1280) document.getElementById("app-viewport").setAttribute("content", "width=1366, user-scalable=yes");
+      })();
+    </script>
     <title>Agiliza TMS</title>
     <meta name="description" content="Agiliza TMS - Gestão integrada para transportadoras, by fsm | sistemas" />
     <link rel="icon" href="/favicon.png" type="image/png" />
