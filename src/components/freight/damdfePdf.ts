@@ -126,7 +126,7 @@ async function loadData(m: Dict) {
   const veh = (vehRes.data as Dict) || null;
   let owner: Dict = {};
   if (veh?.owner_id) {
-    const { data } = await supabase.from("profiles").select("full_name,razao_social,cnpj").eq("id", veh.owner_id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("full_name,razao_social,cnpj,address_state").eq("id", veh.owner_id).maybeSingle();
     owner = (data as Dict) || {};
   }
   const ctes = ((cteRes.data as Dict[]) || []).sort((a, b) => Number(a.numero || 0) - Number(b.numero || 0));
@@ -206,7 +206,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
   P.text("Condutores", 737, 293, 7.6, { bold: true });
   [["Placa", 34], ["RNTRC", 128], ["Renavam", 188], ["Doc Proprietário", 262], ["Nome Proprietário", 368]].forEach(([t, x]) => P.text(t, Number(x), 312, 7.6, { bold: true }));
   P.text("CPF", 737, 312, 7.6, { bold: true }); P.text("Nome", 829, 312, 7.6, { bold: true });
-  const ufV = up(emit.endereco_uf || m.uf_carregamento || "");
+  const ufV = up(owner.address_state || emit.endereco_uf || m.uf_carregamento || "");
   const plates: { placa: string; renavam: string }[] = [
     { placa: m.placa_veiculo || veh?.plate, renavam: veh?.renavam || "" },
     { placa: m.reboque1_placa || veh?.trailer_plate_1, renavam: veh?.trailer_renavam_1 || "" },
@@ -268,7 +268,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
     let qtd = Number(q?.qCarga || 0);
     if (q && String(q.cUnid) === "01") qtd = qtd / 1000;
     if (!qtd) qtd = Number(c.peso_bruto || 0) / 1000;
-    qtd = Math.round(qtd);
+    qtd = Math.floor(qtd);
     tq += qtd; tm += Number(c.valor_carga || 0); tf += Number(c.valor_frete || 0);
     P.text(String(qtd), 1097, y + 12, 6.2, { align: "right" });
     P.text(money(c.valor_carga), 1170, y + 12, 6.2, { align: "right" });
