@@ -538,8 +538,15 @@ Deno.serve(async (req) => {
       tomadorDoc = digits(findField(c1, scope, /cnpj|cpf|documento/i) || findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet/i, /cnpj|cpf|documento/i));
       valorFrete = Number((c1 as any)?.valor_frete || 0);
     }
-    const valorPag = (valorContratos > 0 ? valorContratos : (valorFrete || Number(m.valor_total || 0))).toFixed(2);
-    if (chaves.length === 1 && tomadorDoc.length < 11) return json({ error: "Carga lotação: a SEFAZ exige as informações de pagamento do frete. Informe o CPF/CNPJ do tomador no CT-e vinculado." }, 422);
+    let valorPag = (valorContratos > 0 ? valorContratos : (valorFrete || Number(m.valor_total || 0))).toFixed(2);
+    // MDF-e avulso: pagamento informado manualmente no formulário tem prioridade
+    const pm = m.pagamento_manual as { nome?: string; documento?: string; valor?: number } | null;
+    if (pm && digits(pm.documento).length >= 11 && Number(pm.valor) > 0) {
+      tomadorNome = String(pm.nome || "").slice(0, 60);
+      tomadorDoc = digits(pm.documento);
+      valorPag = Number(pm.valor).toFixed(2);
+    }
+    if (chaves.length === 1 && tomadorDoc.length < 11) return json({ error: "Carga lotação: a SEFAZ exige as informações de pagamento do frete. Informe o CPF/CNPJ do tomador no CT-e vinculado ou use \"Inserir pagamento manualmente\" no quadro Informações de pagamento do MDF-e." }, 422);
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
       emitente: 1, serie: m.serie || est.serie_mdfe || 1, numero,
