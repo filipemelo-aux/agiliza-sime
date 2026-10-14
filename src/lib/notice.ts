@@ -12,7 +12,9 @@ export interface NoticeItem {
   id: number;
   title: string;
   description?: string;
+  kind?: NoticeKind;
 }
+export type NoticeKind = "error" | "success" | "info" | "warning";
 
 type Listener = (items: NoticeItem[]) => void;
 
@@ -25,8 +27,9 @@ function emit() {
   listeners.forEach((l) => l(snapshot));
 }
 
-export function pushErrorNotice(title: string, description?: string) {
-  queue.push({ id: ++seq, title, description });
+export function pushErrorNotice(title: string, description?: string, kind: NoticeKind = "error") {
+  if (!title && !description) return;
+  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind });
   emit();
 }
 
@@ -46,19 +49,23 @@ export function subscribeErrorNotices(listener: Listener) {
   };
 }
 
+function central(kind: NoticeKind, message: unknown, data?: { description?: unknown } | string) {
+  const description =
+    typeof data === "string" ? data
+      : data && typeof data === "object" && data.description != null ? String(data.description) : undefined;
+  pushErrorNotice(message == null ? "" : String(message), description, kind);
+  return seq;
+}
+
 /** Mantém o restante da API do sonner (success, info, warning, dismiss...). */
 export const toast = Object.assign(
-  ((...args: Parameters<typeof sonner>) => sonner(...args)) as typeof sonner,
+  ((m: any, d?: any) => central("info", m, d)) as unknown as typeof sonner,
   sonner,
   {
-    error: (message: unknown, data?: { description?: unknown } | string) => {
-      const description =
-        typeof data === "string"
-          ? data
-          : data && typeof data === "object" && data.description != null
-            ? String(data.description)
-            : undefined;
-      pushErrorNotice(String(message), description);
-    },
+    error: (m: unknown, d?: any) => central("error", m, d),
+    success: (m: unknown, d?: any) => central("success", m, d),
+    info: (m: unknown, d?: any) => central("info", m, d),
+    warning: (m: unknown, d?: any) => central("warning", m, d),
+    message: (m: unknown, d?: any) => central("info", m, d),
   },
 );
