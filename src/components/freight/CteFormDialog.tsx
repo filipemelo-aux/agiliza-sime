@@ -1030,17 +1030,25 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     }));
   }, [form.chaves_nfe_ref, form.nfe_detalhes]);
 
-  // Seguro padrão do emitente (somente quando ainda vazio)
+  // Apólices cadastradas em Transporte › Configurações (mesma fonte do MDF-e)
+  const [insurers, setInsurers] = useState<any[]>([]);
+  useEffect(() => {
+    (supabase as any).from("transport_insurers").select("id,nome,cnpj,apolice_numero,is_default").eq("active", true).order("nome")
+      .then(({ data }: any) => setInsurers(data || []));
+  }, []);
+
+  // Seguro padrão: emitente, senão apólice padrão do Transporte (somente quando ainda vazio)
   useEffect(() => {
     const est: any = establishments.find((e) => e.id === selectedEstId);
-    if (!est) return;
-    setForm((p) => ({
-      ...p,
-      seguradora_nome: p.seguradora_nome || est.seguradora_nome || "",
-      seguradora_cnpj: p.seguradora_cnpj || (est.seguradora_cnpj ? maskCNPJ(est.seguradora_cnpj) : ""),
-      apolice_numero: p.apolice_numero || est.apolice_numero || "",
-    }));
-  }, [selectedEstId, establishments]);
+    const def: any = insurers.find((i) => i.is_default);
+    if (!est && !def) return;
+    setForm((p) => {
+      if (p.seguradora_nome) return p;
+      const src = est?.seguradora_nome ? { nome: est.seguradora_nome, cnpj: est.seguradora_cnpj, apolice: est.apolice_numero } : def ? { nome: def.nome, cnpj: def.cnpj, apolice: def.apolice_numero } : null;
+      if (!src) return p;
+      return { ...p, seguradora_nome: src.nome || "", seguradora_cnpj: src.cnpj ? maskCNPJ(src.cnpj) : "", apolice_numero: p.apolice_numero || src.apolice || "" };
+    });
+  }, [selectedEstId, establishments, insurers]);
 
   // Comparação de notas SEMPRE pela chave de 44 dígitos (números de nota podem se repetir)
   const normChave = (c: string | null | undefined) => String(c || "").replace(/\D/g, "");
@@ -2264,8 +2272,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
 
           {/* 6. Seguro */}
           <FormBlock icon={Building2} title="7. Seguro da Carga" summary={form.seguradora_nome ? `${form.seguradora_nome}${form.apolice_numero ? ` · apólice ${form.apolice_numero}` : ""}` : "sem seguradora"}>
-            <p className="text-[11px] text-muted-foreground">Preenchido com a seguradora padrão do emitente (Configurações › Fiscal).</p>
+            <p className="text-[11px] text-muted-foreground">Escolha uma apólice cadastrada em Transporte › Configurações. O MDF-e deste CT-e usa os mesmos dados.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[10px]">Apólice cadastrada</Label>
+                  <select
+                    className="h-8 w-full rounded-md border bg-background px-2 text-xs"
+                    value={insurers.find((i) => (i.cnpj || "").replace(/\D/g, "") === (form.seguradora_cnpj || "").replace(/\D/g, "") && (i.apolice_numero || "") === (form.apolice_numero || ""))?.id || ""}
+                    onChange={(e) => { const i = insurers.find((x) => x.id === e.target.value); if (i) setForm((f) => ({ ...f, seguradora_nome: (i.nome || "").toUpperCase(), seguradora_cnpj: i.cnpj ? maskCNPJ(i.cnpj) : "", apolice_numero: i.apolice_numero || "" })); }}
+                  >
+                    <option value="">{insurers.length ? "Selecionar seguradora…" : "Nenhuma apólice cadastrada em Transporte › Configurações"}</option>
+                    {insurers.map((i) => <option key={i.id} value={i.id}>{i.nome}{i.apolice_numero ? ` — Apólice ${i.apolice_numero}` : ""}{i.is_default ? " (padrão)" : ""}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-1">
                   <Label className="text-[10px]">Responsável pelo seguro</Label>
                   <Select value={String(form.seguro_responsavel)} onValueChange={(v) => set("seguro_responsavel", Number(v))}>
