@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 const formatCurrency = (v: number | null) =>
   v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
@@ -14,7 +15,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
   const isFrete = q.type === "frete";
   const diaria = q.valor_mensal_por_caminhao ? q.valor_mensal_por_caminhao / 30 : null;
 
-  const logoUrl = window.location.origin + "/favicon.png";
+  const logoUrl = fsmLogoUrl;
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>

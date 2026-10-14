@@ -1,3 +1,4 @@
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { formatCurrency } from "@/lib/masks";
@@ -32,7 +33,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   const items = (rows as any[]) || [];
   const total = items.reduce((s, r) => s + Number(r.amount || 0), 0);
 
-  const logoUrl = window.location.origin + "/favicon.png";
+  const logoUrl = fsmLogoUrl;
 
   const tbody = items
     .map((r) => {
