@@ -4175,6 +4175,7 @@ export type Database = {
           ncm: string | null
           numero: number | null
           observacoes: string | null
+          pagamento_manual: Json | null
           peso_total: number | null
           placa_veiculo: string
           produto_predominante: string | null
@@ -4239,6 +4240,7 @@ export type Database = {
           ncm?: string | null
           numero?: number | null
           observacoes?: string | null
+          pagamento_manual?: Json | null
           peso_total?: number | null
           placa_veiculo: string
           produto_predominante?: string | null
@@ -4303,6 +4305,7 @@ export type Database = {
           ncm?: string | null
           numero?: number | null
           observacoes?: string | null
+          pagamento_manual?: Json | null
           peso_total?: number | null
           placa_veiculo?: string
           produto_predominante?: string | null

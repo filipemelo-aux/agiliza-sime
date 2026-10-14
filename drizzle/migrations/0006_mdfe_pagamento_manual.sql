@@ -1,0 +1,2 @@
+ALTER TABLE public.mdfe ADD COLUMN pagamento_manual jsonb;
+COMMENT ON COLUMN public.mdfe.pagamento_manual IS 'Pagamento do frete informado manualmente em MDF-e avulso (sem CT-e vinculado): {nome, documento, valor}'
