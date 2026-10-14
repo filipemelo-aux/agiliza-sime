@@ -5502,6 +5502,59 @@ export type Database = {
           },
         ]
       }
+      transport_insurers: {
+        Row: {
+          active: boolean
+          apolice_numero: string | null
+          cnpj: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          nome: string
+          observacoes: string | null
+          responsavel: string
+          tenant_id: string
+          updated_at: string
+          vigencia_fim: string | null
+        }
+        Insert: {
+          active?: boolean
+          apolice_numero?: string | null
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome: string
+          observacoes?: string | null
+          responsavel?: string
+          tenant_id?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+        }
+        Update: {
+          active?: boolean
+          apolice_numero?: string | null
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome?: string
+          observacoes?: string | null
+          responsavel?: string
+          tenant_id?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_insurers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
