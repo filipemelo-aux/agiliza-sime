@@ -296,7 +296,7 @@ export default function FreightMdfe() {
           ] as any}
           selectedCount={selected.size}
         />
-        <div>
+        <div className="mdfe-grid">
           <DataGrid
             rows={filtered}
             columns={columns}
