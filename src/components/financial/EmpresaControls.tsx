@@ -130,12 +130,12 @@ export function EmpresaBadge({ empresaId, className }: { empresaId?: string | nu
   );
 }
 
-/** Identificação curta da empresa: "Matriz" ou "Filial - UF" (ex.: Filial - TO), em texto simples */
+/** Identificação curta da empresa: "Matriz" ou "Filial-UF" (ex.: Filial-TO), em texto simples */
 export function EmpresaUf({ empresaId, className }: { empresaId?: string | null; className?: string }) {
   const { establishments } = useUnifiedCompany();
   const est = establishments.find((e) => e.id === empresaId);
   const uf = (est?.endereco_uf || "").toUpperCase();
-  const label = !est ? "—" : est.type === "matriz" ? "Matriz" : uf ? `Filial - ${uf}` : "Filial";
+  const label = !est ? "—" : est.type === "matriz" ? "Matriz" : uf ? `Filial-${uf}` : "Filial";
   return (
     <span
       className={cn("whitespace-nowrap", className)}

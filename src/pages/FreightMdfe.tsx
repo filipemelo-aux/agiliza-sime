@@ -12,6 +12,8 @@ import { mdfeFocus } from "@/services/fiscal/focusMdfeService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmpresaUf } from "@/components/financial/EmpresaControls";
+import { UserNameCell } from "@/components/UserNameCell";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -260,6 +262,8 @@ export default function FreightMdfe() {
     { key: "motorista", header: "Motorista", cell: (r) => r.motorista_nome || "—" },
     { key: "ctes", header: "CT-es", width: "60px", cell: (r) => (r.lista_ctes || []).length },
     { key: "peso", header: "Peso (kg)", width: "100px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
+    { key: "agencia", header: "Agência", width: "80px", align: "center", sortValue: (r) => r.establishment_id || "", cell: (r) => <EmpresaUf empresaId={r.establishment_id} /> },
+    { key: "usuario", header: "Usuário", width: "110px", cell: (r) => <UserNameCell userId={r.created_by} /> },
     { key: "status", header: "Status", width: "140px", align: "center", sortValue: (r) => r.status, cell: (r) => <Badge className={statusColors[r.status] || "bg-muted text-muted-foreground"}>{STATUS_LABEL[r.status] || r.status}</Badge> },
   ] as any;
 
