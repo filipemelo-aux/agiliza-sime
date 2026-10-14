@@ -18,6 +18,12 @@ export function useUserNames() {
 export function UserNameCell({ userId }: { userId?: string | null }) {
   const { data } = useUserNames();
   const full = (userId && data?.[userId]) || "";
-  const short = full.trim().split(/\s+/).slice(0, 2).join(" ");
-  return <span className="block truncate whitespace-nowrap" title={full}>{short || "—"}</span>;
+  return (
+    <span
+      className="block break-words leading-tight"
+      title={full}
+    >
+      {full || "—"}
+    </span>
+  );
 }
