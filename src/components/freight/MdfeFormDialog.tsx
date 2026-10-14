@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, ChevronDown, FileText, Loader2, MapPin, Package, Plus, Search, ShieldCheck, Trash2, Truck } from "lucide-react";
+import { Banknote, Building2, ChevronDown, FileText, Loader2, MapPin, Package, Plus, Search, ShieldCheck, Trash2, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -242,6 +242,28 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     }, 0);
     return { peso, valor, qtd };
   }, [ctes]);
+
+  // Contratos de frete vinculados aos CT-es (informação de pagamento do MDF-e)
+  const [contracts, setContracts] = useState<any[]>([]);
+  useEffect(() => {
+    const ids = ctes.map((c) => c.id);
+    if (!ids.length) { setContracts([]); return; }
+    (supabase as any).from("freight_contracts").select("id,numero,cte_id,valor_total,contratado_nome,contratado_documento").in("cte_id", ids)
+      .then(({ data }: any) => setContracts(data || []));
+  }, [ctes]);
+
+  const paymentInfo = useMemo(() => {
+    const items = ctes.map((c) => {
+      const contract = contracts.find((k) => k.cte_id === c.id);
+      return {
+        cte: c,
+        contract,
+        valor: contract ? Number(contract.valor_total || 0) : Number(c.valor_frete || 0),
+        origem: contract ? `Contrato de frete nº ${contract.numero ?? "—"}` : "Frete do CT-e",
+      };
+    });
+    return { items, total: items.reduce((s, i) => s + i.valor, 0) };
+  }, [ctes, contracts]);
 
   const togglePercurso = (uf: string) =>
     set("ufs_percurso", form.ufs_percurso.includes(uf) ? form.ufs_percurso.filter((u) => u !== uf) : [...form.ufs_percurso, uf]);
