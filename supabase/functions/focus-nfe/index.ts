@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       const st = sync?.status;
       if (st === "autorizado") {
         await supabase.from("ctes").update({
-          status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso || cte.chave_acesso,
+          status: "autorizado", chave_acesso: sync?.chave_cte || sync?.chave_acesso || sync?.chave || sync?.protocolo?.chave || cte.chave_acesso,
           protocolo_autorizacao: sync?.protocolo || cte.protocolo_autorizacao,
           data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
         }).eq("id", cteId);
@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
       // Grava a data/hora exatamente como transmitida, para o DACTE e a listagem baterem com o XML.
       data_emissao: new Date(emissionDateTime).toISOString(),
       numero, status: authorized ? "autorizado" : focusData?.status === "erro_autorizacao" ? "rejeitado" : "processando",
-      chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || focusData?.protocolo?.chave || cte.chave_acesso,
+      chave_acesso: focusData?.chave_cte || focusData?.chave_acesso || focusData?.chave || focusData?.protocolo?.chave || cte.chave_acesso,
       protocolo_autorizacao: focusData?.protocolo || cte.protocolo_autorizacao,
       data_autorizacao: authorized ? new Date().toISOString() : cte.data_autorizacao,
       motivo_rejeicao: authorized ? null : reason,
@@ -400,8 +400,15 @@ Deno.serve(async (req) => {
     // CT-es vinculados: usa sempre a chave atual (o MDF-e pode ter sido salvo antes da autorização do CT-e)
     const linkedIds: string[] = Array.isArray(m.cte_ids) ? m.cte_ids : [];
     const { data: linked } = linkedIds.length
-      ? await supabase.from("ctes").select("id,numero,status,chave_acesso,nfe_detalhes,produto_predominante").in("id", linkedIds)
+      ? await supabase.from("ctes").select("id,numero,status,chave_acesso,protocolo_autorizacao,nfe_detalhes,produto_predominante").in("id", linkedIds)
       : { data: [] as any[] };
+    for (const c of (linked || []) as any[]) {
+      if (digits(c.chave_acesso).length !== 44) {
+        const pa = typeof c.protocolo_autorizacao === "string" ? (() => { try { return JSON.parse(c.protocolo_autorizacao); } catch { return null; } })() : c.protocolo_autorizacao;
+        const k = digits(pa?.chave || pa?.chave_cte || "");
+        if (k.length === 44) { c.chave_acesso = k; await supabase.from("ctes").update({ chave_acesso: k }).eq("id", c.id); }
+      }
+    }
     const naoAutorizados = (linked || []).filter((c: any) => c.status !== "autorizado" || digits(c.chave_acesso).length !== 44).map((c: any) => c.numero ?? "s/n");
     const chaves = [...new Set([...(m.lista_ctes || []), ...(linked || []).map((c: any) => c.chave_acesso)].map(digits).filter((c: string) => c.length === 44))];
     if (chaves.length && JSON.stringify(chaves) !== JSON.stringify((m.lista_ctes || []).map(digits))) {
@@ -588,7 +595,7 @@ Deno.serve(async (req) => {
     if (cte.status === "processando" || cte.status === "rascunho" || cte.status === "rejeitado") {
       if (d?.status === "autorizado") {
         await supabase.from("ctes").update({
-          status: "autorizado", chave_acesso: d?.chave_cte || d?.chave_acesso, protocolo_autorizacao: d?.protocolo,
+          status: "autorizado", chave_acesso: d?.chave_cte || d?.chave_acesso || d?.chave || d?.protocolo?.chave, protocolo_autorizacao: d?.protocolo,
           data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
         }).eq("id", cteId);
       } else if (cte.status === "processando" && (d?.status === "erro_autorizacao" || d?.status === "denegado")) {
