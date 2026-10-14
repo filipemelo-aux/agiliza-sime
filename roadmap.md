@@ -20,3 +20,4 @@
 - [x] Combinar verde esmeralda com cinza na logomarca FSM Systems e reaplicar na tela inicial.
 - [x] Reordenar o menu lateral: Dashboard, Financeiro, Bancos, Transporte, Frota, Notas Fiscais, Recursos Humanos, Cadastros, Configurações.
 - [x] Exibir nome e sobrenome completos na coluna Usuário das listagens de CT-e e MDF-e.
+- [x] Nome de usuário muito longo: cortar com "…" e mostrar o completo no hover, como nas colunas Cliente/Descrição.
