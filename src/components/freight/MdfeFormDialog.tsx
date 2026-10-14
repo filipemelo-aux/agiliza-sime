@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "./PersonSearchInput";
-import { maskPlate, maskPlateInput, maskCEP } from "@/lib/masks";
+import { maskPlate, maskPlateInput, maskCEP, maskDocument, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { formatCurrency } from "@/lib/masks";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -263,8 +263,10 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         origem: contract ? `Contrato de frete nº ${contract.numero ?? "—"}` : "Frete do CT-e",
       };
     });
-    return { items, total: items.reduce((s, i) => s + i.valor, 0) };
-  }, [ctes, contracts]);
+    const manual = form.pagamento_manual && Number(form.pagamento_manual.valor) > 0 ? form.pagamento_manual : null;
+    const total = items.reduce((s, i) => s + i.valor, 0) + (manual ? Number(manual.valor) : 0);
+    return { items, manual, total };
+  }, [ctes, contracts, form.pagamento_manual]);
 
   const togglePercurso = (uf: string) =>
     set("ufs_percurso", form.ufs_percurso.includes(uf) ? form.ufs_percurso.filter((u) => u !== uf) : [...form.ufs_percurso, uf]);
