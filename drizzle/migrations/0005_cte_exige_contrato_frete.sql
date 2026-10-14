@@ -1,0 +1,2 @@
+ALTER TABLE public.ctes ADD COLUMN IF NOT EXISTS exige_contrato_frete boolean NOT NULL DEFAULT false;
+UPDATE public.ctes c SET exige_contrato_frete = true WHERE EXISTS (SELECT 1 FROM public.freight_contracts f WHERE f.cte_id = c.id);

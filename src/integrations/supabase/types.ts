@@ -1326,6 +1326,7 @@ export type Database = {
           destinatario_nome: string
           destinatario_uf: string | null
           establishment_id: string
+          exige_contrato_frete: boolean
           expedidor_cnpj: string | null
           expedidor_endereco: string | null
           expedidor_ie: string | null
@@ -1450,6 +1451,7 @@ export type Database = {
           destinatario_nome: string
           destinatario_uf?: string | null
           establishment_id: string
+          exige_contrato_frete?: boolean
           expedidor_cnpj?: string | null
           expedidor_endereco?: string | null
           expedidor_ie?: string | null
@@ -1574,6 +1576,7 @@ export type Database = {
           destinatario_nome?: string
           destinatario_uf?: string | null
           establishment_id?: string
+          exige_contrato_frete?: boolean
           expedidor_cnpj?: string | null
           expedidor_endereco?: string | null
           expedidor_ie?: string | null
