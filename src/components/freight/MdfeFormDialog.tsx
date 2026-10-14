@@ -352,7 +352,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
             <div className="grid grid-cols-1 gap-2 rounded-md bg-muted/50 p-2 text-xs sm:grid-cols-3"><div>Peso: <b>{totals.peso.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} kg</b></div><div>Quantidade: <b>{totals.qtd.toLocaleString("pt-BR")}</b></div><div>Valor da carga: <b>{formatCurrency(totals.valor)}</b></div></div>
           </FormBlock>
 
-          <FormBlock icon={Banknote} title="4. Informações de pagamento" summary={paymentInfo.items.length || paymentInfo.manual ? `Total ${formatCurrency(paymentInfo.total)}` : "Vincule um CT-e"}>
+          <FormBlock icon={Banknote} title="4. Informações de pagamento" summary={paymentInfo.items.length || paymentInfo.manual ? `Total ${formatCurrency(paymentInfo.total)}` : paymentInfo.avulso ? "Informe o pagamento manualmente" : "Vincule um CT-e"}>
             <div className="space-y-1.5">
               {paymentInfo.avulso && !paymentInfo.manual && !showManualPay && (
                 <p className="text-xs text-muted-foreground">MDF-e sem CT-e do sistema vinculado: informe o pagamento do frete manualmente.</p>
