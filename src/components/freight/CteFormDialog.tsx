@@ -1446,6 +1446,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         }
         payload.numero = nextNum as number;
       }
+      // Marca o CT-e como "com contrato de frete": o MDF-e só transmite com o contrato completo
+      (payload as any).exige_contrato_frete = gerarContrato || !!(cte as any)?.exige_contrato_frete;
       const writeCte = async () => {
         for (let attempt = 0; attempt < 6; attempt++) {
           const res: any = cte

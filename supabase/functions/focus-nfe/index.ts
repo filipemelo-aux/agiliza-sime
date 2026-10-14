@@ -417,6 +417,37 @@ Deno.serve(async (req) => {
     if (chaves.length && JSON.stringify(chaves) !== JSON.stringify((m.lista_ctes || []).map(digits))) {
       await supabase.from("mdfe").update({ lista_ctes: chaves }).eq("id", mdfeId);
     }
+    // Contrato de frete: CT-e marcado "com contrato" só segue com o contrato completo;
+    // o valor do contrato vira a informação de pagamento do MDF-e.
+    const ctesDoMdfe: any[] = [];
+    {
+      const ids = new Set<string>(linkedIds as string[]);
+      const orKeys = chaves.flatMap((k) => [`chave_acesso.eq.${k}`, `chave_acesso.eq.CTe${k}`]).join(",");
+      const { data: byKey } = chaves.length ? await supabase.from("ctes").select("id,numero,exige_contrato_frete").or(orKeys) : { data: [] as any[] };
+      const { data: byId } = ids.size ? await supabase.from("ctes").select("id,numero,exige_contrato_frete").in("id", [...ids]) : { data: [] as any[] };
+      for (const c of [...(byId || []), ...(byKey || [])]) if (!ctesDoMdfe.some((x) => x.id === c.id)) ctesDoMdfe.push(c);
+    }
+    const { data: contratos } = ctesDoMdfe.length
+      ? await supabase.from("freight_contracts").select("cte_id,numero,valor_total,contratado_documento,contratado_nome,motorista_nome,placa_veiculo").in("cte_id", ctesDoMdfe.map((c) => c.id))
+      : { data: [] as any[] };
+    const problemas: string[] = [];
+    let valorContratos = 0;
+    for (const c of ctesDoMdfe) {
+      const ks = (contratos || []).filter((k: any) => k.cte_id === c.id);
+      if (!c.exige_contrato_frete && !ks.length) continue;
+      if (!ks.length) { problemas.push(`CT-e ${c.numero ?? "s/n"}: marcado com contrato de frete, mas o contrato ainda não foi criado`); continue; }
+      for (const k of ks) {
+        const falta: string[] = [];
+        if (!(Number(k.valor_total) > 0)) falta.push("valor do frete");
+        if (digits(k.contratado_documento).length < 11) falta.push("CPF/CNPJ do contratado");
+        if (!String(k.contratado_nome || "").trim()) falta.push("nome do contratado");
+        if (!String(k.motorista_nome || "").trim()) falta.push("motorista");
+        if (!String(k.placa_veiculo || "").trim()) falta.push("placa");
+        if (falta.length) problemas.push(`CT-e ${c.numero ?? "s/n"} (contrato ${k.numero ?? "s/n"}): falta ${falta.join(", ")}`);
+        else valorContratos += Number(k.valor_total);
+      }
+    }
+    if (problemas.length) return json({ error: `O MDF-e não pode ser transmitido porque há contrato de frete incompleto:\n• ${problemas.join("\n• ")}\nComplete o contrato em Transporte › Contratos de Frete e transmita novamente.` }, 422);
     // NCM e produto: completa a partir das notas do CT-e
     let ncm = digits(m.ncm);
     if (ncm.length !== 8) ncm = digits((linked || []).flatMap((c: any) => Array.isArray(c.nfe_detalhes) ? c.nfe_detalhes : []).find((n: any) => digits(n?.ncm).length === 8)?.ncm);
@@ -507,7 +538,7 @@ Deno.serve(async (req) => {
       tomadorDoc = digits(findField(c1, scope, /cnpj|cpf|documento/i) || findField(c1, /tomador/i, /cnpj|cpf|documento/i) || findField(c1, /remet/i, /cnpj|cpf|documento/i));
       valorFrete = Number((c1 as any)?.valor_frete || 0);
     }
-    const valorPag = (valorFrete || Number(m.valor_total || 0)).toFixed(2);
+    const valorPag = (valorContratos > 0 ? valorContratos : (valorFrete || Number(m.valor_total || 0))).toFixed(2);
     if (chaves.length === 1 && tomadorDoc.length < 11) return json({ error: "Carga lotação: a SEFAZ exige as informações de pagamento do frete. Informe o CPF/CNPJ do tomador no CT-e vinculado." }, 422);
     const ufsPercurso = (m.ufs_percurso || []).filter((u: string) => u && u !== m.uf_carregamento && u !== m.uf_descarregamento);
     const payload: Record<string, unknown> = {
