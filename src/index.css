@@ -602,6 +602,19 @@
 }
 
 /* Global form focus polish — remove harsh blue rings/outlines on form fields */
+/* A custom dialog body scrolls within the space left by its header/footer. */
+[role="dialog"] > [data-scroll-area-root] {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 1;
+  min-height: 0;
+}
+[role="dialog"] > [data-scroll-area-root] > [data-radix-scroll-area-viewport] {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: inherit;
+}
+
 @layer base {
   input:focus,
   input:focus-visible,
