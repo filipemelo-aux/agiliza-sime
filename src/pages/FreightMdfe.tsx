@@ -1,6 +1,6 @@
 import { PageTitle } from "@/components/PageTitle";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2, Search, FileDown, Loader2, RefreshCw, Flag, Ban, FileCode, FileCode2, Send, Eye, type LucideIcon } from "lucide-react";
@@ -37,6 +37,7 @@ export default function FreightMdfe() {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
