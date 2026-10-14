@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageTitle } from "@/components/PageTitle";
 import { AdminLayout } from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -64,7 +65,7 @@ export default function FreightSettings() {
   return (
     <AdminLayout>
       <div className="px-4 py-3 md:px-6 space-y-4">
-        <h1 className="text-lg font-bold">Configurações do Transporte</h1>
+        <PageTitle>Transporte — Configurações</PageTitle>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between py-3">
             <CardTitle className="text-sm flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Seguradoras</CardTitle>
