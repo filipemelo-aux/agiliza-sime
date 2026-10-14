@@ -249,6 +249,18 @@
       width: 86px !important;
     }
 
+    /* Agência: "Matriz" / "Filial-TO" + seta de ordenação */
+    .data-grid-table th[data-column-key="agencia"],
+    .data-grid-table td[data-column-key="agencia"] {
+      width: 84px !important;
+    }
+
+    /* Usuário: nome e sobrenome completos (quebram em até duas linhas) */
+    .data-grid-table th[data-column-key="usuario"],
+    .data-grid-table td[data-column-key="usuario"] {
+      width: 160px !important;
+    }
+
     .data-grid-table th[data-column-key="numero"],
     .data-grid-table td[data-column-key="numero"] {
       width: 76px !important;
@@ -269,6 +281,27 @@
     .cte-grid .data-grid-table th[data-column-key="cliente"],
     .cte-grid .data-grid-table td[data-column-key="cliente"] {
       width: auto !important;
+    }
+
+    /* MDF-e: colunas curtas fixas; Percurso e Motorista absorvem a sobra */
+    .mdfe-grid .data-grid-table th[data-column-key="emissao"],
+    .mdfe-grid .data-grid-table td[data-column-key="emissao"] {
+      width: 84px !important;
+    }
+
+    .mdfe-grid .data-grid-table th[data-column-key="placa"],
+    .mdfe-grid .data-grid-table td[data-column-key="placa"] {
+      width: 82px !important;
+    }
+
+    .mdfe-grid .data-grid-table th[data-column-key="ctes"],
+    .mdfe-grid .data-grid-table td[data-column-key="ctes"] {
+      width: 58px !important;
+    }
+
+    .mdfe-grid .data-grid-table th[data-column-key="peso"],
+    .mdfe-grid .data-grid-table td[data-column-key="peso"] {
+      width: 90px !important;
     }
 
 
