@@ -35,7 +35,7 @@ type CteLite = {
   apolice_numero: string | null; averbacao_numero: string | null; info_quantidade: any;
 };
 
-const CTE_FIELDS = "id,numero,chave_acesso,status,data_emissao,remetente_nome,destinatario_nome,peso_bruto,valor_carga,valor_frete,uf_origem,uf_destino,municipio_origem_nome,municipio_destino_nome,municipio_origem_ibge,municipio_destino_ibge,establishment_id,placa_veiculo,rntrc,motorista_id,motorista_nome,veiculo_id,reboque1_placa,reboque2_placa,contratado_id,contratado_nome,contratado_documento,produto_predominante,seguradora_nome,seguradora_cnpj,apolice_numero,averbacao_numero,info_quantidade";
+const CTE_FIELDS = "id,numero,chave_acesso,status,data_emissao,remetente_nome,destinatario_nome,peso_bruto,valor_carga,valor_frete,uf_origem,uf_destino,municipio_origem_nome,municipio_destino_nome,municipio_origem_ibge,municipio_destino_ibge,establishment_id,placa_veiculo,rntrc,motorista_id,motorista_nome,veiculo_id,reboque1_placa,reboque2_placa,contratado_id,contratado_nome,contratado_documento,produto_predominante,seguradora_nome,seguradora_cnpj,apolice_numero,averbacao_numero,info_quantidade,nfe_detalhes";
 
 type Pedagio = { pago_por: string; dispositivo: string; fornecedor_nome: string; fornecedor_cnpj: string; comprovante: string; valor: string };
 type Condutor = { id: string; nome: string };
@@ -160,6 +160,13 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
       reboques = (data || []).map((t: any) => maskPlate(t.plate || ""));
     }
     const est = establishments.find((e) => e.id === first.establishment_id);
+    const ncmCte = list.flatMap((c: any) => Array.isArray(c.nfe_detalhes) ? c.nfe_detalhes : [])
+      .map((n: any) => String(n?.ncm || "").replace(/\D/g, "")).find((n: string) => n.length === 8) || "";
+    let motoristaNome = first.motorista_nome;
+    if (!motoristaNome && first.motorista_id) {
+      const { data: p } = await supabase.from("profiles").select("full_name").eq("id", first.motorista_id).maybeSingle();
+      motoristaNome = (p as any)?.full_name || null;
+    }
     setForm((f) => {
       const pick = (k: keyof typeof f, v: any) => (overwrite || !f[k] ? v ?? f[k] : f[k]);
       return {
@@ -175,7 +182,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         veiculo_id: pick("veiculo_id", first.veiculo_id),
         rntrc: pick("rntrc", first.rntrc),
         motorista_id: pick("motorista_id", first.motorista_id),
-        motorista_nome: pick("motorista_nome", first.motorista_nome),
+        motorista_nome: pick("motorista_nome", motoristaNome),
+        ncm: pick("ncm", ncmCte || null),
         reboque1_placa: pick("reboque1_placa", first.reboque1_placa || reboques[0]),
         reboque2_placa: pick("reboque2_placa", first.reboque2_placa || reboques[1]),
         contratado_id: pick("contratado_id", first.contratado_id),

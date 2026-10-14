@@ -641,8 +641,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       } else if (result.status === "autorizado") {
         toast({
           title: "CT-e autorizado pela SEFAZ",
-          description: `Chave: ${result.chave_acesso || "—"}${result.protocolo ? ` | Protocolo: ${result.protocolo}` : ""}`,
+          description: "Abrindo a emissão do MDF-e com os dados deste CT-e.",
         });
+        const id = singleCte.id;
+        const { data: mdfes } = await supabase.from("mdfe").select("id").contains("cte_ids", [id]).neq("status", "cancelado").limit(1);
+        navigate(mdfes?.[0] ? `/admin/freight/mdfe?sefaz=${mdfes[0].id}` : `/admin/freight/mdfe?ctes=${id}`);
+        return;
       } else {
         toast({ title: "CT-e enviado", description: "A autorização está sendo processada pela SEFAZ." });
       }
