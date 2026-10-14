@@ -1098,6 +1098,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     });
     setDocMode("nfe");
     void matchNaturezaCadastrada(n.chave, n.produto || "");
+    void import("@/lib/nfeActorRegistry").then(({ registerNfeActorsAsSuppliers }) =>
+      registerNfeActorsAsSuppliers([n.emitente, n.destinatario, n.transportadora]).then((qt) => {
+        if (qt) toast({ title: "Cadastro atualizado", description: `${qt} participante(s) da nota cadastrado(s) como fornecedor.` });
+      }).catch(() => {}));
     return true;
   };
 
