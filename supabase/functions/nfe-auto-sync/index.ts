@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     const { data: sec } = await svc.from("tenant_secrets").select("focus_nfe_token_production").eq("tenant_id", t.id).maybeSingle();
     const token = sec?.focus_nfe_token_production || Deno.env.get("FOCUS_NFE_TOKEN_PRODUCAO");
     if (!token) { report.push({ tenant: t.id, error: "sem token" }); continue; }
-    const auth = { Authorization: "Basic " + btoa(token + ":") };
+    const tenantAuth = token;
 
     const { data: ests } = await svc.from("fiscal_establishments").select("id, cnpj").eq("tenant_id", t.id).eq("active", true);
     const seen = new Set<string>();
@@ -39,12 +39,19 @@ Deno.serve(async (req) => {
       const cnpj = digits(est.cnpj);
       if (cnpj.length !== 14 || seen.has(cnpj)) continue;
       seen.add(cnpj);
+      // Filial pode ter conta própria na Focus: usa o token do estabelecimento quando existir.
+      const { data: es } = await svc.from("establishment_secrets").select("focus_nfe_token_production").eq("establishment_id", est.id).maybeSingle();
+      const auth = { Authorization: "Basic " + btoa((es?.focus_nfe_token_production || tenantAuth) + ":") };
       const { data: last } = await svc.from("nfes_recebidas").select("versao").eq("establishment_id", est.id)
         .order("versao", { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
       let versao: number | undefined = last?.versao ?? undefined;
       for (let page = 0; page < 30; page++) {
         const r = await fetch(`${BASE}/v2/nfes_recebidas?cnpj=${cnpj}${versao ? `&versao=${versao}` : ""}`, { headers: auth });
-        if (!r.ok) { report.push({ tenant: t.id, cnpj, status: r.status }); break; }
+        if (!r.ok) {
+          const msg = (await r.text().catch(() => "")).slice(0, 300);
+          console.error("nfe-auto-sync falha", cnpj, r.status, msg);
+          report.push({ tenant: t.id, cnpj, status: r.status, msg }); break;
+        }
         const items: any[] = await r.json().catch(() => []);
         if (!Array.isArray(items) || !items.length) break;
         const byKey = new Map<string, any>();
@@ -60,6 +67,7 @@ Deno.serve(async (req) => {
           emitente_cnpj: digits(i.documento_emitente) || null,
           destinatario_cnpj: digits(i.cnpj_destinatario || i.cpf_destinatario) || null,
           ator: digits(i.cnpj_destinatario) === cnpj ? "destinatario" : "transportadora",
+          transportadora_cnpj: digits(i.cnpj_destinatario) === cnpj ? null : cnpj,
           valor: Number(i.valor_total) || 0, situacao: String(i.situacao || "autorizada").toLowerCase(),
           numero: String(Number(k.slice(25, 34))), serie: String(Number(k.slice(22, 25))), versao: Number(i.versao) || null,
         }));
@@ -73,6 +81,7 @@ Deno.serve(async (req) => {
         versao = maxV;
       }
     }
+    console.log("nfe-auto-sync", t.id, "novas", novas);
     report.push({ tenant: t.id, novas });
   }
   return json({ ok: true, hour, report });
