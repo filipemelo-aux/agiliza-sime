@@ -48,7 +48,8 @@ import { CteSefazDialog } from "@/components/freight/CteSefazDialog";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { emitirCteViaFocus } from "@/services/fiscal/focusCteService";
 import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
-import { EmpresaFilter } from "@/components/financial/EmpresaControls";
+import { EmpresaFilter, EmpresaUf } from "@/components/financial/EmpresaControls";
+import { UserNameCell } from "@/components/UserNameCell";
 
 
 // Colunas da listagem: exclui xml_enviado/xml_autorizado (grandes) — a edição busca a linha completa por id.
@@ -708,6 +709,15 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
           {Number(c.valor_frete).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </span>
       ),
+    },
+    {
+      key: "agencia", header: "Agência", width: "80px", align: "center",
+      sortValue: (c) => c.establishment_id || "",
+      cell: (c) => <EmpresaUf empresaId={c.establishment_id} />,
+    },
+    {
+      key: "usuario", header: "Usuário", width: "110px",
+      cell: (c) => <UserNameCell userId={c.created_by} />,
     },
     {
       key: "status", header: "Status", width: "140px", align: "center",
