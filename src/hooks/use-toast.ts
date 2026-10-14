@@ -1,3 +1,4 @@
+import { pushErrorNotice } from "@/lib/notice";
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
@@ -136,6 +137,13 @@ type Toast = Omit<ToasterToast, "id">;
 
 function toast({ ...props }: Toast) {
   const id = genId();
+  // Todos os avisos aparecem no centro da tela (NoticeHost), sem fechar sozinhos.
+  {
+    const txt = (v: unknown) => (v == null || typeof v === "boolean" ? "" : typeof v === "string" || typeof v === "number" ? String(v) : "");
+    const kind = (props as any).variant === "destructive" ? "error" : "success";
+    pushErrorNotice(txt(props.title), txt(props.description) || undefined, kind);
+    return { id, dismiss: () => {}, update: (_: ToasterToast) => {} };
+  }
 
   const update = (props: ToasterToast) =>
     dispatch({

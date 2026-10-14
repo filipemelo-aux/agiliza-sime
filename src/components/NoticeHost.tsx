@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { dismissErrorNotice, subscribeErrorNotices, type NoticeItem } from "@/lib/notice";
 
 /**
@@ -27,7 +27,9 @@ export function NoticeHost() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-2 px-4 pt-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          {current.kind === "success" ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            : current.kind === "info" ? <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            : <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${current.kind === "warning" ? "text-warning" : "text-destructive"}`} />}
           <h2 className="min-w-0 flex-1 break-words text-sm font-semibold leading-5">
             {current.title}
           </h2>
