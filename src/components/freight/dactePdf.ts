@@ -309,6 +309,10 @@ async function resolveActors(cte: CtePrintInput) {
       fone: hasActor ? cte[`${p}_telefone`] || prof.phone || "" : "",
     };
   }));
+  // Tomador 0-3 aponta para outro ator (toma3); só o tipo 4 tem dados próprios.
+  const tomaMap: Record<string, ActorPrefix> = { "0": "remetente", "1": "expedidor", "2": "recebedor", "3": "destinatario" };
+  const tomaRef = tomaMap[String(cte.tomador_tipo ?? "0")];
+  if (tomaRef && !result.tomador.nome && !result.tomador.doc) result.tomador = { ...result[tomaRef] };
   return result;
 }
 
