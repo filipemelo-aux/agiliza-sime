@@ -111,6 +111,13 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
+  const [insurers, setInsurers] = useState<any[]>([]);
+  useEffect(() => {
+    (supabase as any).from("transport_insurers").select("id,nome,cnpj,apolice_numero,is_default").eq("active", true).order("nome")
+      .then(({ data }: any) => setInsurers(data || []));
+  }, []);
+  const defIns = insurers.find((i) => i.is_default) || null;
+
   useEffect(() => {
     supabase.from("fiscal_establishments").select("id,razao_social,cnpj,type,seguradora_nome,seguradora_cnpj,apolice_numero").eq("active", true).order("type")
       .then(({ data }) => setEstablishments(data || []));
@@ -190,9 +197,9 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         contratado_nome: pick("contratado_nome", first.contratado_nome),
         contratado_documento: pick("contratado_documento", first.contratado_documento),
         produto_predominante: pick("produto_predominante", first.produto_predominante),
-        seguradora_nome: pick("seguradora_nome", first.seguradora_nome || est?.seguradora_nome),
-        seguradora_cnpj: pick("seguradora_cnpj", first.seguradora_cnpj || est?.seguradora_cnpj),
-        apolice_numero: pick("apolice_numero", first.apolice_numero || est?.apolice_numero),
+        seguradora_nome: pick("seguradora_nome", first.seguradora_nome || est?.seguradora_nome || defIns?.nome),
+        seguradora_cnpj: pick("seguradora_cnpj", first.seguradora_cnpj || est?.seguradora_cnpj || defIns?.cnpj),
+        apolice_numero: pick("apolice_numero", first.apolice_numero || est?.apolice_numero || defIns?.apolice_numero),
         averbacao_numero: pick("averbacao_numero", first.averbacao_numero),
       };
     });
@@ -325,6 +332,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
 
           <FormBlock icon={ShieldCheck} title="6. Seguro e CIOT" summary={form.seguro_manual || form.ciot_manual ? "Preenchimento manual" : "Dados automáticos"} defaultOpen={false}>
             <label className="flex items-center gap-2 text-xs"><Checkbox checked={form.seguro_manual} onCheckedChange={(v) => set("seguro_manual", !!v)} /> Definir seguradora manualmente</label>
+            {form.seguro_manual && insurers.length > 0 && <F label="Seguradora cadastrada"><select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value="" onChange={(e) => { const i = insurers.find((x) => x.id === e.target.value); if (i) setForm((f) => ({ ...f, seguradora_nome: i.nome, seguradora_cnpj: i.cnpj || "", apolice_numero: i.apolice_numero || "" })); }}><option value="">Selecionar seguradora…</option>{insurers.map((i) => <option key={i.id} value={i.id}>{i.nome}{i.apolice_numero ? ` — Apólice ${i.apolice_numero}` : ""}</option>)}</select></F>}
             {form.seguro_manual && <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4"><F label="Seguradora"><Input className="h-8 text-xs" value={form.seguradora_nome || ""} onChange={(e) => set("seguradora_nome", e.target.value)} /></F><F label="CNPJ seguradora"><Input className="h-8 text-xs" value={form.seguradora_cnpj || ""} onChange={(e) => set("seguradora_cnpj", e.target.value)} /></F><F label="Apólice"><Input className="h-8 text-xs" value={form.apolice_numero || ""} onChange={(e) => set("apolice_numero", e.target.value)} /></F><F label="Averbação"><Input className="h-8 text-xs" value={form.averbacao_numero || ""} onChange={(e) => set("averbacao_numero", e.target.value)} /></F></div>}
             <label className="flex items-center gap-2 text-xs"><Checkbox checked={form.ciot_manual} onCheckedChange={(v) => set("ciot_manual", !!v)} /> Definir CIOT manualmente (obrigatório para caminhão de terceiro/TAC)</label>
             {form.ciot_manual && <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"><F label="Número do CIOT"><Input className="h-8 text-xs" maxLength={12} value={form.ciot_numero || ""} onChange={(e) => set("ciot_numero", e.target.value.replace(/\D/g, ""))} /></F><F label="CPF/CNPJ do responsável"><Input className="h-8 text-xs" value={form.ciot_documento || ""} onChange={(e) => set("ciot_documento", e.target.value)} /></F></div>}
