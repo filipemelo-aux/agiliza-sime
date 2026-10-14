@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Wrench } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { MaintenanceFields, MaintenanceItem } from "@/components/financial/MaintenanceFields";
 import { maskName, formatCurrency } from "@/lib/masks";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";

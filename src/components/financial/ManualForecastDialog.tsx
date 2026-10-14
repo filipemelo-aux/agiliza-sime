@@ -12,7 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Plus, Search, Check, UserPlus, Truck, User, Trash2, ListPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";

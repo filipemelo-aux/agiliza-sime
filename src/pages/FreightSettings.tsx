@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, ShieldCheck, Star } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 
 type Insurer = {
   id?: string; nome: string; cnpj: string | null; apolice_numero: string | null; responsavel: string;

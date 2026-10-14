@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Plus, Trash2, MinusCircle, Loader2, Calculator, Info, Check } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import {
   createDescontoFolha,

@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
 import { limitDisplayText } from "@/lib/displayText";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";

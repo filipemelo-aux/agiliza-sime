@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 // Build "legacy": inclui polyfills (ex.: Map.getOrInsertComputed) ausentes em Safari/Chrome mais antigos.
 import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 

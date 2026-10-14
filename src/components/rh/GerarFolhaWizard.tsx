@@ -25,7 +25,7 @@ import {
   ListChecks, Eye, FileCheck2, Loader2, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import {
   buildPeriodoQuinzenal,
   buildPeriodoMensal,

@@ -19,7 +19,7 @@ import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { limitDisplayText } from "@/lib/displayText";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";

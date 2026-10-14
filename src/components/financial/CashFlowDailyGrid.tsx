@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { cn } from "@/lib/utils";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";

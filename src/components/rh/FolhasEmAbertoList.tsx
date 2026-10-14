@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhas,

@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { History, Loader2, Trash2, Truck, Sprout, CalendarDays } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MonthPicker } from "@/components/MonthPicker";
 import {

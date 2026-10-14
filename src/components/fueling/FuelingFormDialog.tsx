@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { maskCurrency, unmaskCurrency, maskSentence } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";

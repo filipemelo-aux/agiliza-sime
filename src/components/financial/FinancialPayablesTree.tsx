@@ -12,7 +12,7 @@ import { Loader2, Search, ChevronRight, ChevronDown, Plus, Pencil, DollarSign, A
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { toast } from "sonner";
+import { toast } from "@/lib/notice";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
