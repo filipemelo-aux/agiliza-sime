@@ -255,7 +255,7 @@
       width: 84px !important;
     }
 
-    /* Usuário: nome e sobrenome completos; nomes muito longos quebram em duas linhas */
+    /* Usuário: nome por extenso; nomes muito longos cortam com "…" e aparecem no hover */
     .data-grid-table th[data-column-key="usuario"],
     .data-grid-table td[data-column-key="usuario"] {
       width: 176px !important;
