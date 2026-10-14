@@ -238,7 +238,7 @@ export function FinancialReceivables() {
                   const isParcial = c.status !== "recebido" && recebido > 0;
                   return (
                     <tr key={c.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openPayment(c)}>
-                      <td className="px-3 py-2 font-medium" title={c.cliente_nome || ""}>{limitDisplayText(c.cliente_nome)}</td>
+                      <td className="px-3 py-2 font-medium truncate whitespace-nowrap max-w-0" title={c.cliente_nome || ""}>{limitDisplayText(c.cliente_nome)}</td>
                       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{c.origem_label || "—"}</td>
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(c.data_vencimento)}</td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(Number(c.valor))}</td>

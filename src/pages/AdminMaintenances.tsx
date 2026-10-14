@@ -268,7 +268,7 @@ export default function AdminMaintenances() {
     {
       key: "fornecedor", header: "Fornecedor", width: "180px",
       sortValue: (m) => m.fornecedor || "",
-      cell: (m) => <span className="block text-muted-foreground" title={m.fornecedor || ""}>{limitDisplayText(m.fornecedor || "—")}</span>,
+      cell: (m) => <span className="block truncate whitespace-nowrap text-muted-foreground" title={m.fornecedor || ""}>{limitDisplayText(m.fornecedor || "—")}</span>,
     },
     {
       key: "docs", header: "Docs", width: "100px", align: "center",

@@ -210,7 +210,7 @@ export default function AdminQuotations() {
     {
       key: "cliente", header: "Cliente",
       sortValue: (q) => q.client?.razao_social || q.client?.full_name || "",
-      cell: (q) => { const name = q.client?.razao_social || q.client?.full_name || "—"; return <span className="block" title={name}>{limitDisplayText(name)}</span>; },
+      cell: (q) => { const name = q.client?.razao_social || q.client?.full_name || "—"; return <span className="block truncate whitespace-nowrap" title={name}>{limitDisplayText(name)}</span>; },
     },
     {
       key: "detalhe", header: "Detalhe",
