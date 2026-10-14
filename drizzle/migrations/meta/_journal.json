@@ -43,6 +43,13 @@
       "when": 1791993332209,
       "tag": "0005_cte_exige_contrato_frete",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791994318487,
+      "tag": "0006_mdfe_pagamento_manual",
+      "breakpoints": true
     }
   ]
 }
