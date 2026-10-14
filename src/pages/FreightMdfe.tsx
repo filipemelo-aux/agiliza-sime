@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { pushErrorNotice } from "@/lib/notice";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -27,6 +26,7 @@ import { base64ToBytes, downloadBytes, mergePdfBytes } from "@/lib/mergePdfs";
 import JSZip from "jszip";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { MdfeXmlImportDialog } from "@/components/freight/MdfeXmlImportDialog";
+import { MdfeDetailDialog } from "@/components/freight/MdfeDetailDialog";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -54,6 +54,7 @@ export default function FreightMdfe() {
   const [batchBusy, setBatchBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [pendingSefaz, setPendingSefaz] = useState<string | null>(null);
+  const [detailMdfe, setDetailMdfe] = useState<any | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -276,7 +277,7 @@ export default function FreightMdfe() {
             { key: "close", label: "Encerrar", icon: Flag, mode: "single", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setDataEnc(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })); setOpDialog("encerrar"); } },
             { key: "cancel", label: "Cancelar MDF-e", icon: Ban, mode: "single", variant: "destructive", disabled: !single || isConsultor || !!busy || single.status !== "autorizado", onClick: () => { setJustificativa(""); setOpDialog("cancelar"); } },
             { key: "xml", label: "Baixar XML", icon: FileCode, mode: "single", disabled: !single || !!busy || !["autorizado", "encerrado", "cancelado"].includes(single.status), onClick: handleXml },
-            { key: "viewerr", label: "Ver erro", icon: Eye, mode: "single", disabled: !single || !single.motivo_rejeicao || ["autorizado", "encerrado", "cancelado"].includes(single.status), onClick: () => pushErrorNotice(`Último erro do MDF-e ${single.numero ? "nº " + single.numero : "(sem número)"}`, single.motivo_rejeicao) },
+            { key: "detail", label: "Detalhes", icon: Eye, mode: "single", disabled: !single, onClick: () => single && setDetailMdfe(single) },
             { key: "edit", label: "Editar", icon: Pencil, mode: "single", disabled: !editable || isConsultor, onClick: () => { setEditing(single); setFormOpen(true); } },
             { key: "print", label: printing ? "Gerando PDF" : "Baixar DAMDFE", icon: printing ? Loader2 : FileDown, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: handlePrint },
             { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", disabled: selected.size === 0 || isConsultor, onClick: handleDelete },
@@ -335,6 +336,9 @@ export default function FreightMdfe() {
         </DialogContent>
       </Dialog>
       <MdfeXmlImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={load} />
+      {detailMdfe && (
+        <MdfeDetailDialog open={!!detailMdfe} onOpenChange={(o) => !o && setDetailMdfe(null)} mdfe={detailMdfe} />
+      )}
       <ProcessingOverlay open={!!busy} label={busy || ""} />
       <Dialog open={!!opDialog} onOpenChange={(o) => !o && setOpDialog(null)}>
         <DialogContent className="max-w-md">
