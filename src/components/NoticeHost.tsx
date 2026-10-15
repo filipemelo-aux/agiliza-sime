@@ -4,9 +4,17 @@ import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { dismissErrorNotice, subscribeErrorNotices, type NoticeItem } from "@/lib/notice";
 
 /**
- * Exibe os erros do sistema como avisos no centro da tela, um por vez,
- * com botão de fechar no canto superior direito. Não fecha automaticamente.
+ * Exibe os avisos do sistema no centro da tela, um por vez, com botão de fechar
+ * no canto superior direito.
+ *
+ * Mensagens positivas (sucesso) e informativas fecham sozinhas; erros e
+ * alertas permanecem abertos até o usuário fechar.
  */
+const AUTO_CLOSE_MS: Partial<Record<NoticeItem["kind"], number>> = {
+  success: 4000,
+  info: 5000,
+};
+
 export function NoticeHost() {
   const [items, setItems] = useState<NoticeItem[]>([]);
 
