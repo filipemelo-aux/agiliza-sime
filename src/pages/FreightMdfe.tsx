@@ -33,7 +33,7 @@ import { MdfeXmlImportDialog } from "@/components/freight/MdfeXmlImportDialog";
 import { MdfeDetailDialog } from "@/components/freight/MdfeDetailDialog";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 
-// Ciclo real do MDF-e: rascunho -> em processamento -> autorizado (em trânsito, aguardando encerramento) -> encerrado; ou rejeitado / cancelado
+// Ciclo real do MDF-e: rascunho -> em processamento -> autorizado (aguardando encerramento) -> encerrado; ou rejeitado / cancelado
 const normStatus = (s?: string) => (s === "erro_autorizacao" ? "rejeitado" : s || "rascunho");
 const statusColors: Record<string, string> = {
   rascunho: "bg-muted text-muted-foreground border border-border",
@@ -44,7 +44,7 @@ const statusColors: Record<string, string> = {
   cancelado: "bg-muted-foreground/15 text-muted-foreground border border-muted-foreground/40 line-through",
 };
 const STATUS_LABEL: Record<string, string> = {
-  rascunho: "Rascunho", processando: "Em processamento", autorizado: "Autorizado · em trânsito", encerrado: "Encerrado", rejeitado: "Rejeitado", cancelado: "Cancelado",
+  rascunho: "Rascunho", processando: "Em processamento", autorizado: "Autorizado", encerrado: "Encerrado", rejeitado: "Rejeitado", cancelado: "Cancelado",
 };
 const STATUS_TONE: Record<string, any> = { rascunho: "neutral", processando: "info", autorizado: "pending", encerrado: "resolved", rejeitado: "overdue", cancelado: "cancelled" };
 const MDFE_LEGEND: any[] = [
