@@ -1181,7 +1181,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       }
     }
     setNfeLoading(false);
-    if (ok) toast({ title: "Dados importados da SEFAZ", description: `${ok} nota(s) aplicada(s). Confira remetente, destinatário, peso e valores.` });
+    if (ok) toast({ title: "Dados importados da SEFAZ", description: `${ok} nota(s) aplicada(s). Confira remetente, destinatário, peso e valores.`, persistent: true });
   };
 
   const buscarChave = async (chave: string) => {

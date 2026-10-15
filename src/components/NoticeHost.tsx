@@ -34,14 +34,16 @@ export function NoticeHost() {
   const currentId = items[0]?.id;
   const currentKind = items[0]?.kind;
   const currentAutoClose = items[0]?.autoCloseMs;
+  const currentPersistent = items[0]?.persistent;
   // Só sucesso e informação se fecham sozinhos; erro e alerta esperam o usuário.
+  // Avisos solicitados pelo usuário (persistent) também esperam o fechamento manual.
   useEffect(() => {
-    if (currentId == null || !currentKind) return;
+    if (currentId == null || !currentKind || currentPersistent) return;
     const ms = currentAutoClose ?? autoCloseMs(currentKind);
     if (!ms) return;
     const timer = setTimeout(() => dismissErrorNotice(currentId), ms);
     return () => clearTimeout(timer);
-  }, [currentId, currentKind, currentAutoClose]);
+  }, [currentId, currentKind, currentAutoClose, currentPersistent]);
 
   const current = items[0];
   if (!current) return null;

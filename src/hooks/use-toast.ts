@@ -133,7 +133,7 @@ function dispatch(action: Action) {
   });
 }
 
-type Toast = Omit<ToasterToast, "id">;
+type Toast = Omit<ToasterToast, "id"> & { /** Aviso solicitado pelo usuário: não fecha sozinho. */ persistent?: boolean };
 
 function toast({ ...props }: Toast) {
   const id = genId();
@@ -141,7 +141,8 @@ function toast({ ...props }: Toast) {
   {
     const txt = (v: unknown) => (v == null || typeof v === "boolean" ? "" : typeof v === "string" || typeof v === "number" ? String(v) : "");
     const kind = (props as any).variant === "destructive" ? "error" : "success";
-    pushErrorNotice(txt(props.title), txt(props.description) || undefined, kind);
+    // persistent: aviso solicitado pelo usuário (ex.: retorno SEFAZ) não fecha sozinho.
+    pushErrorNotice(txt(props.title), txt(props.description) || undefined, kind, undefined, (props as any).persistent);
     return { id, dismiss: () => {}, update: (_: ToasterToast) => {} };
   }
 

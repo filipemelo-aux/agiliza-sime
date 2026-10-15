@@ -100,7 +100,7 @@ export default function NotasFiscaisConsulta() {
     try {
       const ests = (establishments || []).filter((e: any) => !empresa || e.id === empresa);
       const n = await syncNfesRecebidas(ests);
-      toast({ title: "Consulta concluída", description: n ? `${n} nota(s) recebida(s) ou atualizada(s) na SEFAZ.` : "Nenhuma nota nova na SEFAZ." });
+      toast({ title: "Consulta concluída", description: n ? `${n} nota(s) recebida(s) ou atualizada(s) na SEFAZ.` : "Nenhuma nota nova na SEFAZ.", persistent: true });
       if (fInicio === inicio && fFim === fim) await load(); else { setInicio(fInicio); setFim(fFim); }
       fillMissingNfeXml(ests).then(() => load()).catch(() => undefined);
     } catch (e: any) {
