@@ -16,6 +16,8 @@ export interface NoticeItem {
   title: string;
   description?: string;
   kind?: NoticeKind;
+  /** Sobrescreve o tempo de fechamento automático, em milissegundos. */
+  autoCloseMs?: number;
 }
 export type NoticeKind = "error" | "success" | "info" | "warning";
 
@@ -30,9 +32,9 @@ function emit() {
   listeners.forEach((l) => l(snapshot));
 }
 
-export function pushErrorNotice(title: string, description?: string, kind: NoticeKind = "error") {
+export function pushErrorNotice(title: string, description?: string, kind: NoticeKind = "error", autoCloseMs?: number) {
   if (!title && !description) return;
-  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind });
+  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind, autoCloseMs });
   emit();
 }
 
@@ -52,11 +54,18 @@ export function subscribeErrorNotices(listener: Listener) {
   };
 }
 
-function central(kind: NoticeKind, message: unknown, data?: { description?: unknown } | string) {
+function central(kind: NoticeKind, message: unknown, data?: { description?: unknown; duration?: unknown; autoCloseMs?: unknown } | string) {
   const description =
     typeof data === "string" ? data
       : data && typeof data === "object" && data.description != null ? String(data.description) : undefined;
-  pushErrorNotice(message == null ? "" : String(message), description, kind);
+  const rawMs =
+    data && typeof data === "object"
+      ? typeof data.autoCloseMs === "number" ? data.autoCloseMs
+      : typeof data.duration === "number" ? data.duration
+      : undefined
+      : undefined;
+  const autoCloseMs = rawMs != null && rawMs > 0 ? rawMs : undefined;
+  pushErrorNotice(message == null ? "" : String(message), description, kind, autoCloseMs);
   return seq;
 }
 
