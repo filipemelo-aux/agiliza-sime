@@ -20,10 +20,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const show = (fn: () => void) => act(fn);
+
 describe("Fechamento dos avisos centrais", () => {
   it("fecha sozinho o aviso de sucesso", () => {
     render(<NoticeHost />);
-    toast.success("Cadastro salvo");
+    show(() => { toast.success("Cadastro salvo"); });
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(4100); });
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -31,14 +33,15 @@ describe("Fechamento dos avisos centrais", () => {
 
   it("fecha sozinho o aviso informativo", () => {
     render(<NoticeHost />);
-    toast.info("Sincronização concluída");
+    show(() => { toast.info("Sincronização concluída"); });
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(5100); });
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("mantém o erro aberto até o usuário fechar", () => {
     render(<NoticeHost />);
-    toast.error("Falha ao salvar");
+    show(() => { toast.error("Falha ao salvar"); });
     act(() => { vi.advanceTimersByTime(60000); });
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     expect(screen.getByText("Falha ao salvar")).toBeInTheDocument();
@@ -46,7 +49,7 @@ describe("Fechamento dos avisos centrais", () => {
 
   it("mantém o alerta aberto até o usuário fechar", () => {
     render(<NoticeHost />);
-    toast.warning("Falta documento fiscal");
+    show(() => { toast.warning("Falta documento fiscal"); });
     act(() => { vi.advanceTimersByTime(60000); });
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     expect(screen.getByText("Falta documento fiscal")).toBeInTheDocument();
@@ -54,8 +57,7 @@ describe("Fechamento dos avisos centrais", () => {
 
   it("remove o informativo e mantém o erro da fila", () => {
     render(<NoticeHost />);
-    toast.info("Processando");
-    toast.error("Deu errado");
+    show(() => { toast.info("Processando"); toast.error("Deu errado"); });
     act(() => { vi.advanceTimersByTime(5100); });
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     expect(screen.getByText("Deu errado")).toBeInTheDocument();
