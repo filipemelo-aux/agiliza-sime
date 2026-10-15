@@ -9,6 +9,17 @@ const json = (body: unknown, status = 200) =>
 
 const digits = (v?: string | null) => (v || "").replace(/\D/g, "");
 
+const findTenantAdmin = async (admin: any, tenantId: string) => {
+  const { data: members } = await admin.from("tenant_members").select("user_id").eq("tenant_id", tenantId);
+  const ids = (members || []).map((m: any) => m.user_id);
+  if (!ids.length) return null;
+  const { data: roles } = await admin.from("user_roles").select("user_id").in("user_id", ids).eq("role", "admin");
+  const uid = (roles || [])[0]?.user_id;
+  if (!uid) return null;
+  const { data: prof } = await admin.from("profiles").select("full_name, email").eq("user_id", uid).maybeSingle();
+  return { user_id: uid, full_name: prof?.full_name || "", email: prof?.email || "" };
+};
+
 const TenantSchema = z.object({
   id: z.string().uuid().optional(),
   razao_social: z.string().trim().min(2).max(200),
@@ -537,8 +548,8 @@ Deno.serve(async (req) => {
         const pwErr = validatePassword(firstAdmin.password);
         if (pwErr) return json({ error: "Administrador: " + pwErr }, 400);
         if (tenant?.id) {
-          const { count } = await admin.from("tenant_members").select("user_id", { count: "exact", head: true }).eq("tenant_id", tenantId);
-          if ((count ?? 0) > 0) return json({ error: "Esta empresa já possui administrador." }, 400);
+          const existing = await findTenantAdmin(admin, tenantId!);
+          if (existing) return json({ error: "Esta empresa já possui administrador." }, 400);
         }
         const email = firstAdmin.email.toLowerCase();
         const { data: created, error: cErr } = await admin.auth.admin.createUser({
@@ -566,6 +577,45 @@ Deno.serve(async (req) => {
       }
 
       return json({ success: true, id: tenantId, focus: certFocus });
+    }
+
+    if (body.action === "get_admin") {
+      const p = z.object({ tenant_id: z.string().uuid() }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos" }, 400);
+      const adm = await findTenantAdmin(admin, p.data.tenant_id);
+      return json({ admin: adm });
+    }
+
+    if (body.action === "update_admin") {
+      const p = z.object({
+        tenant_id: z.string().uuid(),
+        full_name: z.string().trim().min(2).max(200),
+        email: z.string().trim().email().max(200).optional().nullable(),
+        password: z.string().min(8).max(100).optional().nullable(),
+      }).safeParse(body);
+      if (!p.success) return json({ error: "Dados inválidos", details: p.error.flatten().fieldErrors }, 400);
+      const adm = await findTenantAdmin(admin, p.data.tenant_id);
+      if (!adm) return json({ error: "Esta empresa não possui administrador cadastrado." }, 404);
+      if (p.data.password) {
+        const pwErr = validatePassword(p.data.password);
+        if (pwErr) return json({ error: "Nova senha: " + pwErr }, 400);
+      }
+      const patch: Record<string, unknown> = {};
+      if (p.data.password) { patch.password = p.data.password; patch.user_metadata = { must_change_password: true }; }
+      const email = p.data.email ? p.data.email.toLowerCase() : null;
+      if (email && email !== adm.email) patch.email = email;
+      if (Object.keys(patch).length) {
+        const { error } = await admin.auth.admin.updateUserById(adm.user_id, patch as any);
+        if (error) {
+          const raw = String(error.message || "");
+          if (/already|registered|exists/i.test(raw)) return json({ error: "Já existe um usuário com este e-mail. Informe outro e-mail para o administrador." }, 400);
+          if (/email/i.test(raw) && /invalid/i.test(raw)) return json({ error: "O e-mail do administrador é inválido." }, 400);
+          return json({ error: "Não foi possível atualizar o acesso: " + raw }, 400);
+        }
+        if (patch.email) await admin.from("profiles").update({ email }).eq("user_id", adm.user_id);
+      }
+      if (p.data.full_name !== adm.full_name) await admin.from("profiles").update({ full_name: p.data.full_name }).eq("user_id", adm.user_id);
+      return json({ success: true });
     }
 
     return json({ error: "Ação inválida" }, 400);

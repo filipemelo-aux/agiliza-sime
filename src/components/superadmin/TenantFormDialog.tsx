@@ -63,6 +63,9 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
   const [certPass, setCertPass] = useState("");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [adm, setAdm] = useState({ full_name: "", email: "", password: "" });
+  const [admEdit, setAdmEdit] = useState({ full_name: "", email: "", password: "" });
+  const [admOrig, setAdmOrig] = useState({ full_name: "", email: "" });
+  const [admExists, setAdmExists] = useState<boolean | null>(null);
   const [matrizNums, setMatrizNums] = useState({ ultimo_numero_cte: 0, ultimo_numero_cte_servico: 0, ultimo_numero_mdfe: 0 });
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
@@ -90,9 +93,15 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
           ultimo_numero_mdfe: m.ultimo_numero_mdfe ?? 0,
         });
       });
+      supabase.functions.invoke("superadmin-tenants", { body: { action: "get_admin", tenant_id: tenant.id } }).then(({ data }) => {
+        const a = data?.admin;
+        if (a) { setAdmExists(true); setAdmEdit({ full_name: a.full_name || "", email: a.email || "", password: "" }); setAdmOrig({ full_name: a.full_name || "", email: a.email || "" }); }
+        else setAdmExists(false);
+      }).catch(() => setAdmExists(false));
     } else { setF(empty); setMatrizEstId(null); }
     setHml(null);
     setTokProd(""); setTokHom(""); setTokMaster(""); setCertPass(""); setCertFile(null); setAdm({ full_name: "", email: "", password: "" });
+    setAdmEdit({ full_name: "", email: "", password: "" }); setAdmOrig({ full_name: "", email: "" }); setAdmExists(tenant ? null : false);
   }, [open, tenant]);
 
   useEffect(() => {
@@ -159,6 +168,25 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
         let msg = data?.error;
         if (!msg && (error as any)?.context?.json) { try { msg = (await (error as any).context.json())?.error; } catch { /* ignore */ } }
         throw new Error(msg || "Não foi possível salvar a empresa. Tente novamente.");
+      }
+      if (tenant && admExists) {
+        const newName = admEdit.full_name.trim();
+        const changedName = !!newName && newName !== admOrig.full_name;
+        const changedEmail = !!admEdit.email.trim() && admEdit.email.trim().toLowerCase() !== admOrig.email.toLowerCase();
+        const newPassword = admEdit.password.trim();
+        if (changedName || changedEmail || newPassword) {
+          if (newPassword) { const pe = validatePassword(newPassword); if (pe) throw new Error("Nova senha do administrador: " + pe); }
+          if (!newName) throw new Error("Informe o nome do administrador da empresa");
+          const { data: ua, error: uaErr } = await supabase.functions.invoke("superadmin-tenants", {
+            body: { action: "update_admin", tenant_id: tenant.id, full_name: newName, email: changedEmail ? admEdit.email.trim() : null, password: newPassword || null },
+          });
+          if (uaErr || ua?.error) {
+            let msg = ua?.error;
+            if (!msg && (uaErr as any)?.context?.json) { try { msg = (await (uaErr as any).context.json())?.error; } catch { /* ignore */ } }
+            throw new Error(msg || "Não foi possível atualizar o acesso do administrador.");
+          }
+          toast.success("Acesso do administrador atualizado");
+        }
       }
       toast.success(tenant ? "Empresa atualizada" : "Empresa cadastrada com matriz e administrador");
       if (data?.focus) (data.focus.ok ? toast.success : toast.error)(`Emissão fiscal: ${data.focus.message}`);
@@ -265,7 +293,16 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
             )}
           </Block>
 
-          {(!tenant || (tenant.users_count ?? 0) === 0) && (
+          {admExists === true && (
+            <Block title="Acesso do administrador da empresa">
+              <F label="Nome completo" span={2}><Input className="h-9" value={admEdit.full_name} onChange={(e) => setAdmEdit((p) => ({ ...p, full_name: e.target.value }))} /></F>
+              <F label="E-mail de acesso" span={2}><Input type="email" className="h-9" value={admEdit.email} onChange={(e) => setAdmEdit((p) => ({ ...p, email: e.target.value }))} /></F>
+              <F label="Nova senha (opcional)" span={2}><div className="flex gap-1"><Input type="text" className="h-9" value={admEdit.password} onChange={(e) => setAdmEdit((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password" /><Button type="button" variant="outline" className="h-9 px-2 text-xs" onClick={() => setAdmEdit((p) => ({ ...p, password: generateStrongPassword() }))}>Gerar</Button></div></F>
+              <PasswordRequirements password={admEdit.password} className="md:col-span-6" />
+              <p className="md:col-span-6 text-[11px] text-muted-foreground">Deixe a senha em branco para manter a atual. Se preencher, o administrador será obrigado a trocá-la no próximo acesso.</p>
+            </Block>
+          )}
+          {(!tenant || admExists === false) && (
             <>
               {!tenant && <Block title="3. Estabelecimento matriz">
                 <p className="md:col-span-6 text-xs text-muted-foreground">A matriz fiscal será criada automaticamente com o CNPJ, IE, RNTRC, endereço e ambiente acima.</p>
