@@ -57,7 +57,7 @@ export default function Auth() {
       navigate("/admin");
     } else {
       await supabase.auth.signOut();
-      toast({ title: "Acesso não liberado", description: "Seu usuário ainda não possui perfil de acesso ao sistema.", variant: "destructive" });
+      toast.error("Acesso não liberado", "Seu usuário ainda não possui perfil de acesso ao sistema.");
     }
   };
 
@@ -124,11 +124,7 @@ export default function Auth() {
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Credenciais inválidas",
-            description: "Verifique seu e-mail e senha.",
-            variant: "destructive",
-          });
+        toast.error("Credenciais inválidas", "Verifique seu e-mail e senha.");
         } else {
           throw error;
         }
@@ -142,16 +138,9 @@ export default function Auth() {
         return;
       }
 
-      toast({
-        title: "Bem-vindo de volta!",
-        description: "Login realizado com sucesso.",
-      });
+      toast.success("Bem-vindo de volta!", "Login realizado com sucesso.");
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Ocorreu um erro. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro", error.message || "Ocorreu um erro. Tente novamente.");
     } finally {
       setLoading(false);
     }
