@@ -1,3 +1,4 @@
+import { validatePassword, generateStrongPassword } from "../_shared/passwordPolicy.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -45,12 +46,12 @@ serve(async (req) => {
 
     // Use custom password if provided, otherwise generate: first letter uppercase + 5 random digits
     let newPassword: string;
-    if (custom_password && custom_password.length >= 6) {
+    if (custom_password) {
+      const pwErr = validatePassword(custom_password);
+      if (pwErr) throw new Error(pwErr);
       newPassword = custom_password;
     } else {
-      const firstLetter = full_name.trim().charAt(0).toUpperCase();
-      const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
-      newPassword = firstLetter + randomDigits;
+      newPassword = generateStrongPassword();
     }
 
     // Update user password and set metadata flag

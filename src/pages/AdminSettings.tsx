@@ -1,3 +1,5 @@
+import { validatePassword } from "@/lib/passwordPolicy";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import {
@@ -230,6 +232,12 @@ export default function AdminSettings() {
     }
     if (createForm.profileId && !createForm.password) {
       toast({ title: "Defina uma senha para o usuário", variant: "destructive" });
+      return;
+    }
+
+    const pwErr = validatePassword(createForm.password);
+    if (pwErr) {
+      toast({ title: "Senha fora do padrão", description: pwErr, variant: "destructive" });
       return;
     }
 
@@ -759,8 +767,9 @@ export default function AdminSettings() {
                 type="password"
                 value={createForm.password}
                 onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Senha forte"
               />
+              <PasswordRequirements password={createForm.password} />
             </div>
 
             <div className="space-y-1.5">

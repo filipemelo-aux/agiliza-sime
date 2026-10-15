@@ -1,3 +1,4 @@
+import { validatePassword, generateStrongPassword } from "../_shared/passwordPolicy.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -66,15 +67,9 @@ serve(async (req) => {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    const finalPassword = password || (() => {
-      const firstLetter = full_name.trim().charAt(0).toUpperCase();
-      const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
-      return firstLetter + randomDigits;
-    })();
-
-    if (finalPassword.length < 6) {
-      throw new Error("Senha deve ter pelo menos 6 caracteres");
-    }
+    const finalPassword = password || generateStrongPassword();
+    const pwErr = validatePassword(finalPassword);
+    if (pwErr) throw new Error(pwErr);
 
     let assignRole = role || "user";
     const validRoles = ["user", "moderator", "operador", "consultor"];

@@ -1,3 +1,5 @@
+import { validatePassword } from "@/lib/passwordPolicy";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import {
@@ -30,8 +32,9 @@ export function ForcePasswordChangeDialog({ open, onChanged }: ForcePasswordChan
     e.preventDefault();
     setError("");
 
-    if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres");
+    const pwErr = validatePassword(password);
+    if (pwErr) {
+      setError(pwErr);
       return;
     }
     if (password !== confirmPassword) {
@@ -87,6 +90,7 @@ export function ForcePasswordChangeDialog({ open, onChanged }: ForcePasswordChan
               </button>
             </div>
           </div>
+          <PasswordRequirements password={password} />
           <div className="space-y-1.5">
             <Label htmlFor="confirm-new-password">Confirmar Nova Senha</Label>
             <Input
