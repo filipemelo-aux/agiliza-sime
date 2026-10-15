@@ -41,6 +41,7 @@ export function usePageAccess() {
     if (url && disabled.length) {
       const mod = listSystemPages().find((p) => p.url === url)?.group.split(" › ")[0];
       if (mod && disabled.includes(mod)) return { mode: "hidden", message: "Este módulo não está contratado para a sua empresa." };
+      if (disabled.includes("page:" + url)) return { mode: "hidden", message: "Esta página não está contratada para a sua empresa." };
     }
     if (!url || url === "/admin/settings" || canAccessSettings) return { mode: "active", message: null };
     const menu = listSystemPages().find((p) => p.url === url)?.group.split(" › ")[0];
