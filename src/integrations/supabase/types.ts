@@ -5398,6 +5398,7 @@ export type Database = {
           numero: string | null
           razao_social: string
           rntrc: string | null
+          sem_seguradora: boolean
           status: string
           telefone: string | null
           uf: string | null
@@ -5427,6 +5428,7 @@ export type Database = {
           numero?: string | null
           razao_social: string
           rntrc?: string | null
+          sem_seguradora?: boolean
           status?: string
           telefone?: string | null
           uf?: string | null
@@ -5456,6 +5458,7 @@ export type Database = {
           numero?: string | null
           razao_social?: string
           rntrc?: string | null
+          sem_seguradora?: boolean
           status?: string
           telefone?: string | null
           uf?: string | null

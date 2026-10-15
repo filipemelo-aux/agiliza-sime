@@ -21,7 +21,7 @@ export interface TenantRow {
   logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
   uf: string | null; cep: string | null; codigo_municipio: string | null; telefone: string | null; email: string | null;
   logo_url: string | null; status: "active" | "suspended"; focus_environment: "production" | "homologation";
-  nfe_sync_enabled?: boolean; nfe_sync_start_hour?: number; nfe_sync_interval_hours?: number; disabled_modules?: string[];
+  nfe_sync_enabled?: boolean; nfe_sync_start_hour?: number; nfe_sync_interval_hours?: number; disabled_modules?: string[]; sem_seguradora?: boolean;
   users_count: number; has_token_production: boolean; has_token_homologation: boolean; has_certificate_password: boolean; has_master_token?: boolean;
   certificate: { file_name: string | null; valid_until: string | null } | null;
   server_token_production?: boolean; server_token_homologation?: boolean;
@@ -31,7 +31,7 @@ const empty = {
   razao_social: "", nome_fantasia: "", descricao: "" as string | null, cnpj: "", ie: "", rntrc: "", logradouro: "", numero: "", complemento: "", bairro: "",
   municipio: "", uf: "", cep: "", codigo_municipio: "", telefone: "", email: "", logo_url: "", focus_environment: "homologation" as const,
   nfe_sync_enabled: false as boolean, nfe_sync_start_hour: 8 as number, nfe_sync_interval_hours: 2 as number,
-  disabled_modules: [] as string[],
+  disabled_modules: [] as string[], sem_seguradora: false as boolean,
 };
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
