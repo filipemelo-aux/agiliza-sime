@@ -608,8 +608,11 @@ Deno.serve(async (req) => {
   if (["cancelar_cte_salvo", "cce_cte_salvo", "consultar_cte_salvo", "xml_cte_salvo"].includes(action)) {
     const cteId = String(body.cte_id ?? "");
     if (!/^[0-9a-f-]{36}$/i.test(cteId)) return json({ error: "CT-e inválido" }, 400);
-    const { data: cte } = await supabase.from("ctes").select("id,status,establishment_id").eq("id", cteId).maybeSingle();
+    const { data: cte } = await supabase.from("ctes").select("id,status,establishment_id,importado_xml").eq("id", cteId).maybeSingle();
     if (!cte) return json({ error: "CT-e não encontrado" }, 404);
+    // Documento importado via XML não foi emitido por este estabelecimento: a operação
+    // seria negativa na SEFAZ e ainda consumiria créditos da conta.
+    if (cte.importado_xml) return json({ error: "CT-e importado via XML: operações na SEFAZ não estão disponíveis para este documento." }, 409);
     const { data: estOp } = await supabase.from("fiscal_establishments").select("ambiente").eq("id", cte.establishment_id).maybeSingle();
     const opAmb: keyof typeof BASES = String(estOp?.ambiente) === "producao" ? "producao" : "homologacao";
     const opToken = (await estTok(cte.establishment_id, opAmb === "producao")) || token;
