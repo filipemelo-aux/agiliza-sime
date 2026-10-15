@@ -57,6 +57,13 @@
       "when": 1792065237224,
       "tag": "0007_tenant_disabled_modules",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792066938916,
+      "tag": "0008_tenant_sem_seguradora",
+      "breakpoints": true
     }
   ]
 }

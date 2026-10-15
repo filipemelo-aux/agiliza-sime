@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS sem_seguradora boolean NOT NULL DEFAULT false;
