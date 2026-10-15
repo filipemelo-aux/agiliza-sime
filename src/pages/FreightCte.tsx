@@ -398,6 +398,10 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
   };
 
   const handleDelete = async (cte: Cte) => {
+    if (!cte.importado_xml) {
+      toast({ title: "Exclusão não permitida", description: "Somente CT-es importados via XML podem ser excluídos. Para CT-es emitidos no sistema, use a opção Cancelar no menu SEFAZ.", variant: "destructive" });
+      return;
+    }
     const isServico = cte.tipo_talao === "servico";
     const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
 
