@@ -1,6 +1,7 @@
 import { useContractsEnabled } from "@/hooks/useContractsEnabled";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
-import { ICMS_CST_OPTIONS, IBS_CBS_CST_OPTIONS, IBS_CBS_DEFAULT, icmsCstMode, ibsCbsIsento } from "@/lib/cteTaxCodes";
+import { ICMS_CST_OPTIONS, IBS_CBS_CST_OPTIONS, IBS_CBS_DEFAULT, icmsCstMode, ibsCbsIsento, icmsPadraoCst, icmsCstPadraoRota } from "@/lib/cteTaxCodes";
+import { usePageAccess } from "@/hooks/usePageAccess";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ANTT_TABELAS, EIXOS_ANTT, TIPO_CARGA_TO_ANTT, calcPisoMinimo, eixosAntt } from "@/lib/anttPisoMinimo";
@@ -553,6 +554,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const contractsOn = useContractsEnabled();
+  const { getRule: getPageRule } = usePageAccess();
+  const forecastsOn = getPageRule("/admin/financial/forecasts").mode !== "hidden";
+  useEffect(() => {
+    if (!forecastsOn) setForm((p) => (p.gerar_previsao ? { ...p, gerar_previsao: false } : p));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forecastsOn, open]);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
   const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
@@ -980,8 +987,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       return {
         ...p,
         cst_icms: cst,
-        aliquota_icms: mode === "isento" ? 0 : p.aliquota_icms,
-        percentual_reducao_bc: mode === "reducao" || mode === "outros" ? p.percentual_reducao_bc : 0,
+        ...icmsPadraoCst(cst, p.uf_origem, p.uf_destino),
       };
     });
   };
@@ -1624,6 +1630,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     const cfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
     if (cfop && cfop !== form.cfop) setForm((p) => ({ ...p, cfop }));
   }, [form.uf_origem, form.uf_destino, form.tp_serv, form.cfop]);
+  // CST/alíquota automáticos pela rota (somente CT-e novo; usuário pode alterar depois)
+  useEffect(() => {
+    if (cte?.id || !form.uf_origem || !form.uf_destino) return;
+    const cst = icmsCstPadraoRota(form.uf_origem, form.uf_destino);
+    setForm((p) => ({ ...p, cst_icms: cst, ...icmsPadraoCst(cst, p.uf_origem, p.uf_destino) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.uf_origem, form.uf_destino]);
   // Puxa o tipo cadastrado na natureza da carga (seleção, digitação ou NF-e importada)
   useEffect(() => {
     const nome = (form.produto_predominante || "").trim();
@@ -2516,13 +2529,13 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
 
           {/* 11 e 12. Ao salvar */}
           <div className="space-y-2 rounded-lg border border-border bg-card px-3 py-2.5">
-            <label className="flex cursor-pointer items-start gap-2">
+            {forecastsOn && <label className="flex cursor-pointer items-start gap-2">
               <Checkbox checked={form.gerar_previsao} onCheckedChange={(v) => set("gerar_previsao", !!v)} className="mt-0.5" />
               <span className="text-[11px] leading-tight">
                 <span className="font-semibold">11. Gerar previsão de recebimento</span>
                 <span className="block text-muted-foreground">Cria a previsão a receber para o tomador com o valor da prestação.</span>
               </span>
-            </label>
+            </label>}
             {!linkedContract && contractsOn && (
               <label className="flex cursor-pointer items-start gap-2">
                 <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} className="mt-0.5" />
