@@ -1343,6 +1343,7 @@ export type Database = {
           ibs_uf_aliquota: number | null
           ibs_uf_valor: number | null
           id: string
+          importado_xml: boolean
           ind_ie_toma: number | null
           info_quantidade: Json | null
           lotacao: boolean
@@ -1468,6 +1469,7 @@ export type Database = {
           ibs_uf_aliquota?: number | null
           ibs_uf_valor?: number | null
           id?: string
+          importado_xml?: boolean
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
           lotacao?: boolean
@@ -1593,6 +1595,7 @@ export type Database = {
           ibs_uf_aliquota?: number | null
           ibs_uf_valor?: number | null
           id?: string
+          importado_xml?: boolean
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
           lotacao?: boolean
