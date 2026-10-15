@@ -37,7 +37,7 @@ interface ParsedCte {
   munIni: string; ufIni: string; ibgeIni: string;
   munFim: string; ufFim: string; ibgeFim: string;
   valorFrete: number; valorReceber: number; valorCarga: number;
-  peso: number; placa: string | null; produto: string | null;
+  peso: number; placa: string | null; placas: string[]; produto: string | null;
   cst: string; bc: number; aliq: number; icms: number;
   protocolo: string | null; dhAut: string | null; cStat: string | null;
   chavesNfe: string[];
@@ -59,6 +59,9 @@ function parseActor(el: Element | undefined): Actor {
   if (!el) return { nome: null, cnpj: null, ie: null, uf: null, ibge: null, endereco: null };
   const end = Array.from(el.children).find((c) => c.tagName.startsWith("ender"));
   return {
+    fantasia: txt(el, "xFant") || null,
+    rua: txt(end, "xLgr") || null, nro: txt(end, "nro") || null, bairro: txt(end, "xBairro") || null,
+    cidade: txt(end, "xMun") || null, cep: txt(end, "CEP") || null,
     nome: maskName(txt(el, "xNome")) || null,
     cnpj: txt(el, "CNPJ") || txt(el, "CPF") || null,
     ie: txt(el, "IE") || null,
@@ -99,6 +102,17 @@ function parseCteXml(file: string, xml: string): ParsedCte {
     if (m) placa = m[1] + m[2];
   }
   if (placa) placa = placa.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  // Todas as placas do frete (tags de veículo + observações)
+  const placaSet = new Set<string>();
+  if (placa) placaSet.add(placa);
+  for (const n of Array.from(inf.getElementsByTagName("placa"))) {
+    const v = (n.textContent || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(v)) placaSet.add(v);
+  }
+  {
+    const blob = [txt(inf, "xObs"), ...Array.from(inf.getElementsByTagName("xTexto")).map((n) => n.textContent || "")].join(" ").toUpperCase();
+    for (const m of blob.matchAll(/\b([A-Z]{3})-?(\d[A-Z0-9]\d{2})\b/g)) placaSet.add(m[1] + m[2]);
+  }
 
   const icmsEl = first("ICMS");
   const icmsInner = icmsEl?.children[0];
@@ -121,7 +135,7 @@ function parseCteXml(file: string, xml: string): ParsedCte {
     valorFrete: num(txt(first("vPrest"), "vTPrest")),
     valorReceber: num(txt(first("vPrest"), "vRec")),
     valorCarga: num(txt(first("infCarga"), "vCarga")),
-    peso, placa,
+    peso, placa, placas: [...placaSet],
     produto: txt(first("infCarga"), "proPred") || null,
     cst: txt(icmsInner, "CST") || "00",
     bc: num(txt(icmsInner, "vBC")),
@@ -191,6 +205,46 @@ export function CteXmlBatchImportDialog({ open, onOpenChange, onImported }: Prop
     setBusy(false);
   };
 
+  /** Cadastra (ou localiza) a pessoa pelo CPF/CNPJ; cadastro pode ficar incompleto. */
+  const actorCache = new Map<string, string | null>();
+  const ensureActor = async (a: Actor, category: string): Promise<string | null> => {
+    const doc = (a.cnpj || "").replace(/\D/g, "");
+    if (!doc || !a.nome) return null;
+    if (actorCache.has(doc)) return actorCache.get(doc)!;
+    const { data: found } = await supabase.from("profiles").select("id").eq("cnpj", doc).limit(1).maybeSingle();
+    let id = (found as any)?.id ?? null;
+    if (!id) {
+      const { data, error } = await supabase.from("profiles").insert({
+        user_id: crypto.randomUUID(), full_name: a.nome, nome_fantasia: a.fantasia ? maskName(a.fantasia) : null,
+        cnpj: doc, person_type: doc.length === 14 ? "cnpj" : "cpf", category,
+        inscricao_estadual: a.ie && !/^ISENTO$/i.test(a.ie) ? a.ie : null,
+        address_street: a.rua, address_number: a.nro, address_neighborhood: a.bairro,
+        address_city: a.cidade ? maskName(a.cidade) : null, address_state: a.uf, address_zip: a.cep, address_ibge: a.ibge,
+        notes: "Cadastrado automaticamente pela importação de XML de CT-e — completar cadastro.",
+      } as any).select("id").single();
+      if (error) console.warn("Cadastro de ator falhou", a.nome, error.message);
+      id = (data as any)?.id ?? null;
+    }
+    actorCache.set(doc, id);
+    return id;
+  };
+  const vehicleCache = new Map<string, string | null>();
+  const ensureVehicle = async (plate: string): Promise<string | null> => {
+    if (vehicleCache.has(plate)) return vehicleCache.get(plate)!;
+    const { data: v } = await supabase.from("vehicles").select("id").eq("plate", plate).limit(1).maybeSingle();
+    let id = (v as any)?.id ?? null;
+    if (!id && user) {
+      const { data, error } = await supabase.from("vehicles").insert({
+        plate, brand: "A completar", model: "A completar", renavam: "", year: new Date().getFullYear(),
+        vehicle_type: "truck", fleet_type: "terceiros", user_id: user.id,
+      } as any).select("id").single();
+      if (error) console.warn("Cadastro de veículo falhou", plate, error.message);
+      id = (data as any)?.id ?? null;
+    }
+    vehicleCache.set(plate, id);
+    return id;
+  };
+
   const handleImport = async () => {
     setBusy(true);
     const created: string[] = [];
@@ -200,15 +254,12 @@ export function CteXmlBatchImportDialog({ open, onOpenChange, onImported }: Prop
       try {
         const estId = p.estId;
         if (!estId) throw new Error(`Emitente ${p.emitCnpj} não é um estabelecimento cadastrado`);
-        let tomadorId: string | null = null;
-        if (p.toma.cnpj) {
-          const { data: prof } = await supabase.from("profiles").select("id").eq("cnpj", p.toma.cnpj).limit(1).maybeSingle();
-          tomadorId = (prof as any)?.id ?? null;
-        }
+        const tomadorId = await ensureActor(p.toma, "cliente");
+        for (const a of [p.rem, p.dest, p.exp, p.receb]) await ensureActor(a, "fornecedor");
         let veiculoId: string | null = null;
-        if (p.placa) {
-          const { data: v } = await supabase.from("vehicles").select("id").eq("plate", p.placa).limit(1).maybeSingle();
-          veiculoId = (v as any)?.id ?? null;
+        for (const pl of p.placas) {
+          const vid = await ensureVehicle(pl);
+          if (pl === p.placa) veiculoId = vid;
         }
         const cancelado = p.cStat === "101" || p.cStat === "135";
         const row: Record<string, any> = {
