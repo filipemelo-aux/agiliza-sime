@@ -149,11 +149,7 @@ export default function Auth() {
   const handleForgotPassword = async () => {
     const email = forgotEmail.trim().toLowerCase();
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      toast({
-        title: "E-mail inválido",
-        description: "Informe o e-mail da sua conta para receber o link de redefinição.",
-        variant: "destructive",
-      });
+      toast.error("E-mail inválido", "Informe o e-mail da sua conta para receber o link de redefinição.");
       return;
     }
 
@@ -164,10 +160,7 @@ export default function Auth() {
       });
       if (error) throw error;
       setForgotOpen(false);
-      toast({
-        title: "Link enviado",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
-      });
+      toast.success("Link enviado", "Verifique sua caixa de entrada para redefinir a senha.");
     } catch (error: any) {
       toast({
         title: "Erro",
