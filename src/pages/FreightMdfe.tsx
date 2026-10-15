@@ -33,19 +33,24 @@ import { MdfeXmlImportDialog } from "@/components/freight/MdfeXmlImportDialog";
 import { MdfeDetailDialog } from "@/components/freight/MdfeDetailDialog";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 
+// Ciclo real do MDF-e: rascunho -> em processamento -> autorizado (em trânsito, aguardando encerramento) -> encerrado; ou rejeitado / cancelado
+const normStatus = (s?: string) => (s === "erro_autorizacao" ? "rejeitado" : s || "rascunho");
 const statusColors: Record<string, string> = {
-  rascunho: "bg-muted text-muted-foreground",
-  autorizado: "bg-emerald-500/10 text-emerald-600",
-  encerrado: "bg-emerald-500/10 text-emerald-600",
-  cancelado: "bg-destructive/10 text-destructive",
-  rejeitado: "bg-amber-500/10 text-amber-600",
-  processando: "bg-primary/10 text-primary",
+  rascunho: "bg-muted text-muted-foreground border border-border",
+  processando: "bg-info/20 text-foreground border border-info",
+  autorizado: "bg-warning/20 text-foreground border border-warning",
+  encerrado: "bg-success/15 text-success border border-success/50",
+  rejeitado: "bg-destructive/15 text-destructive border border-destructive/50",
+  cancelado: "bg-muted-foreground/15 text-muted-foreground border border-muted-foreground/40 line-through",
 };
-
 const STATUS_LABEL: Record<string, string> = {
-  rascunho: "Rascunho", autorizado: "Autorizado", encerrado: "Encerrado", cancelado: "Cancelado", rejeitado: "Rejeitado", processando: "Em processamento",
+  rascunho: "Rascunho", processando: "Em processamento", autorizado: "Autorizado · em trânsito", encerrado: "Encerrado", rejeitado: "Rejeitado", cancelado: "Cancelado",
 };
-
+const STATUS_TONE: Record<string, any> = { rascunho: "neutral", processando: "info", autorizado: "pending", encerrado: "resolved", rejeitado: "overdue", cancelado: "cancelled" };
+const MDFE_LEGEND: any[] = [
+  { tone: "neutral", label: "Rascunho" }, { tone: "info", label: "Em processamento" }, { tone: "pending", label: "Autorizado — aguardando encerramento" },
+  { tone: "resolved", label: "Encerrado" }, { tone: "overdue", label: "Rejeitado" }, { tone: "cancelled", label: "Cancelado" },
+];
 
 export default function FreightMdfe() {
   const { toast } = useToast();
@@ -270,7 +275,7 @@ export default function FreightMdfe() {
     { key: "peso", header: "Peso (kg)", width: "90px", sortValue: (r) => Number(r.peso_total || 0), cell: (r) => Number(r.peso_total || 0).toLocaleString("pt-BR") },
     { key: "agencia", header: "Agência", width: "72px", align: "center", sortValue: (r) => r.establishment_id || "", cell: (r) => <EmpresaUf empresaId={r.establishment_id} /> },
     { key: "usuario", header: "Usuário", width: "176px", cell: (r) => <UserNameCell userId={r.created_by} /> },
-    { key: "status", header: "Status", width: "130px", align: "center", sortValue: (r) => r.status, cell: (r) => <Badge className={statusColors[r.status] || "bg-muted text-muted-foreground"}>{STATUS_LABEL[r.status] || r.status}</Badge> },
+    { key: "status", header: "Status", width: "170px", align: "center", sortValue: (r) => normStatus(r.status), cell: (r) => { const st = normStatus(r.status); return <Badge title={r.motivo_rejeicao || undefined} className={`whitespace-nowrap font-medium shadow-none hover:opacity-90 ${statusColors[st] || "bg-muted text-muted-foreground"}`}>{STATUS_LABEL[st] || st}</Badge>; } },
   ] as any;
 
 
@@ -312,11 +317,11 @@ export default function FreightMdfe() {
             loading={loading}
             minWidth={940}
             tableLayout="fixed"
-            rowClassName={(r) => rowToneClass(["autorizado", "encerrado"].includes(r.status) ? "resolved" : r.status === "rejeitado" ? "overdue" : r.status === "cancelado" ? "neutral" as any : "pending")}
+            rowClassName={(r) => rowToneClass(STATUS_TONE[normStatus(r.status)] || "neutral")}
             emptyMessage='Nenhum manifesto. Clique em "Novo MDF-e" ou gere a partir da tela de CT-e.'
           />
         </div>
-        <StatusLegend />
+        <StatusLegend items={MDFE_LEGEND} />
       </div>
       <MdfeFormDialog open={formOpen} onOpenChange={setFormOpen} editing={editing} initialCteIds={initialCteIds} onSaved={load} />
       {ConfirmDialog}
