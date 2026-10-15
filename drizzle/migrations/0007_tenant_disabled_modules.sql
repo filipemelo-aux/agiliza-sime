@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS disabled_modules text[] NOT NULL DEFAULT '{}';

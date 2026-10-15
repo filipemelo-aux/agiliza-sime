@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/lib/notice";
 import { Switch } from "@/components/ui/switch";
+import { listSystemPages } from "@/components/AdminLayout";
 import { HomologationResult, runHomologationTest, type HmlResult } from "./HomologationResult";
 
 export interface TenantRow {
@@ -20,7 +21,7 @@ export interface TenantRow {
   logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; municipio: string | null;
   uf: string | null; cep: string | null; codigo_municipio: string | null; telefone: string | null; email: string | null;
   logo_url: string | null; status: "active" | "suspended"; focus_environment: "production" | "homologation";
-  nfe_sync_enabled?: boolean; nfe_sync_start_hour?: number; nfe_sync_interval_hours?: number;
+  nfe_sync_enabled?: boolean; nfe_sync_start_hour?: number; nfe_sync_interval_hours?: number; disabled_modules?: string[];
   users_count: number; has_token_production: boolean; has_token_homologation: boolean; has_certificate_password: boolean; has_master_token?: boolean;
   certificate: { file_name: string | null; valid_until: string | null } | null;
   server_token_production?: boolean; server_token_homologation?: boolean;
@@ -30,6 +31,7 @@ const empty = {
   razao_social: "", nome_fantasia: "", descricao: "" as string | null, cnpj: "", ie: "", rntrc: "", logradouro: "", numero: "", complemento: "", bairro: "",
   municipio: "", uf: "", cep: "", codigo_municipio: "", telefone: "", email: "", logo_url: "", focus_environment: "homologation" as const,
   nfe_sync_enabled: false as boolean, nfe_sync_start_hour: 8 as number, nfe_sync_interval_hours: 2 as number,
+  disabled_modules: [] as string[],
 };
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
@@ -291,6 +293,21 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
                 <p className="mt-1 text-[11px] text-muted-foreground">Confere na hora: dados fiscais, token, certificado A1 local e se a Focus reconhece a empresa e o certificado. Funciona em homologação e produção.</p>
               </div>
             )}
+          </Block>
+
+          <Block title="Módulos liberados para a empresa">
+            <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-2">
+              {[...new Set(listSystemPages().filter((p) => p.group !== "Geral").map((p) => p.group.split(" › ")[0]))].map((m) => {
+                const on = !f.disabled_modules.includes(m);
+                return (
+                  <label key={m} className="flex items-center justify-between gap-2 rounded border px-3 py-2 text-xs">
+                    <span className="font-medium">{m}</span>
+                    <Switch checked={on} onCheckedChange={(v) => setF((p) => ({ ...p, disabled_modules: v ? p.disabled_modules.filter((x) => x !== m) : [...p.disabled_modules, m] }))} />
+                  </label>
+                );
+              })}
+            </div>
+            <p className="md:col-span-6 text-[11px] text-muted-foreground">Módulos desligados somem do menu e ficam bloqueados para todos os usuários da empresa, inclusive o administrador.</p>
           </Block>
 
           {admExists === true && (
