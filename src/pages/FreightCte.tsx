@@ -560,6 +560,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   const canTransmit = !!singleCte
     && singleCte.tipo_talao !== "servico"
+    && !singleCte.importado_xml
     && ["rascunho", "rejeitado", "processando"].includes(singleCte.status);
 
   const handleTransmit = async () => {
