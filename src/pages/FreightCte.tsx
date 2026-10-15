@@ -785,7 +785,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             {
               key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-              disabled: bulkDeleting || selectedIds.size === 0,
+              // Excluir só vale para CT-es importados via XML; os emitidos no sistema
+              // são cancelados pelo menu SEFAZ.
+              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !c.importado_xml),
               onClick: () => {
                 if (singleCte && !isBulkDeletable(singleCte)) return handleDelete(singleCte);
                 handleBulkDelete();
