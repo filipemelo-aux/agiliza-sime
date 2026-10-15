@@ -162,11 +162,7 @@ export default function Auth() {
       setForgotOpen(false);
       toast.success("Link enviado", "Verifique sua caixa de entrada para redefinir a senha.");
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível enviar o link de redefinição.",
-        variant: "destructive",
-      });
+      toast.error("Erro", error.message || "Não foi possível enviar o link de redefinição.");
     } finally {
       setForgotSending(false);
     }
