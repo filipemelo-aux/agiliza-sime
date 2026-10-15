@@ -464,6 +464,10 @@ Deno.serve(async (req) => {
       }
       motoristaNome = motoristaNome || (p as any)?.full_name || null;
     }
+    if (m.tenant_id) {
+      const { data: tn } = await supabase.from("tenants").select("sem_seguradora").eq("id", m.tenant_id).maybeSingle();
+      if ((tn as any)?.sem_seguradora) Object.assign(m, { seguradora_nome: "SEGURADORA PADRAO", seguradora_cnpj: "11222333000181", apolice_numero: "000000", averbacao_numero: "0" });
+    }
     const pend: string[] = [];
     if (naoAutorizados.length) pend.push(`CT-e ${naoAutorizados.join(", ")} ainda não autorizado pela SEFAZ`);
     else if (!chaves.length) pend.push("ao menos um CT-e autorizado (com chave de acesso)");

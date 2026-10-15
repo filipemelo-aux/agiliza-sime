@@ -265,6 +265,13 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
                 <F label="Último nº MDF-e" span={2}><Input type="number" className="h-9" value={matrizNums.ultimo_numero_mdfe} onChange={(e) => setMatrizNums((p) => ({ ...p, ultimo_numero_mdfe: Number(e.target.value) || 0 }))} /></F>
               </>
             )}
+            <F label="Seguradora de carga">
+              <Select value={f.sem_seguradora ? "nao" : "sim"} onValueChange={(v) => setF((p) => ({ ...p, sem_seguradora: v === "nao" }))}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="sim">Empresa possui seguradora</SelectItem><SelectItem value="nao">Empresa NÃO possui seguradora</SelectItem></SelectContent>
+              </Select>
+              {f.sem_seguradora && <p className="text-[11px] text-muted-foreground mt-1">MDF-e sai com "Seguradora Padrão", CNPJ 11.222.333/0001-81, apólice 000000 e averbação 0.</p>}
+            </F>
             <F label="Sincronização automática de NF-e recebidas">
               <Select value={f.nfe_sync_enabled ? "on" : "off"} onValueChange={(v) => setF((p) => ({ ...p, nfe_sync_enabled: v === "on" }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
