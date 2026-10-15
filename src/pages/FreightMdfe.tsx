@@ -148,8 +148,8 @@ export default function FreightMdfe() {
     if (!ok) return;
     await run("Transmitindo MDF-e à SEFAZ...", async () => {
       const r = await mdfeFocus("emitir_mdfe_salvo", single.id);
-      if (r.status === "autorizado") toast({ title: "MDF-e autorizado", description: `Nº ${r.numero} — protocolo ${r.protocolo || "-"}` });
-      else if (r.success) toast({ title: "MDF-e em processamento", description: r.motivo_rejeicao });
+      if (r.status === "autorizado") toast({ title: "MDF-e autorizado", description: `Nº ${r.numero} — protocolo ${r.protocolo || "-"}`, persistent: true });
+      else if (r.success) toast({ title: "MDF-e em processamento", description: r.motivo_rejeicao, persistent: true });
       else {
         const msg = r.motivo_rejeicao || r.error || "Erro não informado";
         await supabase.from("mdfe").update({ motivo_rejeicao: msg } as any).eq("id", single.id);
@@ -160,7 +160,7 @@ export default function FreightMdfe() {
 
   const handleConsult = () => single && run("Consultando situação na SEFAZ...", async () => {
     const r = await mdfeFocus("consultar_mdfe_salvo", single.id);
-    toast({ title: r.success ? `Situação: ${STATUS_LABEL[r.status === "erro_autorizacao" ? "rejeitado" : r.status] || r.status}` : "Consulta", description: r.mensagem || r.error, variant: r.error ? "destructive" : undefined });
+    toast({ title: r.success ? `Situação: ${STATUS_LABEL[r.status === "erro_autorizacao" ? "rejeitado" : r.status] || r.status}` : "Consulta", description: r.mensagem || r.error, variant: r.error ? "destructive" : undefined, persistent: true });
   });
 
   const handleXml = () => single && run("Baixando XML...", async () => {
@@ -180,7 +180,7 @@ export default function FreightMdfe() {
       const r = kind === "cancelar"
         ? await mdfeFocus("cancelar_mdfe_salvo", single.id, { justificativa: justificativa.trim() })
         : await mdfeFocus("encerrar_mdfe_salvo", single.id, { data: dataEnc || undefined });
-      if (r.success) toast({ title: kind === "cancelar" ? "MDF-e cancelado" : "MDF-e encerrado" });
+      if (r.success) toast({ title: kind === "cancelar" ? "MDF-e cancelado" : "MDF-e encerrado", persistent: true });
       else toast({ title: kind === "cancelar" ? "Cancelamento não aceito" : "Encerramento não aceito", description: r.motivo || r.error, variant: "destructive" });
     });
   };

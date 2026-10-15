@@ -61,7 +61,7 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
     { key: "status", label: "Consultar situação na SEFAZ", icon: RefreshCw, enabled: emitted,
       onClick: () => run("status", async () => {
         const d = await call("consultar_cte_salvo");
-        toast({ title: `Situação: ${d.status || "não encontrado"}`, description: [d.mensagem, d.protocolo && `Protocolo ${d.protocolo}`].filter(Boolean).join(" | ") || undefined });
+        toast({ title: `Situação: ${d.status || "não encontrado"}`, description: [d.mensagem, d.protocolo && `Protocolo ${d.protocolo}`].filter(Boolean).join(" | ") || undefined, persistent: true });
       }) },
     { key: "pdf", label: "Baixar DACTE (PDF)", icon: FileDown, enabled: true,
       onClick: () => run("pdf", onDownloadPdf) },
@@ -125,7 +125,7 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
                 onClick={() => run("cancel", async () => {
                   const d = await call("cancelar_cte_salvo", { justificativa: just.trim() });
                   if (!d.success) throw new Error(d.motivo);
-                  toast({ title: "CT-e cancelado na SEFAZ", description: d.protocolo ? `Protocolo ${d.protocolo}` : undefined });
+                  toast({ title: "CT-e cancelado na SEFAZ", description: d.protocolo ? `Protocolo ${d.protocolo}` : undefined, persistent: true });
                   onChanged(); close(false);
                 })}>
                 {busy === "cancel" && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Confirmar cancelamento
@@ -149,7 +149,7 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
                 onClick={() => run("cce", async () => {
                   const d = await call("cce_cte_salvo", cce);
                   if (!d.success) throw new Error(d.motivo);
-                  toast({ title: "Carta de correção registrada" });
+                  toast({ title: "Carta de correção registrada", persistent: true });
                   close(false);
                 })}>
                 {busy === "cce" && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Enviar CC-e
