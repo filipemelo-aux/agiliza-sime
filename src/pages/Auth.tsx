@@ -138,7 +138,7 @@ export default function Auth() {
         return;
       }
 
-      toast.success("Bem-vindo de volta!", "Login realizado com sucesso.");
+      toast.success("Bem-vindo de volta!", { description: "Login realizado com sucesso.", duration: 2000 });
     } catch (error: any) {
       toast.error("Erro", error.message || "Ocorreu um erro. Tente novamente.");
     } finally {
