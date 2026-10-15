@@ -12,8 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/lib/notice";
 import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
