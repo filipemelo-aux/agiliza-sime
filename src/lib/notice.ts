@@ -1,10 +1,13 @@
 /**
- * Centraliza os avisos de erro do sistema: em vez de toasts que somem sozinhos,
- * cada erro abre um aviso no centro da tela (NoticeHost) que só fecha quando
- * o usuário clica no botão de fechar (canto superior direito).
+ * Centraliza os avisos do sistema: em vez de toasts que somem sozinhos, cada
+ * mensagem abre um aviso no centro da tela (NoticeHost) com botão de fechar no
+ * canto superior direito.
  *
- * Importe `toast` daqui nos componentes: success/info/etc. continuam sendo
- * toasts do sonner; apenas `error` é convertido em aviso central.
+ * Regras de fechamento: erros e alertas ficam abertos até o usuário fechar;
+ * mensagens positivas (success) e informativas (info) se fecham sozinhas.
+ *
+ * Importe `toast` daqui nos componentes: as demais funções do sonner
+ * (loading, etc.) continuam funcionando normalmente.
  */
 import { toast as sonner } from "sonner";
 
