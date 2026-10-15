@@ -133,8 +133,9 @@ export default function AdminSettings() {
         profileMap[p.user_id] = { name: p.full_name, email: p.email };
       });
 
+      // Só usuários com ficha visível (cadastro isolado por empresa) — evita usuários de outras empresas.
       const systemUsers: SystemUser[] = Array.from(userIds)
-        .filter((uid) => !roleMap[uid]?.includes("superadmin"))
+        .filter((uid) => !!profileMap[uid] && !roleMap[uid]?.includes("superadmin"))
         .map((uid) => ({
           id: uid,
           email: profileMap[uid]?.email || "",

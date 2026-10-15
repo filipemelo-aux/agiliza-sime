@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listSystemPages } from "@/components/AdminLayout";
 import { usePageRules, PAGE_RULES_KEY, MENU_PREFIX, type PageMode } from "@/hooks/usePageAccess";
+import { useTenant } from "@/hooks/useTenant";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,10 +20,20 @@ type U = { user_id: string; full_name: string };
 export function PageAccessSettings() {
   const qc = useQueryClient();
   const { data: rules = [] } = usePageRules();
+  const { tenant } = useTenant();
   const [users, setUsers] = useState<U[]>([]);
   const [filter, setFilter] = useState("");
   const [addFor, setAddFor] = useState<Record<string, { users: string[]; mode: PageMode }>>({});
-  const pages = useMemo(() => listSystemPages().filter((p) => p.url !== "/admin/settings"), []);
+  const disabledKey = (tenant?.disabled_modules || []).join("|");
+  const pages = useMemo(() => {
+    const disabled = tenant?.disabled_modules || [];
+    return listSystemPages().filter((p) => {
+      if (p.url === "/admin/settings") return false;
+      const mod = p.group.split(" › ")[0];
+      return !disabled.includes(mod) && !disabled.includes("page:" + p.url);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disabledKey]);
   const menus = useMemo(() => {
     const m = new Map<string, number>();
     pages.forEach((p) => { if (p.group !== "Geral") { const k = p.group.split(" › ")[0]; m.set(k, (m.get(k) || 0) + 1); } });
