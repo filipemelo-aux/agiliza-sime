@@ -151,7 +151,11 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
           } : undefined,
         },
       });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (error || data?.error) {
+        let msg = data?.error;
+        if (!msg && (error as any)?.context?.json) { try { msg = (await (error as any).context.json())?.error; } catch { /* ignore */ } }
+        throw new Error(msg || "Não foi possível salvar a empresa. Tente novamente.");
+      }
       toast.success(tenant ? "Empresa atualizada" : "Empresa cadastrada com matriz e administrador");
       if (data?.focus) (data.focus.ok ? toast.success : toast.error)(`Emissão fiscal: ${data.focus.message}`);
       onSaved();

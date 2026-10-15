@@ -537,7 +537,21 @@ Deno.serve(async (req) => {
         const { data: created, error: cErr } = await admin.auth.admin.createUser({
           email, password: firstAdmin.password, email_confirm: true, user_metadata: { must_change_password: true },
         });
-        if (cErr) throw new Error("Erro ao criar administrador: " + cErr.message);
+        if (cErr) {
+          const raw = String(cErr.message || "");
+          let msg = "Não foi possível criar o administrador: " + raw;
+          if (/weak|easy to guess|pwned/i.test(raw)) msg = "A senha do administrador é fraca ou muito conhecida (aparece em listas de senhas vazadas). Escolha uma senha mais forte, com letras maiúsculas, minúsculas, números e símbolos.";
+          else if (/at least|characters|short/i.test(raw)) msg = "A senha do administrador é curta demais. Use pelo menos 8 caracteres.";
+          else if (/already|registered|exists/i.test(raw)) msg = "Já existe um usuário com este e-mail. Informe outro e-mail para o administrador.";
+          else if (/email/i.test(raw) && /invalid/i.test(raw)) msg = "O e-mail do administrador é inválido.";
+          if (!tenant?.id) {
+            for (const t of ["establishment_secrets", "fiscal_establishments", "fiscal_certificates", "tenant_certificates", "tenant_secrets"]) {
+              try { await admin.from(t).delete().eq("tenant_id", tenantId); } catch { /* ignore */ }
+            }
+            try { await admin.from("tenants").delete().eq("id", tenantId); } catch { /* ignore */ }
+          }
+          return json({ error: msg }, 400);
+        }
         const uid = created.user.id;
         await admin.from("tenant_members").insert({ tenant_id: tenantId, user_id: uid });
         await admin.from("user_roles").insert({ user_id: uid, role: "admin" });
