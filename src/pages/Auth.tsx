@@ -38,7 +38,7 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
-  const { toast } = useToast();
+
 
   const handleRedirectAfterAuth = async (userId: string) => {
     const { data: roles } = await supabase
