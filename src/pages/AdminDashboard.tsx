@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
+import { PageShortcuts } from "@/components/dashboard/PageShortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -176,59 +177,7 @@ export default function AdminDashboard() {
       <main className="container mx-auto px-4 py-3">
         <PageTitle>Página Inicial</PageTitle>
 
-        {/* Atalhos rápidos */}
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Acesso Rápido</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2 mb-8">
-          <Link
-            to="/admin/freight/cte"
-            className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
-          >
-            <FileText className="h-4 w-4 lg:h-5 lg:w-5" />
-            <span className="text-xs font-semibold leading-none">CT-e</span>
-          </Link>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full">
-                <DollarSign className="h-4 w-4 lg:h-5 lg:w-5" />
-                <span className="text-xs font-semibold leading-none">Contas a Pagar</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-44 p-1" align="center">
-              <button onClick={() => setExpenseFormOpen(true)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors w-full text-left">
-                <DollarSign className="h-4 w-4" /> Nova Conta
-              </button>
-              <Link to="/admin/financial/payables" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
-                <ClipboardList className="h-4 w-4" /> Ver Contas
-              </Link>
-            </PopoverContent>
-          </Popover>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full">
-                <ClipboardList className="h-4 w-4 lg:h-5 lg:w-5" />
-                <span className="text-xs font-semibold leading-none">Ordens</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-44 p-1" align="center">
-              <Link to="/admin/fuel-orders" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
-                <Fuel className="h-4 w-4" /> Abastecimento
-              </Link>
-              <Link to="/admin/applications" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
-                <ClipboardList className="h-4 w-4" /> Carregamento
-              </Link>
-            </PopoverContent>
-          </Popover>
-
-          <button
-            onClick={() => setFuelingFormOpen(true)}
-            className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
-          >
-            <Fuel className="h-4 w-4 lg:h-5 lg:w-5" />
-            <span className="text-xs font-semibold leading-none">Abastecimento</span>
-          </button>
-        </div>
+        <PageShortcuts />
 
         <ExpenseFormDialog
           open={expenseFormOpen}
