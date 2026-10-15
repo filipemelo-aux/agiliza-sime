@@ -820,7 +820,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               },
             },
             ...(contractsOn ? [{
-              key: "contract", label: "Contrato de frete", icon: Handshake, mode: "single", variant: "outline",
+              key: "contract", label: "Contrato de frete", icon: Handshake, mode: "single" as const, variant: "outline" as const,
               priority: !!singleCte && !INACTIVE_CTE_STATUSES.includes(singleCte.status),
               disabled: !singleCte || isConsultor || INACTIVE_CTE_STATUSES.includes(singleCte.status),
               onClick: async () => {
