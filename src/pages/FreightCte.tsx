@@ -398,8 +398,8 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
   };
 
   const handleDelete = async (cte: Cte) => {
-    if (!cte.importado_xml) {
-      toast({ title: "Exclusão não permitida", description: "Somente CT-es importados via XML podem ser excluídos. Para CT-es emitidos no sistema, use a opção Cancelar no menu SEFAZ.", variant: "destructive" });
+    if (!cte.importado_xml && cte.status !== "cancelado") {
+      toast({ title: "Exclusão não permitida", description: "Somente CT-es importados via XML ou cancelados na SEFAZ podem ser excluídos. Para CT-es emitidos no sistema, use a opção Cancelar no menu SEFAZ.", variant: "destructive" });
       return;
     }
     const isServico = cte.tipo_talao === "servico";
@@ -557,7 +557,10 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         .filter((p: any) => (p.fatura_previsoes?.length ?? 0) > 0)
         .map((p: any) => p.origem_id as string),
     );
-    const deletable = ids.filter((id) => !blocked.has(id) && sorted.find((c) => c.id === id)?.importado_xml);
+    const deletable = ids.filter((id) => {
+      const c = sorted.find((x) => x.id === id);
+      return !blocked.has(id) && !!c && (c.importado_xml || c.status === "cancelado");
+    });
 
     if (!deletable.length) {
       toast({
@@ -789,9 +792,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             {
               key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-              // Excluir só vale para CT-es importados via XML; os emitidos no sistema
-              // são cancelados pelo menu SEFAZ.
-              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !c.importado_xml),
+              // Excluir vale para CT-es importados via XML ou cancelados na SEFAZ;
+              // os demais emitidos no sistema são cancelados pelo menu SEFAZ.
+              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !c.importado_xml && c.status !== "cancelado"),
               onClick: () => {
                 if (singleCte && !isBulkDeletable(singleCte)) return handleDelete(singleCte);
                 handleBulkDelete();
