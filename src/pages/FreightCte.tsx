@@ -32,7 +32,6 @@ import { formatDateBR, normalizeDateInput } from "@/lib/date";
 import { limitDisplayText } from "@/lib/displayText";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
@@ -127,7 +126,7 @@ export default function FreightCte() {
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
-  const { user, isConsultor } = useAuth();
+  const { isConsultor } = useAuth();
   const navigate = useNavigate();
   const [cteParams, setCteParams] = useSearchParams();
   const [pendingCteSefaz, setPendingCteSefaz] = useState<string | null>(null);
@@ -403,7 +402,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       return;
     }
     const isServico = cte.tipo_talao === "servico";
-    const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
 
     // Bloqueia exclusão se a previsão deste CT-e já foi vinculada a uma fatura
     const { data: prevs } = await supabase
@@ -433,74 +431,18 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       : "";
 
 
-    // CT-e de Produção AUTORIZADO → precisa cancelar na SEFAZ antes
-    if (!isServico && isAutorizado) {
-      const ok = await confirm({
-        title: "Cancelar CT-e na SEFAZ e excluir",
-        description:
-          `Este CT-e (Nº ${cte.numero}) está autorizado pela SEFAZ.\n\n` +
-          `Será solicitado o CANCELAMENTO oficial na SEFAZ e, em seguida, o registro será excluído do sistema.\n\n` +
-          `Esta operação é IRREVERSÍVEL. Deseja continuar?` + contractWarning,
-
-        confirmLabel: "Cancelar na SEFAZ e excluir",
-        variant: "destructive",
-      });
-      if (!ok) return;
-
-      const justificativa = window.prompt(
-        "Justificativa para cancelamento na SEFAZ (mínimo 15 caracteres):",
-        "Cancelamento solicitado pelo emitente"
-      );
-      if (!justificativa) return;
-      if (justificativa.trim().length < 15) {
-        toast({
-          title: "Justificativa inválida",
-          description: "A SEFAZ exige no mínimo 15 caracteres.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setDeletingId(cte.id);
-      try {
-        const resp = await cancelarCte(
-          cte.id,
-          cte.chave_acesso!,
-          cte.protocolo_autorizacao!,
-          justificativa.trim(),
-          user?.id || "",
-          cte.establishment_id
-        );
-        if (!resp.success) {
-          toast({
-            title: "Falha no cancelamento SEFAZ",
-            description: resp.motivo_rejeicao || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
-            variant: "destructive",
-          });
-          return;
-        }
-        // Cancelado com sucesso → excluir contrato vinculado + CT-e
-        const removed = await removeLinkedFreightContract(cte.id);
-        const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
-        if (error) throw error;
-        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} removido${removed ? ` (e ${removed} contrato de frete vinculado).` : "."}` });
-
-        fetchCtes();
-      } catch (err: any) {
-        toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
-      } finally {
-        setDeletingId(null);
-      }
-      return;
-    }
-
-    // Serviço, rascunho, rejeitado, erro ou cancelado → exclusão direta
+    // Exclusão apenas do registro guardado no sistema.
+    // Não há qualquer operação na SEFAZ aqui: quem precisa cancelar um CT-e
+    // autorizado usa a opção Cancelar dentro do menu SEFAZ.
     const ok = await confirm({
-      title: "Excluir CT-e",
-      description: (isServico
-        ? `Excluir definitivamente este talão de serviço?\n\nEsta ação não pode ser desfeita.`
-        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`) + contractWarning,
-      confirmLabel: "Excluir",
+      title: "Excluir CT-e do sistema",
+      description:
+        (isServico
+          ? `O talão de serviço Nº ${cte.numero} será excluído do sistema.`
+          : `O CT-e Nº ${cte.numero} será excluído do sistema.`) +
+        `\n\nEsta ação não pode ser desfeita.` +
+        contractWarning,
+      confirmLabel: "Excluir do sistema",
       variant: "destructive",
     });
     if (!ok) return;
@@ -521,10 +463,13 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
   };
 
   // ─── Seleção em lote ──────────────────────────────────────
-  const isBulkDeletable = (c: Cte) =>
-    c.tipo_talao === "servico" || c.status !== "autorizado";
+  // Excluir = remover o registro guardado no sistema. Vale para CT-es importados
+  // via XML ou já cancelados; não envolve nenhuma chamada à SEFAZ.
+  const isDeletable = (c: Cte) => !!c.importado_xml || c.status === "cancelado";
 
-  const selectableIds = sorted.filter(isBulkDeletable).map((c) => c.id);
+  const selectableIds = sorted
+    .filter((c) => c.tipo_talao === "servico" || c.status !== "autorizado")
+    .map((c) => c.id);
   const allSelected =
     selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
 
@@ -542,7 +487,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds).filter((id) =>
-      sorted.some((c) => c.id === id && isBulkDeletable(c)),
+      sorted.some((c) => c.id === id && isDeletable(c)),
     );
     if (!ids.length) return;
 
@@ -559,7 +504,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     );
     const deletable = ids.filter((id) => {
       const c = sorted.find((x) => x.id === id);
-      return !blocked.has(id) && !!c && (c.importado_xml || c.status === "cancelado");
+      return !blocked.has(id) && !!c && isDeletable(c);
     });
 
     if (!deletable.length) {
@@ -572,12 +517,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     }
 
     const ok = await confirm({
-      title: "Excluir CT-es selecionados",
+      title: "Excluir CT-es do sistema",
       description:
-        `Confirma excluir ${deletable.length} CT-e(s) e seus contratos de frete vinculados (e contas a pagar pendentes)?` +
+        `Confirma excluir do sistema ${deletable.length} CT-e(s) e seus contratos de frete vinculados (e contas a pagar pendentes)?` +
         (blocked.size ? `\n\n⚠️ ${blocked.size} CT-e(s) serão ignorados por estarem vinculados a faturas.` : "") +
-        "\n\nEsta ação é irreversível.",
-      confirmLabel: "Excluir",
+        "\n\nEsta ação não pode ser desfeita.",
+      confirmLabel: "Excluir do sistema",
       variant: "destructive",
     });
     if (!ok) return;
@@ -792,11 +737,10 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             {
               key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-              // Excluir vale para CT-es importados via XML ou cancelados na SEFAZ;
-              // os demais emitidos no sistema são cancelados pelo menu SEFAZ.
-              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !c.importado_xml && c.status !== "cancelado"),
+              // Excluir apenas remove o registro do sistema (importados via XML ou já cancelados).
+              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !isDeletable(c)),
               onClick: () => {
-                if (singleCte && !isBulkDeletable(singleCte)) return handleDelete(singleCte);
+                if (singleCte && isDeletable(singleCte)) return handleDelete(singleCte);
                 handleBulkDelete();
               },
             },
