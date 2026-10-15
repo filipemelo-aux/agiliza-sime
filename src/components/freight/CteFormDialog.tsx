@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/hooks/useTenant";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, maskPlateInput, unmaskPlate, formatCurrency } from "@/lib/masks";
@@ -546,6 +547,7 @@ function ActorSection({
 export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { tenant } = useTenant();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
@@ -1037,8 +1039,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       .then(({ data }: any) => setInsurers(data || []));
   }, []);
 
-  // Seguro padrão: emitente, senão apólice padrão do Transporte (somente quando ainda vazio)
+  // Seguro padrão: empresa sem seguradora (SuperAdmin) > emitente > apólice padrão do Transporte (somente quando ainda vazio)
   useEffect(() => {
+    if ((tenant as any)?.sem_seguradora) {
+      setForm((p) => p.seguradora_nome ? p : { ...p, seguradora_nome: "SEGURADORA PADRAO", seguradora_cnpj: maskCNPJ("11222333000181"), apolice_numero: p.apolice_numero || "000000", averbacao_numero: p.averbacao_numero || "0" });
+      return;
+    }
     const est: any = establishments.find((e) => e.id === selectedEstId);
     const def: any = insurers.find((i) => i.is_default);
     if (!est && !def) return;
@@ -1048,7 +1054,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       if (!src) return p;
       return { ...p, seguradora_nome: src.nome || "", seguradora_cnpj: src.cnpj ? maskCNPJ(src.cnpj) : "", apolice_numero: p.apolice_numero || src.apolice || "" };
     });
-  }, [selectedEstId, establishments, insurers]);
+  }, [selectedEstId, establishments, insurers, tenant]);
 
   // Comparação de notas SEMPRE pela chave de 44 dígitos (números de nota podem se repetir)
   const normChave = (c: string | null | undefined) => String(c || "").replace(/\D/g, "");
