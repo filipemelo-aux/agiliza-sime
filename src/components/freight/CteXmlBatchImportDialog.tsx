@@ -302,6 +302,7 @@ export function CteXmlBatchImportDialog({ open, onOpenChange, onImported }: Prop
           valor_icms: p.icms,
           chaves_nfe_ref: p.chavesNfe.length ? p.chavesNfe : null,
           observacoes: "Importado de XML autorizado",
+          importado_xml: true,
           created_by: user?.id ?? null,
         };
         const { data, error } = await supabase.from("ctes").insert(row as any).select("id").single();
