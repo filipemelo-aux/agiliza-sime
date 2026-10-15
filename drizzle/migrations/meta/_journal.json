@@ -50,6 +50,13 @@
       "when": 1791994318487,
       "tag": "0006_mdfe_pagamento_manual",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792065237224,
+      "tag": "0007_tenant_disabled_modules",
+      "breakpoints": true
     }
   ]
 }

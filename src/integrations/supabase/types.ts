@@ -5382,6 +5382,7 @@ export type Database = {
           complemento: string | null
           created_at: string
           descricao: string | null
+          disabled_modules: string[]
           email: string | null
           focus_environment: string
           id: string
@@ -5410,6 +5411,7 @@ export type Database = {
           complemento?: string | null
           created_at?: string
           descricao?: string | null
+          disabled_modules?: string[]
           email?: string | null
           focus_environment?: string
           id?: string
@@ -5438,6 +5440,7 @@ export type Database = {
           complemento?: string | null
           created_at?: string
           descricao?: string | null
+          disabled_modules?: string[]
           email?: string | null
           focus_environment?: string
           id?: string
