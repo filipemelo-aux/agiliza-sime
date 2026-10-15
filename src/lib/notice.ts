@@ -32,9 +32,9 @@ function emit() {
   listeners.forEach((l) => l(snapshot));
 }
 
-export function pushErrorNotice(title: string, description?: string, kind: NoticeKind = "error") {
+export function pushErrorNotice(title: string, description?: string, kind: NoticeKind = "error", autoCloseMs?: number) {
   if (!title && !description) return;
-  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind });
+  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind, autoCloseMs });
   emit();
 }
 
