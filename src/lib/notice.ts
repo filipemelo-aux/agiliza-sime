@@ -76,7 +76,9 @@ function central(kind: NoticeKind, message: unknown, data?: { description?: unkn
       : undefined
       : undefined;
   const autoCloseMs = rawMs != null && rawMs > 0 ? rawMs : undefined;
-  pushErrorNotice(message == null ? "" : String(message), description, kind, autoCloseMs);
+  const persistent =
+    data && typeof data === "object" && (data as { persistent?: unknown }).persistent === true ? true : undefined;
+  pushErrorNotice(message == null ? "" : String(message), description, kind, autoCloseMs, persistent);
   return seq;
 }
 
