@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { listSystemPages } from "@/components/AdminLayout";
+import { useTenant } from "@/hooks/useTenant";
 
 export type PageMode = "active" | "hidden" | "maintenance";
 export interface PageRule {
@@ -33,8 +34,14 @@ export const MENU_PREFIX = "menu:";
 export function usePageAccess() {
   const { user, canAccessSettings } = useUserRole();
   const { data: rules = [] } = usePageRules();
+  const { tenant } = useTenant();
+  const disabled = tenant?.disabled_modules || [];
 
   const getRule = (url: string): { mode: PageMode; message: string | null } => {
+    if (url && disabled.length) {
+      const mod = listSystemPages().find((p) => p.url === url)?.group.split(" › ")[0];
+      if (mod && disabled.includes(mod)) return { mode: "hidden", message: "Este módulo não está contratado para a sua empresa." };
+    }
     if (!url || url === "/admin/settings" || canAccessSettings) return { mode: "active", message: null };
     const menu = listSystemPages().find((p) => p.url === url)?.group.split(" › ")[0];
     const menuKey = menu ? MENU_PREFIX + menu : null;

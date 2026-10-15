@@ -11,6 +11,7 @@ export interface CurrentTenant {
   nome_fantasia: string | null;
   cnpj: string;
   logo_url: string | null;
+  disabled_modules?: string[] | null;
 }
 
 /** Empresa (tenant) em que o usuário está — a própria ou a do modo suporte. */
@@ -24,7 +25,7 @@ export function useTenant() {
       const { data: tid } = await (supabase.rpc as any)("current_tenant_id");
       if (!tid) return null;
       const { data } = await (supabase.from as any)("tenants")
-        .select("id, razao_social, nome_fantasia, cnpj, logo_url").eq("id", tid).maybeSingle();
+        .select("id, razao_social, nome_fantasia, cnpj, logo_url, disabled_modules").eq("id", tid).maybeSingle();
       return (data as CurrentTenant) ?? null;
     },
   });
