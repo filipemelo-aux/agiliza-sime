@@ -632,7 +632,11 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       .then(({ data }) => {
         if (data) {
           setEstablishments(data);
-          // Não pré-selecionar emitente: o usuário deve escolher manualmente para evitar erros.
+          // Emitente único (ex.: só a matriz): preencher automaticamente.
+          // Com mais de um estabelecimento, o usuário escolhe manualmente.
+          if (data.length === 1 && (!cte || !cte.establishment_id)) {
+            setSelectedEstId(data[0].id);
+          }
         }
       });
   }, [open]);
