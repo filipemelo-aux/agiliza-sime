@@ -38,7 +38,8 @@ interface DueItem {
 export default function AdminDashboard() {
   const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const { user } = useAuth();
-  const { logo: tenantLogo, name: tenantName } = useTenant();
+  const { logo: tenantLogo, name: tenantName, tenant } = useTenant();
+  const financeiroOff = (tenant?.disabled_modules || []).includes("Financeiro");
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
