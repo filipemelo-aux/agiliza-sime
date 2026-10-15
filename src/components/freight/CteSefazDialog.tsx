@@ -31,9 +31,13 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
   if (!cte) return null;
   const isServico = cte.tipo_talao === "servico";
   const st = cte.status as string;
-  const canTransmit = !isServico && ["rascunho", "rejeitado", "processando"].includes(st);
+  // CT-e importado via XML não foi emitido por este sistema: qualquer chamada à SEFAZ
+  // (transmitir, consultar, cancelar, carta de correção) retornaria negativa e ainda
+  // consumiria créditos da conta, então essas opções ficam desativadas.
+  const imported = !!cte.importado_xml;
+  const canTransmit = !isServico && !imported && ["rascunho", "rejeitado", "processando"].includes(st);
   const authorized = !isServico && st === "autorizado";
-  const emitted = !isServico && ["autorizado", "cancelado", "processando", "rejeitado"].includes(st);
+  const emitted = !isServico && !imported && ["autorizado", "cancelado", "processando", "rejeitado"].includes(st);
 
   const call = async (action: string, extra: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke("focus-nfe", { body: { action, cte_id: cte.id, ...extra } });
@@ -63,16 +67,23 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
       onClick: () => run("pdf", onDownloadPdf) },
     { key: "xml", label: "Baixar XML autorizado", icon: FileCode2, enabled: authorized || st === "cancelado",
       onClick: () => run("xml", async () => {
-        const d = await call("xml_cte_salvo");
-        const blob = new Blob([d.xml], { type: "application/xml" });
+        // O XML autorizado já fica guardado no sistema: usar o arquivo local evita
+        // consultar a SEFAZ (e consumir créditos).
+        let xmlText = cte.xml_autorizado as string | undefined;
+        if (!xmlText) {
+          const { data: local } = await supabase.from("ctes").select("xml_autorizado").eq("id", cte.id).maybeSingle();
+          xmlText = (local as any)?.xml_autorizado || undefined;
+        }
+        if (!xmlText) xmlText = (await call("xml_cte_salvo")).xml;
+        const blob = new Blob([xmlText], { type: "application/xml" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = `${cte.chave_acesso || `CTe-${cte.numero}`}.xml`;
         a.click();
         URL.revokeObjectURL(a.href);
       }) },
-    { key: "cce", label: "Carta de Correção (CC-e)", icon: FilePenLine, enabled: authorized, onClick: () => setView("cce") },
-    { key: "cancel", label: "Cancelar na SEFAZ", icon: Ban, enabled: authorized, onClick: () => setView("cancel"), danger: true },
+    { key: "cce", label: "Carta de Correção (CC-e)", icon: FilePenLine, enabled: authorized && !imported, onClick: () => setView("cce") },
+    { key: "cancel", label: "Cancelar na SEFAZ", icon: Ban, enabled: authorized && !imported, onClick: () => setView("cancel"), danger: true },
   ];
 
   return (
@@ -95,7 +106,11 @@ export function CteSefazDialog({ cte, open, onOpenChange, onTransmit, onDownload
                 {o.label}
               </Button>
             ))}
-            <p className="text-[11px] text-muted-foreground">Cancelamento e carta de correção só ficam disponíveis para CT-e autorizado. O cancelamento deve ser feito em até 7 dias após a autorização.</p>
+            <p className="text-[11px] text-muted-foreground">
+              {imported
+                ? "CT-e importado via XML: este documento não foi emitido pelo sistema, então as opções da SEFAZ (transmitir, consultar, cancelar e carta de correção) ficam desativadas. Para removê-lo, use Excluir."
+                : "Cancelamento e carta de correção só ficam disponíveis para CT-e autorizado. O cancelamento deve ser feito em até 7 dias após a autorização."}
+            </p>
           </div>
         )}
 

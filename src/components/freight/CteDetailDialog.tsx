@@ -13,9 +13,7 @@ import { Loader2, Pencil, FileSignature, Printer, Trash2 } from "lucide-react";
 import { maskCNPJ, maskDocument, maskCurrency } from "@/lib/masks";
 import { cteOrigemLabel, cteDestinoLabel } from "@/lib/cteRoute";
 import { useToast } from "@/hooks/use-toast";
-import { cancelarCte } from "@/services/fiscal";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { FreightContractDialog } from "./FreightContractDialog";
 import { buildFullContractHtml, openPrintWindow } from "./freightContractPrint";
@@ -92,7 +90,6 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const [contractOpen, setContractOpen] = useState(false);
   const [existingContract, setExistingContract] = useState<{ id: string; numero: number } | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   // Sync with prop when dialog opens with a different CTE
@@ -102,6 +99,8 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const cte = localCte;
   const isServico = (cte as any).tipo_talao === "servico";
   const canEdit = isServico || cte.status === "rascunho" || cte.status === "rejeitado";
+  // Excluir apenas remove o registro do sistema: vale para importados via XML ou já cancelados.
+  const canDelete = !!cte.importado_xml || cte.status === "cancelado";
 
   const removeLinkedFreightContract = async (cteId: string) => {
     const { data: contracts } = await supabase
@@ -120,7 +119,15 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   };
 
   const handleDelete = async () => {
-    const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
+    if (!canDelete) {
+      toast({
+        title: "Exclusão não permitida",
+        description: "Somente CT-es importados via XML ou já cancelados podem ser excluídos. Para CT-es emitidos no sistema, use a opção Cancelar no menu SEFAZ.",
+        variant: "destructive",
+      });
+      return;
+    }
+
 
     // Bloqueia exclusão se a previsão deste CT-e já foi vinculada a uma fatura
     const { data: prevs } = await supabase
@@ -148,67 +155,16 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
       ? `\n\n⚠️ Há ${linkedContracts} contrato(s) de frete vinculado(s) que também será(ão) excluído(s) (e sua(s) conta(s) a pagar pendente(s)).`
       : "";
 
-    if (!isServico && isAutorizado) {
-      const ok = await confirm({
-        title: "Cancelar CT-e na SEFAZ e excluir",
-        description:
-          `Este CT-e (Nº ${cte.numero}) está autorizado pela SEFAZ.\n\n` +
-          `Será solicitado o CANCELAMENTO oficial na SEFAZ e, em seguida, o registro será excluído do sistema.\n\n` +
-          `Esta operação é IRREVERSÍVEL. Deseja continuar?` + contractWarning,
-        confirmLabel: "Cancelar na SEFAZ e excluir",
-        variant: "destructive",
-      });
-      if (!ok) return;
-
-      const justificativa = window.prompt(
-        "Justificativa para cancelamento na SEFAZ (mínimo 15 caracteres):",
-        "Cancelamento solicitado pelo emitente"
-      );
-      if (!justificativa) return;
-      if (justificativa.trim().length < 15) {
-        toast({ title: "Justificativa inválida", description: "A SEFAZ exige no mínimo 15 caracteres.", variant: "destructive" });
-        return;
-      }
-
-      setDeleting(true);
-      try {
-        const resp = await cancelarCte(
-          cte.id,
-          cte.chave_acesso!,
-          cte.protocolo_autorizacao!,
-          justificativa.trim(),
-          user?.id || "",
-          (cte as any).establishment_id
-        );
-        if (!resp.success) {
-          toast({
-            title: "Falha no cancelamento SEFAZ",
-            description: resp.motivo_rejeicao || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
-            variant: "destructive",
-          });
-          return;
-        }
-        const removed = await removeLinkedFreightContract(cte.id);
-        const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
-        if (error) throw error;
-        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} removido${removed ? ` (e ${removed} contrato de frete vinculado).` : "."}` });
-        onDeleted?.();
-        onUpdated();
-        onOpenChange(false);
-      } catch (err: any) {
-        toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
-      } finally {
-        setDeleting(false);
-      }
-      return;
-    }
 
     const ok = await confirm({
-      title: "Excluir CT-e",
-      description: (isServico
-        ? `Excluir definitivamente este talão de serviço?\n\nEsta ação não pode ser desfeita.`
-        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`) + contractWarning,
-      confirmLabel: "Excluir",
+      title: "Excluir CT-e do sistema",
+      description:
+        (isServico
+          ? `O talão de serviço Nº ${cte.numero_interno ?? cte.numero ?? ""} será excluído do sistema.`
+          : `O CT-e Nº ${cte.numero} será excluído do sistema.`) +
+        `\n\nEsta ação não pode ser desfeita.` +
+        contractWarning,
+      confirmLabel: "Excluir do sistema",
       variant: "destructive",
     });
     if (!ok) return;
@@ -490,11 +446,12 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
           <Button
             variant="outline"
             onClick={handleDelete}
-            disabled={deleting}
+            disabled={deleting || !canDelete}
+            title={canDelete ? "Remover o registro do sistema" : "Só CT-es importados via XML ou já cancelados podem ser excluídos"}
             className="w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
           >
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Excluir CT-e
+            Excluir CT-e do sistema
           </Button>
         </div>
       </DialogContent>
