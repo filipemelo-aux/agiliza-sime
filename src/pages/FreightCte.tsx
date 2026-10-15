@@ -557,7 +557,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         .filter((p: any) => (p.fatura_previsoes?.length ?? 0) > 0)
         .map((p: any) => p.origem_id as string),
     );
-    const deletable = ids.filter((id) => !blocked.has(id));
+    const deletable = ids.filter((id) => !blocked.has(id) && sorted.find((c) => c.id === id)?.importado_xml);
 
     if (!deletable.length) {
       toast({
