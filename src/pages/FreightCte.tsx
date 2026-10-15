@@ -1,3 +1,4 @@
+import { useContractsEnabled } from "@/hooks/useContractsEnabled";
 import { PageTitle } from "@/components/PageTitle";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useState } from "react";
@@ -116,6 +117,7 @@ export default function FreightCte() {
   const [servicoOpen, setServicoOpen] = useState(false);
   const [resumoOpen, setResumoOpen] = useState(false);
   const [contractCte, setContractCte] = useState<Cte | null>(null);
+  const contractsOn = useContractsEnabled();
   const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
   const [xmlBatchOpen, setXmlBatchOpen] = useState(false);
   const [inconsistencyFocus, setInconsistencyFocus] = useState<string[]>([]);
@@ -817,8 +819,8 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
                 navigate(data?.[0] ? `/admin/freight/mdfe?sefaz=${data[0].id}` : `/admin/freight/mdfe?ctes=${id}`);
               },
             },
-            {
-              key: "contract", label: "Contrato de frete", icon: Handshake, mode: "single", variant: "outline",
+            ...(contractsOn ? [{
+              key: "contract", label: "Contrato de frete", icon: Handshake, mode: "single" as const, variant: "outline" as const,
               priority: !!singleCte && !INACTIVE_CTE_STATUSES.includes(singleCte.status),
               disabled: !singleCte || isConsultor || INACTIVE_CTE_STATUSES.includes(singleCte.status),
               onClick: async () => {
@@ -828,7 +830,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
                 const { data: full } = await supabase.from("ctes").select("*").eq("id", singleCte.id).maybeSingle();
                 if (full) setContractCte(full as any);
               },
-            },
+            }] : []),
           ]}
           selectedCount={selectedIds.size}
         />

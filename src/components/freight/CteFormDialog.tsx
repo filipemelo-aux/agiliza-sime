@@ -1,3 +1,4 @@
+import { useContractsEnabled } from "@/hooks/useContractsEnabled";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { ICMS_CST_OPTIONS, IBS_CBS_CST_OPTIONS, IBS_CBS_DEFAULT, icmsCstMode, ibsCbsIsento } from "@/lib/cteTaxCodes";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -551,6 +552,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
+  const contractsOn = useContractsEnabled();
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
   const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
@@ -1453,7 +1455,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         payload.numero = nextNum as number;
       }
       // Marca o CT-e como "com contrato de frete": o MDF-e só transmite com o contrato completo
-      (payload as any).exige_contrato_frete = gerarContrato || !!(cte as any)?.exige_contrato_frete;
+      (payload as any).exige_contrato_frete = (contractsOn && gerarContrato) || !!(cte as any)?.exige_contrato_frete;
       const writeCte = async () => {
         for (let attempt = 0; attempt < 6; attempt++) {
           const res: any = cte
@@ -1576,7 +1578,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       onSaved();
       if (gerarMdfe) pendingMdfeRef.current = savedId;
 
-      if (gerarContrato) {
+      if (gerarContrato && contractsOn) {
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
         setKeepOpenAfterContract(keepOpenForNext && !cte);
         setSavedCteForContract(fresh as any);
@@ -2521,7 +2523,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                 <span className="block text-muted-foreground">Cria a previsão a receber para o tomador com o valor da prestação.</span>
               </span>
             </label>
-            {!linkedContract && (
+            {!linkedContract && contractsOn && (
               <label className="flex cursor-pointer items-start gap-2">
                 <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} className="mt-0.5" />
                 <span className="text-[11px] leading-tight">

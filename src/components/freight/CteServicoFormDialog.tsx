@@ -1,3 +1,4 @@
+import { useContractsEnabled } from "@/hooks/useContractsEnabled";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useState } from "react";
 import {
@@ -93,6 +94,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
+  const contractsOn = useContractsEnabled();
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
@@ -439,7 +441,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       toast({ title: cte ? "Talão atualizado" : "Talão de Serviço criado" });
       onSaved();
 
-      if (gerarContrato) {
+      if (gerarContrato && contractsOn) {
         // Recupera o CT-e salvo para alimentar o FreightContractDialog
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
         setKeepOpenAfterContract(keepOpenForNext && !cte);
@@ -753,7 +755,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             />
           </div>
 
-          {!linkedContract && (
+          {!linkedContract && contractsOn && (
             <label className="flex items-start gap-2 p-3 rounded-md border border-amber-500/30 bg-amber-500/5 cursor-pointer">
               <Checkbox
                 checked={gerarContrato}

@@ -1,3 +1,4 @@
+import { useContractsEnabled } from "@/hooks/useContractsEnabled";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -85,6 +86,7 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
 }
 
 export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit, onDeleted }: Props) {
+  const contractsOn = useContractsEnabled();
   const [deleting, setDeleting] = useState(false);
   const [localCte, setLocalCte] = useState(cteProp);
   const [contractOpen, setContractOpen] = useState(false);
@@ -459,6 +461,7 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
           )}
 
           {/* Contrato de Frete */}
+          {contractsOn && (<>
           <Separator />
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -480,6 +483,7 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
               </Button>
             )}
           </div>
+          </>)}
 
           {/* Excluir CT-e */}
           <Separator />
