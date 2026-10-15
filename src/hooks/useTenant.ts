@@ -20,7 +20,9 @@ export function useTenant() {
   const q = useQuery({
     queryKey: ["current-tenant", user?.id, supportTenantId],
     enabled: !!user,
-    staleTime: 5 * 60_000,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const { data: tid } = await (supabase.rpc as any)("current_tenant_id");
       if (!tid) return null;
