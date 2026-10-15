@@ -16,6 +16,8 @@ export interface NoticeItem {
   title: string;
   description?: string;
   kind?: NoticeKind;
+  /** Sobrescreve o tempo de fechamento automático, em milissegundos. */
+  autoCloseMs?: number;
 }
 export type NoticeKind = "error" | "success" | "info" | "warning";
 
