@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/hooks/useTenant";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, maskPlateInput, unmaskPlate, formatCurrency } from "@/lib/masks";
@@ -546,6 +547,7 @@ function ActorSection({
 export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { tenant } = useTenant();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
