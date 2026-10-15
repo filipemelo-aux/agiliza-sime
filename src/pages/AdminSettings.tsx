@@ -1,3 +1,5 @@
+import { validatePassword } from "@/lib/passwordPolicy";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import {
@@ -230,6 +232,12 @@ export default function AdminSettings() {
     }
     if (createForm.profileId && !createForm.password) {
       toast({ title: "Defina uma senha para o usuário", variant: "destructive" });
+      return;
+    }
+
+    const pwErr = validatePassword(createForm.password);
+    if (pwErr) {
+      toast({ title: "Senha fora do padrão", description: pwErr, variant: "destructive" });
       return;
     }
 

@@ -1,3 +1,4 @@
+import { validatePassword } from "../_shared/passwordPolicy.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -45,9 +46,8 @@ serve(async (req) => {
     if (!email || !password || !name) {
       throw new Error("Email, senha e nome são obrigatórios");
     }
-    if (password.length < 6) {
-      throw new Error("Senha deve ter pelo menos 6 caracteres");
-    }
+    const pwErr = validatePassword(password);
+    if (pwErr) throw new Error(pwErr);
 
     // Determine role to assign
     let assignRole = role || "moderator";

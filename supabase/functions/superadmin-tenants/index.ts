@@ -1,3 +1,4 @@
+import { validatePassword } from "../_shared/passwordPolicy.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
@@ -533,6 +534,12 @@ Deno.serve(async (req) => {
       }
 
       if (firstAdmin) {
+        const pwErr = validatePassword(firstAdmin.password);
+        if (pwErr) return json({ error: "Administrador: " + pwErr }, 400);
+        if (tenant?.id) {
+          const { count } = await admin.from("tenant_members").select("user_id", { count: "exact", head: true }).eq("tenant_id", tenantId);
+          if ((count ?? 0) > 0) return json({ error: "Esta empresa já possui administrador." }, 400);
+        }
         const email = firstAdmin.email.toLowerCase();
         const { data: created, error: cErr } = await admin.auth.admin.createUser({
           email, password: firstAdmin.password, email_confirm: true, user_metadata: { must_change_password: true },

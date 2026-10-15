@@ -1,3 +1,5 @@
+import { validatePassword, generateStrongPassword } from "@/lib/passwordPolicy";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { useEffect, useState, type ReactNode } from "react";
 import { Loader2, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,9 +131,11 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
 
   const save = async () => {
     if (!f.razao_social.trim() || f.cnpj.replace(/\D/g, "").length !== 14) return toast.error("Razão social e CNPJ são obrigatórios");
-    const wantsAdmin = !tenant && (adm.email || adm.full_name || adm.password);
+    const needsAdmin = !tenant || (tenant.users_count ?? 0) === 0;
+    const wantsAdmin = needsAdmin && (adm.email || adm.full_name || adm.password);
     if (!tenant && !wantsAdmin) return toast.error("Informe o administrador inicial da empresa");
-    if (wantsAdmin && (!adm.full_name || !adm.email || adm.password.length < 8)) return toast.error("Administrador: nome, e-mail e senha (mín. 8) obrigatórios");
+    if (wantsAdmin && (!adm.full_name || !adm.email)) return toast.error("Administrador: nome e e-mail obrigatórios");
+    if (wantsAdmin) { const pe = validatePassword(adm.password); if (pe) return toast.error("Administrador: " + pe); }
     setSaving(true);
     try {
       let certificate = null;
@@ -261,15 +265,16 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
             )}
           </Block>
 
-          {!tenant && (
+          {(!tenant || (tenant.users_count ?? 0) === 0) && (
             <>
-              <Block title="3. Estabelecimento matriz">
+              {!tenant && <Block title="3. Estabelecimento matriz">
                 <p className="md:col-span-6 text-xs text-muted-foreground">A matriz fiscal será criada automaticamente com o CNPJ, IE, RNTRC, endereço e ambiente acima.</p>
-              </Block>
-              <Block title="4. Administrador inicial">
+              </Block>}
+              <Block title={tenant ? "Administrador da empresa (ainda não cadastrado)" : "4. Administrador inicial"}>
                 <F label="Nome completo *" span={2}><Input className="h-9" value={adm.full_name} onChange={(e) => setAdm((p) => ({ ...p, full_name: e.target.value }))} /></F>
                 <F label="E-mail de acesso *" span={2}><Input type="email" className="h-9" value={adm.email} onChange={(e) => setAdm((p) => ({ ...p, email: e.target.value }))} /></F>
-                <F label="Senha provisória * (mín. 8)" span={2}><Input type="text" className="h-9" value={adm.password} onChange={(e) => setAdm((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password" /></F>
+                <F label="Senha provisória *" span={2}><div className="flex gap-1"><Input type="text" className="h-9" value={adm.password} onChange={(e) => setAdm((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password" /><Button type="button" variant="outline" className="h-9 px-2 text-xs" onClick={() => setAdm((p) => ({ ...p, password: generateStrongPassword() }))}>Gerar</Button></div></F>
+                <PasswordRequirements password={adm.password} className="md:col-span-6" />
                 <p className="md:col-span-6 text-[11px] text-muted-foreground">No primeiro acesso o administrador será obrigado a trocar a senha.</p>
               </Block>
             </>
