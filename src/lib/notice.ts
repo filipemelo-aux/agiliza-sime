@@ -18,6 +18,11 @@ export interface NoticeItem {
   kind?: NoticeKind;
   /** Sobrescreve o tempo de fechamento automático, em milissegundos. */
   autoCloseMs?: number;
+  /**
+   * Aviso solicitado explicitamente pelo usuário (ex.: retorno de consulta/operacao
+   * na SEFAZ): fica aberto até o usuário fechar, mesmo sendo positivo/informativo.
+   */
+  persistent?: boolean;
 }
 export type NoticeKind = "error" | "success" | "info" | "warning";
 
@@ -32,9 +37,15 @@ function emit() {
   listeners.forEach((l) => l(snapshot));
 }
 
-export function pushErrorNotice(title: string, description?: string, kind: NoticeKind = "error", autoCloseMs?: number) {
+export function pushErrorNotice(
+  title: string,
+  description?: string,
+  kind: NoticeKind = "error",
+  autoCloseMs?: number,
+  persistent?: boolean,
+) {
   if (!title && !description) return;
-  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind, autoCloseMs });
+  queue.push({ id: ++seq, title: title || (kind === "error" ? "Erro" : "Aviso"), description, kind, autoCloseMs, persistent });
   emit();
 }
 
