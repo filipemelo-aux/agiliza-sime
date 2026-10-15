@@ -466,7 +466,7 @@ Deno.serve(async (req) => {
     }
     if (m.tenant_id) {
       const { data: tn } = await supabase.from("tenants").select("sem_seguradora").eq("id", m.tenant_id).maybeSingle();
-      if ((tn as any)?.sem_seguradora) Object.assign(m, { seguradora_nome: "SEGURADORA PADRAO", seguradora_cnpj: "11222333000181", apolice_numero: "000000", averbacao_numero: "0" });
+      if ((tn as any)?.sem_seguradora) { Object.assign(m, { seguradora_nome: "SEGURADORA PADRAO", seguradora_cnpj: "11222333000181", apolice_numero: "000000", averbacao_numero: "0" }), await supabase.from("mdfe").update({ seguradora_nome: m.seguradora_nome, seguradora_cnpj: m.seguradora_cnpj, apolice_numero: m.apolice_numero, averbacao_numero: "0" }).eq("id", m.id); }
     }
     const pend: string[] = [];
     if (naoAutorizados.length) pend.push(`CT-e ${naoAutorizados.join(", ")} ainda não autorizado pela SEFAZ`);

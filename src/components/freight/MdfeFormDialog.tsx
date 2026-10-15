@@ -1,3 +1,4 @@
+import { useTenant } from "@/hooks/useTenant";
 import { accentLike } from "@/lib/search";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { useEffect, useMemo, useState } from "react";
@@ -99,6 +100,8 @@ interface Props {
   onSaved: () => void;
 }
 
+const SEM_SEG = { seguradora_nome: "SEGURADORA PADRAO", seguradora_cnpj: "11222333000181", apolice_numero: "000000", averbacao_numero: "0" };
+
 export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -115,6 +118,9 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const [insurers, setInsurers] = useState<any[]>([]);
+  const { tenant: curTenant } = useTenant();
+  const semSeg = !!curTenant?.sem_seguradora;
+  useEffect(() => { if (semSeg) setForm((f: any) => ({ ...f, ...SEM_SEG })); }, [semSeg, open]);
   useEffect(() => {
     (supabase as any).from("transport_insurers").select("id,nome,cnpj,apolice_numero,is_default").eq("active", true).order("nome")
       .then(({ data }: any) => setInsurers(data || []));
@@ -215,6 +221,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         seguradora_cnpj: pick("seguradora_cnpj", first.seguradora_cnpj || est?.seguradora_cnpj || defIns?.cnpj),
         apolice_numero: pick("apolice_numero", first.apolice_numero || est?.apolice_numero || defIns?.apolice_numero),
         averbacao_numero: pick("averbacao_numero", first.averbacao_numero),
+        ...(semSeg ? SEM_SEG : {}),
       };
     });
   };
@@ -436,7 +443,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
           </FormBlock>
 
           <FormBlock icon={ShieldCheck} title="7. Seguro e CIOT" summary={form.seguro_manual || form.ciot_manual ? "Preenchimento manual" : "Dados automáticos"} defaultOpen={false}>
-            <label className="flex items-center gap-2 text-xs"><Checkbox checked={form.seguro_manual} onCheckedChange={(v) => set("seguro_manual", !!v)} /> Definir seguradora manualmente</label>
+            {semSeg && <p className="rounded-md bg-muted px-2 py-1.5 text-xs">Empresa sem seguradora: Seguradora Padrão · CNPJ 11.222.333/0001-81 · Apólice 000000 · Averbação 0 (preenchido automaticamente).</p>}
+            {!semSeg && <label className="flex items-center gap-2 text-xs"><Checkbox checked={form.seguro_manual} onCheckedChange={(v) => set("seguro_manual", !!v)} /> Definir seguradora manualmente</label>}
             {form.seguro_manual && insurers.length > 0 && <F label="Seguradora cadastrada"><select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value="" onChange={(e) => { const i = insurers.find((x) => x.id === e.target.value); if (i) setForm((f) => ({ ...f, seguradora_nome: i.nome, seguradora_cnpj: i.cnpj || "", apolice_numero: i.apolice_numero || "" })); }}><option value="">Selecionar seguradora…</option>{insurers.map((i) => <option key={i.id} value={i.id}>{i.nome}{i.apolice_numero ? ` — Apólice ${i.apolice_numero}` : ""}</option>)}</select></F>}
             {form.seguro_manual && <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4"><F label="Seguradora"><Input className="h-8 text-xs" value={form.seguradora_nome || ""} onChange={(e) => set("seguradora_nome", e.target.value)} /></F><F label="CNPJ seguradora"><Input className="h-8 text-xs" value={form.seguradora_cnpj || ""} onChange={(e) => set("seguradora_cnpj", e.target.value)} /></F><F label="Apólice"><Input className="h-8 text-xs" value={form.apolice_numero || ""} onChange={(e) => set("apolice_numero", e.target.value)} /></F><F label="Averbação"><Input className="h-8 text-xs" value={form.averbacao_numero || ""} onChange={(e) => set("averbacao_numero", e.target.value)} /></F></div>}
             <label className="flex items-center gap-2 text-xs"><Checkbox checked={form.ciot_manual} onCheckedChange={(v) => set("ciot_manual", !!v)} /> Definir CIOT manualmente (obrigatório para caminhão de terceiro/TAC)</label>
