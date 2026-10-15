@@ -463,10 +463,13 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
   };
 
   // ─── Seleção em lote ──────────────────────────────────────
-  const isBulkDeletable = (c: Cte) =>
-    c.tipo_talao === "servico" || c.status !== "autorizado";
+  // Excluir = remover o registro guardado no sistema. Vale para CT-es importados
+  // via XML ou já cancelados; não envolve nenhuma chamada à SEFAZ.
+  const isDeletable = (c: Cte) => !!c.importado_xml || c.status === "cancelado";
 
-  const selectableIds = sorted.filter(isBulkDeletable).map((c) => c.id);
+  const selectableIds = sorted
+    .filter((c) => c.tipo_talao === "servico" || c.status !== "autorizado")
+    .map((c) => c.id);
   const allSelected =
     selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
 
@@ -484,7 +487,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds).filter((id) =>
-      sorted.some((c) => c.id === id && isBulkDeletable(c)),
+      sorted.some((c) => c.id === id && isDeletable(c)),
     );
     if (!ids.length) return;
 
@@ -501,7 +504,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     );
     const deletable = ids.filter((id) => {
       const c = sorted.find((x) => x.id === id);
-      return !blocked.has(id) && !!c && (c.importado_xml || c.status === "cancelado");
+      return !blocked.has(id) && !!c && isDeletable(c);
     });
 
     if (!deletable.length) {
@@ -514,12 +517,12 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     }
 
     const ok = await confirm({
-      title: "Excluir CT-es selecionados",
+      title: "Excluir CT-es do sistema",
       description:
-        `Confirma excluir ${deletable.length} CT-e(s) e seus contratos de frete vinculados (e contas a pagar pendentes)?` +
+        `Confirma excluir do sistema ${deletable.length} CT-e(s) e seus contratos de frete vinculados (e contas a pagar pendentes)?` +
         (blocked.size ? `\n\n⚠️ ${blocked.size} CT-e(s) serão ignorados por estarem vinculados a faturas.` : "") +
-        "\n\nEsta ação é irreversível.",
-      confirmLabel: "Excluir",
+        "\n\nEsta ação não pode ser desfeita.",
+      confirmLabel: "Excluir do sistema",
       variant: "destructive",
     });
     if (!ok) return;
@@ -734,11 +737,10 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             },
             {
               key: "delete", label: bulkDeleting ? "Excluindo..." : "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive",
-              // Excluir vale para CT-es importados via XML ou cancelados na SEFAZ;
-              // os demais emitidos no sistema são cancelados pelo menu SEFAZ.
-              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !c.importado_xml && c.status !== "cancelado"),
+              // Excluir apenas remove o registro do sistema (importados via XML ou já cancelados).
+              disabled: bulkDeleting || selectedIds.size === 0 || ctes.some((c) => selectedIds.has(c.id) && !isDeletable(c)),
               onClick: () => {
-                if (singleCte && !isBulkDeletable(singleCte)) return handleDelete(singleCte);
+                if (singleCte && isDeletable(singleCte)) return handleDelete(singleCte);
                 handleBulkDelete();
               },
             },
