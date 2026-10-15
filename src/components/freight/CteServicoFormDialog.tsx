@@ -183,7 +183,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       setModoValor("tonelada");
       setValorTotalManual("");
     } else {
-      setForm(empty);
+      setForm({ ...empty, data_emissao: new Date().toISOString().slice(0, 10) });
       setDesconto(emptyDesconto);
       setModoValor("tonelada");
       setValorTotalManual("");
