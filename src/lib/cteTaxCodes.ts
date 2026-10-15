@@ -29,3 +29,34 @@ export const ibsCbsIsento = (cst: string) =>
 
 /** Alíquotas padrão 2026 (fase de teste da reforma). */
 export const IBS_CBS_DEFAULT = { ibs_uf: 0.1, ibs_mun: 0, cbs: 0.9 };
+
+// Alíquotas internas de ICMS por UF (padrão geral 2026; editável no CT-e).
+const ICMS_INTERNA: Record<string, number> = {
+  AC: 19, AL: 20, AM: 20, AP: 18, BA: 20.5, CE: 20, DF: 20, ES: 17, GO: 19, MA: 23, MG: 18, MS: 17, MT: 17,
+  PA: 19, PB: 20, PE: 20.5, PI: 22.5, PR: 19.5, RJ: 22, RN: 20, RO: 19.5, RR: 20, RS: 17, SC: 17, SE: 20,
+  SP: 18, TO: 20,
+};
+const SUL_SUDESTE_SEM_ES = ["SP", "RJ", "MG", "PR", "SC", "RS"];
+
+/** Alíquota padrão do ICMS para a rota: interna da UF ou interestadual 12%/7% (Res. Senado 22/89). */
+export function icmsAliquotaRota(ufOrigem?: string, ufDestino?: string): number {
+  const o = (ufOrigem || "").toUpperCase();
+  const d = (ufDestino || "").toUpperCase();
+  if (!o || !d) return 12;
+  if (o === d) return ICMS_INTERNA[o] ?? 18;
+  if (SUL_SUDESTE_SEM_ES.includes(o) && !SUL_SUDESTE_SEM_ES.includes(d)) return 7;
+  return 12;
+}
+
+/** CST padrão: interno = 40 (isento); interestadual = 00 (tributação normal). */
+export const icmsCstPadraoRota = (ufOrigem?: string, ufDestino?: string) =>
+  ufOrigem && ufDestino && ufOrigem.toUpperCase() === ufDestino.toUpperCase() ? "40" : "00";
+
+/** Valores padrão (alíquota e % de redução) aplicados ao escolher um CST. */
+export function icmsPadraoCst(cst: string, ufOrigem?: string, ufDestino?: string) {
+  const mode = icmsCstMode(cst);
+  const aliq = icmsAliquotaRota(ufOrigem, ufDestino);
+  if (mode === "isento") return { aliquota_icms: 0, percentual_reducao_bc: 0 };
+  if (mode === "reducao") return { aliquota_icms: aliq, percentual_reducao_bc: 20 };
+  return { aliquota_icms: aliq, percentual_reducao_bc: 0 };
+}
