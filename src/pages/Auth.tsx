@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/lib/notice";
 import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
@@ -38,7 +38,7 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
-  const { toast } = useToast();
+
 
   const handleRedirectAfterAuth = async (userId: string) => {
     const { data: roles } = await supabase
@@ -57,7 +57,7 @@ export default function Auth() {
       navigate("/admin");
     } else {
       await supabase.auth.signOut();
-      toast({ title: "Acesso não liberado", description: "Seu usuário ainda não possui perfil de acesso ao sistema.", variant: "destructive" });
+      toast.error("Acesso não liberado", "Seu usuário ainda não possui perfil de acesso ao sistema.");
     }
   };
 
@@ -124,11 +124,7 @@ export default function Auth() {
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Credenciais inválidas",
-            description: "Verifique seu e-mail e senha.",
-            variant: "destructive",
-          });
+        toast.error("Credenciais inválidas", "Verifique seu e-mail e senha.");
         } else {
           throw error;
         }
@@ -142,16 +138,9 @@ export default function Auth() {
         return;
       }
 
-      toast({
-        title: "Bem-vindo de volta!",
-        description: "Login realizado com sucesso.",
-      });
+      toast.success("Bem-vindo de volta!", "Login realizado com sucesso.");
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Ocorreu um erro. Tente novamente.",
-        variant: "destructive",
-      });
+      toast.error("Erro", error.message || "Ocorreu um erro. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -160,11 +149,7 @@ export default function Auth() {
   const handleForgotPassword = async () => {
     const email = forgotEmail.trim().toLowerCase();
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      toast({
-        title: "E-mail inválido",
-        description: "Informe o e-mail da sua conta para receber o link de redefinição.",
-        variant: "destructive",
-      });
+      toast.error("E-mail inválido", "Informe o e-mail da sua conta para receber o link de redefinição.");
       return;
     }
 
@@ -175,16 +160,9 @@ export default function Auth() {
       });
       if (error) throw error;
       setForgotOpen(false);
-      toast({
-        title: "Link enviado",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
-      });
+      toast.success("Link enviado", "Verifique sua caixa de entrada para redefinir a senha.");
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível enviar o link de redefinição.",
-        variant: "destructive",
-      });
+      toast.error("Erro", error.message || "Não foi possível enviar o link de redefinição.");
     } finally {
       setForgotSending(false);
     }
