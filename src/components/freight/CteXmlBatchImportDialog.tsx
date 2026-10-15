@@ -18,7 +18,7 @@ interface Props {
   onImported: (ids: string[]) => void;
 }
 
-interface Actor { nome: string | null; cnpj: string | null; ie: string | null; uf: string | null; ibge: string | null; endereco: string | null }
+interface Actor { nome: string | null; cnpj: string | null; ie: string | null; uf: string | null; ibge: string | null; endereco: string | null; fantasia?: string | null; rua?: string | null; nro?: string | null; bairro?: string | null; cidade?: string | null; cep?: string | null }
 
 interface ParsedCte {
   file: string;
