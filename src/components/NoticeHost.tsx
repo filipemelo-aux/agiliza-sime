@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
-import { dismissErrorNotice, subscribeErrorNotices, type NoticeItem } from "@/lib/notice";
+import { dismissErrorNotice, subscribeErrorNotices, type NoticeItem, type NoticeKind } from "@/lib/notice";
 
 /**
- * Exibe os erros do sistema como avisos no centro da tela, um por vez,
- * com botão de fechar no canto superior direito. Não fecha automaticamente.
+ * Exibe os avisos do sistema no centro da tela, um por vez, com botão de fechar
+ * no canto superior direito.
+ *
+ * Mensagens positivas (sucesso) e informativas fecham sozinhas; erros e
+ * alertas permanecem abertos até o usuário fechar.
  */
+function autoCloseMs(kind: NoticeKind | undefined): number | undefined {
+  if (kind === "success") return 4000;
+  if (kind === "info") return 5000;
+  return undefined;
+}
+
 export function NoticeHost() {
   const [items, setItems] = useState<NoticeItem[]>([]);
 
@@ -21,6 +30,17 @@ export function NoticeHost() {
     el.addEventListener("focusin", stop);
     return () => { el.removeEventListener("pointerdown", stop); el.removeEventListener("focusin", stop); };
   });
+
+  const currentId = items[0]?.id;
+  const currentKind = items[0]?.kind;
+  // Só sucesso e informação se fecham sozinhos; erro e alerta esperam o usuário.
+  useEffect(() => {
+    if (currentId == null || !currentKind) return;
+    const ms = autoCloseMs(currentKind);
+    if (!ms) return;
+    const timer = setTimeout(() => dismissErrorNotice(currentId), ms);
+    return () => clearTimeout(timer);
+  }, [currentId, currentKind]);
 
   const current = items[0];
   if (!current) return null;
