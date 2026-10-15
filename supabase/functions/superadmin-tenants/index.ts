@@ -45,7 +45,6 @@ const TenantSchema = z.object({
   nfe_sync_interval_hours: z.number().int().min(1).max(24).optional(),
   disabled_modules: z.array(z.string().max(120)).max(300).optional(),
   sem_seguradora: z.boolean().optional(),
-  sem_seguradora: z.boolean().optional(),
 });
 
 const SaveSchema = z.object({
