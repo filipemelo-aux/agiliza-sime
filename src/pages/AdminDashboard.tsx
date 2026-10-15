@@ -38,7 +38,8 @@ interface DueItem {
 export default function AdminDashboard() {
   const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const { user } = useAuth();
-  const { logo: tenantLogo, name: tenantName } = useTenant();
+  const { logo: tenantLogo, name: tenantName, tenant } = useTenant();
+  const financeiroOff = (tenant?.disabled_modules || []).includes("Financeiro");
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
@@ -72,10 +73,12 @@ export default function AdminDashboard() {
   }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
-    if (hasAdminAccess) {
+    if (hasAdminAccess && !financeiroOff) {
       fetchFinancialPreview();
+    } else if (financeiroOff) {
+      setLoading(false);
     }
-  }, [isAdmin, isModerator]);
+  }, [isAdmin, isModerator, financeiroOff]);
 
   const fetchFinancialPreview = async () => {
     try {
@@ -196,7 +199,7 @@ export default function AdminDashboard() {
           onSaved={() => {}}
         />
 
-        {loading ? (
+        {financeiroOff ? null : loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
