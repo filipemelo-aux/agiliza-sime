@@ -32,10 +32,10 @@ export function PageShortcuts() {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-1.5 ml-1">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Acesso às Páginas</p>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Acesso Rápido</p>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" /> Escolher páginas</Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" /> Escolher atalhos</Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 p-0">
             <div className="max-h-80 overflow-y-auto p-2 space-y-0.5">
@@ -51,7 +51,7 @@ export function PageShortcuts() {
         </Popover>
       </div>
       {pages.length === 0 ? (
-        <p className="text-xs text-muted-foreground ml-1">Nenhuma página escolhida. Use “Escolher páginas”.</p>
+        <p className="text-xs text-muted-foreground ml-1">Nenhuma página escolhida. Use “Escolher atalhos”.</p>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           {pages.map((p) => (

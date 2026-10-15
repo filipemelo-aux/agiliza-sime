@@ -296,18 +296,32 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
           </Block>
 
           <Block title="Módulos liberados para a empresa">
-            <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
               {[...new Set(listSystemPages().filter((p) => p.group !== "Geral").map((p) => p.group.split(" › ")[0]))].map((m) => {
                 const on = !f.disabled_modules.includes(m);
+                const toggle = (key: string, v: boolean) => setF((p) => ({ ...p, disabled_modules: v ? p.disabled_modules.filter((x) => x !== key) : [...p.disabled_modules, key] }));
+                const pages = listSystemPages().filter((p) => p.group.split(" › ")[0] === m);
                 return (
-                  <label key={m} className="flex items-center justify-between gap-2 rounded border px-3 py-2 text-xs">
-                    <span className="font-medium">{m}</span>
-                    <Switch checked={on} onCheckedChange={(v) => setF((p) => ({ ...p, disabled_modules: v ? p.disabled_modules.filter((x) => x !== m) : [...p.disabled_modules, m] }))} />
-                  </label>
+                  <div key={m} className="rounded border text-xs">
+                    <label className="flex items-center justify-between gap-2 px-3 py-2 bg-muted/40">
+                      <span className="font-medium">{m}</span>
+                      <Switch checked={on} onCheckedChange={(v) => toggle(m, v)} />
+                    </label>
+                    {pages.length > 1 && (
+                      <div className="px-3 py-1 space-y-1">
+                        {pages.map((pg) => (
+                          <label key={pg.url} className={`flex items-center justify-between gap-2 py-0.5 ${on ? "" : "opacity-50"}`}>
+                            <span className="truncate" title={pg.title}>{pg.title}</span>
+                            <Switch disabled={!on} className="scale-75" checked={on && !f.disabled_modules.includes("page:" + pg.url)} onCheckedChange={(v) => toggle("page:" + pg.url, v)} />
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-            <p className="md:col-span-6 text-[11px] text-muted-foreground">Módulos desligados somem do menu e ficam bloqueados para todos os usuários da empresa, inclusive o administrador.</p>
+            <p className="md:col-span-6 text-[11px] text-muted-foreground">Módulos ou páginas desligados somem do menu e ficam bloqueados para todos os usuários da empresa, inclusive o administrador.</p>
           </Block>
 
           {admExists === true && (
