@@ -32,7 +32,6 @@ import { formatDateBR, normalizeDateInput } from "@/lib/date";
 import { limitDisplayText } from "@/lib/displayText";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
@@ -127,7 +126,7 @@ export default function FreightCte() {
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
-  const { user, isConsultor } = useAuth();
+  const { isConsultor } = useAuth();
   const navigate = useNavigate();
   const [cteParams, setCteParams] = useSearchParams();
   const [pendingCteSefaz, setPendingCteSefaz] = useState<string | null>(null);
@@ -403,7 +402,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       return;
     }
     const isServico = cte.tipo_talao === "servico";
-    const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
 
     // Bloqueia exclusão se a previsão deste CT-e já foi vinculada a uma fatura
     const { data: prevs } = await supabase
@@ -433,74 +431,18 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       : "";
 
 
-    // CT-e de Produção AUTORIZADO → precisa cancelar na SEFAZ antes
-    if (!isServico && isAutorizado) {
-      const ok = await confirm({
-        title: "Cancelar CT-e na SEFAZ e excluir",
-        description:
-          `Este CT-e (Nº ${cte.numero}) está autorizado pela SEFAZ.\n\n` +
-          `Será solicitado o CANCELAMENTO oficial na SEFAZ e, em seguida, o registro será excluído do sistema.\n\n` +
-          `Esta operação é IRREVERSÍVEL. Deseja continuar?` + contractWarning,
-
-        confirmLabel: "Cancelar na SEFAZ e excluir",
-        variant: "destructive",
-      });
-      if (!ok) return;
-
-      const justificativa = window.prompt(
-        "Justificativa para cancelamento na SEFAZ (mínimo 15 caracteres):",
-        "Cancelamento solicitado pelo emitente"
-      );
-      if (!justificativa) return;
-      if (justificativa.trim().length < 15) {
-        toast({
-          title: "Justificativa inválida",
-          description: "A SEFAZ exige no mínimo 15 caracteres.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setDeletingId(cte.id);
-      try {
-        const resp = await cancelarCte(
-          cte.id,
-          cte.chave_acesso!,
-          cte.protocolo_autorizacao!,
-          justificativa.trim(),
-          user?.id || "",
-          cte.establishment_id
-        );
-        if (!resp.success) {
-          toast({
-            title: "Falha no cancelamento SEFAZ",
-            description: resp.motivo_rejeicao || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
-            variant: "destructive",
-          });
-          return;
-        }
-        // Cancelado com sucesso → excluir contrato vinculado + CT-e
-        const removed = await removeLinkedFreightContract(cte.id);
-        const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
-        if (error) throw error;
-        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} removido${removed ? ` (e ${removed} contrato de frete vinculado).` : "."}` });
-
-        fetchCtes();
-      } catch (err: any) {
-        toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
-      } finally {
-        setDeletingId(null);
-      }
-      return;
-    }
-
-    // Serviço, rascunho, rejeitado, erro ou cancelado → exclusão direta
+    // Exclusão apenas do registro guardado no sistema.
+    // Não há qualquer operação na SEFAZ aqui: quem precisa cancelar um CT-e
+    // autorizado usa a opção Cancelar dentro do menu SEFAZ.
     const ok = await confirm({
-      title: "Excluir CT-e",
-      description: (isServico
-        ? `Excluir definitivamente este talão de serviço?\n\nEsta ação não pode ser desfeita.`
-        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`) + contractWarning,
-      confirmLabel: "Excluir",
+      title: "Excluir CT-e do sistema",
+      description:
+        (isServico
+          ? `O talão de serviço Nº ${cte.numero} será excluído do sistema.`
+          : `O CT-e Nº ${cte.numero} será excluído do sistema.`) +
+        `\n\nEsta ação não pode ser desfeita.` +
+        contractWarning,
+      confirmLabel: "Excluir do sistema",
       variant: "destructive",
     });
     if (!ok) return;
