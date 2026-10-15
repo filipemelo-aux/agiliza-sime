@@ -91,6 +91,7 @@ export default function ResetPassword() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
             />
+            <PasswordRequirements password={password} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword">Confirmar nova senha</Label>

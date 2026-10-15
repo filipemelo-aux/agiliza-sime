@@ -769,6 +769,7 @@ export default function AdminSettings() {
                 onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))}
                 placeholder="Mínimo 6 caracteres"
               />
+              <PasswordRequirements password={createForm.password} />
             </div>
 
             <div className="space-y-1.5">

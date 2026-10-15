@@ -90,6 +90,7 @@ export function ForcePasswordChangeDialog({ open, onChanged }: ForcePasswordChan
               </button>
             </div>
           </div>
+          <PasswordRequirements password={password} />
           <div className="space-y-1.5">
             <Label htmlFor="confirm-new-password">Confirmar Nova Senha</Label>
             <Input
