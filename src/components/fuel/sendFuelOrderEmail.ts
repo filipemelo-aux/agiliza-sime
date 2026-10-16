@@ -62,7 +62,7 @@ export async function sendFuelOrderEmail(params: {
   try { header = await fetchEstablishmentHeader(order.establishment_id, unifiedLabel, unifiedCnpjs); } catch { /* usa dados recebidos */ }
   let logo: string | null = null;
   try { logo = await getCurrentTenantLogoUrl(); } catch { /* sem logo */ }
-  const html = exportFuelOrderPDF(order, unifiedLabel, unifiedCnpjs, signatureUrl, logo, header);
+  const html = exportFuelOrderPDF(await (await import("./exportFuelOrderPdf")).enrichFuelOrder(order), unifiedLabel, unifiedCnpjs, signatureUrl, logo, header);
   const { data, error } = await supabase.functions.invoke("send-smtp-email", {
     body: {
       to,
