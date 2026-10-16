@@ -188,10 +188,11 @@ ${supAddr ? `<div style="margin:-14px 0 20px;font-size:10px;color:${MUTED}"><spa
 
 <div style="margin:0 0 20px">
   <div style="${SECTION_TITLE}">Itens do Abastecimento</div>
-  <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
+  <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed">
+    <colgroup><col style="width:13%"><col style="width:22%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:13%"></colgroup>
     <thead><tr>${th("Placa")}${th("Veículo")}${th("Motorista")}${th("Combustível")}${th("Modo")}${th("Quantidade", "right")}</tr></thead>
     <tbody><tr>
-      ${td(`<b style="white-space:nowrap;font-family:'SF Mono',Monaco,monospace">${vehicle}</b>`)}
+      ${td(`<b style="white-space:nowrap;letter-spacing:0.8px;font-size:12px">${vehicle}</b>`)}
       ${td(esc(vehDesc))}
       ${td(driver)}
       ${td(fuel)}
