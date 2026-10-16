@@ -25,3 +25,6 @@
 - [x] Corrigir quitação após editar o total para igualar os pagamentos existentes.
 - [x] Localizar os dois pagamentos de R$ 1.518,90 e R$ 337,00 e corrigir sua visibilidade/estorno.
 - [x] Validar a conta e o histórico nas telas financeiras com sessão autenticada.
+- [ ] Corrigir CPF dos condutores no DAMDFE individual e em lote, incluindo manifestos existentes.
+- [ ] Padronizar nitidez e tamanho das marcas Agiliza TMS by fsm em todas as impressões.
+- [ ] Validar os PDFs reais, os caminhos de impressão e os testes pertinentes.
