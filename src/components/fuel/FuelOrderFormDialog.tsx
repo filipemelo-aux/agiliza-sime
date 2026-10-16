@@ -94,7 +94,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
   const [supplierName, setSupplierName] = useState("");
   const [vehicleId, setVehicleId] = useState("");
   const [vehiclePlate, setVehiclePlate] = useState("");
-  const [fuelType, setFuelType] = useState("diesel");
+  const [fuelType, setFuelType] = useState("");
   const [fillMode, setFillMode] = useState("completar");
   const [arlaMode, setArlaMode] = useState<"sim" | "nao">("nao");
   const [liters, setLiters] = useState("");
@@ -145,7 +145,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
     setSupplierName("");
     setVehicleId("");
     setVehiclePlate("");
-    setFuelType("diesel");
+    setFuelType("");
     setFillMode("completar");
     setArlaMode("nao");
     setLiters("");
@@ -286,7 +286,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
               <Label className="text-xs">Tipo de Combustível *</Label>
               <Select value={fuelType} onValueChange={setFuelType}>
                 <SelectTrigger className="text-sm">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gasolina">Gasolina</SelectItem>
