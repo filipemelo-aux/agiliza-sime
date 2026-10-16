@@ -1,3 +1,4 @@
+import { maskCNPJ } from "@/lib/masks";
 import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect } from "react";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -139,8 +140,7 @@ export default function AdminFuelOrders() {
         await sendFuelOrderEmail({
           order: orderWithDriver,
           to: supplierEmail,
-          unifiedLabel,
-          unifiedCnpjs,
+          ...(() => { const est = establishments.find((e: any) => e.id === order.establishment_id); return { unifiedLabel: est?.razao_social || unifiedLabel, unifiedCnpjs: est ? maskCNPJ(est.cnpj) : unifiedCnpjs }; })(),
         });
         sendingToast.dismiss();
         toast({
@@ -187,7 +187,7 @@ export default function AdminFuelOrders() {
 
   const actions = [
     { key: "new", label: "Nova Ordem", icon: Plus, mode: "create" as const, variant: "default" as const, onClick: () => setShowForm(true) },
-    { key: "print", label: "Imprimir", icon: Printer, mode: "single" as const, disabled: !single, onClick: () => single && printFuelOrderPDF(withDriver(single), unifiedLabel, unifiedCnpjs) },
+    { key: "print", label: "Imprimir", icon: Printer, mode: "single" as const, disabled: !single, onClick: () => { if (!single) return; const est = establishments.find((e: any) => e.id === (single as any).establishment_id); printFuelOrderPDF(withDriver(single), est?.razao_social || unifiedLabel, est ? maskCNPJ(est.cnpj) : unifiedCnpjs); } },
     { key: "email", label: "E-mail", icon: Mail, mode: "single" as const, disabled: !single, onClick: () => single && setEmailOrder(withDriver(single)) },
     ...(canDelete ? [{ key: "delete", label: "Excluir", icon: Trash2, mode: "single" as const, variant: "destructive" as const, disabled: !single, onClick: () => single && handleDelete(single) }] : []),
   ];
