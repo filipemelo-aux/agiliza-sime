@@ -209,8 +209,9 @@ export function exportFuelOrderPDF(
   companyCnpjs: string,
   signatureDataUrl?: string | null,
   companyLogoUrl?: string | null,
+  header?: PrintCompanyHeader | null,
 ) {
-  return buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl || null, companyLogoUrl || null);
+  return buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl || null, companyLogoUrl || null, header || null);
 }
 
 export async function printFuelOrderPDF(order: any, companyName: string, companyCnpjs: string) {

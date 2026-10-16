@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { exportFuelOrderPDF } from "./exportFuelOrderPdf";
+import { fetchEstablishmentHeader } from "@/lib/printHeader";
+import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 
 export async function resolveSupplierEmail(order: any): Promise<string | null> {
   let email: string | undefined;
@@ -56,7 +58,11 @@ export async function sendFuelOrderEmail(params: {
 }): Promise<void> {
   const { order, to, unifiedLabel, unifiedCnpjs } = params;
   const signatureUrl = await resolveSignatureUrl(order.requester_user_id);
-  const html = exportFuelOrderPDF(order, unifiedLabel, unifiedCnpjs, signatureUrl);
+  let header = null;
+  try { header = await fetchEstablishmentHeader(order.establishment_id, unifiedLabel, unifiedCnpjs); } catch { /* usa dados recebidos */ }
+  let logo: string | null = null;
+  try { logo = await getCurrentTenantLogoUrl(); } catch { /* sem logo */ }
+  const html = exportFuelOrderPDF(order, unifiedLabel, unifiedCnpjs, signatureUrl, logo, header);
   const { data, error } = await supabase.functions.invoke("send-smtp-email", {
     body: {
       to,
