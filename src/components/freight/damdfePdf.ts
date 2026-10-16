@@ -307,13 +307,22 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
+  const stamp = `Documento gerado em ${new Date().toLocaleString("pt-BR")} · ${String(emit?.razao_social || "SIME TRANSPORTE LTDA").toUpperCase()}`;
+  pdf.setTextColor(110);
+  P.text(stamp, 35, 851, 6.6);
   {
-    const ls = [agilizaLogo, fsmLogo].filter(Boolean) as { data: string; w: number; h: number }[];
-    const h = 10, gap = 6;
-    const ws = ls.map((l) => (l.w / l.h) * h);
-    let x = 647 - (ws.reduce((t, w) => t + w, 0) + gap * Math.max(0, ls.length - 1)) / 2;
-    ls.forEach((l, i) => { pdf.addImage(l.data, "PNG", k(x), k(845), k(ws[i]), k(h)); x += ws[i] + gap; });
+    const aH = 13, fH = 9.5;
+    const aW = agilizaLogo ? (agilizaLogo.w / agilizaLogo.h) * aH : 0;
+    const fW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * fH : 0;
+    const byW = 9;
+    let x = 647 - (aW + byW + fW + 12) / 2;
+    if (agilizaLogo) pdf.addImage(agilizaLogo.data, "PNG", k(x), k(841), k(aW), k(aH));
+    x += aW + 6;
+    P.text("by", x, 851, 6.6);
+    x += byW + 6;
+    if (fsmLogo) pdf.addImage(fsmLogo.data, "PNG", k(x), k(843), k(fW), k(fH));
   }
+  pdf.setTextColor(0);
 }
 
 /** Gera o DAMDFE (um MDF-e por página, A4 paisagem) idêntico ao modelo aprovado. */
