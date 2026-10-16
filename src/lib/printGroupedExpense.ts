@@ -20,7 +20,7 @@ export async function fetchGroupedExpenseIds(ids: string[]): Promise<Set<string>
 
 export async function printGroupedExpenseDetails(expenseId: string) {
   // Abre a aba ainda dentro do clique; senão o navegador bloqueia o pop-up após as consultas.
-  const win = window.open("", "_blank");
+  const win = openPrintWindow();
   if (!win) { toast.error("Permita a abertura da janela de impressão no navegador."); return; }
   win.document.write('<p style="font-family:Arial;padding:20px">Carregando detalhes...</p>');
   const fail = (msg: string) => { try { win.close(); } catch {} toast.error(msg); };

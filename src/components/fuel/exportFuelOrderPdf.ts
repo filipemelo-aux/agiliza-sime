@@ -31,9 +31,10 @@ function buildFuelOrderHTMLWithSignature(
   order: any,
   companyName: string,
   companyCnpjs: string,
-  signatureDataUrl: string | null
+  signatureDataUrl: string | null,
+  companyLogoUrl: string | null = null,
 ) {
-  const logoUrl = FSM_LOGO_DATA_URL;
+  const logoUrl = companyLogoUrl;
   const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
   const requesterName = normalizeRequesterName(order.requester_name);
 
@@ -81,9 +82,9 @@ function buildFuelOrderHTMLWithSignature(
 <!-- HEADER -->
 <tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E;margin-bottom:16px">
   <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-    <td style="width:48px;vertical-align:middle;padding-right:16px">
-      <img src="${logoUrl}" alt="FSM | Sistemas" style="display:block;height:26px;width:auto;border:0" />
-    </td>
+    ${logoUrl ? `<td style="width:1%;vertical-align:middle;padding-right:16px">
+      <img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:48px;max-width:140px;width:auto;border:0" />
+    </td>` : ""}
     <td style="vertical-align:middle">
       <div style="font-family:${EMAIL_FONT_STACK};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
       <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
@@ -206,6 +207,12 @@ ${order.notes ? `
   ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ")}
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
 </td></tr>
+<tr><td style="padding:6px 0 0;text-align:center">
+  <table cellpadding="0" cellspacing="0" border="0" align="center"><tr>
+    <td style="font-size:9px;color:#888;padding-right:6px;vertical-align:middle">Agiliza TMS by</td>
+    <td style="vertical-align:middle"><img src="${FSM_LOGO_DATA_URL}" alt="fsm | sistemas" style="display:block;height:14px;width:auto;border:0" /></td>
+  </tr></table>
+</td></tr>
 
 </table>
 
@@ -219,9 +226,10 @@ export function exportFuelOrderPDF(
   order: any,
   companyName: string,
   companyCnpjs: string,
-  signatureDataUrl?: string | null
+  signatureDataUrl?: string | null,
+  companyLogoUrl?: string | null,
 ) {
-  return buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl || null);
+  return buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl || null, companyLogoUrl || null);
 }
 
 export async function printFuelOrderPDF(order: any, companyName: string, companyCnpjs: string) {
@@ -237,8 +245,15 @@ export async function printFuelOrderPDF(order: any, companyName: string, company
   } catch {
     // Continue without signature
   }
+  let companyLogoUrl: string | null = null;
+  try {
+    const { getCurrentTenantLogoUrl } = await import("@/lib/tenantLogo");
+    companyLogoUrl = await getCurrentTenantLogoUrl();
+  } catch {
+    // Continue without signature
+  }
 
-  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl);
+  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, companyLogoUrl);
 
   await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"));
 }
