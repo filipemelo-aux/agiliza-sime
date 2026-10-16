@@ -136,7 +136,7 @@ export function buildFuelOrderHTMLWithSignature(
   const isFull = !liters || order.fill_mode === "completar";
   const qty = isFull ? "Completar tanque" : `${Number(liters).toLocaleString("pt-BR")} L`;
   const notes = esc(order.notes || "");
-  const [stLabel, stBg, stFg] = STATUS[order.status] || STATUS.pendente;
+  const stLabel = (STATUS[order.status] || STATUS.pendente)[0];
   const supAddr = [sup.address_street, sup.address_number, sup.address_neighborhood, sup.address_city && `${sup.address_city}${sup.address_state ? "/" + sup.address_state : ""}`]
     .filter(Boolean).join(", ");
   const vehDesc = [veh.brand, veh.model, veh.year].filter(Boolean).join(" ") || "—";
@@ -154,8 +154,6 @@ export function buildFuelOrderHTMLWithSignature(
 
   const solicSig = signatureUrl ? getSignatureImageTag(signatureUrl) : "";
 
-  const summaryItem = (label: string, value: string) =>
-    `<td style="text-align:center;padding:4px 6px"><div style="font-size:14px;font-weight:800;color:${INK}">${value}</div><div style="font-size:9px;color:${MUTED};text-transform:uppercase;letter-spacing:0.3px">${label}</div></td>`;
 
   const th = (t: string, align = "left") =>
     `<th style="background:#f8f9fa;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:${MUTED};padding:5px 6px;text-align:${align};border-bottom:2px solid ${LINE}">${t}</th>`;
@@ -172,14 +170,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:${INK};back
 
 ${headerHtml}
 
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fa;border:1px solid ${LINE};border-radius:8px;margin:0 0 20px;border-collapse:separate">
-  <tr>
-    ${summaryItem("Veículo", `<span style="white-space:nowrap">${vehicle}</span>`)}
-    ${summaryItem("Combustível", fuel)}
-    ${summaryItem("Quantidade", qty)}
-    ${summaryItem("Status", `<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:10px;font-weight:700;text-transform:uppercase;background:${stBg};color:${stFg}">${stLabel}</span>`)}
-  </tr>
-</table>
 
 ${printSection(
   "Solicitação",
