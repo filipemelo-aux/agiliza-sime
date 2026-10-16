@@ -64,6 +64,13 @@
       "when": 1792066938916,
       "tag": "0008_tenant_sem_seguradora",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792181130052,
+      "tag": "0009_recalculate_expense_after_total_edit",
+      "breakpoints": true
     }
   ]
 }
