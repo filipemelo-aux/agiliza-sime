@@ -637,9 +637,10 @@ export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
     compress: true,
   });
   const logo = await loadLogo();
+  const fsmLogo = await loadImage(fsmLogoUrl);
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
-    await drawPage(pdf, ctes[i], logo);
+    await drawPage(pdf, ctes[i], logo, fsmLogo);
   }
   const page = pdf.internal.pageSize;
   const validA4 = Math.abs(page.getWidth() - DACTE_LAYOUT.width) < 0.1
