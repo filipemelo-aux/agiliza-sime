@@ -189,7 +189,7 @@ ${supAddr ? `<div style="margin:-14px 0 20px;font-size:10px;color:${MUTED}"><spa
 <div style="margin:0 0 20px">
   <div style="${SECTION_TITLE}">Itens do Abastecimento</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;table-layout:fixed">
-    <colgroup><col style="width:13%"><col style="width:22%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:13%"></colgroup>
+    <colgroup><col style="width:12%"><col style="width:16%"><col style="width:29%"><col style="width:12%"><col style="width:14%"><col style="width:17%"></colgroup>
     <thead><tr>${th("Placa")}${th("Veículo")}${th("Motorista")}${th("Combustível")}${th("Modo")}${th("Quantidade", "right")}</tr></thead>
     <tbody><tr>
       ${td(`<b style="white-space:nowrap;letter-spacing:0.8px;font-size:12px">${vehicle}</b>`)}
@@ -197,9 +197,9 @@ ${supAddr ? `<div style="margin:-14px 0 20px;font-size:10px;color:${MUTED}"><spa
       ${td(driver)}
       ${td(fuel)}
       ${td(isFull ? "Tanque cheio" : "Litros definidos")}
-      ${td(`<b>${qty}</b>`, "text-align:right")}
+      ${td(`<b style="white-space:nowrap">${qty}</b>`, "text-align:right")}
     </tr>
-    <tr style="background:#f0fdf4"><td colspan="5" style="padding:6px;font-size:11px;font-weight:700;color:#15803d;border-bottom:2px solid #16a34a">TOTAL AUTORIZADO</td><td style="padding:6px;font-size:11px;font-weight:700;color:#15803d;text-align:right;border-bottom:2px solid #16a34a">${qty}</td></tr>
+    <tr style="background:#f0fdf4"><td colspan="5" style="padding:6px;font-size:11px;font-weight:700;color:#15803d;border-bottom:2px solid #16a34a">TOTAL AUTORIZADO</td><td style="padding:6px;font-size:11px;font-weight:700;color:#15803d;text-align:right;border-bottom:2px solid #16a34a;white-space:nowrap">${qty}</td></tr>
     </tbody>
   </table>
 </div>
