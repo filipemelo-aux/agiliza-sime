@@ -377,7 +377,13 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   th, td, .grid2 > div, .composicao > div, .sign > div, .empresa, .obs { min-width: 0; overflow-wrap: anywhere; }
   table.carga tr { break-inside: avoid; }
   .chave { font-family: monospace; font-size: 9pt; overflow-wrap: anywhere; }
-  @media print { body { width: auto; min-height: 0; padding: 0; } }
+  .contract-closing { break-inside: avoid; page-break-inside: avoid; }
+  @media print {
+    body { width: auto; min-height: 0; padding: 0; }
+    .contract-closing .sign { margin-top: 16px; }
+    .contract-closing .footer { margin-top: 6px; }
+    .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 3px !important; }
+  }
 
 </style></head><body>
 
@@ -463,6 +469,7 @@ ${motoristaBlock}
 <h2>Observações / Instruções de Transporte</h2>
 <div class="obs">${(input.observacoes || "-").replace(/\n/g, "<br/>")}</div>
 
+<div class="contract-closing">
 <div class="sign">
   <div class="line">CONTRATANTE<br/>${emitente?.razao_social || "SIME TRANSPORTE LTDA"}</div>
   <div class="line">CONTRATADO<br/>${contratado.nome || ""}</div>
@@ -475,6 +482,7 @@ ${motoristaBlock}
 </div>
 
 ${printBrandFooterHtml()}
+</div>
 </body></html>`;
 }
 

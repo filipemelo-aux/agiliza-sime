@@ -32,3 +32,4 @@
 - [x] Remover o "by" que ficava sozinho no rodapé do DACTE e do DAMDFE; validar com teste.
 - [x] Corrigir largura, protocolo e legibilidade do contrato de frete na visualização e na impressão A4.
 - [x] Conferir contratos 9 e 8 na janela e no PDF: sem transbordamento, individual em uma página e lote em duas, rodapés por contrato; seis testes aprovados.
+- [ ] Manter a marca junto das assinaturas na impressão do contrato, sem reduzir letras ou logos; conferir individual e lote.
