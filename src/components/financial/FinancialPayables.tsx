@@ -338,10 +338,8 @@ export function FinancialPayables() {
       ]);
       const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
       const ownerIds = [...new Set((hvVehicles || []).map((v: any) => v.owner_id).filter(Boolean))];
-      const { data: ownerProfiles } = ownerIds.length > 0
-        ? await supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", ownerIds)
-        : { data: [] };
-      const ownerMap = new Map((ownerProfiles || []).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
+      const ownerSet = new Set(ownerIds);
+      const ownerMap = new Map(people.filter((p: any) => p.user_id && ownerSet.has(p.user_id)).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
       const driverOwnerMap = new Map((hvVehicles || []).map((v: any) => [v.driver_id, v.owner_id]));
 
       for (const payment of harvestPayments) {
