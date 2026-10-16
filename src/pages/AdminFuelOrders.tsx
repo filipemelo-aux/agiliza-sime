@@ -140,8 +140,7 @@ export default function AdminFuelOrders() {
         await sendFuelOrderEmail({
           order: orderWithDriver,
           to: supplierEmail,
-          unifiedLabel,
-          unifiedCnpjs,
+          ...(() => { const est = establishments.find((e: any) => e.id === order.establishment_id); return { unifiedLabel: est?.razao_social || unifiedLabel, unifiedCnpjs: est ? maskCNPJ(est.cnpj) : unifiedCnpjs }; })(),
         });
         sendingToast.dismiss();
         toast({
