@@ -304,7 +304,7 @@ function buildIcmsXml(data: CteXmlData): string {
       return `
         <ICMS20>
           <CST>20</CST>
-          <pRedBC>${formatDecimal(data.percentual_reducao_bc || 0)}</pRedBC>
+          <pRedBC>${formatDecimal(Number(data.percentual_reducao_bc) > 0 ? data.percentual_reducao_bc! : 20)}</pRedBC>
           <vBC>${formatDecimal(data.base_calculo_icms)}</vBC>
           <pICMS>${formatDecimal(data.aliquota_icms)}</pICMS>
           <vICMS>${formatDecimal(data.valor_icms)}</vICMS>
@@ -342,7 +342,7 @@ function buildIcmsXml(data: CteXmlData): string {
       return `
         <ICMS90>
           <CST>90</CST>
-          <pRedBC>${formatDecimal(data.percentual_reducao_bc || 0)}</pRedBC>
+          ${Number(data.percentual_reducao_bc) > 0 ? `<pRedBC>${formatDecimal(data.percentual_reducao_bc!)}</pRedBC>` : ""}
           <vBC>${formatDecimal(data.base_calculo_icms)}</vBC>
           <pICMS>${formatDecimal(data.aliquota_icms)}</pICMS>
           <vICMS>${formatDecimal(data.valor_icms)}</vICMS>
