@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -84,7 +85,10 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [userName, setUserName] = useState("");
 
-  const establishmentId = matrizId;
+  const { establishments } = useUnifiedCompany();
+  const [establishmentId, setEstablishmentId] = useState<string>(matrizId || "");
+  useEffect(() => { if (open && !establishmentId && matrizId) setEstablishmentId(matrizId); }, [open, matrizId, establishmentId]);
+  const agencyLabel = (e: any) => e.type === "matriz" ? "Matriz" : `Filial-${(e.endereco_uf || "").toUpperCase()}`;
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [supplierName, setSupplierName] = useState("");
   const [vehicleId, setVehicleId] = useState("");
@@ -203,8 +207,16 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
           <div className="rounded-lg border border-border p-3 space-y-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Identificação</p>
             <div className="space-y-1.5">
-              <Label className="text-xs">Empresa Solicitante</Label>
-              <Input value="Sime Transporte Ltda" disabled className="bg-muted/30 text-sm" />
+              <Label className="text-xs">Agência Solicitante *</Label>
+              <select
+                value={establishmentId}
+                onChange={(e) => setEstablishmentId(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {establishments.map((e) => (
+                  <option key={e.id} value={e.id}>{agencyLabel(e)} — {e.razao_social}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Solicitante</Label>
