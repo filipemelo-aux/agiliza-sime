@@ -307,9 +307,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  const stamp = `Documento gerado em ${new Date().toLocaleString("pt-BR")} · ${String(emit?.razao_social || "SIME TRANSPORTE LTDA").toUpperCase()}`;
   pdf.setTextColor(110);
-  P.text(stamp, 35, 851, 6.6);
   {
     const aH = 13, fH = 9.5;
     const aW = agilizaLogo ? (agilizaLogo.w / agilizaLogo.h) * aH : 0;
