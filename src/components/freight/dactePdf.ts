@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import type { CtePrintInput } from "./ctePrint";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 type Dict = Record<string, any>;
 type Quantity = { cUnid?: string; tpMed?: string; qCarga?: number };
@@ -195,10 +196,10 @@ function drawQr(pdf: jsPDF, url: string) {
   }
 }
 
-async function loadLogo(): Promise<{ data: string; w: number; h: number } | null> {
+async function loadImage(url: string): Promise<{ data: string; w: number; h: number } | null> {
   if (typeof window === "undefined") return null;
   try {
-    const res = await fetch(`${window.location.origin}/logo.png`);
+    const res = await fetch(url);
     if (!res.ok) return null;
     const blob = await res.blob();
     const data = await new Promise<string>((resolve) => {
@@ -216,6 +217,10 @@ async function loadLogo(): Promise<{ data: string; w: number; h: number } | null
   } catch {
     return null;
   }
+}
+
+async function loadLogo(): Promise<{ data: string; w: number; h: number } | null> {
+  return loadImage(`${window.location.origin}/logo.png`);
 }
 
 async function loadEmitente(id?: string | null) {
@@ -322,7 +327,7 @@ async function driverDocument(id?: string | null) {
   return digits((data as Dict | null)?.cnpj);
 }
 
-async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>) {
+async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>) {
   const P = new Painter(pdf);
   const [emit, actors, driverDoc] = await Promise.all([
     loadEmitente(cte.establishment_id),
@@ -609,6 +614,22 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   P.text("ASSINATURA / CARIMBO", 346, 801, 5, { align: "center" });
   P.text("CHEGADA DATA / HORA", 527.5, 769, 5, { align: "center" });
   P.text("SAÍDA DATA / HORA", 527.5, 789, 5, { align: "center" });
+
+  // Rodapé padrão: Agiliza TMS by fsm | sistemas
+  pdf.setDrawColor(0);
+  pdf.setLineWidth(0.5);
+  pdf.line(27, 812.5, 568, 812.5);
+  P.font(6.6);
+  const label = "Agiliza TMS";
+  const labelW = pdf.getTextWidth(label);
+  const logoH = 8;
+  const logoW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * logoH : 0;
+  const gap = 4;
+  const startX = (DACTE_LAYOUT.width - (labelW + gap + logoW)) / 2;
+  pdf.text(label, startX, 821);
+  if (fsmLogo) {
+    pdf.addImage(fsmLogo.data, "PNG", startX + labelW + gap, 814, logoW, logoH);
+  }
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
@@ -620,9 +641,10 @@ export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
     compress: true,
   });
   const logo = await loadLogo();
+  const fsmLogo = await loadImage(fsmLogoUrl);
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
-    await drawPage(pdf, ctes[i], logo);
+    await drawPage(pdf, ctes[i], logo, fsmLogo);
   }
   const page = pdf.internal.pageSize;
   const validA4 = Math.abs(page.getWidth() - DACTE_LAYOUT.width) < 0.1
