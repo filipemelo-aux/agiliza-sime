@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { loadEnv } from "vite";
 import { expect, it } from "vitest";
 
 // Opt-in authenticated regression; only its own temporary records are removed.
@@ -7,8 +8,8 @@ it.skipIf(!process.env.FINANCIAL_TEST_SESSION_FILE)("settles an expense when its
   const path = process.env.FINANCIAL_TEST_SESSION_FILE;
   if (!path) throw new Error("Authenticated session required");
   const minted = JSON.parse(readFileSync(path, "utf8"));
-  const ref = minted.storage_key.replace(/^sb-/, "").replace(/-auth-token$/, "");
-  const db = createClient(`https://${ref}.supabase.co`, minted.session.access_token, {
+  const env = loadEnv("development", process.cwd(), "VITE_");
+  const db = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${minted.session.access_token}` } },
   });
