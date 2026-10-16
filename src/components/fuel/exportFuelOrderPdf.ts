@@ -108,12 +108,12 @@ export function buildFuelOrderHTMLWithSignature(
   logoUrl?: string | null,
   header?: PrintCompanyHeader | null
 ): string {
-  const issuedAt = order.created_at ? new Date(order.created_at).toLocaleString("pt-BR") : "—";
+  const FUEL_LABELS: Record<string, string> = { gasolina: "Gasolina", diesel: "Diesel", diesel_s10: "Diesel S10" };
   const requester = order.requester_name || "—";
-  const supplier = order.supplier_name || "—";
+  const supplier = (order.supplier_name || "—").replace(/\s*[-–]\s*$/, "");
   const vehicle = order.vehicle_plate ? maskPlateInput(order.vehicle_plate) : "—";
   const driver = order.driver_name || "—";
-  const fuel = order.fuel_type || "—";
+  const fuel = FUEL_LABELS[order.fuel_type] || (order.fuel_type || "—").replace(/_/g, " ");
   const qty = order.amount_liters ? `${order.amount_liters} L` : "Completar Tanque";
   const notes = order.notes || "";
 
