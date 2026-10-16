@@ -5,6 +5,7 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
+import { resolveMdfeDrivers } from "./mdfeDrivers";
 import agilizaLogoUrl from "@/assets/brand/agiliza-tms-logo.png";
 import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
@@ -145,7 +146,10 @@ async function loadData(m: Dict) {
 
 async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
   const P = new Painter(pdf);
-  const { emit, veh, owner, ctes, estNames } = await loadData(m);
+  const [{ emit, veh, owner, ctes, estNames }, condutores] = await Promise.all([
+    loadData(m),
+    resolveMdfeDrivers([{ id: m.motorista_id, nome: m.motorista_nome, cpf: m.motorista_cpf }, ...asArray<Dict>(m.condutores_extras)]),
+  ]);
   const key = digits(m.chave_acesso).slice(-44);
   const auth = authorization(m);
   pdf.setDrawColor(0); pdf.setLineWidth(0.6);
@@ -172,7 +176,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
   P.text("Controle do Fisco", 996, 67, 6.2, { bold: true, align: "center" });
   drawBarcode(pdf, key);
   P.text("Chave de acesso", 738, 161, 7.6, { bold: true });
-  P.text(key ? key.match(/.{1,4}/g)!.join(".") : "", 997, 178, 10, { align: "center" });
+  P.text(key.match(/.{1,4}/g)?.join(".") || "", 997, 178, 10, { align: "center" });
 
   // Linha Modelo/Série/...
   const cols = [31, 115, 175, 297, 385, 538, 623, 733];
@@ -228,8 +232,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
     P.text(ownerDoc, 262, y, 7.4, { maxW: 102 });
     P.text(ownerName, 368, y, 7.4, { maxW: 362 });
   });
-  const condutores = [{ nome: m.motorista_nome, cpf: m.motorista_cpf }, ...asArray<Dict>(m.condutores_extras)].filter((c) => c.nome || c.cpf);
-  condutores.slice(0, 6).forEach((c, i) => {
+  condutores.filter(c => c.nome || c.cpf).slice(0, 6).forEach((c, i) => {
     const y = 333 + i * 20;
     P.text(digits(c.cpf), 737, y, 7.4);
     P.text(up(c.nome), 829, y, 7.4, { maxW: 428 });

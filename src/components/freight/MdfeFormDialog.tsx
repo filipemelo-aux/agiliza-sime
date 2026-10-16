@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { maskPlate, maskPlateInput, maskCEP, maskDocument, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { formatCurrency } from "@/lib/masks";
+import { driverCpf, resolveMdfeDrivers } from "./mdfeDrivers";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 const TIPOS_CARGA = [
@@ -39,7 +40,7 @@ type CteLite = {
 const CTE_FIELDS = "id,numero,chave_acesso,status,data_emissao,remetente_nome,destinatario_nome,peso_bruto,valor_carga,valor_frete,uf_origem,uf_destino,municipio_origem_nome,municipio_destino_nome,municipio_origem_ibge,municipio_destino_ibge,establishment_id,placa_veiculo,rntrc,motorista_id,motorista_nome,veiculo_id,reboque1_placa,reboque2_placa,contratado_id,contratado_nome,contratado_documento,produto_predominante,seguradora_nome,seguradora_cnpj,apolice_numero,averbacao_numero,info_quantidade,nfe_detalhes";
 
 type Pedagio = { pago_por: string; dispositivo: string; fornecedor_nome: string; fornecedor_cnpj: string; comprovante: string; valor: string };
-type Condutor = { id: string; nome: string };
+type Condutor = { id: string; nome: string; cpf?: string | null };
 
 function FormBlock({
   icon: Icon,
@@ -85,7 +86,7 @@ const emptyForm = () => ({
   ufs_percurso: [] as string[], km_inicial: "", data_saida: "", conferente: "", observacoes: "",
   chaves_cte_terceiros: [] as string[], produto_predominante: "", tipo_carga: "01", ncm: "",
   cep_carregamento: "", cep_descarregamento: "", coord_carregamento: "", coord_descarregamento: "",
-  motorista_id: null as string | null, motorista_nome: "", placa_veiculo: "", veiculo_id: null as string | null, rntrc: "",
+  motorista_id: null as string | null, motorista_nome: "", motorista_cpf: "", placa_veiculo: "", veiculo_id: null as string | null, rntrc: "",
   reboque1_placa: "", reboque2_placa: "", contratado_id: null as string | null, contratado_nome: "", contratado_documento: "",
   condutores_extras: [] as Condutor[], seguro_manual: false, seguradora_nome: "", seguradora_cnpj: "", apolice_numero: "", averbacao_numero: "",
   ciot_manual: false, ciot_numero: "", ciot_documento: "", vale_pedagio: [] as Pedagio[],
@@ -189,11 +190,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     const est = establishments.find((e) => e.id === first.establishment_id);
     const ncmCte = list.flatMap((c: any) => Array.isArray(c.nfe_detalhes) ? c.nfe_detalhes : [])
       .map((n: any) => String(n?.ncm || "").replace(/\D/g, "")).find((n: string) => n.length === 8) || "";
-    let motoristaNome = first.motorista_nome;
-    if (!motoristaNome && first.motorista_id) {
-      const { data: p } = await supabase.from("profiles").select("full_name").eq("id", first.motorista_id).maybeSingle();
-      motoristaNome = (p as any)?.full_name || null;
-    }
+    const [driver] = await resolveMdfeDrivers([{ id: first.motorista_id, nome: first.motorista_nome }]);
     setForm((f) => {
       const pick = (k: keyof typeof f, v: any) => (overwrite || !f[k] ? v ?? f[k] : f[k]);
       return {
@@ -209,7 +206,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
         veiculo_id: pick("veiculo_id", first.veiculo_id),
         rntrc: pick("rntrc", first.rntrc),
         motorista_id: pick("motorista_id", first.motorista_id),
-        motorista_nome: pick("motorista_nome", motoristaNome),
+        motorista_nome: overwrite || !f.motorista_id ? driver?.nome || "" : f.motorista_nome,
+        motorista_cpf: overwrite || !f.motorista_id ? driver?.cpf || "" : f.motorista_cpf,
         ncm: pick("ncm", ncmCte || null),
         reboque1_placa: pick("reboque1_placa", first.reboque1_placa || reboques[0]),
         reboque2_placa: pick("reboque2_placa", first.reboque2_placa || reboques[1]),
@@ -437,7 +435,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
           </FormBlock>
 
           <FormBlock icon={Truck} title="6. Motorista e veículo" summary={[form.motorista_nome, form.placa_veiculo].filter(Boolean).join(" · ") || "Transporte"}>
-            <F label="Motorista"><PersonSearchInput categories={["motorista"]} placeholder="Buscar motorista..." selectedName={form.motorista_nome || undefined} onSelect={(p) => { set("motorista_id", p.id); set("motorista_nome", p.full_name); }} onClear={() => { set("motorista_id", null); set("motorista_nome", ""); }} /></F>
+            <F label="Motorista"><PersonSearchInput categories={["motorista"]} placeholder="Buscar motorista..." selectedName={form.motorista_nome || undefined} onSelect={(p) => setForm(f => ({ ...f, motorista_id: p.id, motorista_nome: p.full_name, motorista_cpf: driverCpf(p.cnpj) }))} onClear={() => setForm(f => ({ ...f, motorista_id: null, motorista_nome: "", motorista_cpf: "" }))} /></F>
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4"><F label="Veículo principal *"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.placa_veiculo || ""} onChange={(e) => set("placa_veiculo", maskPlateInput(e.target.value))} /></F><F label="Carreta 1"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.reboque1_placa || ""} onChange={(e) => set("reboque1_placa", maskPlateInput(e.target.value))} /></F><F label="Carreta 2"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.reboque2_placa || ""} onChange={(e) => set("reboque2_placa", maskPlateInput(e.target.value))} /></F><F label="RNTRC"><Input className="h-8 text-xs" value={form.rntrc || ""} onChange={(e) => set("rntrc", e.target.value)} /></F></div>
             <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2"><F label="Contratado (dono do caminhão, quando de terceiro)"><PersonSearchInput categories={["proprietario", "motorista"]} placeholder="Buscar contratado..." selectedName={form.contratado_nome || undefined} onSelect={(p) => { set("contratado_id", p.id); set("contratado_nome", p.razao_social || p.full_name); set("contratado_documento", p.cnpj || ""); }} onClear={() => { set("contratado_id", null); set("contratado_nome", ""); set("contratado_documento", ""); }} /></F><F label="Auxiliares / outros motoristas"><PersonSearchInput categories={["motorista"]} placeholder="Adicionar outro motorista..." onSelect={(p) => { if (!form.condutores_extras.some((c) => c.id === p.id)) set("condutores_extras", [...form.condutores_extras, { id: p.id, nome: p.full_name }]); }} />{form.condutores_extras.map((c) => <div key={c.id} className="flex items-center justify-between text-xs"><span>{c.nome}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => set("condutores_extras", form.condutores_extras.filter((x) => x.id !== c.id))}><Trash2 className="h-3 w-3" /></Button></div>)}</F></div>
           </FormBlock>
