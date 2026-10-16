@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import type { CtePrintInput } from "./ctePrint";
+import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 type Dict = Record<string, any>;
 type Quantity = { cUnid?: string; tpMed?: string; qCarga?: number };
@@ -609,6 +610,22 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   P.text("ASSINATURA / CARIMBO", 346, 801, 5, { align: "center" });
   P.text("CHEGADA DATA / HORA", 527.5, 769, 5, { align: "center" });
   P.text("SAÍDA DATA / HORA", 527.5, 789, 5, { align: "center" });
+
+  // Rodapé padrão: Agiliza TMS by fsm | sistemas
+  pdf.setDrawColor(0);
+  pdf.setLineWidth(0.5);
+  pdf.line(27, 812.5, 568, 812.5);
+  P.font(6.6);
+  const label = "Agiliza TMS";
+  const labelW = pdf.getTextWidth(label);
+  const logoH = 8;
+  const logoW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * logoH : 0;
+  const gap = 4;
+  const startX = (DACTE_LAYOUT.width - (labelW + gap + logoW)) / 2;
+  pdf.text(label, startX, 821);
+  if (fsmLogo) {
+    pdf.addImage(fsmLogo.data, "PNG", startX + labelW + gap, 814, logoW, logoH);
+  }
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
