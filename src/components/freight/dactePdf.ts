@@ -196,10 +196,10 @@ function drawQr(pdf: jsPDF, url: string) {
   }
 }
 
-async function loadLogo(): Promise<{ data: string; w: number; h: number } | null> {
+async function loadImage(url: string): Promise<{ data: string; w: number; h: number } | null> {
   if (typeof window === "undefined") return null;
   try {
-    const res = await fetch(`${window.location.origin}/logo.png`);
+    const res = await fetch(url);
     if (!res.ok) return null;
     const blob = await res.blob();
     const data = await new Promise<string>((resolve) => {
@@ -217,6 +217,10 @@ async function loadLogo(): Promise<{ data: string; w: number; h: number } | null
   } catch {
     return null;
   }
+}
+
+async function loadLogo(): Promise<{ data: string; w: number; h: number } | null> {
+  return loadImage(`${window.location.origin}/logo.png`);
 }
 
 async function loadEmitente(id?: string | null) {
