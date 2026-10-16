@@ -145,7 +145,7 @@ ${i.observacoes ? `<div class="obs"><strong>Observações:</strong>\n${escapeHtm
 <script>window.onload = () => setTimeout(() => window.print(), 400);</script>
 </body></html>`;
 
-  downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura Cartao"), { establishmentId: i.empresa_id || i.establishment_id });
+  downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura Cartao"));
 }
 
 function escapeHtml(s: any): string {

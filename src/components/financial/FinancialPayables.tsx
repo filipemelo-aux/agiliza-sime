@@ -1472,7 +1472,7 @@ tfoot{display:table-row-group}
 </script>
 </body></html>`;
 
-    downloadHtmlAsPdf(html, titleFromHtml(html, "Contas a Pagar"), { establishmentId: filterEmpresa || null });
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Contas a Pagar"));
   };
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [

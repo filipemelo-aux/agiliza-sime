@@ -373,10 +373,10 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
 
 </style></head><body>
 
-<div class="header" data-print-agency="${input.establishment_id || ""}">
+<div class="header">
   <div class="empresa">
     <b>${emitente?.razao_social || "SIME TRANSPORTE LTDA"}</b>${emitente?.nome_fantasia ? ` <span style="font-weight:normal;">(${emitente.nome_fantasia})</span>` : ""}<br/>
-    CNPJ: ${emitente?.cnpj || ""}${emitente?.ie ? ` &nbsp; IE: ${emitente.ie}` : ""}${emitente?.rntrc ? ` &nbsp; RNTRC: ${emitente.rntrc}` : ""}<br/>
+    CNPJ: ${emitente?.cnpj || "23.662.751/0002-50"}${emitente?.ie ? ` &nbsp; IE: ${emitente.ie}` : ""}${emitente?.rntrc ? ` &nbsp; RNTRC: ${emitente.rntrc}` : ""}<br/>
     ${emitente?.endereco ? `${emitente.endereco}` : ""}${emitente?.municipio ? `${emitente?.endereco ? " - " : ""}${emitente.municipio}/${emitente.uf || ""}` : ""}${emitente?.cep ? ` - CEP ${emitente.cep}` : ""}${emitente ? "<br/>" : ""}
     e-mail: ct-e@simetransportes.com.br
   </div>

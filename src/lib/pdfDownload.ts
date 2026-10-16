@@ -5,7 +5,6 @@ import { toast } from "@/lib/notice";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
 import fsmLogo from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
-import { standardizePrintHeaders } from "@/lib/printAgencyHeader";
 
 /** Marcador usado nos cabeçalhos: é trocado pela logo da empresa logada. */
 export const TENANT_LOGO_MARKER = "__TENANT_LOGO__";
@@ -37,7 +36,7 @@ export function openPrintWindow(): Window | null {
   return window.open("", "_blank", `popup=yes,width=${w},height=${h},left=${left},top=20,resizable=yes,scrollbars=yes`);
 }
 
-export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean; win?: Window | null; establishmentId?: string | null }) {
+export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean; win?: Window | null }) {
   const landscape = opts?.landscape ?? detectLandscape(html);
   const printWindow = opts?.win ?? openPrintWindow();
   if (!printWindow) {
@@ -45,13 +44,6 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
     return;
   }
 
-  try {
-    html = await standardizePrintHeaders(html, opts?.establishmentId);
-  } catch (error) {
-    printWindow.close();
-    toast.error(error instanceof Error ? error.message : "Não foi possível preparar o cabeçalho da agência.");
-    return;
-  }
   // Cabeçalho: logo da empresa logada (sem logo cadastrada, a imagem é omitida).
   if (html.includes(TENANT_LOGO_MARKER)) {
     let logo: string | null = null;

@@ -132,5 +132,5 @@ ${q.observacoes ? `<h2>Observações</h2><div class="obs">${q.observacoes}</div>
 
 </body></html>`;
 
-  void downloadHtmlAsPdf(html, titleFromHtml(html, "Cotacao"), { establishmentId: q.establishment_id || matriz?.id });
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Cotacao"));
 }

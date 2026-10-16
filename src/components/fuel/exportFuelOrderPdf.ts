@@ -80,7 +80,7 @@ function buildFuelOrderHTMLWithSignature(
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:${EMAIL_FONT_STACK}">
 
 <!-- HEADER -->
-<tr><td data-print-agency="" style="background:#ffffff;padding:0;margin-bottom:16px">
+<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E;margin-bottom:16px">
   <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
     ${logoUrl ? `<td style="width:1%;vertical-align:middle;padding-right:16px">
       <img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:48px;max-width:140px;width:auto;border:0" />
@@ -242,5 +242,5 @@ export async function printFuelOrderPDF(order: any, companyName: string, company
 
   const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, "__TENANT_LOGO__");
 
-  await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"), { establishmentId: order.establishment_id });
+  await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"));
 }
