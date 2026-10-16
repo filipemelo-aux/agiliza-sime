@@ -260,10 +260,11 @@ export function FinancialPayables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: estab } = await supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle();
-    setEmpresaId(estab?.id || "");
-
-    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }] = await Promise.all([
+    // Tudo em uma única rodada paralela (antes eram várias etapas em sequência).
+    // Nomes de criadores/favorecidos vêm de uma só leitura de pessoas, evitando
+    // listas enormes de IDs na URL.
+    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }] = await Promise.all([
+      supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle(),
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
@@ -271,7 +272,10 @@ export function FinancialPayables() {
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
       supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
+      supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia"),
     ]);
+    setEmpresaId((estab as any)?.id || "");
+    const people = ((peopleData as any[]) || []);
 
     const counts: Record<string, number> = {};
     for (const g of (groupItemsData as any[]) || []) {
@@ -334,10 +338,8 @@ export function FinancialPayables() {
       ]);
       const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
       const ownerIds = [...new Set((hvVehicles || []).map((v: any) => v.owner_id).filter(Boolean))];
-      const { data: ownerProfiles } = ownerIds.length > 0
-        ? await supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", ownerIds)
-        : { data: [] };
-      const ownerMap = new Map((ownerProfiles || []).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
+      const ownerSet = new Set(ownerIds);
+      const ownerMap = new Map(people.filter((p: any) => p.user_id && ownerSet.has(p.user_id)).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
       const driverOwnerMap = new Map((hvVehicles || []).map((v: any) => [v.driver_id, v.owner_id]));
 
       for (const payment of harvestPayments) {
@@ -394,31 +396,15 @@ export function FinancialPayables() {
     setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
 
-    // Fetch profile names for created_by
-    const creatorIds = [...new Set(allItems.map(e => e.created_by).filter(Boolean))] as string[];
-    if (creatorIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", creatorIds);
-      const pMap: Record<string, string> = {};
-      (profiles || []).forEach((p: any) => { pMap[p.user_id] = p.full_name; });
-      setProfilesMap(pMap);
-    }
-
-    // Fetch razão social / nome fantasia dos favorecidos (para busca)
-    const favIds = [...new Set(allItems.map(e => e.favorecido_id).filter(Boolean))] as string[];
-    if (favIds.length > 0) {
-      const { data: favProfiles } = await supabase
-        .from("profiles")
-        .select("id, razao_social, nome_fantasia")
-        .in("id", favIds);
-      const fMap: Record<string, { razao: string; fantasia: string }> = {};
-      (favProfiles || []).forEach((p: any) => {
-        fMap[p.id] = { razao: p.razao_social || "", fantasia: p.nome_fantasia || "" };
-      });
-      setFavorecidoMap(fMap);
-    }
+    // Nomes de criadores e favorecidos a partir da leitura única de pessoas
+    const pMap: Record<string, string> = {};
+    const fMap: Record<string, { razao: string; fantasia: string }> = {};
+    people.forEach((p: any) => {
+      if (p.user_id) pMap[p.user_id] = p.full_name;
+      fMap[p.id] = { razao: p.razao_social || "", fantasia: p.nome_fantasia || "" };
+    });
+    setProfilesMap(pMap);
+    setFavorecidoMap(fMap);
 
     setLoading(false);
   };
