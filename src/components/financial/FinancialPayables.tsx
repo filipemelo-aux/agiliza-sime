@@ -396,31 +396,15 @@ export function FinancialPayables() {
     setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
 
-    // Fetch profile names for created_by
-    const creatorIds = [...new Set(allItems.map(e => e.created_by).filter(Boolean))] as string[];
-    if (creatorIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", creatorIds);
-      const pMap: Record<string, string> = {};
-      (profiles || []).forEach((p: any) => { pMap[p.user_id] = p.full_name; });
-      setProfilesMap(pMap);
-    }
-
-    // Fetch razão social / nome fantasia dos favorecidos (para busca)
-    const favIds = [...new Set(allItems.map(e => e.favorecido_id).filter(Boolean))] as string[];
-    if (favIds.length > 0) {
-      const { data: favProfiles } = await supabase
-        .from("profiles")
-        .select("id, razao_social, nome_fantasia")
-        .in("id", favIds);
-      const fMap: Record<string, { razao: string; fantasia: string }> = {};
-      (favProfiles || []).forEach((p: any) => {
-        fMap[p.id] = { razao: p.razao_social || "", fantasia: p.nome_fantasia || "" };
-      });
-      setFavorecidoMap(fMap);
-    }
+    // Nomes de criadores e favorecidos a partir da leitura única de pessoas
+    const pMap: Record<string, string> = {};
+    const fMap: Record<string, { razao: string; fantasia: string }> = {};
+    people.forEach((p: any) => {
+      if (p.user_id) pMap[p.user_id] = p.full_name;
+      fMap[p.id] = { razao: p.razao_social || "", fantasia: p.nome_fantasia || "" };
+    });
+    setProfilesMap(pMap);
+    setFavorecidoMap(fMap);
 
     setLoading(false);
   };
