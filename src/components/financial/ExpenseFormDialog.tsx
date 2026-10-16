@@ -23,7 +23,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
-import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
+import { getLocalDateISO, addMonthsPreserveDay, formatDateBR } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
 import VehicleRateioEditor from "./VehicleRateioEditor";
@@ -2129,7 +2129,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <TableBody>
                           {paymentHistory.map(p => (
                             <TableRow key={p.id}>
-                              <TableCell className="text-[11px]">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
+                              <TableCell className="text-[11px]" title={`Lançado em ${format(new Date(p.created_at), "dd/MM/yy HH:mm")}`}>{p.data_pagamento ? formatDateBR(p.data_pagamento) : format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
                               <TableCell className="text-[11px] font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                               <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
                               <TableCell className="text-[11px] truncate">{p.observacoes || "—"}</TableCell>
