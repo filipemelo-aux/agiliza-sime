@@ -23,6 +23,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { getLocalDateISO, addMonthsPreserveDay, formatDateBR } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
@@ -772,7 +773,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     const payload: any = {
       empresa_id: empresaSelecionada || empresaId || null, unidade_id: empresaSelecionada || empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
       plano_contas_id: planoContasId || null, centro_custo: centroCusto,
-      valor_total: Number(valorTotal), data_emissao: dataEmissao,
+      valor_total: valorTotalFinal, data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
       documento_fiscal_numero: docFiscal.trim() || null, chave_nfe: trimmedChave || null,
@@ -797,6 +798,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (error) {
         toast.error(error.message.includes("idx_expenses_chave_nfe_unique") ? "Chave NF-e duplicada" : error.message);
         setSaving(false); return;
+      }
+      if (descontoQuitacao > 0) {
+        const { error: dErr } = await supabase.from("expense_payments" as any).insert({
+          expense_id: expenseId, valor: 0, desconto: descontoQuitacao, juros: 0,
+          forma_pagamento: "desconto", data_pagamento: getLocalDateISO(),
+          observacoes: "Desconto obtido na quitação", created_by: user?.id, skip_cashflow: true,
+        } as any);
+        if (dErr) { toast.error("Conta salva, mas o desconto não foi lançado: " + dErr.message); setSaving(false); return; }
       }
     } else {
       payload.created_by = user?.id;
@@ -2148,6 +2157,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     </CardContent>
                   </Card>
 
+                  {Number(expense?.valor_pago || 0) > 0 && Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0) > 0.009 && (
+                    <div className="flex justify-end">
+                      <Button type="button" variant="outline" size="sm" onClick={lancarDescontoSaldo}>
+                        Lançar saldo como desconto e baixar
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Audit */}
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
@@ -2178,7 +2195,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           {paymentHistory.map(p => (
                             <TableRow key={p.id}>
                               <TableCell className="text-[11px]" title={`Lançado em ${format(new Date(p.created_at), "dd/MM/yy HH:mm")}`}>{p.data_pagamento ? formatDateBR(p.data_pagamento) : format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
-                              <TableCell className="text-[11px] font-mono">{formatCurrency(Number(p.valor))}</TableCell>
+                              <TableCell className="text-[11px] font-mono">{Number((p as any).desconto || 0) > 0 ? `Desc. ${formatCurrency(Number((p as any).desconto))}` : formatCurrency(Number(p.valor))}</TableCell>
                               <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
                               <TableCell className="text-[11px] truncate">{p.observacoes || "—"}</TableCell>
                             </TableRow>
