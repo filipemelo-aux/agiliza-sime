@@ -323,7 +323,7 @@ async function driverDocument(id?: string | null) {
   return digits((data as Dict | null)?.cnpj);
 }
 
-async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>) {
+async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>) {
   const P = new Painter(pdf);
   const [emit, actors, driverDoc] = await Promise.all([
     loadEmitente(cte.establishment_id),
