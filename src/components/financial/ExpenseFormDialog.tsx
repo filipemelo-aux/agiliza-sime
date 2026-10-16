@@ -280,6 +280,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [showHistory, setShowHistory] = useState(false);
 
   // Fuel linking
@@ -401,6 +402,29 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const loadPaymentHistory = async (expenseId: string) => {
     const { data } = await supabase.from("expense_payments" as any).select("*").eq("expense_id", expenseId).order("created_at", { ascending: false });
     setPaymentHistory((data as any) || []);
+  };
+
+  /** Registra o saldo restante como desconto obtido e baixa a conta (sem saída de caixa). */
+  const lancarDescontoSaldo = async () => {
+    if (!expense?.id) return;
+    const pago = paymentHistory.reduce((s, p: any) => s + Number(p.valor || 0) + Number(p.desconto || 0), 0);
+    const saldo = Math.round((Number(expense.valor_total || 0) - pago) * 100) / 100;
+    if (saldo <= 0.009) return void toast.info("Esta conta não tem saldo a pagar.");
+    const ok = await confirm({
+      title: "Lançar desconto",
+      description: `Registrar ${formatCurrency(saldo)} como desconto obtido e baixar a conta como paga?\n\nNão haverá saída de dinheiro no fluxo de caixa.`,
+      confirmLabel: "Lançar desconto e baixar",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("expense_payments" as any).insert({
+      expense_id: expense.id, valor: 0, desconto: saldo, juros: 0,
+      forma_pagamento: "desconto", data_pagamento: getLocalDateISO(),
+      observacoes: "Desconto obtido na quitação", created_by: user?.id, skip_cashflow: true,
+    } as any);
+    if (error) return void toast.error(error.message);
+    toast.success("Desconto lançado — conta baixada como paga.");
+    onOpenChange(false);
+    onSaved(expense.id);
   };
 
   const loadInstallments = async (expenseId: string) => {
@@ -708,6 +732,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (trimmedChave) {
       const { data: existing } = await supabase.from("expenses").select("id").eq("chave_nfe", trimmedChave).is("deleted_at", null).maybeSingle();
       if (existing && existing.id !== expense?.id) return void toast.error("Já existe uma despesa com esta chave de NF-e.");
+    }
+
+    // Conta já paga parcialmente: trava e tratamento de desconto
+    let descontoQuitacao = 0;
+    let valorTotalFinal = Number(valorTotal);
+    if (expense?.id) {
+      const pagoAtual = paymentHistory.reduce((s, p: any) => s + Number(p.valor || 0) + Number(p.desconto || 0), 0);
+      const totalOriginal = Number(expense.valor_total || 0);
+      if (pagoAtual > 0) {
+        if (valorTotalFinal < pagoAtual - 0.01) {
+          return void toast.error(`O valor total não pode ser menor que o já pago (${formatCurrency(pagoAtual)}). Estorne um pagamento antes de reduzir.`);
+        }
+        const diferenca = Math.round((totalOriginal - valorTotalFinal) * 100) / 100;
+        if (diferenca > 0.009) {
+          const quitaComDesconto = valorTotalFinal <= pagoAtual + 0.01;
+          const ok = await confirm({
+            title: "Conta com pagamentos registrados",
+            description: `Você reduziu o valor de ${formatCurrency(totalOriginal)} para ${formatCurrency(valorTotalFinal)}.\n\nDeseja lançar a diferença de ${formatCurrency(diferenca)} como DESCONTO obtido?${quitaComDesconto ? " A conta será baixada como paga." : ""}\n\nSe escolher "Apenas corrigir o valor", o total da conta será alterado sem registrar desconto.`,
+            confirmLabel: "Lançar como desconto",
+            cancelLabel: "Apenas corrigir o valor",
+          });
+          if (ok) { descontoQuitacao = diferenca; valorTotalFinal = totalOriginal; }
+        }
+      }
     }
 
     // Derive tipo_despesa from account for backward compatibility
@@ -2174,7 +2222,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       }}
       onSaved={handleChequeSaved}
     />
+    {ConfirmDialog}
   </>
+
   );
 }
 
