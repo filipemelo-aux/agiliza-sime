@@ -6,8 +6,7 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
 import { resolveMdfeDrivers } from "./mdfeDrivers";
-import agilizaLogoUrl from "@/assets/brand/agiliza-tms-logo.png";
-import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
+import { drawPrintBrandFooter, printBrandAssets } from "@/lib/printBrand";
 
 type Dict = Record<string, any>;
 
@@ -310,28 +309,15 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  pdf.setTextColor(110);
-  {
-    const aH = 13, fH = 9.5;
-    const aW = agilizaLogo ? (agilizaLogo.w / agilizaLogo.h) * aH : 0;
-    const fW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * fH : 0;
-    const byW = 9;
-    let x = 647 - (aW + byW + fW + 12) / 2;
-    if (agilizaLogo) pdf.addImage(agilizaLogo.data, "PNG", k(x), k(841), k(aW), k(aH));
-    x += aW + 6;
-    P.text("by", x, 851, 6.6);
-    x += byW + 6;
-    if (fsmLogo) pdf.addImage(fsmLogo.data, "PNG", k(x), k(843), k(fW), k(fH));
-  }
-  pdf.setTextColor(0);
+  drawPrintBrandFooter(pdf, k(841), agilizaLogo, fsmLogo);
 }
 
 /** Gera o DAMDFE (um MDF-e por página, A4 paisagem) idêntico ao modelo aprovado. */
 export async function buildDamdfePdf(mdfes: Dict[]): Promise<jsPDF> {
   const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape", compress: true });
   const logo = await loadImage(`${window.location.origin}/logo.png`);
-  const fsmLogo = await loadImage(fsmLogoUrl);
-  const agilizaLogo = await loadImage(agilizaLogoUrl);
+  const fsmLogo = await loadImage(printBrandAssets.fsm);
+  const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < mdfes.length; i++) {
     if (i > 0) pdf.addPage("a4", "landscape");
     await drawPage(pdf, mdfes[i], logo, fsmLogo, agilizaLogo);

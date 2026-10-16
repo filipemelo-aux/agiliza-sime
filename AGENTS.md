@@ -1,6 +1,6 @@
 # Project architecture rules
 
-- Standard list/report printing opens lightweight printable HTML and invokes browser printing; the DACTE PDF must always use the immutable vector renderer and approved A4 geometry in `src/components/freight/dactePdf.ts`—never HTML/canvas—because browser layout varied per machine; cheque output is delivered only as a downloaded PDF built from the stored layout in `src/lib/checkPdf.ts` (never direct browser printing, which silently skipped on some machines) and needs exact physical positioning, so it stays isolated from the other printers.
+- Reports use lightweight HTML print windows; DACTE always uses the approved vector renderer in `dactePdf.ts`, never HTML/canvas, for machine-independent geometry. Cheques are downloaded PDFs from stored `checkPdf.ts` layouts, never direct printing, to preserve physical positions.
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
@@ -18,5 +18,7 @@
 - Plate inputs mask by position using only the Mercosul pattern (LLL-NLNN) in `maskPlateInput`, because the user chose to accept only the new plate format when typing.
 - DialogContent owns default padding and vertical scrolling directly, without a nested scrolling wrapper; dialogs with their own body scroller override it with overflow-hidden so each window has only one primary scroll area.
 - Printable documents (except DACTE, DAMDFE and cheques) build their header with `buildPrintHeaderHtml` from `src/lib/printHeader.ts` using the document's own establishment, so every print shares one header layout.
+- Brand footers use `printBrand.ts` for high-resolution assets and identical physical size in HTML/fiscal PDFs; cheque geometry remains isolated.
+- MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Payables reads wait for authenticated access, surface query errors, and paginate expenses through fetchAllRows so session restoration and row limits cannot silently hide records.
 - Paid-account and cash-flow reads also wait for authenticated access and paginate ordered results; expense total/due-date edits reuse the payment-state recalculation trigger so existing payments remain authoritative for settlement.
