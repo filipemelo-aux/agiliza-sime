@@ -124,7 +124,12 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
         }
       }
 
-      // Gerar HTML do corpo do e-mail com assinatura (URL pública)
+      // Gerar HTML do corpo do e-mail com cabeçalho padrão (logo + agência) e assinatura
+      const { fetchEstablishmentHeader } = await import("@/lib/printHeader");
+      const { getCurrentTenantLogoUrl } = await import("@/lib/tenantLogo");
+      let header = null; let logo: string | null = null;
+      try { header = await fetchEstablishmentHeader(order.establishment_id, unifiedLabel, unifiedCnpjs); } catch { /* */ }
+      try { logo = await getCurrentTenantLogoUrl(); } catch { /* */ }
       const html = exportFuelOrderPDF(
         {
           ...order,
@@ -132,7 +137,9 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
         },
         unifiedLabel,
         unifiedCnpjs,
-        signatureUrl
+        signatureUrl,
+        logo,
+        header,
       );
 
       // Enviar e-mail

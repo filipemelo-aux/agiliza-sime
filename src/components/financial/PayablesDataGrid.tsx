@@ -1,3 +1,4 @@
+import { printHeaderMarker } from "@/lib/printHeader";
 import { useEffect, useMemo, useState } from "react";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { supabase } from "@/integrations/supabase/client";
@@ -390,10 +391,7 @@ tfoot{display:table-row-group}
     : `<a class="excel disabled">Excel indisponível</a>`}
 </div>
 <div class="wrap">
-  <div class="head">
-    <img src="${window.location.origin}/logo.png" alt="" onerror="this.style.display='none'" />
-    <div style="flex:1"><h1>Relatório de Contas a Pagar</h1><div class="per">Período: ${esc(periodo)} • ${sorted.length} registro(s)</div></div>
-  </div>
+  ${printHeaderMarker({ title: "RELATÓRIO DE CONTAS A PAGAR", subtitle: `Período: ${periodo} · ${sorted.length} registro(s)` })}
   <div class="filters">
     Status: <b>${esc(statusLbl)}</b>${veiculoQ ? ` • Placa: <b>${esc(veiculoQ)}</b>` : ""}${search ? ` • Busca: <b>${esc(search)}</b>` : ""}
   </div>

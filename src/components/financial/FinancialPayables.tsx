@@ -1,3 +1,4 @@
+import { printHeaderMarker } from "@/lib/printHeader";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
@@ -1429,9 +1430,7 @@ tfoot{display:table-row-group}
 <body>
 <div class="toolbar no-print"></div>
 <div class="wrap">
-  <div class="head">
-    <div style="flex:1"><h1>Relação de Contas a Pagar</h1><div class="per">Período: ${esc(periodo)} • ${rows.length} registro(s)</div></div>
-  </div>
+  ${printHeaderMarker({ title: "RELAÇÃO DE CONTAS A PAGAR", subtitle: `Período: ${periodo} · ${rows.length} registro(s)` })}
   <table>
     <colgroup>
       <col style="width:11%" />

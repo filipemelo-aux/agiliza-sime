@@ -1,3 +1,4 @@
+import { printHeaderMarker } from "@/lib/printHeader";
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
@@ -880,18 +881,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
 </div>
 <div class="wrap">
-  <div class="head">
-    <img src="${window.location.origin}/logo.png" alt="" />
-    <div class="est">
-      <div style="font-weight:700;color:#2B4C7E">${esc(estName)}</div>
-      ${matrizAddrLine ? `<div>${esc(matrizAddrLine)}</div>` : ""}
-      ${matrizDocLine ? `<div>${esc(matrizDocLine)}</div>` : ""}
-    </div>
-    <div style="flex:1">
-      <h1>${REPORT_TITLE[reportType]}</h1>
-      <div class="per">Período: ${periodoLabel} • ${filteredRows.length} registro(s)</div>
-    </div>
-  </div>
+  ${printHeaderMarker({ title: String(REPORT_TITLE[reportType]).toUpperCase(), subtitle: `Período: ${periodoLabel} · ${filteredRows.length} registro(s)` })}
   <table class="sheet${isPayables ? " fixed" : ""}">
     <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>

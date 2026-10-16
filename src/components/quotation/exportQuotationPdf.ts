@@ -1,3 +1,4 @@
+import { printHeaderMarker } from "@/lib/printHeader";
 import { format } from "date-fns";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 
@@ -36,18 +37,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
   .obs{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:8px 12px;margin-top:6px;white-space:pre-wrap;font-size:11px}
 </style></head><body>
 
-<div class="header">
-  <img src="${logoUrl}" alt="Logo da empresa" />
-  <div>
-    <div class="brand">SIME <span>TRANSPORTES</span></div>
-    <div style="font-size:11px;color:#666">${companyName}</div>
-    ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("\n    ")}
-  </div>
-</div>
-
-<h1 style="text-align:center;font-size:18px;color:#2B4C7E;margin:0 0 20px">
-  COTAÇÃO ${isFrete ? "DE FRETE" : "DE SERVIÇO DE COLHEITA"} Nº ${q.numero}
-</h1>
+${printHeaderMarker({ title: `COTAÇÃO #${q.numero}`, subtitle: `${format(new Date(q.created_at), "dd/MM/yyyy")} · ${isFrete ? "Frete" : "Colheita"}`, establishmentId: matriz?.id || null })}
 
 <div class="meta">
   <div class="meta-box">
