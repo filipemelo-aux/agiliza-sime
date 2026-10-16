@@ -208,6 +208,8 @@ Deno.serve(async (req) => {
       ...actor("destinatario", cte.recebedor_nome ? routeDestination : routeDestination),
       valor_total: money(cte.valor_frete), valor_receber: money(cte.valor_receber ?? cte.valor_frete),
       componentes_valor: components, icms_situacao_tributaria: cte.cst_icms, icms_base_calculo: money(cte.base_calculo_icms),
+      ...(["20", "90"].includes(String(cte.cst_icms)) && Number(cte.percentual_reducao_bc) > 0
+        ? { icms_reducao_base_calculo: money(cte.percentual_reducao_bc) } : {}),
       icms_aliquota: money(cte.aliquota_icms), icms_valor: money(cte.valor_icms), valor_total_carga: money(cte.valor_carga),
       valor_carga_averbacao: money(cte.valor_carga_averb || cte.valor_carga), produto_predominante: cte.produto_predominante,
       quantidades: quantities, nfes: (cte.chaves_nfe_ref || []).map((chave: string) => ({ chave_nfe: digits(chave) })),
