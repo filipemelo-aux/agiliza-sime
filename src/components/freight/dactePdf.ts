@@ -619,16 +619,26 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   // Rodapé padrão: Agiliza TMS by fsm | sistemas
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.5);
+  pdf.setDrawColor(210);
   pdf.line(27, 812.5, 568, 812.5);
-  const logos = [agilizaLogo, fsmLogo].filter(Boolean) as { data: string; w: number; h: number }[];
-  const logoH = 12;
-  const gap = 8;
-  const widths = logos.map((l) => (l.w / l.h) * logoH);
-  let x = (DACTE_LAYOUT.width - (widths.reduce((t, w) => t + w, 0) + gap * Math.max(0, logos.length - 1))) / 2;
-  logos.forEach((l, i) => {
-    pdf.addImage(l.data, "PNG", x, 818, widths[i], logoH);
-    x += widths[i] + gap;
-  });
+  pdf.setDrawColor(0);
+  const stamp = `Documento gerado em ${new Date().toLocaleString("pt-BR")} · ${String(emit?.razao_social || "SIME TRANSPORTE LTDA").toUpperCase()}`;
+  pdf.setTextColor(110);
+  P.text(stamp, 27, 823, 6);
+  {
+    const aH = 11, fH = 8;
+    const aW = agilizaLogo ? (agilizaLogo.w / agilizaLogo.h) * aH : 0;
+    const fW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * fH : 0;
+    P.font(6);
+    const byW = pdf.getTextWidth("by");
+    let x = DACTE_LAYOUT.width / 2 - (aW + byW + fW + 10) / 2;
+    if (agilizaLogo) pdf.addImage(agilizaLogo.data, "PNG", x, 816, aW, aH);
+    x += aW + 5;
+    pdf.text("by", x, 823.5);
+    x += byW + 5;
+    if (fsmLogo) pdf.addImage(fsmLogo.data, "PNG", x, 817.5, fW, fH);
+  }
+  pdf.setTextColor(0);
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
