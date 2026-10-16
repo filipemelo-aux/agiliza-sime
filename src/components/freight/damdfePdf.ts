@@ -311,7 +311,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
     const ls = [agilizaLogo, fsmLogo].filter(Boolean) as { data: string; w: number; h: number }[];
     const h = 10, gap = 6;
     const ws = ls.map((l) => (l.w / l.h) * h);
-    let x = 545 - (ws.reduce((t, w) => t + w, 0) + gap * Math.max(0, ls.length - 1)) / 2 + 6;
+    let x = 647 - (ws.reduce((t, w) => t + w, 0) + gap * Math.max(0, ls.length - 1)) / 2;
     ls.forEach((l, i) => { pdf.addImage(l.data, "PNG", k(x), k(845), k(ws[i]), k(h)); x += ws[i] + gap; });
   }
 }
