@@ -29,8 +29,9 @@ export function openPrintWindow(): Window | null {
   return window.open("", "_blank", `popup=yes,width=${w},height=${h},left=${left},top=20,resizable=yes,scrollbars=yes`);
 }
 
-export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean; win?: Window | null }) {
+export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean; win?: Window | null; marginMm?: number }) {
   const landscape = opts?.landscape ?? detectLandscape(html);
+  const marginMm = opts?.marginMm ?? MARGIN_MM;
   const printWindow = opts?.win ?? openPrintWindow();
   if (!printWindow) {
     toast.error("Permita a abertura da janela de impressão no navegador.");
@@ -50,7 +51,9 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       : html.replace(/<img[^>]*__TENANT_LOGO__[^>]*>/g, "");
   }
   // Rodapé padrão: Agiliza TMS by fsm ao final do documento.
-  html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
+  if (!html.includes('class="agiliza-brand-footer"')) {
+    html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
+  }
 
   const safeTitle = sanitizeFileName(fileName).replace(/_/g, " ");
   // Remove comandos antigos e inclui um único controle leve para imprimir novamente.
@@ -60,7 +63,7 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
     .replace(/<button[^>]*window\.print\(\)[^>]*>[\s\S]*?<\/button>/gi, "")
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`)
     .replace(/<\/head>/i, `<style>
-      @page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${MARGIN_MM}mm!important}
+      @page{size:A4 ${landscape ? "landscape" : "portrait"};margin:${marginMm}mm!important}
       html,body{background:#fff!important}
       .print-window-actions{position:sticky;top:0;z-index:99999;display:flex;gap:8px;justify-content:flex-start;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid #d1d5db}
       .print-window-actions button{display:inline-flex;align-items:center;gap:6px;font:600 12px Arial,sans-serif;padding:6px 10px;border:0;border-radius:4px;color:#fff;background:#2B4C7E;cursor:pointer}
@@ -70,8 +73,8 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       @media print{.print-window-actions,.no-print,.toolbar{display:none!important}}
       @media screen{
         html{background:#e5e7eb!important;padding:0 0 24px}
-        body{box-sizing:border-box!important;width:${landscape ? 297 : 210}mm!important;max-width:none!important;min-height:${landscape ? 210 : 297}mm;margin:20px auto!important;padding:0 ${MARGIN_MM}mm ${MARGIN_MM}mm!important;background:#fff!important;box-shadow:0 2px 12px rgba(0,0,0,.18)}
-        .print-window-actions{margin:0 -${MARGIN_MM}mm ${MARGIN_MM}mm}
+        body{box-sizing:border-box!important;width:${landscape ? 297 : 210}mm!important;max-width:none!important;min-height:${landscape ? 210 : 297}mm;margin:20px auto!important;padding:0 ${marginMm}mm ${marginMm}mm!important;background:#fff!important;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+        .print-window-actions{margin:0 -${marginMm}mm ${marginMm}mm}
       }
     </style></head>`)
     .replace(/<body([^>]*)>/i, `<body$1><div class="print-window-actions">

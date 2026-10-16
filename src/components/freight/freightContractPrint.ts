@@ -3,6 +3,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { maskCPF, maskCNPJ, maskCEP, maskPhone } from "@/lib/masks";
+import { fiscalProtocolNumber } from "@/lib/fiscalProtocol";
+import { printBrandFooterHtml } from "@/lib/printBrand";
 
 export interface ContractPrintInput {
   numero: number;
@@ -134,7 +136,7 @@ function formatChave(chave: string | null | undefined): string {
   if (!chave) return "-";
   const c = chave.replace(/\D/g, "");
   if (c.length !== 44) return chave;
-  return c.match(/.{1,4}/g)!.join(" ");
+  return c.match(/.{1,4}/g)?.join(" ") || c;
 }
 
 interface PartyDetails {
@@ -344,32 +346,38 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${input.numero}</title>
 <style>
-  @page { size: A4 portrait; margin: 8mm 9mm; }
+  @page { size: A4 portrait; margin: 9mm; }
   html, body { height: auto; }
-  body { font-family: Arial, sans-serif; font-size: 8pt; color: #111; line-height: 1.15; }
+  body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.25; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #2B4C7E; padding-bottom: 3px; margin-bottom: 4px; }
-  .header .empresa { font-size: 7.5pt; line-height: 1.15; }
-  .header .empresa b { font-size: 9pt; }
-  .header .num { text-align: right; font-size: 8pt; }
+  .header .empresa { font-size: 9pt; line-height: 1.25; }
+  .header .empresa b { font-size: 10.5pt; }
+  .header .num { text-align: right; font-size: 9pt; flex-shrink: 0; margin-left: 12px; }
   .header .num b { font-size: 12pt; color: #2B4C7E; display: block; }
-  h1.tit { text-align: center; font-size: 10pt; margin: 3px 0 5px; text-transform: uppercase; letter-spacing: 0.3px; }
-  table.party { width: 100%; border-collapse: collapse; margin: 2px 0 4px; font-size: 7.5pt; }
-  table.party th, table.party td { border: 1px solid #999; padding: 1px 4px; text-align: left; vertical-align: top; }
-  table.party th { background: #e8eef5; font-weight: bold; text-transform: uppercase; font-size: 7.5pt; }
-  h2 { font-size: 8pt; margin: 5px 0 2px; text-transform: uppercase; background: #f1f1f1; padding: 2px 5px; border-left: 3px solid #2B4C7E; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 12px; font-size: 7.5pt; padding: 1px 5px; }
+  h1.tit { text-align: center; font-size: 12pt; margin: 6px 0 8px; text-transform: uppercase; letter-spacing: 0; }
+  table.party { width: 100%; border-collapse: collapse; margin: 3px 0 6px; font-size: 9pt; break-inside: avoid; }
+  table.party th, table.party td { border: 1px solid #999; padding: 3px 5px; text-align: left; vertical-align: top; }
+  table.party th { background: #e8eef5; font-weight: bold; text-transform: uppercase; font-size: 9pt; }
+  h2 { font-size: 9.5pt; margin: 7px 0 4px; text-transform: uppercase; background: #f1f1f1; padding: 3px 5px; border-left: 3px solid #2B4C7E; break-after: avoid; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px 12px; font-size: 9pt; padding: 3px 5px; }
   .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px 12px; font-size: 7.5pt; padding: 1px 5px; }
-  table.carga { width: 100%; border-collapse: collapse; font-size: 7pt; margin: 2px 0; }
-  table.carga th, table.carga td { border: 1px solid #999; padding: 1px 4px; text-align: left; }
-  table.carga th { background: #f1f1f1; font-size: 7pt; }
-  .composicao { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 2px 5px; font-size: 7.5pt; }
+  table.carga { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 3px 0; }
+  table.carga th, table.carga td { border: 1px solid #999; padding: 4px 5px; text-align: left; vertical-align: top; }
+  table.carga th { background: #f1f1f1; font-size: 8pt; }
+  .composicao { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 3px 5px; font-size: 9pt; break-inside: avoid; }
   .composicao .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 0; }
   .composicao .row.total { border-top: 1px solid #333; border-bottom: 1px solid #333; font-weight: bold; padding: 1px 0; margin-top: 2px; }
-  .aviso { font-size: 7pt; padding: 3px 5px; background: #fffbe6; border: 1px solid #f0e68c; margin: 3px 0; text-align: justify; line-height: 1.2; }
-  .obs { padding: 2px 5px; font-size: 7.5pt; min-height: 18px; border: 1px solid #ccc; margin-top: 2px; }
-  .sign { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-  .sign .line { border-top: 1px solid #000; padding-top: 2px; text-align: center; font-size: 7.5pt; }
-  .footer { margin-top: 6px; border-top: 1px solid #ccc; padding-top: 2px; font-size: 7pt; color: #666; display: flex; justify-content: space-between; }
+  .aviso { font-size: 8pt; padding: 5px 6px; background: #fffbe6; border: 1px solid #f0e68c; margin: 6px 0; text-align: justify; line-height: 1.25; break-inside: avoid; }
+  .obs { padding: 5px; font-size: 9pt; min-height: 26px; border: 1px solid #ccc; margin-top: 3px; }
+  .sign { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; break-inside: avoid; }
+  .sign .line { border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 8.5pt; }
+  .footer { margin-top: 8px; border-top: 1px solid #ccc; padding-top: 4px; font-size: 8pt; color: #666; display: flex; justify-content: space-between; }
+  *, *::before, *::after { box-sizing: border-box; }
+  table { table-layout: fixed; max-width: 100%; }
+  th, td, .grid2 > div, .composicao > div, .sign > div, .empresa, .obs { min-width: 0; overflow-wrap: anywhere; }
+  table.carga tr { break-inside: avoid; }
+  .chave { font-family: monospace; font-size: 9pt; overflow-wrap: anywhere; }
+  @media print { body { width: auto; min-height: 0; padding: 0; } }
 
 </style></head><body>
 
@@ -401,6 +409,7 @@ ${motoristaBlock}
   <div><b>Local Entrega:</b> ${destinoDisplay}</div>
 </div>
 <table class="carga">
+  <colgroup><col style="width:18%"/><col style="width:13%"/><col style="width:19%"/><col style="width:12%"/><col style="width:10%"/><col style="width:14%"/><col style="width:14%"/></colgroup>
   <tr>
     <th>Documento</th>
     <th>Data Emissão</th>
@@ -420,8 +429,10 @@ ${motoristaBlock}
     <td>${fmt(Number(input.valor_total || 0))}</td>
   </tr>
   <tr>
-    <td colspan="4"><b>Chave CT-e:</b> <span style="font-family: monospace; font-size: 8.5pt;">${formatChave(cteInfo?.chave_acesso)}</span></td>
-    <td colspan="3"><b>Protocolo:</b> ${cteInfo?.protocolo || "-"}</td>
+    <td colspan="7"><b>Chave CT-e:</b> <span class="chave">${formatChave(cteInfo?.chave_acesso)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="7"><b>Protocolo:</b> ${fiscalProtocolNumber(cteInfo?.protocolo) || "-"}</td>
   </tr>
   ${nfeKeys.length > 0 ? `
   <tr>
@@ -429,7 +440,7 @@ ${motoristaBlock}
   </tr>
   ${nfeKeys.map((k, i) => `
   <tr>
-    <td colspan="7" style="font-family: monospace; font-size: 8.5pt;">
+    <td colspan="7" class="chave">
       <b>${String(i + 1).padStart(2, "0")}.</b> ${formatChave(k)}
     </td>
   </tr>`).join("")}
@@ -463,6 +474,7 @@ ${motoristaBlock}
   <span>Contrato Nº ${String(input.numero).padStart(6, "0")}</span>
 </div>
 
+${printBrandFooterHtml()}
 </body></html>`;
 }
 
@@ -491,5 +503,5 @@ ${bodies.map((b) => `<div class="doc-page">${b}</div>`).join("\n")}
 }
 
 export function openPrintWindow(html: string) {
-  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"));
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 9 });
 }

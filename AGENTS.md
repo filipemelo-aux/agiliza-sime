@@ -4,7 +4,7 @@
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
-- Production and service CT-es use one shared DACTE vector renderer so print fields and positions stay identical.
+- Production and service CT-es share one DACTE vector renderer for identical geometry.
 - The DAMDFE PDF always uses the fixed vector renderer in `src/components/freight/damdfePdf.ts` (A4 landscape, geometry from the user-approved model), never HTML/canvas or the Focus PDF, so the print is identical on every machine.
 - SEFAZ operations on a CT-e (transmit, status, DACTE PDF, XML, CC-e, cancel) are grouped in one dialog opened by the toolbar SEFAZ button; the focus-nfe function exposes them per saved CT-e id so the emission environment stays consistent.
 - CT-e CFOP is derived centrally from the service origin/destination states and service type, so route changes cannot leave an internal/interstate code inconsistent.
@@ -18,7 +18,8 @@
 - Plate inputs mask by position using only the Mercosul pattern (LLL-NLNN) in `maskPlateInput`, because the user chose to accept only the new plate format when typing.
 - DialogContent owns default padding and vertical scrolling directly, without a nested scrolling wrapper; dialogs with their own body scroller override it with overflow-hidden so each window has only one primary scroll area.
 - Printable documents (except DACTE, DAMDFE and cheques) build their header with `buildPrintHeaderHtml` from `src/lib/printHeader.ts` using the document's own establishment, so every print shares one header layout.
-- Brand footers use `printBrand.ts` for high-resolution assets and identical physical size in HTML/fiscal PDFs; cheque geometry remains isolated.
+- Brand footers share `printBrand.ts` assets and physical sizes; cheques remain isolated.
+- Freight contracts use fixed wrapping tables and matching A4 screen/print margins; `fiscalProtocol.ts` extracts numbers from authorization responses to prevent overflow and shrink-to-fit.
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Payables reads wait for authenticated access, surface query errors, and paginate expenses through fetchAllRows so session restoration and row limits cannot silently hide records.
 - Paid-account and cash-flow reads also wait for authenticated access and paginate ordered results; expense total/due-date edits reuse the payment-state recalculation trigger so existing payments remain authoritative for settlement.
