@@ -86,7 +86,7 @@ function buildFuelOrderHTMLWithSignature(
   ${buildPrintHeaderHtml({
     company: header || { name: companyName, docLine: companyCnpjs.split(" / ").map((c: string) => `CNPJ: ${c}`).join(" · "), address: "" },
     logoUrl,
-    title: `ORDEM DE ABASTECIMENTO #${order.order_number}`,
+    title: `ORDEM #${order.order_number}`,
     subtitle: [order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "", order.status ? String(order.status).charAt(0).toUpperCase() + String(order.status).slice(1) : ""].filter(Boolean).join(" · "),
     highlight: qty,
   })}
