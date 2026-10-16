@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import type { CtePrintInput } from "./ctePrint";
+import agilizaLogoUrl from "@/assets/brand/agiliza-tms-logo.png";
 import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 type Dict = Record<string, any>;
@@ -327,7 +328,7 @@ async function driverDocument(id?: string | null) {
   return digits((data as Dict | null)?.cnpj);
 }
 
-async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>) {
+async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
   const P = new Painter(pdf);
   const [emit, actors, driverDoc] = await Promise.all([
     loadEmitente(cte.establishment_id),
@@ -619,17 +620,15 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.5);
   pdf.line(27, 812.5, 568, 812.5);
-  P.font(6.6);
-  const label = "Agiliza TMS";
-  const labelW = pdf.getTextWidth(label);
-  const logoH = 8;
-  const logoW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * logoH : 0;
-  const gap = 4;
-  const startX = (DACTE_LAYOUT.width - (labelW + gap + logoW)) / 2;
-  pdf.text(label, startX, 821);
-  if (fsmLogo) {
-    pdf.addImage(fsmLogo.data, "PNG", startX + labelW + gap, 814, logoW, logoH);
-  }
+  const logos = [agilizaLogo, fsmLogo].filter(Boolean) as { data: string; w: number; h: number }[];
+  const logoH = 12;
+  const gap = 8;
+  const widths = logos.map((l) => (l.w / l.h) * logoH);
+  let x = (DACTE_LAYOUT.width - (widths.reduce((t, w) => t + w, 0) + gap * Math.max(0, logos.length - 1))) / 2;
+  logos.forEach((l, i) => {
+    pdf.addImage(l.data, "PNG", x, 818, widths[i], logoH);
+    x += widths[i] + gap;
+  });
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
@@ -642,9 +641,10 @@ export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
   });
   const logo = await loadLogo();
   const fsmLogo = await loadImage(fsmLogoUrl);
+  const agilizaLogo = await loadImage(agilizaLogoUrl);
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
-    await drawPage(pdf, ctes[i], logo, fsmLogo);
+    await drawPage(pdf, ctes[i], logo, fsmLogo, agilizaLogo);
   }
   const page = pdf.internal.pageSize;
   const validA4 = Math.abs(page.getWidth() - DACTE_LAYOUT.width) < 0.1

@@ -5,6 +5,7 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
+import agilizaLogoUrl from "@/assets/brand/agiliza-tms-logo.png";
 import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 type Dict = Record<string, any>;
@@ -142,7 +143,7 @@ async function loadData(m: Dict) {
   return { emit, veh, owner, ctes, estNames };
 }
 
-async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>) {
+async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
   const P = new Painter(pdf);
   const { emit, veh, owner, ctes, estNames } = await loadData(m);
   const key = digits(m.chave_acesso).slice(-44);
@@ -306,12 +307,12 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  P.text("Agiliza TMS", 545, 851, 6.6, { align: "right" });
-  if (fsmLogo) {
-    const h = 10, w = (fsmLogo.w / fsmLogo.h) * h;
-    pdf.addImage(fsmLogo.data, "PNG", k(551), k(845), k(w), k(h));
-  } else {
-    P.text("FSM | Sistemas", 556, 851, 6.6);
+  {
+    const ls = [agilizaLogo, fsmLogo].filter(Boolean) as { data: string; w: number; h: number }[];
+    const h = 10, gap = 6;
+    const ws = ls.map((l) => (l.w / l.h) * h);
+    let x = 647 - (ws.reduce((t, w) => t + w, 0) + gap * Math.max(0, ls.length - 1)) / 2;
+    ls.forEach((l, i) => { pdf.addImage(l.data, "PNG", k(x), k(845), k(ws[i]), k(h)); x += ws[i] + gap; });
   }
 }
 
@@ -320,9 +321,10 @@ export async function buildDamdfePdf(mdfes: Dict[]): Promise<jsPDF> {
   const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape", compress: true });
   const logo = await loadImage(`${window.location.origin}/logo.png`);
   const fsmLogo = await loadImage(fsmLogoUrl);
+  const agilizaLogo = await loadImage(agilizaLogoUrl);
   for (let i = 0; i < mdfes.length; i++) {
     if (i > 0) pdf.addPage("a4", "landscape");
-    await drawPage(pdf, mdfes[i], logo, fsmLogo);
+    await drawPage(pdf, mdfes[i], logo, fsmLogo, agilizaLogo);
   }
   return pdf;
 }
