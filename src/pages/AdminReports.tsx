@@ -104,7 +104,7 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 <tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
   <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
     <td style="width:48px;vertical-align:middle;padding-right:16px">
-      <img src="${logoUrl}" alt="Logo da empresa" style="display:block;height:26px;width:auto;border:0" />
+      <img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:48px;max-width:140px;width:auto;border:0" />
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>

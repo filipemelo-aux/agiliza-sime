@@ -63,7 +63,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { font-family: Arial, sans-serif; color: #222; font-size: 11px; margin: 0; padding: 16px; }
   .header { display: flex; align-items: center; gap: 12px; border-bottom: 3px solid #2B4C7E; padding-bottom: 8px; margin-bottom: 12px; }
-  .header img { height: 26px; }
+  .header img { max-height: 48px; max-width: 140px; }
   .brand { font-family: 'Exo', Arial, sans-serif; font-weight: 800; font-style: italic; font-size: 18px; color: #2B4C7E; }
   .brand span { color: #F5C518; }
   h1 { font-size: 15px; color: #2B4C7E; margin: 0 0 10px; text-align: center; }

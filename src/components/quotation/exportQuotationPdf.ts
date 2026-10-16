@@ -20,7 +20,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
 <style>
   body{font-family:Arial,sans-serif;padding:20px 30px;color:#222;font-size:11px;line-height:1.2;max-width:800px;margin:0 auto}
   .header{display:flex;align-items:center;gap:12px;border-bottom:3px solid #2B4C7E;padding-bottom:10px;margin-bottom:14px}
-  .header img{height:26px}
+  .header img{max-height:48px;max-width:140px}
   .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:20px;color:#2B4C7E}
   .brand span{color:#F5C518}
   .meta{display:flex;justify-content:space-between;margin-bottom:12px}
