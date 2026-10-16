@@ -24,6 +24,7 @@ import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { matchesText } from "@/lib/search";
 import { maskPlateInput, unmaskPlate } from "@/lib/masks";
+import { TRUCK_TYPES } from "@/lib/vehicleTypes";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
@@ -31,7 +32,6 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   utilitario: "Utilitário", passeio: "Passeio",
 };
 
-const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
 
 const TRAILER_LABELS: Record<string, string[]> = {
   carreta: ["Carreta"], carreta_ls: ["Carreta"],
