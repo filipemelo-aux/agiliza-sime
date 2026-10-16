@@ -17,7 +17,7 @@ it.skipIf(!process.env.FINANCIAL_TEST_SESSION_FILE)("settles an expense when its
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${minted.session.access_token}` } },
   });
-  const original = await db.from("expenses").select("empresa_id, tenant_id")
+  const original = await db.from("expenses").select("empresa_id, tenant_id, plano_contas_id")
     .eq("id", "1b5502f7-b0dc-45e4-af01-7b5be0ee2f86").single();
   if (original.error) throw original.error;
   let id: string | undefined;
