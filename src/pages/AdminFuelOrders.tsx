@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { format } from "date-fns";
 import { limitDisplayText } from "@/lib/displayText";
+import { EmpresaUf } from "@/components/financial/EmpresaControls";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
 import { FuelOrderEmailDialog } from "@/components/fuel/FuelOrderEmailDialog";
 import { printFuelOrderPDF } from "@/components/fuel/exportFuelOrderPdf";
@@ -182,6 +183,7 @@ export default function AdminFuelOrders() {
     { key: "combustivel", header: "Combustível", width: "120px", sortValue: (o) => o.fuel_type, cell: (o) => FUEL_LABELS[o.fuel_type] || o.fuel_type },
     { key: "qtd", header: "Quantidade", width: "110px", align: "right", sortValue: (o) => (o.fill_mode === "completar" ? -1 : Number(o.liters) || 0), cell: (o) => <span className="font-mono">{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span> },
     { key: "email", header: "E-mail", width: "130px", sortValue: (o) => o.email_sent_at || "", cell: (o) => <span className="text-[11px] text-muted-foreground">{o.email_sent_at ? format(new Date(o.email_sent_at), "dd/MM/yy HH:mm") : "—"}</span> },
+    { key: "agencia", header: "Agência", width: "80px", align: "center", sortValue: (o) => o.establishment_id || "", cell: (o) => <EmpresaUf empresaId={o.establishment_id} /> },
     { key: "status", header: "Status", width: "110px", align: "center", sortValue: (o) => o.status, cell: (o) => <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge> },
   ];
 
@@ -207,7 +209,7 @@ export default function AdminFuelOrders() {
           rowClassName={(o) => rowToneClass(o.status === "aprovada" ? "resolved" : o.status === "cancelada" ? "overdue" : "pending")}
           onSelectedChange={setSelectedIds}
           loading={loading}
-          minWidth={1160}
+          minWidth={1240}
           emptyMessage="Nenhuma ordem de abastecimento encontrada"
         />
 
