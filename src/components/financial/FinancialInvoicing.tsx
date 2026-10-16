@@ -1161,7 +1161,8 @@ export function FinancialInvoicing() {
     // Financeiro unificado: a fatura sempre sai com os dados da empresa principal (matriz).
     // A separação matriz/filial permanece exclusivamente na emissão fiscal (CT-e/MDF-e).
     const matriz = establishments.find(e => e.type === "matriz") || establishments[0];
-    const issuingEst = matriz;
+    // Cabeçalho sai com a agência da fatura (matriz ou filial); matriz só como reserva.
+    const issuingEst = establishments.find(e => e.id === (fatura as any).empresa_id) || matriz;
 
     // Company header: complete data from the unified company (matriz).
     const companyName = issuingEst?.razao_social || unifiedLabel || "";
