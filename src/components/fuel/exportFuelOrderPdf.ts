@@ -1,3 +1,4 @@
+import { buildPrintHeaderHtml, fetchEstablishmentHeader, type PrintCompanyHeader } from "@/lib/printHeader";
 import { format } from "date-fns";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 
@@ -33,6 +34,7 @@ function buildFuelOrderHTMLWithSignature(
   companyCnpjs: string,
   signatureDataUrl: string | null,
   companyLogoUrl: string | null = null,
+  header: PrintCompanyHeader | null = null,
 ) {
   const logoUrl = companyLogoUrl;
   const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
@@ -80,29 +82,14 @@ function buildFuelOrderHTMLWithSignature(
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:${EMAIL_FONT_STACK}">
 
 <!-- HEADER -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E;margin-bottom:16px">
-  <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-    ${logoUrl ? `<td style="width:1%;vertical-align:middle;padding-right:16px">
-      <img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:48px;max-width:140px;width:auto;border:0" />
-    </td>` : ""}
-    <td style="vertical-align:middle">
-      <div style="font-family:${EMAIL_FONT_STACK};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
-      ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ")}
-    </td>
-  </tr></table>
-</td></tr>
-
-<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
-
-<!-- DIVIDER -->
-<tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
-
-<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
-
-<!-- TITLE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-family:${EMAIL_FONT_STACK};font-size:17px;font-weight:700;color:#2B4C7E;margin:0">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</div>
+<tr><td style="background:#ffffff;padding:4px 0 0">
+  ${buildPrintHeaderHtml({
+    company: header || { name: companyName, docLine: companyCnpjs.split(" / ").map((c: string) => `CNPJ: ${c}`).join(" · "), address: "" },
+    logoUrl,
+    title: `ORDEM DE ABASTECIMENTO #${order.order_number}`,
+    subtitle: [order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "", order.status ? String(order.status).charAt(0).toUpperCase() + String(order.status).slice(1) : ""].filter(Boolean).join(" · "),
+    highlight: qty,
+  })}
 </td></tr>
 
 <tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
@@ -240,7 +227,9 @@ export async function printFuelOrderPDF(order: any, companyName: string, company
     // Continue without signature
   }
 
-  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, "__TENANT_LOGO__");
+  let header: PrintCompanyHeader | null = null;
+  try { header = await fetchEstablishmentHeader(order.establishment_id, companyName, companyCnpjs); } catch { /* usa dados recebidos */ }
+  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, "__TENANT_LOGO__", header);
 
   await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"));
 }
