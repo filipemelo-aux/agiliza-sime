@@ -22,3 +22,5 @@
 - [x] Exibir nome e sobrenome completos na coluna Usuário das listagens de CT-e e MDF-e.
 - [x] Nome de usuário muito longo: cortar com "…" e mostrar o completo no hover, como nas colunas Cliente/Descrição.
 - [x] Corrigir rolagem duplicada das janelas e validar formulários no desktop e celular.
+- [ ] Padronizar cabeçalhos de impressão pela agência do documento, seguindo o CT-e, sem alterar os modelos fiscais fixos.
+- [ ] Validar cabeçalhos de Matriz e Filial nas visualizações A4.
