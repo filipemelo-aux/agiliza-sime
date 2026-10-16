@@ -1558,7 +1558,7 @@ ${hasRecebimentos ? `
 </div>
 </body></html>`;
 
-    downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"));
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"), { establishmentId: (fatura as any).empresa_id || issuingEst?.id });
   };
 
   const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);

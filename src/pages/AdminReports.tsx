@@ -101,7 +101,7 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:1100px;font-family:${FONT}">
 
 <!-- HEADER -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
+<tr><td data-print-agency="" style="background:#ffffff;padding:0">
   <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
     <td style="width:48px;vertical-align:middle;padding-right:16px">
       <img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:48px;max-width:140px;width:auto;border:0" />
@@ -170,7 +170,7 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 </table>
 </body></html>`;
 
-  downloadHtmlAsPdf(html, titleFromHtml(html, "Relatorio"));
+  downloadHtmlAsPdf(html, titleFromHtml(html, "Relatorio"), { establishmentId: matriz?.id });
 }
 
 function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled: boolean }) {
