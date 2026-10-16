@@ -291,9 +291,17 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     if (!form.placa_veiculo) return toast({ title: "Informe a placa do veículo", variant: "destructive" });
     if (ctes.length === 0 && form.chaves_cte_terceiros.length === 0) return toast({ title: "Vincule pelo menos um CT-e", variant: "destructive" });
     setSaving(true);
+    try {
+    const [driver, ...extras] = await resolveMdfeDrivers([
+      { id: form.motorista_id, nome: form.motorista_nome, cpf: form.motorista_cpf },
+      ...form.condutores_extras,
+    ]);
     const { seguro_manual, ciot_manual, ...rest } = form;
     const payload: any = {
       ...rest,
+      motorista_nome: driver?.nome || form.motorista_nome,
+      motorista_cpf: driver?.cpf || null,
+      condutores_extras: extras,
       pagamento_manual: ctes.length === 0 ? form.pagamento_manual : null,
       data_emissao: new Date(form.data_emissao).toISOString(),
       data_saida: form.data_saida ? new Date(form.data_saida).toISOString() : null,
@@ -307,11 +315,15 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     const res = editing
       ? await (supabase.from("mdfe") as any).update(payload).eq("id", editing.id)
       : await (supabase.from("mdfe") as any).insert({ ...payload, status: "rascunho", created_by: user?.id });
-    setSaving(false);
     if (res.error) return toast({ title: "Erro ao salvar", description: res.error.message, variant: "destructive" });
     toast({ title: editing ? "Manifesto atualizado" : "Manifesto criado (rascunho)" });
     onSaved();
     onOpenChange(false);
+    } catch (error) {
+      toast({ title: "Erro ao salvar", description: error instanceof Error ? error.message : "Não foi possível consultar os dados dos condutores.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const F = ({ label, children, className = "" }: any) => (
@@ -437,7 +449,7 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
           <FormBlock icon={Truck} title="6. Motorista e veículo" summary={[form.motorista_nome, form.placa_veiculo].filter(Boolean).join(" · ") || "Transporte"}>
             <F label="Motorista"><PersonSearchInput categories={["motorista"]} placeholder="Buscar motorista..." selectedName={form.motorista_nome || undefined} onSelect={(p) => setForm(f => ({ ...f, motorista_id: p.id, motorista_nome: p.full_name, motorista_cpf: driverCpf(p.cnpj) }))} onClear={() => setForm(f => ({ ...f, motorista_id: null, motorista_nome: "", motorista_cpf: "" }))} /></F>
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4"><F label="Veículo principal *"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.placa_veiculo || ""} onChange={(e) => set("placa_veiculo", maskPlateInput(e.target.value))} /></F><F label="Carreta 1"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.reboque1_placa || ""} onChange={(e) => set("reboque1_placa", maskPlateInput(e.target.value))} /></F><F label="Carreta 2"><Input className="h-8 uppercase text-xs" maxLength={8} value={form.reboque2_placa || ""} onChange={(e) => set("reboque2_placa", maskPlateInput(e.target.value))} /></F><F label="RNTRC"><Input className="h-8 text-xs" value={form.rntrc || ""} onChange={(e) => set("rntrc", e.target.value)} /></F></div>
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2"><F label="Contratado (dono do caminhão, quando de terceiro)"><PersonSearchInput categories={["proprietario", "motorista"]} placeholder="Buscar contratado..." selectedName={form.contratado_nome || undefined} onSelect={(p) => { set("contratado_id", p.id); set("contratado_nome", p.razao_social || p.full_name); set("contratado_documento", p.cnpj || ""); }} onClear={() => { set("contratado_id", null); set("contratado_nome", ""); set("contratado_documento", ""); }} /></F><F label="Auxiliares / outros motoristas"><PersonSearchInput categories={["motorista"]} placeholder="Adicionar outro motorista..." onSelect={(p) => { if (!form.condutores_extras.some((c) => c.id === p.id)) set("condutores_extras", [...form.condutores_extras, { id: p.id, nome: p.full_name }]); }} />{form.condutores_extras.map((c) => <div key={c.id} className="flex items-center justify-between text-xs"><span>{c.nome}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => set("condutores_extras", form.condutores_extras.filter((x) => x.id !== c.id))}><Trash2 className="h-3 w-3" /></Button></div>)}</F></div>
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2"><F label="Contratado (dono do caminhão, quando de terceiro)"><PersonSearchInput categories={["proprietario", "motorista"]} placeholder="Buscar contratado..." selectedName={form.contratado_nome || undefined} onSelect={(p) => { set("contratado_id", p.id); set("contratado_nome", p.razao_social || p.full_name); set("contratado_documento", p.cnpj || ""); }} onClear={() => { set("contratado_id", null); set("contratado_nome", ""); set("contratado_documento", ""); }} /></F><F label="Auxiliares / outros motoristas"><PersonSearchInput categories={["motorista"]} placeholder="Adicionar outro motorista..." onSelect={(p) => { if (!form.condutores_extras.some((c) => c.id === p.id)) set("condutores_extras", [...form.condutores_extras, { id: p.id, nome: p.full_name, cpf: driverCpf(p.cnpj) }]); }} />{form.condutores_extras.map((c) => <div key={c.id} className="flex items-center justify-between text-xs"><span>{c.nome}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => set("condutores_extras", form.condutores_extras.filter((x) => x.id !== c.id))}><Trash2 className="h-3 w-3" /></Button></div>)}</F></div>
           </FormBlock>
 
           <FormBlock icon={ShieldCheck} title="7. Seguro e CIOT" summary={form.seguro_manual || form.ciot_manual ? "Preenchimento manual" : "Dados automáticos"} defaultOpen={false}>
