@@ -130,9 +130,10 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
       let header = null; let logo: string | null = null;
       try { header = await fetchEstablishmentHeader(order.establishment_id, unifiedLabel, unifiedCnpjs); } catch { /* */ }
       try { logo = await getCurrentTenantLogoUrl(); } catch { /* */ }
+      const { enrichFuelOrder } = await import("./exportFuelOrderPdf");
       const html = exportFuelOrderPDF(
         {
-          ...order,
+          ...(await enrichFuelOrder(order)),
           requester_name: sessionRequesterName || order.requester_name,
         },
         unifiedLabel,
