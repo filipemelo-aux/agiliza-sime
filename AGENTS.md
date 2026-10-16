@@ -19,7 +19,7 @@
 - DialogContent owns default padding and vertical scrolling directly, without a nested scrolling wrapper; dialogs with their own body scroller override it with overflow-hidden so each window has only one primary scroll area.
 - Printable documents (except DACTE, DAMDFE and cheques) build their header with `buildPrintHeaderHtml` from `src/lib/printHeader.ts` using the document's own establishment, so every print shares one header layout.
 - Brand footers share `printBrand.ts` assets and physical sizes; cheques remain isolated.
-- Freight contracts use fixed wrapping tables and matching A4 screen/print margins; `fiscalProtocol.ts` extracts numbers from authorization responses to prevent overflow and shrink-to-fit.
+- Freight contracts use fixed wrapping tables, matching A4 margins and an unbreakable signature/brand closing block with compact print spacing to prevent orphaned logos; `fiscalProtocol.ts` extracts protocol numbers to prevent overflow.
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Payables reads wait for authenticated access, surface query errors, and paginate expenses through fetchAllRows so session restoration and row limits cannot silently hide records.
 - Paid-account and cash-flow reads also wait for authenticated access and paginate ordered results; expense total/due-date edits reuse the payment-state recalculation trigger so existing payments remain authoritative for settlement.
