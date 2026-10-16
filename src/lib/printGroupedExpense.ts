@@ -25,7 +25,7 @@ export async function printGroupedExpenseDetails(expenseId: string) {
   win.document.write('<p style="font-family:Arial;padding:20px">Carregando detalhes...</p>');
   const fail = (msg: string) => { try { win.close(); } catch {} toast.error(msg); };
   const { data: expense, error: expErr } = await supabase.from("expenses")
-    .select("id, descricao, favorecido_nome, data_vencimento, valor_total, plano_contas_id").eq("id", expenseId).maybeSingle();
+    .select("id, descricao, favorecido_nome, data_vencimento, valor_total, plano_contas_id, empresa_id").eq("id", expenseId).maybeSingle();
   if (expErr || !expense) return fail(expErr?.message || "Conta não encontrada.");
 
     const { data: links, error } = await supabase
@@ -183,5 +183,5 @@ tfoot{display:table-row-group}
 </script>
 </body></html>`;
 
-    downloadHtmlAsPdf(html, titleFromHtml(html, "Detalhes da Conta"), { win });
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Detalhes da Conta"), { win, establishmentId: expense.empresa_id });
   }
