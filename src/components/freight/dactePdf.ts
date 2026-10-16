@@ -615,13 +615,13 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   P.text("CHEGADA DATA / HORA", 527.5, 769, 5, { align: "center" });
   P.text("SAÍDA DATA / HORA", 527.5, 789, 5, { align: "center" });
 
-  // Rodapé padrão: Agiliza TMS by fsm | sistemas
+  // Rodapé padrão: somente Agiliza TMS
   pdf.setDrawColor(0);
   pdf.setLineWidth(0.5);
   pdf.setDrawColor(210);
   pdf.line(27, 812.5, 568, 812.5);
   pdf.setDrawColor(0);
-  drawPrintBrandFooter(pdf, 816, agilizaLogo, fsmLogo);
+  drawPrintBrandFooter(pdf, 816, agilizaLogo, null);
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
@@ -633,11 +633,10 @@ export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
     compress: true,
   });
   const logo = await loadLogo();
-  const fsmLogo = await loadImage(printBrandAssets.fsm);
   const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
-    await drawPage(pdf, ctes[i], logo, fsmLogo, agilizaLogo);
+    await drawPage(pdf, ctes[i], logo, null, agilizaLogo);
   }
   const page = pdf.internal.pageSize;
   const validA4 = Math.abs(page.getWidth() - DACTE_LAYOUT.width) < 0.1

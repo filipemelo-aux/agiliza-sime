@@ -309,18 +309,17 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  drawPrintBrandFooter(pdf, k(841), agilizaLogo, fsmLogo);
+  drawPrintBrandFooter(pdf, k(841), agilizaLogo, null);
 }
 
 /** Gera o DAMDFE (um MDF-e por página, A4 paisagem) idêntico ao modelo aprovado. */
 export async function buildDamdfePdf(mdfes: Dict[]): Promise<jsPDF> {
   const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape", compress: true });
   const logo = await loadImage(`${window.location.origin}/logo.png`);
-  const fsmLogo = await loadImage(printBrandAssets.fsm);
   const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < mdfes.length; i++) {
     if (i > 0) pdf.addPage("a4", "landscape");
-    await drawPage(pdf, mdfes[i], logo, fsmLogo, agilizaLogo);
+    await drawPage(pdf, mdfes[i], logo, null, agilizaLogo);
   }
   return pdf;
 }
