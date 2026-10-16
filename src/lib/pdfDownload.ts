@@ -51,7 +51,9 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       : html.replace(/<img[^>]*__TENANT_LOGO__[^>]*>/g, "");
   }
   // Rodapé padrão: Agiliza TMS by fsm ao final do documento.
-  html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
+  if (!html.includes('class="agiliza-brand-footer"')) {
+    html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
+  }
 
   const safeTitle = sanitizeFileName(fileName).replace(/_/g, " ");
   // Remove comandos antigos e inclui um único controle leve para imprimir novamente.

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { maskCPF, maskCNPJ, maskCEP, maskPhone } from "@/lib/masks";
 import { fiscalProtocolNumber } from "@/lib/fiscalProtocol";
+import { printBrandFooterHtml } from "@/lib/printBrand";
 
 export interface ContractPrintInput {
   numero: number;
@@ -473,6 +474,7 @@ ${motoristaBlock}
   <span>Contrato Nº ${String(input.numero).padStart(6, "0")}</span>
 </div>
 
+${printBrandFooterHtml()}
 </body></html>`;
 }
 
