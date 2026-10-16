@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -56,6 +58,7 @@ interface MovimentacaoEnriquecida extends Movimentacao {
 }
 
 export function FinancialCashFlow() {
+  const { user, loading: authLoading, supportTenantId } = useAuth();
   const isMobile = useIsMobile();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
@@ -76,15 +79,19 @@ export function FinancialCashFlow() {
   });
 
   useEffect(() => {
+    if (authLoading || !user) return;
     supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
-  }, []);
+  }, [authLoading, user?.id, supportTenantId]);
 
   const loadMovimentacoes = useCallback(async () => {
+    if (authLoading || !user) return;
     setLoading(true);
+    try {
     let query = supabase
       .from("movimentacoes_bancarias")
       .select("*")
-      .order("data_movimentacao", { ascending: false });
+      .order("data_movimentacao", { ascending: false })
+      .order("id");
 
     if (filters.dataInicio) query = query.gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"));
     if (filters.dataFim) query = query.lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"));
@@ -100,7 +107,7 @@ export function FinancialCashFlow() {
     if (filters.valorMin) query = query.gte("valor", Number(filters.valorMin));
     if (filters.valorMax) query = query.lte("valor", Number(filters.valorMax));
 
-    const { data } = await query;
+    const { data } = await fetchAllRows((from, to) => query.range(from, to));
     const movs = (data as Movimentacao[]) || [];
 
     const pagarIds = movs.filter((m) => m.origem === "contas_pagar").map((m) => m.origem_id);
@@ -285,8 +292,12 @@ export function FinancialCashFlow() {
     }
 
     setMovimentacoes(enriched);
-    setLoading(false);
-  }, [filters, chartAccounts, filterEmpresa]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível carregar o fluxo de caixa. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, chartAccounts, filterEmpresa, authLoading, user?.id, supportTenantId]);
 
 
   useEffect(() => { loadMovimentacoes(); }, [loadMovimentacoes]);

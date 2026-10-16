@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -138,6 +140,7 @@ const toDateOnly = (value?: string | null) => {
 };
 
 export function FinancialPaid() {
+  const { user, loading: authLoading, supportTenantId } = useAuth();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [groupedSelectedId, setGroupedSelectedId] = useState<string | null>(null);
   const [items, setItems] = useState<PaidItem[]>([]);
@@ -165,7 +168,9 @@ export function FinancialPaid() {
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [empresaId, setEmpresaId] = useState("");
 
-  useEffect(() => { fetchData(); fetchMeta(); }, []);
+  useEffect(() => {
+    if (!authLoading && user) { fetchData(); fetchMeta(); }
+  }, [authLoading, user?.id, supportTenantId]);
 
   const fetchMeta = async () => {
     const [{ data: charts }, { data: estab }] = await Promise.all([
@@ -177,10 +182,11 @@ export function FinancialPaid() {
   };
 
   const fetchData = async () => {
+    if (authLoading || !user) return;
     setLoading(true);
-
+    try {
     const [{ data: expensePayments }, { data: paidLegacy }] = await Promise.all([
-      supabase
+      fetchAllRows<any>((from, to) => supabase
         .from("expense_payments" as any)
         .select(`
           id,
@@ -208,22 +214,27 @@ export function FinancialPaid() {
             total_parcelas
           )
         `)
-        .order("data_pagamento", { ascending: false }),
-      supabase
+        .order("data_pagamento", { ascending: false })
+        .order("id")
+        .range(from, to)),
+      fetchAllRows<any>((from, to) => supabase
         .from("accounts_payable")
         .select("id, description, amount, paid_at, paid_amount, creditor_name")
         .eq("status", "pago" as any)
-        .order("paid_at", { ascending: false }),
+        .order("paid_at", { ascending: false })
+        .order("id")
+        .range(from, to)),
     ]);
 
     // Fetch profile names for creators
-    const creatorIds = [...new Set((expensePayments || []).map((p: any) => p.created_by).filter(Boolean))];
     let creatorsMap: Record<string, string> = {};
-    if (creatorIds.length > 0) {
-      const { data: profiles } = await supabase
+    if (expensePayments?.length) {
+      const { data: profiles } = await fetchAllRows((from, to) => supabase
         .from("profiles")
         .select("user_id, full_name")
-        .in("user_id", creatorIds);
+        .not("user_id", "is", null)
+        .order("id")
+        .range(from, to));
       (profiles || []).forEach((p: any) => { creatorsMap[p.user_id] = p.full_name; });
     }
 
@@ -243,12 +254,13 @@ export function FinancialPaid() {
     const expenseIds = [...new Set(individualPayments.map((p: any) => p.expense_id).filter(Boolean))];
     const installmentsByExpense: Record<string, any[]> = {};
     if (expenseIds.length > 0) {
-      const { data: paidInstallments } = await supabase
+      const { data: paidInstallments } = await fetchAllRows((from, to) => supabase
         .from("expense_installments")
         .select("id, expense_id, numero_parcela, total_parcelas, valor, data_vencimento, status")
-        .in("expense_id", expenseIds)
         .eq("status", "pago" as any)
-        .order("numero_parcela");
+        .order("numero_parcela")
+        .order("id")
+        .range(from, to));
 
       ((paidInstallments as any[]) || []).forEach((inst) => {
         if (!installmentsByExpense[inst.expense_id]) installmentsByExpense[inst.expense_id] = [];
@@ -379,7 +391,11 @@ export function FinancialPaid() {
       }),
     );
 
-    setLoading(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível carregar os pagamentos. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = useMemo(() => {
