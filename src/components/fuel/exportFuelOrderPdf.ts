@@ -159,7 +159,10 @@ ${printSection(
 
 ${
   notes
-    ? printSection("Observações", printField("Observações", notes, "100%"))
+    ? `<div style="margin:0 0 20px">
+  <div style="${SECTION_TITLE}">Observações</div>
+  <div style="font-size:12px;font-weight:600;color:${INK};white-space:pre-wrap">${notes}</div>
+</div>`
     : ""
 }
 
