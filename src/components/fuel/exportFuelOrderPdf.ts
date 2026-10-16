@@ -1,3 +1,4 @@
+import { buildPrintHeaderHtml, fetchEstablishmentHeader, type PrintCompanyHeader } from "@/lib/printHeader";
 import { format } from "date-fns";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 
@@ -226,7 +227,9 @@ export async function printFuelOrderPDF(order: any, companyName: string, company
     // Continue without signature
   }
 
-  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, "__TENANT_LOGO__");
+  let header: PrintCompanyHeader | null = null;
+  try { header = await fetchEstablishmentHeader(order.establishment_id, companyName, companyCnpjs); } catch { /* usa dados recebidos */ }
+  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, "__TENANT_LOGO__", header);
 
   await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"));
 }
