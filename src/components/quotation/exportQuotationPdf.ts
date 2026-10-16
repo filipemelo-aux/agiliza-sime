@@ -6,7 +6,7 @@ const formatCurrency = (v: number | null) =>
 
 export function exportQuotationPDF(q: any, establishments: any[]) {
   // Use unified company: find matriz for label + combine all CNPJs
-  const matriz = establishments.find((e: any) => (e.type || e.tipo) === "matriz") || establishments[0] || q.establishment;
+  const matriz = (q.establishment_id && establishments.find((e: any) => e.id === q.establishment_id)) || q.establishment || establishments.find((e: any) => (e.type || e.tipo) === "matriz") || establishments[0] || q.establishment;
   const companyName = matriz?.razao_social || "Sime Transporte Ltda";
   const companyCnpjs = establishments.length > 0
     ? establishments.map((e: any) => e.cnpj).filter(Boolean).join(" / ")
