@@ -7,6 +7,8 @@ import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { startOfMonth, endOfMonth, format, addDays, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,6 +139,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 type QuickFilter = "semana" | "atrasadas" | "a_vencer";
 
 export function FinancialPayables() {
+  const { user, loading: authLoading, supportTenantId } = useAuth();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const STORAGE_KEY = "payables_filters";
   const location = useLocation();
@@ -259,13 +262,15 @@ export function FinancialPayables() {
   }, [chartAccounts]);
 
   const fetchData = async () => {
+    if (authLoading || !user) return;
     setLoading(true);
+    try {
     // Tudo em uma única rodada paralela (antes eram várias etapas em sequência).
     // Nomes de criadores/favorecidos vêm de uma só leitura de pessoas, evitando
     // listas enormes de IDs na URL.
-    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }] = await Promise.all([
+    const results = await Promise.all([
       supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle(),
-      supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
+      fetchAllRows((from, to) => supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }).order("id").range(from, to)),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
       supabase.from("expense_installments").select("*").order("numero_parcela"),
@@ -274,6 +279,9 @@ export function FinancialPayables() {
       supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
       supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia"),
     ]);
+    const failed = results.find(result => result.error);
+    if (failed?.error) throw new Error(failed.error.message);
+    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }] = results;
     setEmpresaId((estab as any)?.id || "");
     const people = ((peopleData as any[]) || []);
 
@@ -351,7 +359,8 @@ export function FinancialPayables() {
           const userIds = payment.filter_context.split(",").filter(Boolean);
           for (const uid of userIds) {
             const oid = driverOwnerMap.get(uid);
-            if (oid && ownerMap.has(oid)) { ownerName = ownerMap.get(oid)!; break; }
+            const resolvedOwner = oid ? ownerMap.get(oid) : undefined;
+            if (resolvedOwner) { ownerName = resolvedOwner; break; }
           }
         }
 
@@ -406,10 +415,17 @@ export function FinancialPayables() {
     setProfilesMap(pMap);
     setFavorecidoMap(fMap);
 
-    setLoading(false);
+    } catch (error) {
+      console.error("Erro ao carregar contas a pagar:", error);
+      toast.error("Não foi possível carregar as despesas. Tente abrir Contas a Pagar novamente; se continuar, verifique sua conexão.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    if (!authLoading && user) fetchData();
+  }, [authLoading, user?.id, supportTenantId]);
 
   const handleEdit = (item: Expense) => { setEditingExpense(item); setFormOpen(true); };
   const handleNew = () => { setEditingExpense(null); setFormOpen(true); };
