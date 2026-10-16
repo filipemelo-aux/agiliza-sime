@@ -1,6 +1,5 @@
 import { format } from "date-fns";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
-import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 
 const formatCurrency = (v: number | null) =>
   v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
@@ -15,7 +14,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
   const isFrete = q.type === "frete";
   const diaria = q.valor_mensal_por_caminhao ? q.valor_mensal_por_caminhao / 30 : null;
 
-  const logoUrl = fsmLogoUrl;
+  const logoUrl = "__TENANT_LOGO__";
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
@@ -38,7 +37,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
 </style></head><body>
 
 <div class="header">
-  <img src="${logoUrl}" alt="FSM | Sistemas" />
+  <img src="${logoUrl}" alt="Logo da empresa" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
     <div style="font-size:11px;color:#666">${companyName}</div>

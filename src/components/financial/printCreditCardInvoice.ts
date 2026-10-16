@@ -1,4 +1,3 @@
-import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { formatCurrency } from "@/lib/masks";
@@ -33,7 +32,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   const items = (rows as any[]) || [];
   const total = items.reduce((s, r) => s + Number(r.amount || 0), 0);
 
-  const logoUrl = fsmLogoUrl;
+  const logoUrl = "__TENANT_LOGO__";
 
   const tbody = items
     .map((r) => {
@@ -89,7 +88,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   .footer { margin-top: 14px; border-top: 2px solid #2B4C7E; padding-top: 6px; text-align: center; font-size: 9px; color: #666; }
 </style></head><body>
 <div class="header">
-  <img src="${logoUrl}" alt="FSM | Sistemas" />
+  <img src="${logoUrl}" alt="Logo da empresa" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
     <div style="font-size:10px;color:#666">Fatura de Cartão de Crédito</div>

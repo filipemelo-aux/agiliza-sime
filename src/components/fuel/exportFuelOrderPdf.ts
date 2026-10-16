@@ -207,12 +207,6 @@ ${order.notes ? `
   ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ")}
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
 </td></tr>
-<tr><td style="padding:6px 0 0;text-align:center">
-  <table cellpadding="0" cellspacing="0" border="0" align="center"><tr>
-    <td style="font-size:9px;color:#888;padding-right:6px;vertical-align:middle">Agiliza TMS by</td>
-    <td style="vertical-align:middle"><img src="${FSM_LOGO_DATA_URL}" alt="fsm | sistemas" style="display:block;height:14px;width:auto;border:0" /></td>
-  </tr></table>
-</td></tr>
 
 </table>
 
@@ -245,15 +239,8 @@ export async function printFuelOrderPDF(order: any, companyName: string, company
   } catch {
     // Continue without signature
   }
-  let companyLogoUrl: string | null = null;
-  try {
-    const { getCurrentTenantLogoUrl } = await import("@/lib/tenantLogo");
-    companyLogoUrl = await getCurrentTenantLogoUrl();
-  } catch {
-    // Continue without signature
-  }
 
-  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, companyLogoUrl);
+  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl, "__TENANT_LOGO__");
 
   await downloadHtmlAsPdf(html, titleFromHtml(html, "Ordem de Abastecimento"));
 }
