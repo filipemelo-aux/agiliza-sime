@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { maskSentence } from "@/lib/masks";
+import { isTruckVehicle } from "@/lib/vehicleTypes";
 
 interface Props {
   open: boolean;
@@ -99,6 +100,10 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
   const [liters, setLiters] = useState("");
   const [notes, setNotes] = useState("");
 
+  const selectedVehicle = vehicles.find((x) => x.id === vehicleId);
+  // Arla 32 só se aplica a caminhão; veículos leves (passeio, utilitário) não usam.
+  const showArla = isTruckVehicle(selectedVehicle?.vehicle_type);
+
   useEffect(() => {
     if (!open) return;
 
@@ -113,7 +118,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
 
     supabase
       .from("vehicles")
-      .select("id, plate, brand, model, driver_id")
+      .select("id, plate, brand, model, driver_id, vehicle_type")
       .eq("is_active", true)
       .eq("fleet_type", "propria")
       .order("plate")
@@ -165,7 +170,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
 
     setSaving(true);
     const requesterName = userName.trim() || resolveRequesterName(user);
-    const arlaNote = fillMode === "completar" ? `Completar Arla: ${arlaMode === "sim" ? "Sim" : "Não"}` : "";
+    const arlaNote = fillMode === "completar" && showArla ? `Completar Arla: ${arlaMode === "sim" ? "Sim" : "Não"}` : "";
     const notesPayload = [notes.trim(), arlaNote].filter(Boolean).join("\n");
 
     const { data, error } = await supabase
@@ -251,6 +256,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
                   setVehicleId(v);
                   const veh = vehicles.find((x) => x.id === v);
                   setVehiclePlate(veh?.plate || "");
+                  if (!isTruckVehicle(veh?.vehicle_type)) setArlaMode("nao");
                 }}
               >
                 <SelectTrigger className="text-sm">
@@ -304,7 +310,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
               </RadioGroup>
             </div>
 
-            {fillMode === "completar" && (
+            {fillMode === "completar" && showArla && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Completar Arla?</Label>
                 <RadioGroup
