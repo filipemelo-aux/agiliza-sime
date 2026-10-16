@@ -23,6 +23,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { getLocalDateISO, addMonthsPreserveDay, formatDateBR } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
@@ -280,6 +281,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [showHistory, setShowHistory] = useState(false);
 
   // Fuel linking
@@ -401,6 +403,29 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const loadPaymentHistory = async (expenseId: string) => {
     const { data } = await supabase.from("expense_payments" as any).select("*").eq("expense_id", expenseId).order("created_at", { ascending: false });
     setPaymentHistory((data as any) || []);
+  };
+
+  /** Registra o saldo restante como desconto obtido e baixa a conta (sem saída de caixa). */
+  const lancarDescontoSaldo = async () => {
+    if (!expense?.id) return;
+    const pago = paymentHistory.reduce((s, p: any) => s + Number(p.valor || 0) + Number(p.desconto || 0), 0);
+    const saldo = Math.round((Number(expense.valor_total || 0) - pago) * 100) / 100;
+    if (saldo <= 0.009) return void toast.info("Esta conta não tem saldo a pagar.");
+    const ok = await confirm({
+      title: "Lançar desconto",
+      description: `Registrar ${formatCurrency(saldo)} como desconto obtido e baixar a conta como paga?\n\nNão haverá saída de dinheiro no fluxo de caixa.`,
+      confirmLabel: "Lançar desconto e baixar",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("expense_payments" as any).insert({
+      expense_id: expense.id, valor: 0, desconto: saldo, juros: 0,
+      forma_pagamento: "desconto", data_pagamento: getLocalDateISO(),
+      observacoes: "Desconto obtido na quitação", created_by: user?.id, skip_cashflow: true,
+    } as any);
+    if (error) return void toast.error(error.message);
+    toast.success("Desconto lançado — conta baixada como paga.");
+    onOpenChange(false);
+    onSaved(expense.id);
   };
 
   const loadInstallments = async (expenseId: string) => {
@@ -710,6 +735,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (existing && existing.id !== expense?.id) return void toast.error("Já existe uma despesa com esta chave de NF-e.");
     }
 
+    // Conta já paga parcialmente: trava e tratamento de desconto
+    let descontoQuitacao = 0;
+    let valorTotalFinal = Number(valorTotal);
+    if (expense?.id) {
+      const pagoAtual = paymentHistory.reduce((s, p: any) => s + Number(p.valor || 0) + Number(p.desconto || 0), 0);
+      const totalOriginal = Number(expense.valor_total || 0);
+      if (pagoAtual > 0) {
+        if (valorTotalFinal < pagoAtual - 0.01) {
+          return void toast.error(`O valor total não pode ser menor que o já pago (${formatCurrency(pagoAtual)}). Estorne um pagamento antes de reduzir.`);
+        }
+        const diferenca = Math.round((totalOriginal - valorTotalFinal) * 100) / 100;
+        if (diferenca > 0.009) {
+          const quitaComDesconto = valorTotalFinal <= pagoAtual + 0.01;
+          const ok = await confirm({
+            title: "Conta com pagamentos registrados",
+            description: `Você reduziu o valor de ${formatCurrency(totalOriginal)} para ${formatCurrency(valorTotalFinal)}.\n\nDeseja lançar a diferença de ${formatCurrency(diferenca)} como DESCONTO obtido?${quitaComDesconto ? " A conta será baixada como paga." : ""}\n\nSe escolher "Apenas corrigir o valor", o total da conta será alterado sem registrar desconto.`,
+            confirmLabel: "Lançar como desconto",
+            cancelLabel: "Apenas corrigir o valor",
+          });
+          if (ok) { descontoQuitacao = diferenca; valorTotalFinal = totalOriginal; }
+        }
+      }
+    }
+
     // Derive tipo_despesa from account for backward compatibility
     const derivedTipoDespesa = selectedAccount?.tipo_operacional === "manutencao" ? "manutencao"
       : selectedAccount?.tipo_operacional === "combustivel" ? "combustivel"
@@ -724,7 +773,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     const payload: any = {
       empresa_id: empresaSelecionada || empresaId || null, unidade_id: empresaSelecionada || empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
       plano_contas_id: planoContasId || null, centro_custo: centroCusto,
-      valor_total: Number(valorTotal), data_emissao: dataEmissao,
+      valor_total: valorTotalFinal, data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
       documento_fiscal_numero: docFiscal.trim() || null, chave_nfe: trimmedChave || null,
@@ -749,6 +798,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (error) {
         toast.error(error.message.includes("idx_expenses_chave_nfe_unique") ? "Chave NF-e duplicada" : error.message);
         setSaving(false); return;
+      }
+      if (descontoQuitacao > 0) {
+        const { error: dErr } = await supabase.from("expense_payments" as any).insert({
+          expense_id: expenseId, valor: 0, desconto: descontoQuitacao, juros: 0,
+          forma_pagamento: "desconto", data_pagamento: getLocalDateISO(),
+          observacoes: "Desconto obtido na quitação", created_by: user?.id, skip_cashflow: true,
+        } as any);
+        if (dErr) { toast.error("Conta salva, mas o desconto não foi lançado: " + dErr.message); setSaving(false); return; }
       }
     } else {
       payload.created_by = user?.id;
@@ -2100,6 +2157,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     </CardContent>
                   </Card>
 
+                  {Number(expense?.valor_pago || 0) > 0 && Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0) > 0.009 && (
+                    <div className="flex justify-end">
+                      <Button type="button" variant="outline" size="sm" onClick={lancarDescontoSaldo}>
+                        Lançar saldo como desconto e baixar
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Audit */}
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
@@ -2130,7 +2195,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           {paymentHistory.map(p => (
                             <TableRow key={p.id}>
                               <TableCell className="text-[11px]" title={`Lançado em ${format(new Date(p.created_at), "dd/MM/yy HH:mm")}`}>{p.data_pagamento ? formatDateBR(p.data_pagamento) : format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
-                              <TableCell className="text-[11px] font-mono">{formatCurrency(Number(p.valor))}</TableCell>
+                              <TableCell className="text-[11px] font-mono">{Number((p as any).desconto || 0) > 0 ? `Desc. ${formatCurrency(Number((p as any).desconto))}` : formatCurrency(Number(p.valor))}</TableCell>
                               <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
                               <TableCell className="text-[11px] truncate">{p.observacoes || "—"}</TableCell>
                             </TableRow>
@@ -2174,7 +2239,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       }}
       onSaved={handleChequeSaved}
     />
+    {ConfirmDialog}
   </>
+
   );
 }
 

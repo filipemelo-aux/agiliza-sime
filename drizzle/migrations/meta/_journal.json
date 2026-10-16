@@ -71,6 +71,13 @@
       "when": 1792181130052,
       "tag": "0009_recalculate_expense_after_total_edit",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792182580401,
+      "tag": "0010_block_total_below_paid",
+      "breakpoints": true
     }
   ]
 }
