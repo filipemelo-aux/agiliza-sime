@@ -22,6 +22,6 @@
 - [x] Exibir nome e sobrenome completos na coluna Usuário das listagens de CT-e e MDF-e.
 - [x] Nome de usuário muito longo: cortar com "…" e mostrar o completo no hover, como nas colunas Cliente/Descrição.
 - [x] Corrigir rolagem duplicada das janelas e validar formulários no desktop e celular.
-- [ ] Corrigir quitação após editar o total para igualar os pagamentos existentes.
-- [ ] Localizar os dois pagamentos de R$ 1.518,90 e R$ 337,00 e corrigir sua visibilidade/estorno.
-- [ ] Validar a conta e o histórico nas telas financeiras com sessão autenticada.
+- [x] Corrigir quitação após editar o total para igualar os pagamentos existentes.
+- [x] Localizar os dois pagamentos de R$ 1.518,90 e R$ 337,00 e corrigir sua visibilidade/estorno.
+- [x] Validar a conta e o histórico nas telas financeiras com sessão autenticada.
