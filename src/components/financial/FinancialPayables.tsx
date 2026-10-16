@@ -260,10 +260,11 @@ export function FinancialPayables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: estab } = await supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle();
-    setEmpresaId(estab?.id || "");
-
-    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }] = await Promise.all([
+    // Tudo em uma única rodada paralela (antes eram várias etapas em sequência).
+    // Nomes de criadores/favorecidos vêm de uma só leitura de pessoas, evitando
+    // listas enormes de IDs na URL.
+    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }] = await Promise.all([
+      supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle(),
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
@@ -271,7 +272,10 @@ export function FinancialPayables() {
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
       supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
+      supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia"),
     ]);
+    setEmpresaId((estab as any)?.id || "");
+    const people = ((peopleData as any[]) || []);
 
     const counts: Record<string, number> = {};
     for (const g of (groupItemsData as any[]) || []) {
