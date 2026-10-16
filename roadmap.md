@@ -28,3 +28,5 @@
 - [x] Corrigir CPF dos condutores no DAMDFE individual e em lote, incluindo manifestos existentes.
 - [x] Padronizar nitidez e tamanho das marcas Agiliza TMS by fsm nas impressões HTML e fiscais; preservar cheques sem marcas.
 - [x] Validar DAMDFE 8165, lote 8165/8163, DACTE e rodapé HTML; 10 testes aprovados.
+- [x] Nas impressões de CT-e e MDF-e, manter somente a marca Agiliza TMS (sem fsm | sistemas).
+- [x] Remover o "by" que ficava sozinho no rodapé do DACTE e do DAMDFE; validar com teste.

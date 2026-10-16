@@ -21,12 +21,16 @@ export function drawPrintBrandFooter(pdf: jsPDF, top: number, agiliza: BrandImag
   const aw = agiliza ? agiliza.w / agiliza.h * ah : 0;
   const fw = fsm ? fsm.w / fsm.h * fh : 0;
   pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(85);
-  const by = pdf.getTextWidth("by");
-  let x = (pdf.internal.pageSize.getWidth() - aw - fw - by - gap * 2) / 2;
+  // O "by" só aparece quando as duas marcas estão no rodapé.
+  const both = Boolean(agiliza && fsm);
+  const by = both ? pdf.getTextWidth("by") : 0;
+  let x = (pdf.internal.pageSize.getWidth() - aw - fw - by - gap * (both ? 2 : 0)) / 2;
   if (agiliza) pdf.addImage(agiliza.data, "PNG", x, top, aw, ah);
-  x += aw + gap;
-  pdf.text("by", x, top + ah / 2 + 3);
-  x += by + gap;
+  if (both) {
+    x += aw + gap;
+    pdf.text("by", x, top + ah / 2 + 3);
+    x += by + gap;
+  }
   if (fsm) pdf.addImage(fsm.data, "PNG", x, top + (ah - fh) / 2, fw, fh);
   pdf.setTextColor(0);
 }
