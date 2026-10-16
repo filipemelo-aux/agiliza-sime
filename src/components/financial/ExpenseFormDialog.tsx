@@ -23,7 +23,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
-import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
+import { getLocalDateISO, addMonthsPreserveDay, formatDateBR } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { CheckIssueDialog } from "./CheckIssueDialog";
 import VehicleRateioEditor from "./VehicleRateioEditor";
