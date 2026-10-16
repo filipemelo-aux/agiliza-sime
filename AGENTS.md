@@ -18,3 +18,4 @@
 - Plate inputs mask by position using only the Mercosul pattern (LLL-NLNN) in `maskPlateInput`, because the user chose to accept only the new plate format when typing.
 - DialogContent owns default padding and vertical scrolling directly, without a nested scrolling wrapper; dialogs with their own body scroller override it with overflow-hidden so each window has only one primary scroll area.
 - Printable documents (except DACTE, DAMDFE and cheques) build their header with `buildPrintHeaderHtml` from `src/lib/printHeader.ts` using the document's own establishment, so every print shares one header layout.
+- Payables reads wait for authenticated access, surface query errors, and paginate expenses through fetchAllRows so session restoration and row limits cannot silently hide records.
