@@ -30,5 +30,5 @@
 - [x] Validar DAMDFE 8165, lote 8165/8163, DACTE e rodapé HTML; 10 testes aprovados.
 - [x] Nas impressões de CT-e e MDF-e, manter somente a marca Agiliza TMS (sem fsm | sistemas).
 - [x] Remover o "by" que ficava sozinho no rodapé do DACTE e do DAMDFE; validar com teste.
-- [ ] Corrigir largura, protocolo e legibilidade do contrato de frete na visualização e na impressão A4.
-- [ ] Conferir contrato real individual e em lote na janela e no PDF.
+- [x] Corrigir largura, protocolo e legibilidade do contrato de frete na visualização e na impressão A4.
+- [x] Conferir contratos 9 e 8 na janela e no PDF: sem transbordamento, individual em uma página e lote em duas, rodapés por contrato; seis testes aprovados.
