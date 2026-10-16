@@ -15,9 +15,17 @@ function detectLandscape(html: string) {
   return /@page[^{]*\{[^}]*landscape/i.test(html) || /size:\s*A4\s+landscape/i.test(html);
 }
 
+/** Abre uma JANELA separada (não aba) para a visualização de impressão. Chamar dentro do clique. */
+export function openPrintWindow(): Window | null {
+  const w = Math.min(1100, window.screen.availWidth - 40);
+  const h = Math.max(600, window.screen.availHeight - 60);
+  const left = Math.max(0, Math.round((window.screen.availWidth - w) / 2));
+  return window.open("", "_blank", `popup=yes,width=${w},height=${h},left=${left},top=20,resizable=yes,scrollbars=yes`);
+}
+
 export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: { landscape?: boolean; win?: Window | null }) {
   const landscape = opts?.landscape ?? detectLandscape(html);
-  const printWindow = opts?.win ?? window.open("", "_blank");
+  const printWindow = opts?.win ?? openPrintWindow();
   if (!printWindow) {
     toast.error("Permita a abertura da janela de impressão no navegador.");
     return;
@@ -73,7 +81,6 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
           setTimeout(function(){URL.revokeObjectURL(a.href)},30000);
         };
       })();
-      window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print()},200)},{once:true});
     </script></body>`);
 
   try {
