@@ -5,9 +5,9 @@ import {
   buildPrintHeaderHtml,
   fetchEstablishmentHeader,
   fetchMatrizHeader,
-  getCurrentTenantLogoUrl,
   type PrintCompanyHeader,
 } from "@/lib/printHeader";
+import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 
 // ─── Cores do padrão de impressão (modelo das faturas) ───
 const INK = "#1a1a2e";
