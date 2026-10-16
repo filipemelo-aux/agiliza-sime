@@ -1,3 +1,4 @@
+import { printHeaderMarker } from "@/lib/printHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { formatCurrency } from "@/lib/masks";
@@ -87,14 +88,7 @@ export async function printCreditCardInvoice(invoiceId: string) {
   .obs { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; margin-top: 10px; white-space: pre-wrap; font-size: 11px; }
   .footer { margin-top: 14px; border-top: 2px solid #2B4C7E; padding-top: 6px; text-align: center; font-size: 9px; color: #666; }
 </style></head><body>
-<div class="header">
-  <img src="${logoUrl}" alt="Logo da empresa" />
-  <div>
-    <div class="brand">SIME <span>TRANSPORTES</span></div>
-    <div style="font-size:10px;color:#666">Fatura de Cartão de Crédito</div>
-  </div>
-</div>
-<h1>FATURA — ${escapeHtml(i.card_name || "")}${i.reference_label ? " • " + escapeHtml(i.reference_label) : ""}</h1>
+${printHeaderMarker({ title: "FATURA DE CARTÃO", subtitle: [i.card_name, i.reference_label].filter(Boolean).join(" · "), highlight: formatCurrency(total), establishmentId: i.establishment_id || i.empresa_id || null })}
 <div class="meta">
   <div class="box"><h4>Cartão / Banco</h4><p>${escapeHtml(i.card_name || "—")}</p></div>
   <div class="box"><h4>Referência</h4><p>${escapeHtml(i.reference_label || "—")}</p></div>

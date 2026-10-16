@@ -1,3 +1,4 @@
+import { printHeaderMarker } from "@/lib/printHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { format } from "date-fns";
@@ -134,9 +135,7 @@ tfoot{display:table-row-group}
 <body>
 <div class="toolbar no-print"></div>
 <div class="wrap">
-  <div class="head">
-    <div style="flex:1"><h1>Detalhes da Conta</h1><div class="per">${rows.length} item(ns) agrupado(s)</div></div>
-  </div>
+  ${printHeaderMarker({ title: "DETALHES DA CONTA", subtitle: `${rows.length} item(ns) agrupado(s)` })}
   <div class="meta">
     <span>Favorecido: <b>${esc(expense.favorecido_nome || "—")}</b></span>
     <span>Descrição: <b>${esc(expense.descricao || "—")}</b></span>

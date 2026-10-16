@@ -48,3 +48,34 @@ export function buildPrintHeaderHtml(opts: {
   </td>
 </tr></table>`;
 }
+
+/** Busca a matriz da empresa logada (reserva quando o documento não tem agência). */
+export async function fetchMatrizHeader(): Promise<PrintCompanyHeader> {
+  const { data } = await (supabase.from as any)("fiscal_establishments")
+    .select("id, type").order("type", { ascending: true });
+  const list = (data as any[]) || [];
+  const m = list.find((e) => e.type === "matriz") || list[0];
+  return fetchEstablishmentHeader(m?.id);
+}
+
+type MarkerOpts = { title: string; subtitle?: string; highlight?: string; establishmentId?: string | null };
+
+/** Marcador síncrono: a janela de impressão troca pelo cabeçalho padrão (com logo e dados da agência). */
+export function printHeaderMarker(opts: MarkerOpts) {
+  return `<!--PRINT_HEADER:${encodeURIComponent(JSON.stringify(opts))}-->`;
+}
+
+/** Resolve marcadores de cabeçalho no HTML (usado por downloadHtmlAsPdf e e-mails). */
+export async function resolvePrintHeaders(html: string, logoUrl: string | null = "__TENANT_LOGO__") {
+  const re = /<!--PRINT_HEADER:([^>]*?)-->/g;
+  const matches = [...html.matchAll(re)];
+  for (const m of matches) {
+    let opts: MarkerOpts;
+    try { opts = JSON.parse(decodeURIComponent(m[1])); } catch { continue; }
+    let company: PrintCompanyHeader = { name: "", docLine: "", address: "" };
+    try { company = opts.establishmentId ? await fetchEstablishmentHeader(opts.establishmentId) : await fetchMatrizHeader(); } catch { /* sem dados */ }
+    if (!company.name) { try { company = await fetchMatrizHeader(); } catch { /* */ } }
+    html = html.replace(m[0], buildPrintHeaderHtml({ company, logoUrl, title: opts.title, subtitle: opts.subtitle, highlight: opts.highlight }));
+  }
+  return html;
+}

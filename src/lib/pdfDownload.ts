@@ -5,6 +5,7 @@ import { toast } from "@/lib/notice";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
 import fsmLogo from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
+import { resolvePrintHeaders } from "@/lib/printHeader";
 
 /** Marcador usado nos cabeçalhos: é trocado pela logo da empresa logada. */
 export const TENANT_LOGO_MARKER = "__TENANT_LOGO__";
@@ -44,6 +45,10 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
     return;
   }
 
+  // Cabeçalho padrão (marcador) → logo + dados da agência.
+  if (html.includes("<!--PRINT_HEADER:")) {
+    try { html = await resolvePrintHeaders(html); } catch { /* mantém documento */ }
+  }
   // Cabeçalho: logo da empresa logada (sem logo cadastrada, a imagem é omitida).
   if (html.includes(TENANT_LOGO_MARKER)) {
     let logo: string | null = null;
