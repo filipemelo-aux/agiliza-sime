@@ -6,8 +6,7 @@ import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, maskCEP, formatCurrency } from "@/lib/masks";
 import type { CtePrintInput } from "./ctePrint";
-import agilizaLogoUrl from "@/assets/brand/agiliza-tms-logo.png";
-import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
+import { drawPrintBrandFooter, printBrandAssets } from "@/lib/printBrand";
 
 type Dict = Record<string, any>;
 type Quantity = { cUnid?: string; tpMed?: string; qCarga?: number };
@@ -622,21 +621,7 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   pdf.setDrawColor(210);
   pdf.line(27, 812.5, 568, 812.5);
   pdf.setDrawColor(0);
-  pdf.setTextColor(110);
-  {
-    const aH = 11, fH = 8;
-    const aW = agilizaLogo ? (agilizaLogo.w / agilizaLogo.h) * aH : 0;
-    const fW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * fH : 0;
-    P.font(6);
-    const byW = pdf.getTextWidth("by");
-    let x = DACTE_LAYOUT.width / 2 - (aW + byW + fW + 10) / 2;
-    if (agilizaLogo) pdf.addImage(agilizaLogo.data, "PNG", x, 816, aW, aH);
-    x += aW + 5;
-    pdf.text("by", x, 823.5);
-    x += byW + 5;
-    if (fsmLogo) pdf.addImage(fsmLogo.data, "PNG", x, 817.5, fW, fH);
-  }
-  pdf.setTextColor(0);
+  drawPrintBrandFooter(pdf, 816, agilizaLogo, fsmLogo);
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */
@@ -648,8 +633,8 @@ export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
     compress: true,
   });
   const logo = await loadLogo();
-  const fsmLogo = await loadImage(fsmLogoUrl);
-  const agilizaLogo = await loadImage(agilizaLogoUrl);
+  const fsmLogo = await loadImage(printBrandAssets.fsm);
+  const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
     await drawPage(pdf, ctes[i], logo, fsmLogo, agilizaLogo);

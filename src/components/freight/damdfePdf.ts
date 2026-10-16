@@ -5,8 +5,8 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, formatCurrency } from "@/lib/masks";
-import agilizaLogoUrl from "@/assets/brand/agiliza-tms-logo.png";
-import fsmLogoUrl from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
+import { resolveMdfeDrivers } from "./mdfeDrivers";
+import { drawPrintBrandFooter, printBrandAssets } from "@/lib/printBrand";
 
 type Dict = Record<string, any>;
 
@@ -145,7 +145,10 @@ async function loadData(m: Dict) {
 
 async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
   const P = new Painter(pdf);
-  const { emit, veh, owner, ctes, estNames } = await loadData(m);
+  const [{ emit, veh, owner, ctes, estNames }, condutores] = await Promise.all([
+    loadData(m),
+    resolveMdfeDrivers([{ id: m.motorista_id, nome: m.motorista_nome, cpf: m.motorista_cpf }, ...asArray<Dict>(m.condutores_extras)]),
+  ]);
   const key = digits(m.chave_acesso).slice(-44);
   const auth = authorization(m);
   pdf.setDrawColor(0); pdf.setLineWidth(0.6);
@@ -172,7 +175,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
   P.text("Controle do Fisco", 996, 67, 6.2, { bold: true, align: "center" });
   drawBarcode(pdf, key);
   P.text("Chave de acesso", 738, 161, 7.6, { bold: true });
-  P.text(key ? key.match(/.{1,4}/g)!.join(".") : "", 997, 178, 10, { align: "center" });
+  P.text(key.match(/.{1,4}/g)?.join(".") || "", 997, 178, 10, { align: "center" });
 
   // Linha Modelo/Série/...
   const cols = [31, 115, 175, 297, 385, 538, 623, 733];
@@ -228,8 +231,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
     P.text(ownerDoc, 262, y, 7.4, { maxW: 102 });
     P.text(ownerName, 368, y, 7.4, { maxW: 362 });
   });
-  const condutores = [{ nome: m.motorista_nome, cpf: m.motorista_cpf }, ...asArray<Dict>(m.condutores_extras)].filter((c) => c.nome || c.cpf);
-  condutores.slice(0, 6).forEach((c, i) => {
+  condutores.filter(c => c.nome || c.cpf).slice(0, 6).forEach((c, i) => {
     const y = 333 + i * 20;
     P.text(digits(c.cpf), 737, y, 7.4);
     P.text(up(c.nome), 829, y, 7.4, { maxW: 428 });
@@ -307,28 +309,15 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  pdf.setTextColor(110);
-  {
-    const aH = 13, fH = 9.5;
-    const aW = agilizaLogo ? (agilizaLogo.w / agilizaLogo.h) * aH : 0;
-    const fW = fsmLogo ? (fsmLogo.w / fsmLogo.h) * fH : 0;
-    const byW = 9;
-    let x = 647 - (aW + byW + fW + 12) / 2;
-    if (agilizaLogo) pdf.addImage(agilizaLogo.data, "PNG", k(x), k(841), k(aW), k(aH));
-    x += aW + 6;
-    P.text("by", x, 851, 6.6);
-    x += byW + 6;
-    if (fsmLogo) pdf.addImage(fsmLogo.data, "PNG", k(x), k(843), k(fW), k(fH));
-  }
-  pdf.setTextColor(0);
+  drawPrintBrandFooter(pdf, k(841), agilizaLogo, fsmLogo);
 }
 
 /** Gera o DAMDFE (um MDF-e por página, A4 paisagem) idêntico ao modelo aprovado. */
 export async function buildDamdfePdf(mdfes: Dict[]): Promise<jsPDF> {
   const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape", compress: true });
   const logo = await loadImage(`${window.location.origin}/logo.png`);
-  const fsmLogo = await loadImage(fsmLogoUrl);
-  const agilizaLogo = await loadImage(agilizaLogoUrl);
+  const fsmLogo = await loadImage(printBrandAssets.fsm);
+  const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < mdfes.length; i++) {
     if (i > 0) pdf.addPage("a4", "landscape");
     await drawPage(pdf, mdfes[i], logo, fsmLogo, agilizaLogo);

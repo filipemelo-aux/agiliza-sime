@@ -2,20 +2,12 @@
 // O usuário pode salvar como PDF sem renderização pesada no aplicativo.
 // NÃO usar para cheques (layout próprio em checkPdf.ts).
 import { toast } from "@/lib/notice";
-import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
-import fsmLogo from "@/assets/brand/fsm-systems-logo-horizontal-small.png";
+import { printBrandFooterHtml } from "@/lib/printBrand";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 import { resolvePrintHeaders } from "@/lib/printHeader";
 
 /** Marcador usado nos cabeçalhos: é trocado pela logo da empresa logada. */
 export const TENANT_LOGO_MARKER = "__TENANT_LOGO__";
-
-const abs = (u: string) => new URL(u, window.location.origin).href;
-const BRAND_FOOTER = () => `<div class="agiliza-brand-footer" style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:14px;padding-top:6px;border-top:1px solid #e5e7eb;break-inside:avoid">
-  <img src="${abs(agilizaLogo)}" alt="Agiliza TMS" style="height:16px;width:auto" />
-  <span style="font:9px Arial,sans-serif;color:#888">by</span>
-  <img src="${abs(fsmLogo)}" alt="fsm | sistemas" style="height:12px;width:auto" />
-</div>`;
 
 const MARGIN_MM = 12;
 
@@ -58,7 +50,7 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       : html.replace(/<img[^>]*__TENANT_LOGO__[^>]*>/g, "");
   }
   // Rodapé padrão: Agiliza TMS by fsm ao final do documento.
-  html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${BRAND_FOOTER()}</body>`);
+  html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
 
   const safeTitle = sanitizeFileName(fileName).replace(/_/g, " ");
   // Remove comandos antigos e inclui um único controle leve para imprimir novamente.
