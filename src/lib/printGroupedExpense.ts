@@ -3,7 +3,7 @@ import { toast } from "@/lib/notice";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
+import { downloadHtmlAsPdf, titleFromHtml, openPrintWindow } from "@/lib/pdfDownload";
 
 /** Descobre quais contas são agrupamentos (grupo de contas ou fatura de abastecimentos). */
 export async function fetchGroupedExpenseIds(ids: string[]): Promise<Set<string>> {
