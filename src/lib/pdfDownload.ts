@@ -28,8 +28,10 @@ function attachPdfDownloadListener() {
   pdfListenerAttached = true;
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) return;
-    const data = event.data as { type?: string; id?: string } | null;
-    if (import.meta.env.DEV) console.log("[pdfDownload] message", event.origin, data?.type, data?.id);
+    let data: { type?: string; id?: string } | null = null;
+    try {
+      data = (typeof event.data === "string" ? JSON.parse(event.data) : event.data) as { type?: string; id?: string } | null;
+    } catch { /* mensagem ignorada */ }
     if (!data || data.type !== "agiliza-download-pdf" || !data.id) return;
     const entry = pdfRequests.get(data.id);
     if (!entry) return;
