@@ -346,43 +346,43 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${input.numero}</title>
 <style>
-  @page { size: A4 portrait; margin: 9mm; }
+  @page { size: A4 portrait; margin: 25mm; }
   html, body { height: auto; }
-  body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.25; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #2B4C7E; padding-bottom: 3px; margin-bottom: 4px; }
-  .header .empresa { font-size: 9pt; line-height: 1.25; }
+  body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.18; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #2B4C7E; padding-bottom: 2px; margin-bottom: 3px; }
+  .header .empresa { font-size: 9pt; line-height: 1.18; }
   .header .empresa b { font-size: 10.5pt; }
   .header .num { text-align: right; font-size: 9pt; flex-shrink: 0; margin-left: 12px; }
   .header .num b { font-size: 12pt; color: #2B4C7E; display: block; }
-  h1.tit { text-align: center; font-size: 12pt; margin: 6px 0 8px; text-transform: uppercase; letter-spacing: 0; }
-  table.party { width: 100%; border-collapse: collapse; margin: 3px 0 6px; font-size: 9pt; break-inside: avoid; }
-  table.party th, table.party td { border: 1px solid #999; padding: 3px 5px; text-align: left; vertical-align: top; }
+  h1.tit { text-align: center; font-size: 12pt; margin: 3px 0 5px; text-transform: uppercase; letter-spacing: 0; }
+  table.party { width: 100%; border-collapse: collapse; margin: 2px 0 4px; font-size: 9pt; break-inside: avoid; }
+  table.party th, table.party td { border: 1px solid #999; padding: 2px 4px; text-align: left; vertical-align: top; }
   table.party th { background: #e8eef5; font-weight: bold; text-transform: uppercase; font-size: 9pt; }
-  h2 { font-size: 9.5pt; margin: 7px 0 4px; text-transform: uppercase; background: #f1f1f1; padding: 3px 5px; border-left: 3px solid #2B4C7E; break-after: avoid; }
-  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px 12px; font-size: 9pt; padding: 3px 5px; }
+  h2 { font-size: 9.5pt; margin: 4px 0 2px; text-transform: uppercase; background: #f1f1f1; padding: 2px 5px; border-left: 3px solid #2B4C7E; break-after: avoid; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 12px; font-size: 9pt; padding: 1px 5px; }
   .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px 12px; font-size: 7.5pt; padding: 1px 5px; }
-  table.carga { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 3px 0; }
-  table.carga th, table.carga td { border: 1px solid #999; padding: 4px 5px; text-align: left; vertical-align: top; }
+  table.carga { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 2px 0; }
+  table.carga th, table.carga td { border: 1px solid #999; padding: 2px 4px; text-align: left; vertical-align: top; }
   table.carga th { background: #f1f1f1; font-size: 8pt; }
-  .composicao { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 3px 5px; font-size: 9pt; break-inside: avoid; }
+  .composicao { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 2px 5px; font-size: 9pt; break-inside: avoid; }
   .composicao .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 0; }
-  .composicao .row.total { border-top: 1px solid #333; border-bottom: 1px solid #333; font-weight: bold; padding: 1px 0; margin-top: 2px; }
-  .aviso { font-size: 8pt; padding: 5px 6px; background: #fffbe6; border: 1px solid #f0e68c; margin: 6px 0; text-align: justify; line-height: 1.25; break-inside: avoid; }
-  .obs { padding: 5px; font-size: 9pt; min-height: 26px; border: 1px solid #ccc; margin-top: 3px; }
-  .sign { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; break-inside: avoid; }
-  .sign .line { border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 8.5pt; }
-  .footer { margin-top: 8px; border-top: 1px solid #ccc; padding-top: 4px; font-size: 8pt; color: #666; display: flex; justify-content: space-between; }
+  .composicao .row.total { border-top: 1px solid #333; border-bottom: 1px solid #333; font-weight: bold; padding: 1px 0; margin-top: 1px; }
+  .aviso { font-size: 8pt; padding: 3px 5px; background: #fffbe6; border: 1px solid #f0e68c; margin: 4px 0; text-align: justify; line-height: 1.15; break-inside: avoid; }
+  .obs { padding: 3px; font-size: 9pt; min-height: 14px; border: 1px solid #ccc; margin-top: 2px; }
+  .sign { margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; break-inside: avoid; }
+  .sign .line { border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 8.5pt; line-height: 1.15; }
+  .footer { margin-top: 5px; border-top: 1px solid #ccc; padding-top: 3px; font-size: 8pt; color: #666; display: flex; justify-content: space-between; }
   *, *::before, *::after { box-sizing: border-box; }
   table { table-layout: fixed; max-width: 100%; }
   th, td, .grid2 > div, .composicao > div, .sign > div, .empresa, .obs { min-width: 0; overflow-wrap: anywhere; }
   table.carga tr { break-inside: avoid; }
-  .chave { font-family: monospace; font-size: 9pt; overflow-wrap: anywhere; }
+  .chave { font-family: monospace; font-size: 8pt; overflow-wrap: anywhere; }
   .contract-closing { break-inside: avoid; page-break-inside: avoid; }
   @media print {
     body { width: auto; min-height: 0; padding: 0; }
-    .contract-closing .sign { margin-top: 16px; }
-    .contract-closing .footer { margin-top: 6px; }
-    .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 3px !important; }
+    .contract-closing .sign { margin-top: 12px; }
+    .contract-closing .footer { margin-top: 4px; }
+    .contract-closing .agiliza-brand-footer { margin-top: 3px !important; padding-top: 2px !important; }
   }
 
 </style></head><body>
@@ -511,5 +511,5 @@ ${bodies.map((b) => `<div class="doc-page">${b}</div>`).join("\n")}
 }
 
 export function openPrintWindow(html: string) {
-  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 9 });
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 25 });
 }

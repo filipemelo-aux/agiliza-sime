@@ -1332,7 +1332,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 .summary-item .value{font-size:14px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px}
 .divider{border:none;border-top:1px dashed #e5e7eb;margin:6px 0}
-@media print{body{padding:6px 10px;font-size:9px}@page{margin:5mm;size:A4 portrait}table{font-size:9px}th{padding:2px 4px;font-size:8px}td{padding:1px 4px;font-size:9px;line-height:1.15}.header{margin-bottom:4px;padding-bottom:4px}.summary-box{padding:4px 6px;gap:4px;margin-bottom:6px}.summary-item .value{font-size:11px}.summary-item .label{font-size:7px}.divider{margin:4px 0}.footer{margin-top:5px;padding-top:4px;font-size:7px}h2{font-size:11px;margin-bottom:3px}.section{margin-bottom:6px}.section-title{font-size:8px;margin-bottom:3px;padding-bottom:2px}.info-item label{font-size:7px}.info-item span{font-size:9px}.info-grid,.info-grid-3,.info-grid-4{gap:2px 12px}.company{font-size:13px}.company-sub,.company-addr{font-size:8px}.doc-title{font-size:16px}.doc-number{font-size:9px}.badge{padding:1px 4px;font-size:8px}}
+@media print{body{padding:0;font-size:9px}@page{margin:25mm;size:A4 portrait}table{font-size:9px}th{padding:2px 4px;font-size:8px}td{padding:1px 4px;font-size:9px;line-height:1.15}.header{margin-bottom:4px;padding-bottom:4px}.summary-box{padding:4px 6px;gap:4px;margin-bottom:6px}.summary-item .value{font-size:11px}.summary-item .label{font-size:7px}.divider{margin:4px 0}.footer{margin-top:5px;padding-top:4px;font-size:7px}h2{font-size:11px;margin-bottom:3px}.section{margin-bottom:6px}.section-title{font-size:8px;margin-bottom:3px;padding-bottom:2px}.info-item label{font-size:7px}.info-item span{font-size:9px}.info-grid,.info-grid-3,.info-grid-4{gap:2px 12px}.company{font-size:13px}.company-sub,.company-addr{font-size:8px}.doc-title{font-size:16px}.doc-number{font-size:9px}.badge{padding:1px 4px;font-size:8px}}
 </style></head><body>
 
 <div class="header">
@@ -1558,7 +1558,7 @@ ${hasRecebimentos ? `
 </div>
 </body></html>`;
 
-    downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"));
+    downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"), { marginMm: 25 });
   };
 
   const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);
