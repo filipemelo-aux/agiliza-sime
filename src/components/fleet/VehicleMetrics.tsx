@@ -16,6 +16,9 @@ import { formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { downloadHtmlAsPdf, openPrintWindow } from "@/lib/pdfDownload";
+import { printHeaderMarker } from "@/lib/printHeader";
+import { Printer } from "lucide-react";
 
 type Vehicle = { id: string; plate: string };
 type Cte = { id: string; numero: number | null; data_emissao: string | null; valor_frete: number | null; remetente_nome: string | null; destinatario_nome: string | null; veiculo_id?: string | null };
