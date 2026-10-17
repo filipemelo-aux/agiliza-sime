@@ -81,7 +81,7 @@ export default function VehicleMetrics() {
   }, []);
 
   useEffect(() => {
-    if (!dataInicio || !dataFim) return;
+    if (!dataInicio || !dataFim || vehicles.length === 0) return;
     (async () => {
       setLoading(true);
       const startTs = `${dataInicio}T00:00:00`;
@@ -89,7 +89,7 @@ export default function VehicleMetrics() {
       const isAll = veiculoId === ALL;
 
       const cteQ = supabase.from("ctes")
-        .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome, veiculo_id")
+        .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome, veiculo_id, placa_veiculo")
         .gte("data_emissao", startTs).lte("data_emissao", endTs)
         .order("data_emissao", { ascending: false });
       const fuelQ = supabase.from("fuelings")
@@ -119,7 +119,6 @@ export default function VehicleMetrics() {
         .order("data_emissao", { ascending: false });
 
       if (!isAll) {
-        cteQ.eq("veiculo_id", veiculoId);
         fuelQ.eq("veiculo_id", veiculoId);
         maintQ.eq("veiculo_id", veiculoId);
         cardQ.eq("veiculo_id", veiculoId);
@@ -140,7 +139,20 @@ export default function VehicleMetrics() {
       const rateioCard = rateioAll.filter((r) => r.card && inRange(r.card.posted_date));
       const rateioExp = rateioAll.filter((r) => r.expense && inRange(r.expense.data_emissao));
 
-      setCtes((cteRes.data as any) || []);
+      // Métricas da frota: apenas CT-es vinculados a veículos da frota própria.
+      // CT-es de serviço mais antigos podem ter só a placa (sem veiculo_id) — resolve pela placa.
+      const fleetIds = new Set(vehicles.map((v) => v.id));
+      const fleetIdByPlate = new Map(vehicles.map((v) => [v.plate, v.id]));
+      const selPlate = vehicles.find((v) => v.id === veiculoId)?.plate || "";
+      const ctesFleet = (((cteRes.data as any[]) || []) as any[]).flatMap((c) => {
+        const vid = c.veiculo_id && fleetIds.has(c.veiculo_id)
+          ? c.veiculo_id
+          : (c.placa_veiculo ? fleetIdByPlate.get(c.placa_veiculo) : null) || null;
+        if (!vid) return [];
+        if (!isAll && vid !== veiculoId && !(selPlate && c.placa_veiculo === selPlate)) return [];
+        return [{ ...c, veiculo_id: vid }];
+      });
+      setCtes(ctesFleet);
       setFuelings((fuelRes.data as any) || []);
       setMaints((maintRes.data as any) || []);
 
@@ -185,7 +197,7 @@ export default function VehicleMetrics() {
       ]);
       setLoading(false);
     })();
-  }, [veiculoId, dataInicio, dataFim]);
+  }, [veiculoId, dataInicio, dataFim, vehicles]);
 
   const plateById = useMemo(() => {
     const m = new Map<string, string>();
