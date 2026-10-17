@@ -81,7 +81,7 @@ export default function VehicleMetrics() {
   }, []);
 
   useEffect(() => {
-    if (!dataInicio || !dataFim) return;
+    if (!dataInicio || !dataFim || vehicles.length === 0) return;
     (async () => {
       setLoading(true);
       const startTs = `${dataInicio}T00:00:00`;
