@@ -1,6 +1,6 @@
 # Project architecture rules
 
-- Reports use lightweight HTML print windows; DACTE always uses the approved vector renderer in `dactePdf.ts`, never HTML/canvas, for machine-independent geometry. Cheques are downloaded PDFs from stored `checkPdf.ts` layouts, never direct printing, to preserve physical positions.
+- Reports preview in HTML windows and download via native foreign-object capture with embedded images and isolated batch pages, preserving text baselines and logos. DACTE uses `dactePdf.ts` vectors only; cheques use stored `checkPdf.ts` PDF layouts only, preserving physical geometry.
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
