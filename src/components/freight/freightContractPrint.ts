@@ -1,10 +1,11 @@
 // Shared helper that fetches full driver/owner details and builds the
 // rich Contrato de Afretamento HTML, modeled after the Bsoft TMS layout.
 import { supabase } from "@/integrations/supabase/client";
-import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
+import { downloadHtmlAsPdf, titleFromHtml, TENANT_LOGO_MARKER } from "@/lib/pdfDownload";
 import { maskCPF, maskCNPJ, maskCEP, maskPhone } from "@/lib/masks";
 import { fiscalProtocolNumber } from "@/lib/fiscalProtocol";
 import { printBrandFooterHtml } from "@/lib/printBrand";
+import { buildPrintHeaderHtml, fetchEstablishmentHeader, fetchMatrizHeader } from "@/lib/printHeader";
 
 export interface ContractPrintInput {
   numero: number;
@@ -37,6 +38,7 @@ export interface ContractPrintInput {
 }
 
 interface EmitenteInfo {
+  id: string;
   razao_social: string;
   nome_fantasia: string;
   cnpj: string;
@@ -63,6 +65,7 @@ async function loadEmitente(establishmentId: string | null | undefined, cteId?: 
   if (!data) return null;
   const d = data as any;
   return {
+    id: estId,
     razao_social: d.razao_social || "",
     nome_fantasia: d.nome_fantasia || "",
     cnpj: d.cnpj ? maskCNPJ(d.cnpj) : "",
@@ -274,6 +277,16 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     month: "long",
     year: "numeric",
   });
+  const headerCompany = emitente
+    ? await fetchEstablishmentHeader(emitente.id, emitente.razao_social, emitente.cnpj)
+    : await fetchMatrizHeader();
+  const headerHtml = buildPrintHeaderHtml({
+    company: headerCompany,
+    logoUrl: TENANT_LOGO_MARKER,
+    title: `Contrato #${String(input.numero).padStart(4, "0")}`,
+    subtitle: dataLocal.toLocaleDateString("pt-BR"),
+    highlight: fmt(input.valor_total),
+  });
 
   const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
   const truncTo = (s?: string | null, n = 38) => {
@@ -349,11 +362,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   @page { size: A4 portrait; margin: 25mm; }
   html, body { height: auto; }
   body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.18; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #2B4C7E; padding-bottom: 2px; margin-bottom: 3px; }
-  .header .empresa { font-size: 9pt; line-height: 1.18; }
-  .header .empresa b { font-size: 10.5pt; }
-  .header .num { text-align: right; font-size: 9pt; flex-shrink: 0; margin-left: 12px; }
-  .header .num b { font-size: 12pt; color: #2B4C7E; display: block; }
+  .contract-header > table { table-layout: auto; }
   h1.tit { text-align: center; font-size: 12pt; margin: 3px 0 5px; text-transform: uppercase; letter-spacing: 0; }
   table.party { width: 100%; border-collapse: collapse; margin: 2px 0 4px; font-size: 9pt; break-inside: avoid; }
   table.party th, table.party td { border: 1px solid #999; padding: 2px 4px; text-align: left; vertical-align: top; }
@@ -387,17 +396,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
 
 </style></head><body>
 
-<div class="header">
-  <div class="empresa">
-    <b>${emitente?.razao_social || "SIME TRANSPORTE LTDA"}</b>${emitente?.nome_fantasia ? ` <span style="font-weight:normal;">(${emitente.nome_fantasia})</span>` : ""}<br/>
-    CNPJ: ${emitente?.cnpj || "23.662.751/0002-50"}${emitente?.ie ? ` &nbsp; IE: ${emitente.ie}` : ""}${emitente?.rntrc ? ` &nbsp; RNTRC: ${emitente.rntrc}` : ""}<br/>
-    ${emitente?.endereco ? `${emitente.endereco}` : ""}${emitente?.municipio ? `${emitente?.endereco ? " - " : ""}${emitente.municipio}/${emitente.uf || ""}` : ""}${emitente?.cep ? ` - CEP ${emitente.cep}` : ""}${emitente ? "<br/>" : ""}
-    e-mail: ct-e@simetransportes.com.br
-  </div>
-  <div class="num">
-    Contrato Nº <b>${input.numero}</b>
-  </div>
-</div>
+<div class="contract-header">${headerHtml}</div>
 
 <h1 class="tit">Contrato de Afretamento</h1>
 

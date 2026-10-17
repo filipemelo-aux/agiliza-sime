@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Igualar o cabeçalho do contrato de frete ao da fatura e conferir impressão individual e em lote.
+
 - [x] Criar componente visual único para buscas e filtros.
 - [x] Remover todos os campos de busca e filtros das GlobalToolbar.
 - [x] Aplicar o card padronizado em páginas financeiras, transporte, cadastros, RH e relatórios.
