@@ -58,15 +58,14 @@ export async function buildHtmlPdf(
     };
     for (const el of targets) {
       const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794 });
-      const naturalHeight = usableW * canvas.height / canvas.width;
+      // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
+      const elWidthMm = Math.min(((el as HTMLElement).offsetWidth || 794) * 25.4 / 96, usableW);
+      const pxPerMm = canvas.width / elWidthMm;
+      const naturalHeight = canvas.height / pxPerMm;
       if (naturalHeight <= usableH) {
-        // Conteúdo cabe em uma página: encaixa na largura útil.
-        const renderWidth = usableW;
-        const renderHeight = naturalHeight;
-        putImage(canvas.toDataURL("image/jpeg", 0.94), renderWidth, renderHeight);
+        putImage(canvas.toDataURL("image/jpeg", 0.94), elWidthMm, naturalHeight);
       } else {
         // Conteúdo maior que uma página: fatia o canvas em páginas A4 inteiras.
-        const pxPerMm = canvas.width / usableW;
         const chunkPx = Math.floor(usableH * pxPerMm);
         const slices: HTMLCanvasElement[] = [];
         let y = 0;
@@ -87,7 +86,7 @@ export async function buildHtmlPdf(
         // Descarta páginas finais inteiramente em branco (sobras de arredondamento).
         while (slices.length > 1 && isBlankCanvas(slices[slices.length - 1])) slices.pop();
         for (const slice of slices) {
-          putImage(slice.toDataURL("image/jpeg", 0.94), usableW, usableW * slice.height / canvas.width);
+          putImage(slice.toDataURL("image/jpeg", 0.94), elWidthMm, elWidthMm * slice.height / canvas.width);
         }
       }
     }

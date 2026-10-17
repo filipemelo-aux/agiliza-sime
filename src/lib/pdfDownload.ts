@@ -19,7 +19,7 @@ function sanitizeFileName(name: string) {
 }
 
 /** Pedidos de PDF pendentes: a janela de visualização pede o download pelo opener. */
-type PdfRequest = { html: string; fileName: string; landscape: boolean };
+type PdfRequest = { html: string; fileName: string; landscape: boolean; marginMm: number };
 const pdfRequests = new Map<string, PdfRequest>();
 let pdfListenerAttached = false;
 
@@ -40,7 +40,7 @@ function attachPdfDownloadListener() {
       try {
         const pdf = await buildHtmlPdf(entry.html, {
           orientation: entry.landscape ? "landscape" : "portrait",
-          marginMm: 0,
+          marginMm: entry.marginMm,
         });
         const blob = pdf.output("blob");
         const url = URL.createObjectURL(blob);
@@ -156,8 +156,8 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   const pdfHtml = clean
     .replace(/<div class="print-window-actions">[\s\S]*?<\/div>/, "")
     .replace(/<script>[\s\S]*?<\/script>\s*<\/body>/i, "</body>")
-    .replace(/<\/head>/i, `<style>html{background:#fff!important;padding:0!important}body{box-shadow:none!important;margin:0!important;min-height:0!important;padding:${marginMm}mm!important}</style></head>`);
-  pdfRequests.set(requestId, { html: pdfHtml, fileName, landscape });
+    .replace(/<\/head>/i, `<style>html{background:#fff!important;padding:0!important}body{box-shadow:none!important;margin:0!important;min-height:0!important;box-sizing:border-box!important;width:${landscape ? 297 : 210 - marginMm * 2}mm!important;padding:0!important}</style></head>`);
+  pdfRequests.set(requestId, { html: pdfHtml, fileName, landscape, marginMm });
   if (pdfRequests.size > 20) {
     const oldest = pdfRequests.keys().next().value;
     if (oldest) pdfRequests.delete(oldest);
