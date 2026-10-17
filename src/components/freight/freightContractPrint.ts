@@ -398,7 +398,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   table.carga tr { break-inside: avoid; }
   .chave { font-family: monospace; font-size: 8pt; overflow-wrap: anywhere; }
   .contract-closing { break-inside: avoid; page-break-inside: avoid; }
-  @media print {
+  
     body { width: auto; min-height: 0; padding: 0; }
     .invoice-print-header { margin-bottom:4px; padding-bottom:4px; }
     .invoice-company { font-size:13px; }
@@ -409,7 +409,6 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     .contract-closing .footer { margin-top: 4px; }
     .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 2px !important; }
     .agiliza-brand-footer img { height: 12pt !important; }
-  }
 
 </style></head><body>
 
