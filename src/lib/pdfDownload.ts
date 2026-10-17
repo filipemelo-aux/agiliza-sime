@@ -158,7 +158,7 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   const pdfHtml = clean
     .replace(/<div class="print-window-actions">[\s\S]*?<\/div>/, "")
     .replace(/<script>[\s\S]*?<\/script>\s*<\/body>/i, "</body>")
-    .replace(/<\/head>/i, `<style>html{background:#fff!important;padding:0!important}body{box-shadow:none!important;margin:0!important;padding:${marginMm}mm!important}</style></head>`);
+    .replace(/<\/head>/i, `<style>html{background:#fff!important;padding:0!important}body{box-shadow:none!important;margin:0!important;min-height:0!important;padding:${marginMm}mm!important}</style></head>`);
   pdfRequests.set(requestId, { html: pdfHtml, fileName, landscape });
   if (pdfRequests.size > 20) {
     const oldest = pdfRequests.keys().next().value;

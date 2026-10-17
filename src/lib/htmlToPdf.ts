@@ -1,3 +1,18 @@
+/** Verifica se um canvas está inteiramente em branco (amostragem em grade). */
+function isBlankCanvas(c: HTMLCanvasElement): boolean {
+  const ctx = c.getContext("2d");
+  if (!ctx) return false;
+  const step = Math.max(1, Math.floor(Math.min(c.width, c.height) / 40));
+  const data = ctx.getImageData(0, 0, c.width, c.height).data;
+  for (let yy = 0; yy < c.height; yy += step) {
+    for (let xx = 0; xx < c.width; xx += step) {
+      const i = (yy * c.width + xx) * 4;
+      if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) return false;
+    }
+  }
+  return true;
+}
+
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
