@@ -398,18 +398,15 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   table.carga tr { break-inside: avoid; }
   .chave { font-family: monospace; font-size: 8pt; overflow-wrap: anywhere; }
   .contract-closing { break-inside: avoid; page-break-inside: avoid; }
-  @media print {
-    body { width: auto; min-height: 0; padding: 0; }
-  }
-    .invoice-print-header { margin-bottom:4px; padding-bottom:4px; }
-    .invoice-company { font-size:13px; }
-    .invoice-company-sub, .invoice-company-addr { font-size:8px; }
-    .invoice-doc-title { font-size:16px; }
-    .invoice-doc-number { font-size:9px; }
-    .contract-closing .sign { margin-top: 2px; }
-    .contract-closing .footer { margin-top: 4px; }
-    .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 2px !important; }
-    .agiliza-brand-footer img { height: 12pt !important; }
+  .invoice-print-header { margin-bottom:8px; padding-bottom:6px; }
+  .invoice-company { font-size:14px; }
+  .invoice-company-sub, .invoice-company-addr { font-size:9px; }
+  .invoice-doc-title { font-size:17px; }
+  .invoice-doc-number { font-size:10px; }
+  .contract-closing .sign { margin-top: 6px; }
+  .contract-closing .footer { margin-top: 4px; }
+  .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 2px !important; }
+  .agiliza-brand-footer img { height: 12pt !important; }
 
 </style></head><body>
 
