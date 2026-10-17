@@ -89,7 +89,7 @@ export default function VehicleMetrics() {
       const isAll = veiculoId === ALL;
 
       const cteQ = supabase.from("ctes")
-        .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome, veiculo_id")
+        .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome, veiculo_id, placa_veiculo")
         .gte("data_emissao", startTs).lte("data_emissao", endTs)
         .order("data_emissao", { ascending: false });
       const fuelQ = supabase.from("fuelings")
@@ -119,7 +119,6 @@ export default function VehicleMetrics() {
         .order("data_emissao", { ascending: false });
 
       if (!isAll) {
-        cteQ.eq("veiculo_id", veiculoId);
         fuelQ.eq("veiculo_id", veiculoId);
         maintQ.eq("veiculo_id", veiculoId);
         cardQ.eq("veiculo_id", veiculoId);
