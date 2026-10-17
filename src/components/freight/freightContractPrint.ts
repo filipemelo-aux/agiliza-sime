@@ -286,6 +286,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     title: `Contrato #${String(input.numero).padStart(4, "0")}`,
     subtitle: dataLocal.toLocaleDateString("pt-BR"),
     highlight: fmt(input.valor_total),
+    layout: "invoice",
   });
 
   const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
@@ -362,7 +363,17 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   @page { size: A4 portrait; margin: 25mm; }
   html, body { height: auto; }
   body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.18; }
-  .contract-header > table { table-layout: auto; }
+  .invoice-print-header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; border-bottom:2px solid #1a1a2e; margin-bottom:14px; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; line-height:1.5; color:#1a1a2e; }
+  .invoice-company-group { display:flex; gap:14px; align-items:center; flex:1; min-width:0; }
+  .invoice-company-group img { height:54px; max-width:110px; width:auto; object-fit:contain; flex-shrink:0; }
+  .invoice-company-details { min-width:0; }
+  .invoice-company { font-size:18px; font-weight:700; letter-spacing:0; }
+  .invoice-company-sub { font-size:11px; color:#6b7280; margin-top:4px; }
+  .invoice-company-addr { font-size:10px; color:#9ca3af; margin-top:2px; overflow-wrap:anywhere; }
+  .invoice-doc-info { text-align:right; flex-shrink:0; margin-left:12px; }
+  .invoice-doc-title { font-size:22px; font-weight:800; letter-spacing:0; text-transform:uppercase; }
+  .invoice-doc-number { font-size:11px; color:#6b7280; margin-top:2px; font-family:monospace; }
+  .invoice-doc-total { font-size:14px; font-weight:800; margin-top:2px; }
   h1.tit { text-align: center; font-size: 12pt; margin: 3px 0 5px; text-transform: uppercase; letter-spacing: 0; }
   table.party { width: 100%; border-collapse: collapse; margin: 2px 0 4px; font-size: 9pt; break-inside: avoid; }
   table.party th, table.party td { border: 1px solid #999; padding: 2px 4px; text-align: left; vertical-align: top; }
@@ -389,6 +400,11 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   .contract-closing { break-inside: avoid; page-break-inside: avoid; }
   @media print {
     body { width: auto; min-height: 0; padding: 0; }
+    .invoice-print-header { margin-bottom:4px; padding-bottom:4px; }
+    .invoice-company { font-size:13px; }
+    .invoice-company-sub, .invoice-company-addr { font-size:8px; }
+    .invoice-doc-title { font-size:16px; }
+    .invoice-doc-number { font-size:9px; }
     .contract-closing .sign { margin-top: 12px; }
     .contract-closing .footer { margin-top: 4px; }
     .contract-closing .agiliza-brand-footer { margin-top: 3px !important; padding-top: 2px !important; }
