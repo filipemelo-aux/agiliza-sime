@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Igualar o cabeçalho do contrato de frete ao da fatura e conferir impressão individual e em lote.
+- [x] Igualar o cabeçalho do contrato de frete ao da fatura; contratos 9/8 conferidos, uma página por contrato e margens de 2,5 cm preservadas.
 
 - [x] Criar componente visual único para buscas e filtros.
 - [x] Remover todos os campos de busca e filtros das GlobalToolbar.
