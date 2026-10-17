@@ -19,10 +19,11 @@ import { jsPDF } from "jspdf";
 /** Renderiza um HTML completo (A4) num iframe oculto e devolve o jsPDF (uma página por .doc-page). */
 export async function buildHtmlPdf(
   html: string,
-  opts?: { orientation?: "portrait" | "landscape"; marginMm?: number },
+  opts?: { orientation?: "portrait" | "landscape"; marginMm?: number; contentWidthMm?: number },
 ): Promise<jsPDF> {
   const orientation = opts?.orientation ?? "portrait";
   const margin = opts?.marginMm ?? 6;
+  const contentWidthMm = opts?.contentWidthMm;
   const pageW = orientation === "landscape" ? 297 : 210;
   const pageH = orientation === "landscape" ? 210 : 297;
   const usableW = pageW - margin * 2, usableH = pageH - margin * 2;
@@ -59,7 +60,7 @@ export async function buildHtmlPdf(
     for (const el of targets) {
       const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794 });
       // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
-      const elWidthMm = Math.min(((el as HTMLElement).offsetWidth || 794) * 25.4 / 96, usableW);
+      const elWidthMm = Math.min((el as HTMLElement).offsetWidth * 25.4 / 96, opts?.contentWidthMm ?? usableW);
       const pxPerMm = canvas.width / elWidthMm;
       const naturalHeight = canvas.height / pxPerMm;
       if (naturalHeight <= usableH) {
