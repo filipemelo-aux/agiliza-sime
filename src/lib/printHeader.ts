@@ -31,8 +31,26 @@ export function buildPrintHeaderHtml(opts: {
   title: string;
   subtitle?: string;
   highlight?: string;
+  layout?: "standard" | "invoice";
 }) {
   const { company, logoUrl, title, subtitle, highlight } = opts;
+  if (opts.layout === "invoice") {
+    return `<div class="invoice-print-header">
+      <div class="invoice-company-group">
+        ${logoUrl ? `<img src="${logoUrl}" alt="Logo da empresa" />` : ""}
+        <div class="invoice-company-details">
+          <div class="invoice-company">${company.name}</div>
+          ${company.docLine ? `<div class="invoice-company-sub">${company.docLine}</div>` : ""}
+          ${company.address ? `<div class="invoice-company-addr">${company.address}</div>` : ""}
+        </div>
+      </div>
+      <div class="invoice-doc-info">
+        <div class="invoice-doc-title">${title}</div>
+        ${subtitle ? `<div class="invoice-doc-number">${subtitle}</div>` : ""}
+        ${highlight ? `<div class="invoice-doc-total">${highlight}</div>` : ""}
+      </div>
+    </div>`;
+  }
   const F = "Arial,Helvetica,sans-serif";
   return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:2px solid #111;margin-bottom:14px;font-family:${F}"><tr>
   ${logoUrl ? `<td style="width:1%;vertical-align:middle;padding:0 14px 12px 0"><img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:56px;max-width:110px;width:auto;border:0" /></td>` : ""}

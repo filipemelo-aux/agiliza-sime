@@ -17,7 +17,7 @@
 - Every A1 certificate upload (tenant settings, SuperAdmin company, SuperAdmin branch) goes through `registerCertificate` in `supabase/functions/_shared/focusCertificate.ts`, so validation, storage in fiscal_certificates, establishment links and Focus sync never diverge between entry points.
 - Plate inputs mask by position using only the Mercosul pattern (LLL-NLNN) in `maskPlateInput`, because the user chose to accept only the new plate format when typing.
 - DialogContent owns default padding and vertical scrolling directly, without a nested scrolling wrapper; dialogs with their own body scroller override it with overflow-hidden so each window has only one primary scroll area.
-- Printable documents (except DACTE, DAMDFE and cheques) build their header with `buildPrintHeaderHtml` from `src/lib/printHeader.ts` using the document's own establishment, so every print shares one header layout.
+- Print headers (except DACTE/DAMDFE/cheques) use `buildPrintHeaderHtml` with the document's establishment; contracts use its invoice layout to match faturas without changing other reports.
 - Brand footers share `printBrand.ts` assets and physical sizes; cheques remain isolated.
 - Freight contracts use fixed wrapping tables, matching A4 margins and an unbreakable signature/brand closing block with compact print spacing to prevent orphaned logos; `fiscalProtocol.ts` extracts protocol numbers to prevent overflow.
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
