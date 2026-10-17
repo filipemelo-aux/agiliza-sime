@@ -5,6 +5,7 @@ import { toast } from "@/lib/notice";
 import { printBrandFooterHtml } from "@/lib/printBrand";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 import { resolvePrintHeaders } from "@/lib/printHeader";
+import { buildHtmlPdf } from "@/lib/htmlToPdf";
 
 /** Marcador usado nos cabeçalhos: é trocado pela logo da empresa logada. */
 export const TENANT_LOGO_MARKER = "__TENANT_LOGO__";
@@ -15,6 +16,46 @@ function sanitizeFileName(name: string) {
   return (name || "documento")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\w\-. ]+/g, "").trim().replace(/\s+/g, "_").slice(0, 90) || "documento";
+}
+
+/** Pedidos de PDF pendentes: a janela de visualização pede o download pelo opener. */
+type PdfRequest = { html: string; fileName: string; landscape: boolean };
+const pdfRequests = new Map<string, PdfRequest>();
+let pdfListenerAttached = false;
+
+function attachPdfDownloadListener() {
+  if (pdfListenerAttached || typeof window === "undefined") return;
+  pdfListenerAttached = true;
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    const data = event.data as { type?: string; id?: string } | null;
+    if (!data || data.type !== "agiliza-download-pdf" || !data.id) return;
+    const entry = pdfRequests.get(data.id);
+    if (!entry) return;
+    pdfRequests.delete(data.id);
+    void (async () => {
+      try {
+        const pdf = await buildHtmlPdf(entry.html, {
+          orientation: entry.landscape ? "landscape" : "portrait",
+          marginMm: 0,
+        });
+        const blob = pdf.output("blob");
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${sanitizeFileName(entry.fileName)}.pdf`;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        toast.success("PDF baixado.");
+      } catch (e) {
+        console.error(e);
+        toast.error("Não foi possível gerar o PDF. Tente novamente.");
+      }
+    })();
+  });
 }
 
 function detectLandscape(html: string) {
@@ -56,6 +97,7 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   }
 
   const safeTitle = sanitizeFileName(fileName).replace(/_/g, " ");
+  const requestId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `r${Date.now()}-${Math.random().toString(36).slice(2)}`;
   // Remove comandos antigos e inclui um único controle leve para imprimir novamente.
   const clean = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -78,9 +120,9 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       }
     </style></head>`)
     .replace(/<body([^>]*)>/i, `<body$1><div class="print-window-actions">
-      <button type="button" title="Imprimir / Salvar PDF" onclick="window.print()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        <span class="lbl">Imprimir / Salvar PDF</span>
+      <button type="button" title="Baixar PDF" onclick="try{window.opener.postMessage(JSON.stringify({type:'agiliza-download-pdf',id:'${requestId}'}),'*')}catch(e){}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="lbl">Baixar PDF</span>
       </button>
       <button type="button" class="btn-xls" id="btn-export-xls" title="Baixar tabela em Excel (.xls)" onclick="exportXls()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
@@ -106,6 +148,18 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
         };
       })();
     </script></body>`);
+
+  // HTML usado para gerar o PDF quando o usuário pede o download na janela de visualização.
+  const pdfHtml = clean
+    .replace(/<div class="print-window-actions">[\s\S]*?<\/div>/, "")
+    .replace(/<script>[\s\S]*?<\/script>\s*<\/body>/i, "</body>")
+    .replace(/<\/head>/i, `<style>html{background:#fff!important;padding:0!important}body{box-shadow:none!important;margin:0!important;padding:${marginMm}mm!important}</style></head>`);
+  pdfRequests.set(requestId, { html: pdfHtml, fileName, landscape });
+  if (pdfRequests.size > 20) {
+    const oldest = pdfRequests.keys().next().value;
+    if (oldest) pdfRequests.delete(oldest);
+  }
+  attachPdfDownloadListener();
 
   try {
     printWindow.document.open();
