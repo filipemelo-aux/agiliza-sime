@@ -77,6 +77,11 @@ export async function buildHtmlPdf(
         scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794,
         width: Math.ceil(el.getBoundingClientRect().width),
         foreignObjectRendering: true,
+        onclone: (clonedDoc, clonedEl) => {
+          if (clonedEl.classList.contains("doc-page")) {
+            clonedDoc.body.replaceChildren(clonedEl);
+          }
+        },
       });
       // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
       const elWidthMm = Math.min((el as HTMLElement).offsetWidth * 25.4 / 96, opts?.contentWidthMm ?? usableW);
