@@ -48,6 +48,21 @@ export async function buildHtmlPdf(
         }),
       ),
     );
+    // A imagem SVG usada na captura nativa precisa conter suas próprias imagens.
+    await Promise.all(Array.from(doc.images).map(async (img) => {
+      if (!img.src || img.src.startsWith("data:")) return;
+      const response = await fetch(img.src);
+      if (!response.ok) throw new Error("Não foi possível carregar a logomarca do documento.");
+      const blob = await response.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Imagem inválida."));
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      img.src = dataUrl;
+      await img.decode();
+    }));
     const pages = Array.from(doc.querySelectorAll<HTMLElement>(".doc-page"));
     const targets = pages.length ? pages : [doc.body];
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation });
@@ -60,7 +75,7 @@ export async function buildHtmlPdf(
     for (const el of targets) {
       const canvas = await html2canvas(el, {
         scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794,
-        width: el.offsetWidth,
+        width: Math.ceil(el.getBoundingClientRect().width),
         foreignObjectRendering: true,
       });
       // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
