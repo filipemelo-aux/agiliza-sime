@@ -60,13 +60,8 @@ export async function buildHtmlPdf(
     for (const el of targets) {
       const canvas = await html2canvas(el, {
         scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794,
-        onclone: (clonedDoc) => {
-          // A régua interna de fonte não pode herdar a entrelinha compacta do documento:
-          // isso desloca a linha de base e desenha letras sobre as bordas das tabelas.
-          const metricsStyle = clonedDoc.createElement("style");
-          metricsStyle.textContent = 'body > div[style*="visibility: hidden"][style*="white-space: nowrap"] { line-height: normal !important; }';
-          clonedDoc.head.appendChild(metricsStyle);
-        },
+        width: el.offsetWidth,
+        foreignObjectRendering: true,
       });
       // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
       const elWidthMm = Math.min((el as HTMLElement).offsetWidth * 25.4 / 96, opts?.contentWidthMm ?? usableW);
