@@ -405,7 +405,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     .invoice-company-sub, .invoice-company-addr { font-size:8px; }
     .invoice-doc-title { font-size:16px; }
     .invoice-doc-number { font-size:9px; }
-    .contract-closing .sign { margin-top: 12px; }
+    .contract-closing .sign { margin-top: 2px; }
     .contract-closing .footer { margin-top: 4px; }
     .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 2px !important; }
     .agiliza-brand-footer img { height: 12pt !important; }
