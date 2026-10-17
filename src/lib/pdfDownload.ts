@@ -29,6 +29,7 @@ function attachPdfDownloadListener() {
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) return;
     const data = event.data as { type?: string; id?: string } | null;
+    if (import.meta.env.DEV) console.log("[pdfDownload] message", event.origin, data?.type, data?.id);
     if (!data || data.type !== "agiliza-download-pdf" || !data.id) return;
     const entry = pdfRequests.get(data.id);
     if (!entry) return;
