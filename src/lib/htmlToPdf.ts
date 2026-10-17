@@ -53,6 +53,7 @@ export async function buildHtmlPdf(
         // Conteúdo maior que uma página: fatia o canvas em páginas A4 inteiras.
         const pxPerMm = canvas.width / usableW;
         const chunkPx = Math.floor(usableH * pxPerMm);
+        const slices: HTMLCanvasElement[] = [];
         let y = 0;
         while (y < canvas.height) {
           const h = Math.min(chunkPx, canvas.height - y);
@@ -64,10 +65,14 @@ export async function buildHtmlPdf(
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, slice.width, slice.height);
             ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
-            const sliceHeightMm = usableW * h / canvas.width;
-            putImage(slice.toDataURL("image/jpeg", 0.94), usableW, sliceHeightMm);
+            slices.push(slice);
           }
           y += h;
+        }
+        // Descarta páginas finais inteiramente em branco (sobras de arredondamento).
+        while (slices.length > 1 && isBlankCanvas(slices[slices.length - 1])) slices.pop();
+        for (const slice of slices) {
+          putImage(slice.toDataURL("image/jpeg", 0.94), usableW, usableW * slice.height / canvas.width);
         }
       }
     }
