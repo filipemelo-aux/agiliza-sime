@@ -346,7 +346,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${input.numero}</title>
 <style>
-  @page { size: A4 portrait; margin: 9mm; }
+  @page { size: A4 portrait; margin: 25mm; }
   html, body { height: auto; }
   body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.25; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #2B4C7E; padding-bottom: 3px; margin-bottom: 4px; }
@@ -511,5 +511,5 @@ ${bodies.map((b) => `<div class="doc-page">${b}</div>`).join("\n")}
 }
 
 export function openPrintWindow(html: string) {
-  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 9 });
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 25 });
 }
