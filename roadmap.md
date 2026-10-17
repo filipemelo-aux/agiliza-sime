@@ -33,3 +33,5 @@
 - [x] Corrigir largura, protocolo e legibilidade do contrato de frete na visualização e na impressão A4.
 - [x] Conferir contratos 9 e 8 na janela e no PDF: sem transbordamento, individual em uma página e lote em duas, rodapés por contrato; seis testes aprovados.
 - [x] Manter a marca junto das assinaturas, sem reduzir letras ou logos; PDF do contrato 9 em uma página e lote 9/8 em duas, com marcas em ambas; build OK.
+- [x] Aplicar margens padrão de 2,5 cm na impressão do contrato de frete e da fatura.
+- [x] Validar contrato individual, lote (9/8) e fatura: uma página cada, assinaturas e marca no rodapé, nada cortado.
