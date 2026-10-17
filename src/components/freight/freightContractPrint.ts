@@ -407,7 +407,8 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     .invoice-doc-number { font-size:9px; }
     .contract-closing .sign { margin-top: 12px; }
     .contract-closing .footer { margin-top: 4px; }
-    .contract-closing .agiliza-brand-footer { margin-top: 3px !important; padding-top: 2px !important; }
+    .contract-closing .agiliza-brand-footer { margin-top: 4px !important; padding-top: 2px !important; }
+    .agiliza-brand-footer img { height: 12pt !important; }
   }
 
 </style></head><body>
