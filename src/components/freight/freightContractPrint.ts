@@ -360,7 +360,7 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${input.numero}</title>
 <style>
-  @page { size: A4 portrait; margin: 25mm; }
+  @page { size: A4 portrait; margin: 20mm; }
   html, body { height: auto; }
   body { margin: 0; font-family: Arial, sans-serif; font-size: 9pt; color: #111; line-height: 1.18; }
   .invoice-print-header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; border-bottom:2px solid #1a1a2e; margin-bottom:14px; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; line-height:1.5; color:#1a1a2e; }
@@ -387,10 +387,10 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   .composicao { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 2px 5px; font-size: 9pt; break-inside: avoid; }
   .composicao .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 0; }
   .composicao .row.total { border-top: 1px solid #333; border-bottom: 1px solid #333; font-weight: bold; padding: 1px 0; margin-top: 1px; }
-  .aviso { font-size: 8pt; padding: 3px 5px; background: #fffbe6; border: 1px solid #f0e68c; margin: 4px 0; text-align: justify; line-height: 1.15; break-inside: avoid; }
-  .obs { padding: 3px; font-size: 9pt; min-height: 14px; border: 1px solid #ccc; margin-top: 2px; }
+  .aviso { font-size: 7.5pt; padding: 3px 5px; background: #fffbe6; border: 1px solid #f0e68c; margin: 4px 0; text-align: justify; line-height: 1.15; break-inside: avoid; }
+  .obs { padding: 3px 5px; font-size: 8pt; line-height: 1.15; min-height: 14px; border: 1px solid #ccc; margin-top: 2px; }
   .sign { margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; break-inside: avoid; }
-  .sign .line { border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 8.5pt; line-height: 1.15; }
+  .sign .line { border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 7.5pt; line-height: 1.15; }
   .footer { margin-top: 5px; border-top: 1px solid #ccc; padding-top: 3px; font-size: 8pt; color: #666; display: flex; justify-content: space-between; }
   *, *::before, *::after { box-sizing: border-box; }
   table { table-layout: fixed; max-width: 100%; }
@@ -524,5 +524,5 @@ ${bodies.map((b) => `<div class="doc-page">${b}</div>`).join("\n")}
 }
 
 export function openPrintWindow(html: string) {
-  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 25 });
+  void downloadHtmlAsPdf(html, titleFromHtml(html, "Contrato de Frete"), { marginMm: 20 });
 }
