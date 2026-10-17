@@ -295,6 +295,15 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         numero_interno = nextNum as number;
       }
 
+      // Vincula o veículo da frota pela placa (necessário para as métricas por veículo)
+      let veiculoIdVinc: string | null = null;
+      if (form.placa_veiculo) {
+        try {
+          const r = await lookupDriverByPlate(form.placa_veiculo);
+          veiculoIdVinc = r?.vehicle_id ?? null;
+        } catch {}
+      }
+
       const payload: Record<string, any> = {
         tipo_talao: "servico",
         status: "rascunho", // talão de serviço fica sempre como "rascunho" (interno)
@@ -333,6 +342,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         motorista_id: form.motorista_id,
         motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
         placa_veiculo: form.placa_veiculo ? unmaskPlate(form.placa_veiculo).toUpperCase() : null,
+        veiculo_id: veiculoIdVinc,
         peso_bruto: Number(form.peso_bruto_kg) || 0,
         valor_tonelada: valorTon,
         valor_frete: valorFrete,
