@@ -38,12 +38,10 @@ function attachPdfDownloadListener() {
     pdfRequests.delete(data.id);
     void (async () => {
       try {
-        if (import.meta.env.DEV) console.log("[pdfDownload] gerando PDF", entry.fileName, entry.landscape ? "landscape" : "portrait");
         const pdf = await buildHtmlPdf(entry.html, {
           orientation: entry.landscape ? "landscape" : "portrait",
           marginMm: 0,
         });
-        if (import.meta.env.DEV) console.log("[pdfDownload] PDF pronto", entry.fileName);
         const blob = pdf.output("blob");
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
