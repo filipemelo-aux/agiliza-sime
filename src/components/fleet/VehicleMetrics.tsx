@@ -197,7 +197,7 @@ export default function VehicleMetrics() {
       ]);
       setLoading(false);
     })();
-  }, [veiculoId, dataInicio, dataFim]);
+  }, [veiculoId, dataInicio, dataFim, vehicles]);
 
   const plateById = useMemo(() => {
     const m = new Map<string, string>();
