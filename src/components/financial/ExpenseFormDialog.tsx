@@ -462,8 +462,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     onSaved(expense.id);
   };
 
+  // IDs das parcelas carregadas do banco (para UPDATE seletivo e remoção explícita).
+  const loadedInstallmentIds = useRef<string[]>([]);
+  /** Refaz a grade com `count` parcelas preservando pagas (intactas) e reaproveitando IDs das abertas. */
+  const rebuildParcelas = (count: number) => {
+    const paid = parcelas.filter(p => p.status === "pago");
+    const open = parcelas.filter(p => p.status !== "pago");
+    const openCount = Math.max(count - paid.length, paid.length > 0 ? 0 : 1);
+    const total = Number(valorTotal) || 0;
+    const remaining = Math.max(Math.round((total - paid.reduce((s, p) => s + (Number(p.valor) || 0), 0)) * 100) / 100, 0);
+    const each = openCount > 0 ? Math.floor(remaining / openCount * 100) / 100 : 0;
+    const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+    const next: Parcela[] = [...paid];
+    for (let k = 0; k < openCount; k++) {
+      const i = paid.length + k;
+      const d = intervaloTipo === "meses" ? addMonthsPreserveDay(base, intervaloDias * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
+      const prev = open[k];
+      next.push({ ...(prev || {}), numero: i + 1, status: prev?.status || "pendente", data_vencimento: prev?.data_vencimento && k < open.length ? prev.data_vencimento : getLocalDateISO(d), valor: (k === openCount - 1 ? remaining - each * (openCount - 1) : each).toFixed(2) });
+    }
+    setParcelas(next.map((p, i) => ({ ...p, numero: i + 1 })));
+  };
+
   const loadInstallments = async (expenseId: string) => {
     const { data } = await supabase.from("expense_installments" as any).select("*").eq("expense_id", expenseId).order("numero_parcela");
+    loadedInstallmentIds.current = ((data as any[]) || []).map((d: any) => d.id);
     if (data && (data as any[]).length > 0) {
       setUseParcelas(true);
       setParcelas((data as any[]).map((d: any) => ({
@@ -572,7 +594,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setEmpresaSelecionada(empresaId || "");
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(true); setShowHistory(false);
-    setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
+    loadedInstallmentIds.current = []; setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
   };
@@ -753,6 +775,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, chartAccounts, initialValues, expense]);
 
+  // Trava matemática: soma das parcelas (pagas + abertas) deve bater com o valor total.
+  const parcelasSum = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  const parcelasMismatch = useParcelas && parcelas.length > 0 && Math.abs(parcelasSum - (Number(valorTotal) || 0)) > 0.009;
+
   const handleSave = async (opts?: { keepOpen?: boolean }): Promise<string | undefined> => {
     if (!empresaSelecionada) return void toast.error("Selecione a Empresa / Unidade");
     if (!planoContasId) return void toast.error("Selecione a conta contábil");
@@ -766,6 +792,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         { duration: 6000 }
       );
     }
+    if (useParcelas && parcelas.length > 0 && parcelasMismatch) return void toast.error("A soma das parcelas não bate com o valor total");
     if (composition === "pecas" && !veiculoId) return void toast.error("Selecione o veículo de destino das peças");
     if (composition === "misto") {
       if (linkedServicePaid) return void toast.error("O serviço vinculado possui pagamentos. Edite essa conta separadamente para preservar os pagamentos.");
@@ -916,14 +943,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         const paidParcelas = parcelas.filter(p => p.status === "pago" && p.id);
         const pendingParcelas = parcelas.filter(p => p.status !== "pago");
 
-        // Only delete non-paid installments to preserve payment history
+        // Edição: nunca apaga/recria. Só remove parcelas abertas que o usuário retirou da grade
+        // e que não têm nenhum pagamento parcial vinculado.
         if (isEditing) {
-          // Delete only pending/non-paid installments (keep paid ones intact)
-          const paidIds = paidParcelas.map(p => p.id!);
-          if (paidIds.length > 0) {
-            await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId).not("id", "in", `(${paidIds.join(",")})`);
-          } else {
-            await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
+          const keptIds = new Set(parcelas.filter(p => p.id).map(p => p.id!));
+          const removed = loadedInstallmentIds.current.filter(id => !keptIds.has(id));
+          if (removed.length > 0) {
+            const { data: withPay } = await supabase.from("expense_payments").select("installment_id").in("installment_id", removed);
+            const blocked = new Set(((withPay as any[]) || []).map(r => r.installment_id));
+            const deletable = removed.filter(id => !blocked.has(id));
+            if (deletable.length > 0) await supabase.from("expense_installments" as any).delete().in("id", deletable).neq("status", "pago");
+            if (blocked.size > 0) toast.warning("Parcelas com pagamento parcial não foram removidas.");
           }
         } else {
           await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
@@ -958,19 +988,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           });
         }
 
-        // Insert only pending installments (paid ones are preserved)
+        // UPDATE cirúrgico das abertas existentes (por ID, nunca as pagas); INSERT só das novas.
         const totalParcelasFinal = parcelas.length;
-        if (pendingParcelas.length > 0) {
-          await supabase.from("expense_installments" as any).insert(pendingParcelas.map((p, i) => ({
-            expense_id: expenseId,
-            numero_parcela: p.numero,
-            total_parcelas: totalParcelasFinal,
-            valor: Number(p.valor) || 0,
-            data_vencimento: p.data_vencimento,
-            status: "pendente",
-            boleto_url: boletoPaths[i],
-          })));
+        const toInsert: any[] = [];
+        for (let i = 0; i < pendingParcelas.length; i++) {
+          const p = pendingParcelas[i];
+          if (isEditing && p.id) {
+            const { error: upErr } = await supabase.from("expense_installments" as any)
+              .update({ valor: Number(p.valor) || 0, data_vencimento: p.data_vencimento, numero_parcela: p.numero, total_parcelas: totalParcelasFinal, boleto_url: boletoPaths[i] ?? p.boleto_url ?? null } as any)
+              .eq("id", p.id).eq("expense_id", expenseId).neq("status", "pago");
+            if (upErr) toast.error(`Parcela ${p.numero}: ${upErr.message}`);
+          } else {
+            toInsert.push({ expense_id: expenseId, numero_parcela: p.numero, total_parcelas: totalParcelasFinal, valor: Number(p.valor) || 0, data_vencimento: p.data_vencimento, status: "pendente", boleto_url: boletoPaths[i] });
+          }
         }
+        if (toInsert.length > 0) await supabase.from("expense_installments" as any).insert(toInsert);
         // Keep paid parcelas total_parcelas in sync with the current configuration
         if (paidParcelas.length > 0) {
           await supabase.from("expense_installments" as any)
@@ -1796,7 +1828,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                             setParcelas(prev => prev.map((p, i) => {
                               const d = tipo === "meses" ? addMonthsPreserveDay(base, defaultVal * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + defaultVal * i); return dd; })();
-                              return { ...p, data_vencimento: getLocalDateISO(d) };
+                              return p.status === "pago" ? p : { ...p, data_vencimento: getLocalDateISO(d) };
                             }));
                           }
                         }}
@@ -1819,7 +1851,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                               setParcelas(prev => prev.map((p, i) => {
                                 const d = new Date(base);
                                 d.setDate(d.getDate() + v * i);
-                                return { ...p, data_vencimento: getLocalDateISO(d) };
+                                return p.status === "pago" ? p : { ...p, data_vencimento: getLocalDateISO(d) };
                               }));
                             }
                           }}
@@ -1839,7 +1871,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                               const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                               setParcelas(prev => prev.map((p, i) => {
                                 const d = addMonthsPreserveDay(base, v * i);
-                                return { ...p, data_vencimento: getLocalDateISO(d) };
+                                return p.status === "pago" ? p : { ...p, data_vencimento: getLocalDateISO(d) };
                               }));
                             }
                           }}
@@ -1848,41 +1880,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                        const val = Number(valorTotal) || 0;
-                        const newCount = parcelas.length + 1;
-                        const parcelaVal = (val / newCount).toFixed(2);
-                        const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
-                        const newParcelas: Parcela[] = [];
-                        for (let i = 0; i < newCount; i++) {
-                          const d = intervaloTipo === "meses" ? addMonthsPreserveDay(base, intervaloDias * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
-                          newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
-                        }
-                        const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
-                        if (Math.abs(diff) > 0.001) {
-                          newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
-                        }
-                        setParcelas(newParcelas);
-                      }}>
+                      <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => rebuildParcelas(parcelas.length + 1)}>
                         <Plus className="h-3 w-3 mr-0.5" /> Parcela
                       </Button>
-                      {parcelas.length > 1 && (
-                        <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={() => {
-                          const val = Number(valorTotal) || 0;
-                          const newCount = parcelas.length - 1;
-                          const parcelaVal = (val / newCount).toFixed(2);
-                          const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
-                          const newParcelas: Parcela[] = [];
-                          for (let i = 0; i < newCount; i++) {
-                            const d = intervaloTipo === "meses" ? addMonthsPreserveDay(base, intervaloDias * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
-                            newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
-                          }
-                          const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
-                          if (Math.abs(diff) > 0.001) {
-                            newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
-                          }
-                          setParcelas(newParcelas);
-                        }}>
+                      {parcelas.length > 1 && parcelas.filter(pp => pp.status !== "pago").length > 1 && (
+                        <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={() => rebuildParcelas(parcelas.length - 1)}>
                           <Minus className="h-3 w-3 mr-0.5" /> Parcela
                         </Button>
                       )}
@@ -1904,7 +1906,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       {parcelas.map((p, idx) => {
                         const isPaid = p.status === "pago";
                         return (
-                        <TableRow key={idx} className={isPaid ? "opacity-60 bg-muted/30" : ""}>
+                        <TableRow key={p.id || `n-${idx}`} className={isPaid ? "bg-muted/50 text-muted-foreground" : ""} title={isPaid ? "Parcela paga — bloqueada para edição" : undefined}>
                           <TableCell className="text-[11px] font-mono">
                             {p.numero}
                             {isPaid && <Badge variant="default" className="ml-1 text-[8px] px-1 py-0">Pago</Badge>}
@@ -1914,7 +1916,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                               type="date"
                               value={p.data_vencimento}
                               onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
-                              className="h-7 text-[11px]"
+                              className={`h-7 text-[11px] ${isPaid ? "bg-muted cursor-not-allowed" : ""}`}
                               disabled={isPaid}
                             />
                           </TableCell>
@@ -1927,23 +1929,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                   const updated = [...prev];
                                   updated[idx] = { ...updated[idx], valor: newVal };
                                   const total = Number(valorTotal) || 0;
-                                  const editedSum = updated.slice(0, idx + 1).reduce((s, pp2) => s + (Number(pp2.valor) || 0), 0);
-                                  const remaining = total - editedSum;
-                                  const afterCount = updated.length - idx - 1;
-                                  if (afterCount > 0 && remaining >= 0) {
-                                    const each = Math.floor(remaining / afterCount * 100) / 100;
-                                    for (let j = idx + 1; j < updated.length; j++) {
-                                      updated[j] = { ...updated[j], valor: each.toFixed(2) };
-                                    }
-                                    const diff2 = remaining - each * afterCount;
-                                    if (Math.abs(diff2) > 0.001) {
-                                      updated[updated.length - 1] = { ...updated[updated.length - 1], valor: (each + diff2).toFixed(2) };
-                                    }
+                                  // Parcelas pagas nunca são recalculadas: só as abertas após a editada absorvem a diferença.
+                                  const afterIdx = updated.map((pp2, j) => j).filter(j => j > idx && updated[j].status !== "pago");
+                                  const fixedSum = updated.reduce((s, pp2, j) => afterIdx.includes(j) ? s : s + (Number(pp2.valor) || 0), 0);
+                                  const remaining = Math.round((total - fixedSum) * 100) / 100;
+                                  if (afterIdx.length > 0 && remaining >= 0) {
+                                    const each = Math.floor(remaining / afterIdx.length * 100) / 100;
+                                    afterIdx.forEach(j => { updated[j] = { ...updated[j], valor: each.toFixed(2) }; });
+                                    const diff2 = remaining - each * afterIdx.length;
+                                    const last = afterIdx[afterIdx.length - 1];
+                                    if (Math.abs(diff2) > 0.001) updated[last] = { ...updated[last], valor: (each + diff2).toFixed(2) };
                                   }
                                   return updated;
                                 });
                               }}
-                              className="h-7 text-[11px] text-right font-mono"
+                              className={`h-7 text-[11px] text-right font-mono ${isPaid ? "bg-muted cursor-not-allowed" : ""}`}
                               disabled={isPaid}
                             />
                           </TableCell>
@@ -1965,7 +1965,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
                 {Math.abs(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(valorTotal) || 0)) > 0.01 && (
                   <p className="text-[10px] text-destructive font-medium">
-                    ⚠ Soma das parcelas ({formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}) difere do valor total ({formatCurrency(Number(valorTotal || 0))})
+                    ⚠ A soma das parcelas ({formatCurrency(parcelasSum)}) não bate com o valor total ({formatCurrency(Number(valorTotal || 0))}). Ajuste as parcelas abertas para salvar.
                   </p>
                 )}
 
@@ -2305,7 +2305,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Save ── */}
           <div className="pt-2 border-t">
-            <Button onClick={() => handleSave()} className="w-full" disabled={saving}>
+            <Button onClick={() => handleSave()} className="w-full" disabled={saving || parcelasMismatch} title={parcelasMismatch ? "A soma das parcelas não bate com o valor total" : undefined}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
