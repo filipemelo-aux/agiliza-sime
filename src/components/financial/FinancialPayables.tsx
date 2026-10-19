@@ -678,16 +678,22 @@ export function FinancialPayables() {
     if (!await confirm({ title: "Excluir selecionados", description: `Excluir ${selectedIds.size} conta(s) selecionada(s)?`, variant: "destructive", confirmLabel: "Excluir" })) return;
     setBatchPaying(true);
 
+    let ok = 0;
+    const falhas: string[] = [];
     for (const id of selectedIds) {
+      let res: { data: any[] | null; error: any };
       if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
-        await supabase.from("expense_installments").delete().eq("id", instId);
+        res = await supabase.from("expense_installments").delete().eq("id", instId).select("id") as any;
       } else {
         await restoreGroupedOriginals(id);
-        await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id);
+        res = await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id).select("id") as any;
       }
+      if (res.error || !res.data?.length) falhas.push(res.error?.message || "sem permissão ou registro não encontrado");
+      else ok++;
     }
-    toast.success(`${selectedIds.size} registro(s) excluído(s)`);
+    if (falhas.length) toast.error(`${falhas.length} registro(s) não foram excluídos`, { description: falhas[0] });
+    if (ok) toast.success(`${ok} registro(s) excluído(s)`);
     setSelectedIds(new Set());
     setBatchPaying(false);
     fetchData();
