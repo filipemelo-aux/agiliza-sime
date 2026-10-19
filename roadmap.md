@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Renomear Faturas a Receber e mostrar saldo/recebimento parcial no grid, com rodapé pelos saldos; validar com dados reais.
+
 - [x] Simplificar Nova Despesa em peças, serviço, peças e serviço e despesa geral; soma validada nos três cenários e serviço gravado/conferido na lista, teste removido.
 
 - [x] Aplicar margens de 2 cm no contrato e na fatura, compactar textos secundários; PDFs conferidos: individuais em uma página, lote 9/8 em duas, sem sobreposição e com marcas.
