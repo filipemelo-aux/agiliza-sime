@@ -135,9 +135,13 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     if (mixedSuppliers) return toast.error("Pagamento agrupado só é permitido para contas do mesmo fornecedor.");
 
     // Validate all values
-    for (const it of items) {
-      const v = getValor(it.id, it.valor);
-      if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
+    if (consolidated) {
+      if (!(totalAgrupadoNum > 0)) return toast.error("Informe o valor total a pagar");
+    } else {
+      for (const it of items) {
+        const v = getValor(it.id, it.valor);
+        if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
+      }
     }
 
     setSaving(true);
@@ -153,6 +157,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
 
       for (const item of items) {
         const valorPago = getValor(item.id, item.valor);
+        if (consolidated && valorPago <= 0.004) continue;
         const saldoItem = item.valor; // valor original do item (parcela ou saldo da despesa)
         const juros = Math.max(0, Math.round((valorPago - saldoItem) * 100) / 100);
         const obsBase = observacoes.trim();

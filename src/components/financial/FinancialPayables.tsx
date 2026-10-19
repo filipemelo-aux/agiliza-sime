@@ -1694,7 +1694,7 @@ tfoot{display:table-row-group}
             className: selectedUnpaidSameFavorecido
               ? "border-success/60 text-success hover:bg-success/10"
               : "bg-success text-success-foreground hover:bg-success/90 border-transparent",
-            hidden: selectedUnpaidCount < 2 || selectedUnpaidSameFavorecido,
+            hidden: selectedUnpaidCount < 2,
             disabled: batchPaying,
             onClick: () => handleBatchPay(false),
           },
