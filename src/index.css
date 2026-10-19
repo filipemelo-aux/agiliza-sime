@@ -316,7 +316,7 @@
     .data-grid-table td[data-column-key="paid_at"],
     .data-grid-table th[data-column-key="due_date"],
     .data-grid-table td[data-column-key="due_date"] {
-      width: 86px !important;
+      width: 96px !important;
     }
 
     .data-grid-table th[data-column-key="favorecido"],
