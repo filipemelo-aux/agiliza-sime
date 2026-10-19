@@ -75,6 +75,7 @@ export function GlobalWriteOverlay() {
   const [count, setCount] = useState(0);
   const [label, setLabel] = useState(lastLabel);
   const [show, setShow] = useState(false);
+  const [status, setStatus] = useState<"processing" | "success">("processing");
 
   useEffect(() => {
     const l: Listener = (c, lb) => { setCount(c); setLabel(lb); };
@@ -84,12 +85,21 @@ export function GlobalWriteOverlay() {
 
   useEffect(() => {
     if (count > 0) {
+      setStatus("processing");
       const t = setTimeout(() => setShow(true), 350);
       return () => clearTimeout(t);
     }
+    // Ao concluir todas as escritas sem falha, transiciona para "Sucesso"
+    // no mesmo componente e fecha automaticamente em até 1 segundo.
+    if (show && failedWrites === 0) {
+      setStatus("success");
+      const t = setTimeout(() => setShow(false), 900);
+      return () => clearTimeout(t);
+    }
+    failedWrites = 0;
     const t = setTimeout(() => setShow(false), 150);
     return () => clearTimeout(t);
-  }, [count]);
+  }, [count]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <ProcessingOverlay open={show} label={label} />;
+  return <ProcessingOverlay open={show} label={label} status={status} />;
 }
