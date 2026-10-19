@@ -1789,6 +1789,27 @@ ${hasRecebimentos ? `
       ),
     },
     {
+      key: "condicao", header: "Condição", width: "110px", align: "center",
+      sortValue: (f) => (f as any).condicao_label || "",
+      cell: (f) => (
+        <span className="text-muted-foreground whitespace-nowrap">
+          {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
+        </span>
+      ),
+    },
+    {
+      key: "status", header: "Status", width: "100px", align: "center",
+      sortValue: (f) => (f.has_partial ? "parcial" : f.status),
+      cell: (f) => {
+        const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+        return (
+          <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px]", !f.has_partial && st.className)}>
+            {f.has_partial ? "Parcial" : st.label}
+          </Badge>
+        );
+      },
+    },
+    {
       key: "valor", header: "Valor", width: "140px", align: "right",
       sortValue: (f) => Number(f.valor_total),
       cell: (f) => (
@@ -1813,27 +1834,6 @@ ${hasRecebimentos ? `
               <span className="text-[9px] text-muted-foreground font-mono">(Recebido: {formatCurrency(received)})</span>
             )}
           </span>
-        );
-      },
-    },
-    {
-      key: "condicao", header: "Condição", width: "110px", align: "center",
-      sortValue: (f) => (f as any).condicao_label || "",
-      cell: (f) => (
-        <span className="text-muted-foreground whitespace-nowrap">
-          {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
-        </span>
-      ),
-    },
-    {
-      key: "status", header: "Status", width: "100px", align: "center",
-      sortValue: (f) => (f.has_partial ? "parcial" : f.status),
-      cell: (f) => {
-        const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
-        return (
-          <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px]", !f.has_partial && st.className)}>
-            {f.has_partial ? "Parcial" : st.label}
-          </Badge>
         );
       },
     },
