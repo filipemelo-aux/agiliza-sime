@@ -1,6 +1,6 @@
 import { useContractsEnabled } from "@/hooks/useContractsEnabled";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sheet,
   SheetContent,
