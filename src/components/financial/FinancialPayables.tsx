@@ -1284,6 +1284,30 @@ export function FinancialPayables() {
     return count;
   }, [selectedIds, items, installmentsMap]);
 
+  // Mesmo fornecedor entre as contas não pagas selecionadas (mesma chave do pagamento agrupado)
+  const selectedUnpaidSameFavorecido = useMemo(() => {
+    const keys = new Set<string>();
+    const favKey = (e?: { favorecido_id: string | null; favorecido_nome: string | null }) =>
+      e ? (e.favorecido_id || (e.favorecido_nome || "").trim().toLowerCase()) : "";
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const [expId, installs] of Object.entries(installmentsMap)) {
+          const foundInst = installs.find(i => i.id === instId);
+          if (foundInst && foundInst.status !== "pago") {
+            const expense = items.find(i => i.id === expId);
+            if (expense) keys.add(favKey(expense));
+            break;
+          }
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item && item.status !== "pago") keys.add(favKey(item));
+      }
+    }
+    return keys.size <= 1;
+  }, [selectedIds, items, installmentsMap]);
+
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
       setSelectedIds(new Set());
@@ -1654,8 +1678,10 @@ tfoot{display:table-row-group}
             icon: HandCoins,
             mode: "batch",
             priority: true,
-            className: "bg-success text-success-foreground hover:bg-success/90 border-transparent",
-            hidden: selectedUnpaidCount < 2,
+            className: selectedUnpaidSameFavorecido
+              ? "bg-success text-success-foreground hover:bg-success/90 border-transparent"
+              : "border-success/60 text-success hover:bg-success/10",
+            hidden: selectedUnpaidCount < 2 || !selectedUnpaidSameFavorecido,
             disabled: batchPaying,
             onClick: () => handleBatchPay(true),
           },
@@ -1664,9 +1690,11 @@ tfoot{display:table-row-group}
             label: batchPaying ? "Processando..." : "Pagar separadamente",
             icon: Banknote,
             mode: "batch",
-            priority: true,
-            className: "border-success/60 text-success hover:bg-success/10",
-            hidden: selectedUnpaidCount < 2,
+            priority: !selectedUnpaidSameFavorecido,
+            className: selectedUnpaidSameFavorecido
+              ? "border-success/60 text-success hover:bg-success/10"
+              : "bg-success text-success-foreground hover:bg-success/90 border-transparent",
+            hidden: selectedUnpaidCount < 2 || selectedUnpaidSameFavorecido,
             disabled: batchPaying,
             onClick: () => handleBatchPay(false),
           },
