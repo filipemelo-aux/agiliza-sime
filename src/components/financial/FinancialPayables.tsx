@@ -28,6 +28,7 @@ import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
+import { exportExpenseDetailPdf } from "@/lib/expenseDetail";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { limitDisplayText } from "@/lib/displayText";
@@ -1643,7 +1644,7 @@ tfoot{display:table-row-group}
           },
           {
             key: "pay-grouped",
-            label: batchPaying ? "Processando..." : "Pagar em grupo (1 movimentação)",
+            label: batchPaying ? "Processando..." : "Pagar agrupado (mesmo fornecedor)",
             icon: HandCoins,
             mode: "batch",
             priority: true,
