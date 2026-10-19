@@ -1678,8 +1678,10 @@ tfoot{display:table-row-group}
             icon: HandCoins,
             mode: "batch",
             priority: true,
-            className: "bg-success text-success-foreground hover:bg-success/90 border-transparent",
-            hidden: selectedUnpaidCount < 2,
+            className: selectedUnpaidSameFavorecido
+              ? "bg-success text-success-foreground hover:bg-success/90 border-transparent"
+              : "border-success/60 text-success hover:bg-success/10",
+            hidden: selectedUnpaidCount < 2 || !selectedUnpaidSameFavorecido,
             disabled: batchPaying,
             onClick: () => handleBatchPay(true),
           },
@@ -1688,9 +1690,11 @@ tfoot{display:table-row-group}
             label: batchPaying ? "Processando..." : "Pagar separadamente",
             icon: Banknote,
             mode: "batch",
-            priority: true,
-            className: "border-success/60 text-success hover:bg-success/10",
-            hidden: selectedUnpaidCount < 2,
+            priority: !selectedUnpaidSameFavorecido,
+            className: selectedUnpaidSameFavorecido
+              ? "border-success/60 text-success hover:bg-success/10"
+              : "bg-success text-success-foreground hover:bg-success/90 border-transparent",
+            hidden: selectedUnpaidCount < 2 || selectedUnpaidSameFavorecido,
             disabled: batchPaying,
             onClick: () => handleBatchPay(false),
           },
