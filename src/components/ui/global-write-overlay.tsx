@@ -7,6 +7,7 @@ import { ProcessingOverlay } from "./processing-overlay";
  */
 type Listener = (count: number, label: string) => void;
 let pending = 0;
+let failedWrites = 0;
 let lastLabel = "Processando...";
 const listeners = new Set<Listener>();
 const notify = () => listeners.forEach((l) => l(pending, lastLabel));
@@ -56,7 +57,12 @@ function install() {
     lastLabel = labelFor(method, url);
     notify();
     try {
-      return await orig(input as any, init);
+      const res = await orig(input as any, init);
+      if (!res.ok) failedWrites++;
+      return res;
+    } catch (err) {
+      failedWrites++;
+      throw err;
     } finally {
       pending = Math.max(0, pending - 1);
       notify();
