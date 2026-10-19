@@ -2570,7 +2570,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => handleSave(false)} disabled={saving}>
+            <Button onClick={() => handleSave(false)} disabled={saving || saveBusy}>
               {saving ? "Salvando..." : "Salvar CT-e"}
             </Button>
           </div>
