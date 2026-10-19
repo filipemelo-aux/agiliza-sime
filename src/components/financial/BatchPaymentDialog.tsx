@@ -308,11 +308,16 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {consolidated ? "Pagamento Agrupado" : "Pagamento em Lote"} — {items.length} conta(s)
+            {consolidated ? `Pagamento Agrupado — ${items.length} conta(s)` : items.length === 1 ? "Pagar conta" : `Pagamento em Lote — ${items.length} conta(s)`}
           </DialogTitle>
           {consolidated && (
             <p className="text-xs text-muted-foreground mt-1">
               Os pagamentos serão registrados individualmente, mas gerarão uma única movimentação consolidada no fluxo de caixa.
+            </p>
+          )}
+          {mixedSuppliers && (
+            <p className="text-xs font-medium text-destructive mt-1">
+              As contas selecionadas são de fornecedores diferentes. O pagamento agrupado só é permitido para o mesmo fornecedor — use "Pagar separadamente".
             </p>
           )}
         </DialogHeader>
@@ -427,12 +432,12 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
                 variant="outline"
                 onClick={handleCreatePayable}
                 className="sm:flex-1"
-                disabled={creating || saving}
+                disabled={creating || saving || mixedSuppliers}
               >
                 {creating ? "Criando..." : "Criar Conta a Pagar"}
               </Button>
             )}
-            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating}>
+            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating || mixedSuppliers}>
               {saving ? "Processando..." : "Confirmar Pagamento"}
             </Button>
           </div>
