@@ -1297,7 +1297,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     if (id) navigate(`/admin/freight/mdfe?ctes=${id}`);
   };
 
+  // Trava contra cliques repetidos: as conferências antes de gravar (fatura,
+  // duplicidade) são demoradas e cada clique extra criava outro rascunho.
+  const saveLockRef = useRef(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const handleSave = async (keepOpenForNext = false) => {
+    if (saveLockRef.current) return;
+    saveLockRef.current = true;
+    setSaveBusy(true);
+    try {
+      await handleSaveInner(keepOpenForNext);
+    } finally {
+      saveLockRef.current = false;
+      setSaveBusy(false);
+    }
+  };
+  const handleSaveInner = async (keepOpenForNext = false) => {
     if (!user) return;
     if (!selectedEstId) {
       toast({ title: "Campos obrigatórios", description: "Selecione o estabelecimento emissor.", variant: "destructive" });
@@ -2555,7 +2570,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
         <div className="shrink-0 space-y-2 border-t border-border bg-background px-4 py-2.5">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => handleSave(false)} disabled={saving}>
+            <Button onClick={() => handleSave(false)} disabled={saving || saveBusy}>
               {saving ? "Salvando..." : "Salvar CT-e"}
             </Button>
           </div>
