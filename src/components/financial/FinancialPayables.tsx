@@ -1018,6 +1018,7 @@ export function FinancialPayables() {
       chartLabel: string;
       vencimento: string;
       valor: number;
+      saldo: number;
       status: string;
       isPago: boolean;
       isOverdue: boolean;
