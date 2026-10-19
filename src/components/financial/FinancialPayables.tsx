@@ -402,6 +402,15 @@ export function FinancialPayables() {
     });
     setInstallmentsMap(iMap);
 
+    // Soma de pagamentos por parcela (para o Saldo Devedor real dos cards)
+    const paidMap: Record<string, number> = {};
+    ((paymentsData as any[]) || []).forEach((p: any) => {
+      if (p?.installment_id) {
+        paidMap[p.installment_id] = (paidMap[p.installment_id] || 0) + (Number(p.valor || 0) - Number(p.juros || 0));
+      }
+    });
+    setInstPaidMap(paidMap);
+
     const allItems = [...processed, ...harvestItems];
     setItems(allItems);
     setChartAccounts((chartData as any) || []);
