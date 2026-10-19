@@ -1780,10 +1780,10 @@ ${hasRecebimentos ? `
       key: "vencimento", header: "Vencimento", width: "98px",
       sortValue: (f) => (f as any).data_vencimento_ref || f.data_emissao,
       cell: (f) => (
-        <span className="tabular-nums whitespace-nowrap">
-          {formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}
+        <span className="tabular-nums whitespace-nowrap inline-flex flex-col items-start leading-tight">
+          <span>{formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}</span>
           {f.num_parcelas > 1 && (f as any).data_vencimento_max !== (f as any).data_vencimento_ref && (
-            <span className="text-[10px] text-muted-foreground"> …{formatDateBR((f as any).data_vencimento_max)}</span>
+            <span className="text-[10px] text-muted-foreground">até {formatDateBR((f as any).data_vencimento_max)}</span>
           )}
         </span>
       ),
