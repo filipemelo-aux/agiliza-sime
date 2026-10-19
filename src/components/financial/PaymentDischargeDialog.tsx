@@ -40,6 +40,8 @@ export interface InstallmentContext {
   numeroParcela: number;
   totalParcelas: number;
   valorParcela: number;
+  /** Valor já pago anteriormente nesta parcela (pagamentos parciais) */
+  valorPagoParcela?: number;
   dataVencimentoParcela: string;
 }
 
@@ -70,7 +72,7 @@ export function PaymentDischargeDialog({
   // Determine the effective amount for this payment context
   const isInstallmentMode = !!installment;
   const effectiveTotal = isInstallmentMode ? installment!.valorParcela : valorTotal;
-  const effectivePago = isInstallmentMode ? 0 : valorPago; // installments are either paid or not
+  const effectivePago = isInstallmentMode ? Number(installment!.valorPagoParcela || 0) : valorPago;
   const saldoRestante = effectiveTotal - effectivePago;
   const effectiveVencimento = isInstallmentMode ? installment!.dataVencimentoParcela : dataVencimento;
 
@@ -87,7 +89,9 @@ export function PaymentDischargeDialog({
 
   useEffect(() => {
     if (open && expenseId) {
-      const restante = isInstallmentMode ? installment!.valorParcela : (valorTotal - valorPago);
+      const restante = isInstallmentMode
+        ? Math.max(installment!.valorParcela - Number(installment!.valorPagoParcela || 0), 0)
+        : (valorTotal - valorPago);
       setValor(String(restante));
       setObservacoes("");
       setFormaPagamento("");
@@ -196,33 +200,26 @@ export function PaymentDischargeDialog({
     if (payErr) { toast.error(payErr.message); setSaving(false); return; }
 
     if (isInstallmentMode) {
-      // ---- INSTALLMENT MODE: update only the installment ----
-      const { error: instErr } = await supabase
-        .from("expense_installments")
-        .update({ status: "pago" } as any)
-        .eq("id", installment!.installmentId);
-      if (instErr) { toast.error(instErr.message); setSaving(false); return; }
+      // ---- INSTALLMENT MODE: quita a parcela só se o principal cobrir o saldo dela ----
+      const quitou = valorPrincipal + 0.005 >= saldoRestante;
+      if (quitou) {
+        const { error: instErr } = await supabase
+          .from("expense_installments")
+          .update({ status: "pago" } as any)
+          .eq("id", installment!.installmentId);
+        if (instErr) { toast.error(instErr.message); setSaving(false); return; }
+      }
 
-      // Recalculate expense totals from all installments
-      const { data: allInst } = await supabase
-        .from("expense_installments")
-        .select("valor, status")
-        .eq("expense_id", expenseId);
-
-      const totalPagoNow = ((allInst as any) || [])
-        .filter((i: any) => i.status === "pago")
-        .reduce((s: number, i: any) => s + Number(i.valor), 0);
-      const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
-
+      // Valor pago e situação da conta são recalculados pelo banco a partir dos pagamentos.
       const { error } = await supabase.from("expenses").update({
-        valor_pago: totalPagoNow,
-        status: allPaid ? "pago" : "parcial",
         forma_pagamento: formaPagamento,
         data_pagamento: dataPagISO,
       } as any).eq("id", expenseId);
 
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success(`Parcela ${installment!.numeroParcela}/${installment!.totalParcelas} quitada`);
+      toast.success(quitou
+        ? `Parcela ${installment!.numeroParcela}/${installment!.totalParcelas} quitada`
+        : `Pagamento parcial registrado na parcela ${installment!.numeroParcela}/${installment!.totalParcelas}`);
     } else {
       // ---- REGULAR MODE: update expense directly ----
       const novoValorPago = valorPago + valorPrincipal;

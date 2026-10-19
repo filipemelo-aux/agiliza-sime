@@ -579,6 +579,7 @@ export function FinancialPayables() {
       numeroParcela: inst.numero_parcela,
       totalParcelas: inst.total_parcelas ?? allInst.length,
       valorParcela: Number(inst.valor),
+      valorPagoParcela: instPaidMap[inst.id] || 0,
       dataVencimentoParcela: inst.data_vencimento,
     });
     setPaymentOpen(true);
