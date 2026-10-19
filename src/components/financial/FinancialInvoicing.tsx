@@ -1757,17 +1757,17 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "empresa", header: "Agência", width: "76px", align: "center",
+      key: "empresa", header: "Agência", width: "72px", align: "center",
       sortValue: (f) => f.empresa_id || "",
       cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
-      key: "numero", header: "Nº", width: "80px",
+      key: "numero", header: "Nº", width: "56px",
       sortValue: (f) => f.numero,
       cell: (f) => <span className="font-mono text-muted-foreground">#{String(f.numero).padStart(4, "0")}</span>,
     },
     {
-      key: "emissao", header: "Emissão", width: "110px",
+      key: "emissao", header: "Emissão", width: "76px",
       sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
       cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
     },
@@ -1777,19 +1777,40 @@ ${hasRecebimentos ? `
       cell: (f) => <span className="font-medium block truncate whitespace-nowrap" title={f.cliente_nome || ""}>{limitDisplayText(f.cliente_nome)}</span>,
     },
     {
-      key: "vencimento", header: "Vencimento", width: "130px",
+      key: "vencimento", header: "Vencimento", width: "98px",
       sortValue: (f) => (f as any).data_vencimento_ref || f.data_emissao,
       cell: (f) => (
-        <span className="tabular-nums whitespace-nowrap">
-          {formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}
+        <span className="tabular-nums whitespace-nowrap inline-flex flex-col items-start leading-tight">
+          <span>{formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}</span>
           {f.num_parcelas > 1 && (f as any).data_vencimento_max !== (f as any).data_vencimento_ref && (
-            <span className="text-[10px] text-muted-foreground"> …{formatDateBR((f as any).data_vencimento_max)}</span>
+            <span className="text-[10px] text-muted-foreground">até {formatDateBR((f as any).data_vencimento_max)}</span>
           )}
         </span>
       ),
     },
     {
-      key: "valor", header: "Valor", width: "140px", align: "right",
+      key: "condicao", header: "Condição", width: "84px", align: "center",
+      sortValue: (f) => (f as any).condicao_label || "",
+      cell: (f) => (
+        <span className="text-muted-foreground whitespace-nowrap">
+          {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
+        </span>
+      ),
+    },
+    {
+      key: "status", header: "Status", width: "92px", align: "center",
+      sortValue: (f) => (f.has_partial ? "parcial" : f.status),
+      cell: (f) => {
+        const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+        return (
+          <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px]", !f.has_partial && st.className)}>
+            {f.has_partial ? "Parcial" : st.label}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: "valor", header: "Valor", width: "92px", align: "right",
       sortValue: (f) => Number(f.valor_total),
       cell: (f) => (
         <span className="font-mono font-semibold whitespace-nowrap">
@@ -1798,7 +1819,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "saldo", header: "Saldo a Receber", width: "150px", align: "right",
+      key: "saldo", header: "Saldo a Receber", width: "132px", align: "right",
       sortValue: (f) => receivableBalance(f),
       cell: (f) => {
         const saldo = receivableBalance(f);
@@ -1813,27 +1834,6 @@ ${hasRecebimentos ? `
               <span className="text-[9px] text-muted-foreground font-mono">(Recebido: {formatCurrency(received)})</span>
             )}
           </span>
-        );
-      },
-    },
-    {
-      key: "condicao", header: "Condição", width: "110px", align: "center",
-      sortValue: (f) => (f as any).condicao_label || "",
-      cell: (f) => (
-        <span className="text-muted-foreground whitespace-nowrap">
-          {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
-        </span>
-      ),
-    },
-    {
-      key: "status", header: "Status", width: "100px", align: "center",
-      sortValue: (f) => (f.has_partial ? "parcial" : f.status),
-      cell: (f) => {
-        const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
-        return (
-          <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px]", !f.has_partial && st.className)}>
-            {f.has_partial ? "Parcial" : st.label}
-          </Badge>
         );
       },
     },
