@@ -65,9 +65,39 @@ export function CreditCardInvoices() {
     setOpenDialog(true);
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     const inv = selectedRows[0];
     if (!inv) return;
+    // Fatura fechada já gerou título no Contas a Pagar: reabrir remove esse título
+    // para não ficar órfão/incorreto após a edição.
+    if (inv.status === "fechada" && inv.expense_id) {
+      const ok = await confirm({
+        title: "Reabrir fatura fechada?",
+        description: "Atenção: esta ação removerá a fatura do Contas a Pagar. Deseja continuar?",
+        confirmLabel: "Reabrir e editar",
+        variant: "destructive",
+      });
+      if (!ok) return;
+      // Estorna pagamentos se a despesa já estiver (parcialmente) paga
+      const { data: exp } = await supabase
+        .from("expenses")
+        .select("id, status, valor_pago")
+        .eq("id", inv.expense_id)
+        .maybeSingle();
+      if (exp && ((exp as any).status === "pago" || Number((exp as any).valor_pago || 0) > 0)) {
+        await supabase.from("expense_payments" as any).delete().eq("expense_id", inv.expense_id);
+      }
+      // Remove o título do Contas a Pagar (trigger cuida da limpeza do caixa)
+      const { error: delErr } = await supabase.from("expenses").delete().eq("id", inv.expense_id);
+      if (delErr) return toast.error(delErr.message);
+      const { error: upErr } = await supabase
+        .from("credit_card_invoices" as any)
+        .update({ expense_id: null, status: "aberta" })
+        .eq("id", inv.id);
+      if (upErr) return toast.error(upErr.message);
+      toast.success("Fatura reaberta e removida do Contas a Pagar.");
+      load();
+    }
     setEditingId(inv.id);
     setOpenDialog(true);
   };

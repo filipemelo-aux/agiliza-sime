@@ -251,12 +251,26 @@ export function ChartOfAccounts() {
       toast.success("Conta criada");
     }
 
+    const collectDescendants = (parentId: string): string[] => {
+      const direct = accounts.filter(a => a.conta_pai_id === parentId);
+      return direct.flatMap(c => [c.id, ...collectDescendants(c.id)]);
+    };
+
+    // Cascade desativação: ao desativar uma conta pai, inativa todas as filhas recursivamente
+    if (savedId && !payload.ativo) {
+      const descendantIds = collectDescendants(savedId);
+      if (descendantIds.length > 0) {
+        const { error: inactErr } = await supabase
+          .from("chart_of_accounts")
+          .update({ ativo: false })
+          .in("id", descendantIds);
+        if (inactErr) toast.error("Erro ao inativar contas filhas: " + inactErr.message);
+        else toast.success(`${descendantIds.length} conta(s) filha(s) inativada(s) junto com a conta pai`);
+      }
+    }
+
     // Cascade centro_custo_default to all descendants
     if (savedId && payload.centro_custo_default) {
-      const collectDescendants = (parentId: string): string[] => {
-        const direct = accounts.filter(a => a.conta_pai_id === parentId);
-        return direct.flatMap(c => [c.id, ...collectDescendants(c.id)]);
-      };
       const descendantIds = collectDescendants(savedId);
       if (descendantIds.length > 0) {
         const { error: cascadeErr } = await supabase
