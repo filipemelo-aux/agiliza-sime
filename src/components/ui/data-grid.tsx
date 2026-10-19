@@ -149,7 +149,7 @@ export function DataGrid<T>({
   return (
     <div className="min-w-0 rounded-lg border border-border bg-card [&_td_.truncate]:max-w-full">
       <div
-        className="scrollbar-thin-custom w-full max-w-full overflow-x-auto overscroll-x-contain xl:overflow-x-hidden"
+        className="scrollbar-thin-custom w-full max-w-full overflow-x-auto overscroll-x-contain"
         style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
       >
         <table
