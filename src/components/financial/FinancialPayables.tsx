@@ -1289,11 +1289,14 @@ export function FinancialPayables() {
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
           if (inst.status === "pago") return;
+          // Saldo devedor da parcela = valor da parcela - pagamentos já realizados nela
+          const instRemaining = Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0);
+          if (instRemaining <= 0.009) return;
           registros++;
           if (inst.data_vencimento < today) {
-            atrasado += Number(inst.valor);
+            atrasado += instRemaining;
           } else {
-            pendente += Number(inst.valor);
+            pendente += instRemaining;
           }
         });
       } else {
