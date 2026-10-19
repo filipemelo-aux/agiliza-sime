@@ -457,7 +457,7 @@ export function FinancialPaid() {
     {
       key: "created_at",
       header: "Data de Registro",
-      width: "96px",
+      width: "128px",
       sortValue: (r) => r.created_at || "",
       cell: (r) => <span className="whitespace-nowrap">{r.created_at ? formatDateBR(String(r.created_at).slice(0, 10)) : "—"}</span>,
     },
@@ -472,7 +472,7 @@ export function FinancialPaid() {
     {
       key: "creditor",
       header: "Favorecido",
-      width: "22%",
+      width: "18%",
       sortValue: (r) => r.creditor_name || "",
       cell: (r) => (
         <span className="block min-w-0">
@@ -491,14 +491,14 @@ export function FinancialPaid() {
     {
       key: "description",
       header: "Descrição",
-      width: "30%",
+      width: "26%",
       sortValue: (r) => r.description,
       cell: (r) => <span className="truncate block">{r.description}</span>,
     },
     {
       key: "due_date",
       header: "Vencimento",
-      width: "86px",
+      width: "96px",
       sortValue: (r) => r.due_date || "",
       cell: (r) => (r.due_date ? formatDateBR(r.due_date) : "—"),
     },
@@ -516,7 +516,7 @@ export function FinancialPaid() {
     {
       key: "origem",
       header: "Tipo Pgto",
-      width: "84px",
+      width: "80px",
       align: "center",
       sortValue: (r) => r.source,
       cell: (r) => (

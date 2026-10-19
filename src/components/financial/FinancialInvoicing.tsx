@@ -1757,7 +1757,7 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "empresa", header: "Agência", width: "68px", align: "center",
+      key: "empresa", header: "Agência", width: "72px", align: "center",
       sortValue: (f) => f.empresa_id || "",
       cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
