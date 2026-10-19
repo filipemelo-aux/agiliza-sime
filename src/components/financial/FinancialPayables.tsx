@@ -201,6 +201,7 @@ export function FinancialPayables() {
   const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
   const [batchConsolidated, setBatchConsolidated] = useState(false);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
+  const [instPaidMap, setInstPaidMap] = useState<Record<string, number>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editInstValor, setEditInstValor] = useState("");
