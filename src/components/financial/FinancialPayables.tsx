@@ -1314,7 +1314,7 @@ export function FinancialPayables() {
     });
 
     return { totalPendente: pendente, totalAtrasado: atrasado, totalRegistros: registros };
-  }, [items, installmentsMap]);
+  }, [items, installmentsMap, instPaidMap]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
