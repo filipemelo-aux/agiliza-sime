@@ -186,6 +186,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [isManutencao, setIsManutencao] = useState(false);
   const [composition, setComposition] = useState<ExpenseComposition>("geral");
   const [linkedNfseId, setLinkedNfseId] = useState<string | null>(null);
+  const [linkedServicePaid, setLinkedServicePaid] = useState(false);
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
   const [rateioAtivo, setRateioAtivo] = useState(false);
   const [rateioRows, setRateioRows] = useState<RateioRow[]>([]);
@@ -420,6 +421,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (!service) return;
     setComposition("misto"); setIsManutencao(true); setHasNfse(true);
     setLinkedNfseId(service.id);
+    setLinkedServicePaid(Number(service.valor_pago) > 0);
     setNfseNumero(service.documento_fiscal_numero || "");
     setNfseFornecedorNome(service.favorecido_nome || ""); setNfseFornecedorId(service.favorecido_id);
     setNfseDataEmissao(service.data_emissao); setNfseDataVencimento(service.data_vencimento || "");
@@ -555,7 +557,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
-    setComposition("geral"); setLinkedNfseId(null);
+    setComposition("geral"); setLinkedNfseId(null); setLinkedServicePaid(false);
     setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
     setVeiculoId(null); setRateioAtivo(false); setRateioRows([]); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
@@ -702,7 +704,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (autoSumActive) setValorTotal((composition === "servico" ? maintItemsSum : notaItemsSum).toFixed(2));
   }, [autoSumActive, composition, maintItemsSum, notaItemsSum]);
 
+  useEffect(() => {
+    if (composition === "servico" && itensManutencao.length > 0 && !descricaoServico.trim()) setDescricaoServico(itensManutencao.map(i => i.descricao).join(", "));
+  }, [composition, itensManutencao, descricaoServico]);
+
   const selectComposition = (mode: ExpenseComposition) => {
+    if (linkedNfseId && mode !== "misto") { toast.error("Esta despesa possui um serviço vinculado. Edite os documentos sem remover o vínculo."); return; }
+    if (mode !== composition) setValorTotal("");
     setComposition(mode);
     const maintenance = mode === "servico" || mode === "misto";
     setIsManutencao(maintenance); setHasNfse(mode === "misto");
@@ -734,6 +742,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
     if (composition === "pecas" && !veiculoId) return void toast.error("Selecione o veículo de destino das peças");
     if (composition === "misto") {
+      if (linkedServicePaid) return void toast.error("O serviço vinculado possui pagamentos. Edite essa conta separadamente para preservar os pagamentos.");
       if (nfseValorTotal <= 0) return void toast.error("Adicione os serviços executados e seus valores");
       if (!nfseFormaPagamento) return void toast.error("Selecione a forma de pagamento do serviço");
       if (nfseUseParcelas && Math.abs(nfseParcelas.reduce((sum, p) => sum + Number(p.valor), 0) - nfseValorTotal) > 0.01) return void toast.error("A soma das parcelas do serviço deve corresponder ao seu valor");
@@ -865,9 +874,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       }
     }
 
-    if (expenseId && composition !== "servico" && itensNota.length > 0) {
+    if (expenseId) {
       await supabase.from("expense_items").delete().eq("expense_id", expenseId);
-      await supabase.from("expense_items").insert(itensNota.map(item => ({
+      if (composition !== "servico" && itensNota.length > 0) await supabase.from("expense_items").insert(itensNota.map(item => ({
         expense_id: expenseId, descricao: item.descricao, quantidade: item.quantidade,
         valor_unitario: item.valor_unitario, valor_total: item.valor_total,
         ncm: item.ncm || null, cfop: item.cfop || null, unidade: item.unidade || null,
@@ -1039,7 +1048,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const { data: nfseData, error: nfseError } = await serviceQuery.select("id").single();
       if (nfseError) {
         console.error("Erro ao criar despesa NFSe:", nfseError);
-        toast.warning("Despesa principal criada, mas houve erro ao criar a despesa da NFSe.");
+        if (expenseId && !expense) setAutoSavedId(expenseId);
+        setSaving(false); toast.error("As peças foram salvas, mas o serviço não foi salvo. Confira os dados e tente novamente."); return;
       } else if (nfseData) {
         setLinkedNfseId(nfseData.id);
         await supabase.from("expense_maintenance_items").delete().eq("expense_id", nfseData.id);
@@ -1050,6 +1060,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         }
         // Save NFSe installments if any
         if (nfseUseParcelas && nfseParcelas.length > 0) {
+          if (linkedNfseId) await supabase.from("expense_installments").delete().eq("expense_id", linkedNfseId).neq("status", "pago");
           let nfseBoletoPaths: (string | null)[] = nfseParcelas.map(() => null);
           if (nfseBoletoPdfFile) {
             try {
@@ -1090,7 +1101,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (expenseId && !expense) setAutoSavedId(expenseId);
       return expenseId;
     }
-    toast.success(expense || autoSavedId ? "Despesa atualizada" : hasNfse ? "Duas despesas criadas com sucesso" : "Despesa criada");
+    toast.success(expense || autoSavedId ? "Despesa atualizada" : hasNfse ? "Peças e serviço salvos com sucesso" : "Despesa criada");
     onOpenChange(false);
     onSaved(expenseId);
     return expenseId;
@@ -1384,6 +1395,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 onTotalChange={() => {}}
                 hideItems={composition === "misto"}
                 serviceItems
+                expenseId={expense?.id || autoSavedId}
                 hasNfse={false}
               />
               {composition === "servico" && <div>

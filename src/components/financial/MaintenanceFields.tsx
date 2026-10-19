@@ -49,6 +49,7 @@ interface Props {
   onHasNfseChange?: (v: boolean) => void;
   hideItems?: boolean;
   serviceItems?: boolean;
+  expenseId?: string | null;
 }
 
 export function MaintenanceFields({
@@ -66,6 +67,7 @@ export function MaintenanceFields({
   onHasNfseChange,
   hideItems = false,
   serviceItems = false,
+  expenseId,
 }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [lastKm, setLastKm] = useState<number | null>(null);
@@ -90,13 +92,14 @@ export function MaintenanceFields({
       .eq("veiculo_id", veiculoId)
       .not("km_atual", "is", null)
       .is("deleted_at", null)
+      .neq("id", expenseId || "00000000-0000-0000-0000-000000000000")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
         setLastKm(data?.km_atual ? Number(data.km_atual) : null);
       });
-  }, [veiculoId]);
+  }, [veiculoId, expenseId]);
 
   useEffect(() => {
     if (!kmAtual || lastKm === null) { setKmError(""); return; }
