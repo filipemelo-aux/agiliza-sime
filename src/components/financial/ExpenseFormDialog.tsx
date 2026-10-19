@@ -594,7 +594,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setEmpresaSelecionada(empresaId || "");
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(true); setShowHistory(false);
-    setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
+    loadedInstallmentIds.current = []; setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
   };
@@ -774,6 +774,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, chartAccounts, initialValues, expense]);
+
+  // Trava matemática: soma das parcelas (pagas + abertas) deve bater com o valor total.
+  const parcelasSum = parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  const parcelasMismatch = useParcelas && parcelas.length > 0 && Math.abs(parcelasSum - (Number(valorTotal) || 0)) > 0.009;
 
   const handleSave = async (opts?: { keepOpen?: boolean }): Promise<string | undefined> => {
     if (!empresaSelecionada) return void toast.error("Selecione a Empresa / Unidade");
@@ -1961,7 +1965,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
                 {Math.abs(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(valorTotal) || 0)) > 0.01 && (
                   <p className="text-[10px] text-destructive font-medium">
-                    ⚠ Soma das parcelas ({formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}) difere do valor total ({formatCurrency(Number(valorTotal || 0))})
+                    ⚠ A soma das parcelas ({formatCurrency(parcelasSum)}) não bate com o valor total ({formatCurrency(Number(valorTotal || 0))}). Ajuste as parcelas abertas para salvar.
                   </p>
                 )}
 
