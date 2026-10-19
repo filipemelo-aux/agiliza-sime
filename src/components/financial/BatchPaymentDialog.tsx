@@ -95,6 +95,11 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome }));
   })();
   const hasInstallments = items.some(i => i.tipo === "installment");
+  // Agrupado: somente contas do mesmo fornecedor (por cadastro ou, sem cadastro, pelo nome)
+  const mixedSuppliers = consolidated && (() => {
+    const keys = new Set(Object.values(expensesMeta).map((e: any) => e?.favorecido_id || (e?.favorecido_nome || "").trim().toLowerCase()));
+    return keys.size > 1;
+  })();
 
   const getValor = (id: string, fallback: number) => {
     const v = valores[id];
@@ -108,6 +113,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     if (items.length === 0) return;
     if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
     if (!dataPagamento) return toast.error("Informe a data do pagamento");
+    if (mixedSuppliers) return toast.error("Pagamento agrupado só é permitido para contas do mesmo fornecedor.");
 
     // Validate all values
     for (const it of items) {
@@ -117,6 +123,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
 
     setSaving(true);
     const todayISO = dataPagamento;
+    const insertedIds: string[] = [];
 
     try {
       // Group items by expenseId to recalc once per expense
@@ -135,7 +142,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
           : (obsBase || null);
 
         // Insert payment record
-        const { error: payErr } = await supabase.from("expense_payments" as any).insert({
+        const { data: payRow, error: payErr } = await supabase.from("expense_payments" as any).insert({
           expense_id: item.expenseId,
           valor: valorPago,
           forma_pagamento: formaPagamento,
@@ -146,19 +153,23 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
           lote_id: loteId,
           skip_cashflow: consolidated,
           installment_id: item.tipo === "installment" ? (item.installmentId ?? null) : null,
-        } as any);
+        } as any).select("id").single();
         if (payErr) throw payErr;
+        if (!(payRow as any)?.id) throw new Error(`O pagamento de ${item.descricao} não foi gravado.`);
+        insertedIds.push((payRow as any).id);
 
         totalConsolidado += valorPago;
 
         if (item.tipo === "installment" && item.installmentId) {
           // Marca parcela como paga somente se cobriu o valor da parcela (com tolerância)
           if (valorPago + 0.005 >= saldoItem) {
-            const { error: e } = await supabase
+            const { data: upd, error: e } = await supabase
               .from("expense_installments")
               .update({ status: "pago" } as any)
-              .eq("id", item.installmentId);
+              .eq("id", item.installmentId)
+              .select("id");
             if (e) throw e;
+            if (!upd?.length) throw new Error(`A parcela de ${item.descricao} não foi atualizada.`);
           }
         }
 
@@ -193,52 +204,24 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
         if (movErr) throw movErr;
       }
 
-      // Recalc each touched expense
+      // Valor pago e status são recalculados pelos gatilhos do banco a partir dos pagamentos.
+      // Aqui só registramos forma/data e conferimos que o banco realmente gravou.
       for (const expenseId of touchedExpenses) {
-        const { data: exp } = await supabase
-          .from("expenses")
-          .select("valor_total")
-          .eq("id", expenseId)
-          .maybeSingle();
-        if (!exp) continue;
-        const valorTotal = Number((exp as any).valor_total);
-
-        // Has installments?
-        const { data: insts } = await supabase
-          .from("expense_installments")
-          .select("valor, status")
-          .eq("expense_id", expenseId);
-
-        let novoPago = 0;
-        let novoStatus: string;
-        if (insts && insts.length > 0) {
-          novoPago = (insts as any[])
-            .filter(i => i.status === "pago")
-            .reduce((s, i) => s + Number(i.valor), 0);
-          const allPaid = (insts as any[]).every(i => i.status === "pago");
-          novoStatus = allPaid ? "pago" : (novoPago > 0 ? "parcial" : "pendente");
-        } else {
-          // Sum payments (principal only, excluding juros)
-          const { data: pays } = await supabase
-            .from("expense_payments" as any)
-            .select("valor, juros")
-            .eq("expense_id", expenseId);
-          novoPago = ((pays as any[]) || []).reduce(
-            (s, p) => s + (Number(p.valor) - Number(p.juros || 0)),
-            0,
-          );
-          novoStatus = novoPago + 0.005 >= valorTotal ? "pago" : (novoPago !== 0 ? "parcial" : "pendente");
-        }
-
         await supabase.from("expenses").update({
-          valor_pago: novoPago,
-          status: novoStatus,
           forma_pagamento: formaPagamento,
           data_pagamento: todayISO,
         } as any).eq("id", expenseId);
       }
+      const { data: check, error: checkErr } = await supabase
+        .from("expense_payments" as any)
+        .select("id")
+        .in("id", insertedIds);
+      if (checkErr) throw checkErr;
+      if (((check as any[]) || []).length !== insertedIds.length) {
+        throw new Error("O banco não confirmou todos os pagamentos. Atualize a tela e confira antes de repetir.");
+      }
 
-      toast.success(`${items.length} pagamento(s) processado(s)`);
+      toast.success(items.length === 1 ? "Pagamento registrado" : `${items.length} pagamento(s) processado(s)`);
       setSaving(false);
       onOpenChange(false);
       onSaved();
@@ -325,11 +308,16 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {consolidated ? "Pagamento Agrupado" : "Pagamento em Lote"} — {items.length} conta(s)
+            {consolidated ? `Pagamento Agrupado — ${items.length} conta(s)` : items.length === 1 ? "Pagar conta" : `Pagamento em Lote — ${items.length} conta(s)`}
           </DialogTitle>
           {consolidated && (
             <p className="text-xs text-muted-foreground mt-1">
               Os pagamentos serão registrados individualmente, mas gerarão uma única movimentação consolidada no fluxo de caixa.
+            </p>
+          )}
+          {mixedSuppliers && (
+            <p className="text-xs font-medium text-destructive mt-1">
+              As contas selecionadas são de fornecedores diferentes. O pagamento agrupado só é permitido para o mesmo fornecedor — use "Pagar separadamente".
             </p>
           )}
         </DialogHeader>
@@ -444,12 +432,12 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
                 variant="outline"
                 onClick={handleCreatePayable}
                 className="sm:flex-1"
-                disabled={creating || saving}
+                disabled={creating || saving || mixedSuppliers}
               >
                 {creating ? "Criando..." : "Criar Conta a Pagar"}
               </Button>
             )}
-            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating}>
+            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating || mixedSuppliers}>
               {saving ? "Processando..." : "Confirmar Pagamento"}
             </Button>
           </div>

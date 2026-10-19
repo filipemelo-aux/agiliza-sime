@@ -28,6 +28,7 @@ import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
+import { exportExpenseDetailPdf } from "@/lib/expenseDetail";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { limitDisplayText } from "@/lib/displayText";
@@ -208,6 +209,13 @@ export function FinancialPayables() {
   const [editInstVenc, setEditInstVenc] = useState("");
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailPayments, setDetailPayments] = useState<any[]>([]);
+  useEffect(() => {
+    if (!detailOpen || !detailExpense) { setDetailPayments([]); return; }
+    supabase.from("expense_payments" as any).select("id, data_pagamento, forma_pagamento, valor")
+      .eq("expense_id", detailExpense.id).order("data_pagamento")
+      .then(({ data }) => setDetailPayments((data as any[]) || []));
+  }, [detailOpen, detailExpense]);
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
   const [favorecidoMap, setFavorecidoMap] = useState<Record<string, { razao: string; fantasia: string }>>({});
 
@@ -670,16 +678,22 @@ export function FinancialPayables() {
     if (!await confirm({ title: "Excluir selecionados", description: `Excluir ${selectedIds.size} conta(s) selecionada(s)?`, variant: "destructive", confirmLabel: "Excluir" })) return;
     setBatchPaying(true);
 
+    let ok = 0;
+    const falhas: string[] = [];
     for (const id of selectedIds) {
+      let res: { data: any[] | null; error: any };
       if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
-        await supabase.from("expense_installments").delete().eq("id", instId);
+        res = await supabase.from("expense_installments").delete().eq("id", instId).select("id") as any;
       } else {
         await restoreGroupedOriginals(id);
-        await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id);
+        res = await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id).select("id") as any;
       }
+      if (res.error || !res.data?.length) falhas.push(res.error?.message || "sem permissão ou registro não encontrado");
+      else ok++;
     }
-    toast.success(`${selectedIds.size} registro(s) excluído(s)`);
+    if (falhas.length) toast.error(`${falhas.length} registro(s) não foram excluídos`, { description: falhas[0] });
+    if (ok) toast.success(`${ok} registro(s) excluído(s)`);
     setSelectedIds(new Set());
     setBatchPaying(false);
     fetchData();
@@ -1625,6 +1639,7 @@ tfoot{display:table-row-group}
           {
             key: "pay",
             label: batchPaying ? "Processando..." : "Pagar conta",
+            // 1 conta selecionada: pagamento simples (sem "lote")
             icon: Banknote,
             mode: "single+batch",
             priority: true,
@@ -1635,7 +1650,7 @@ tfoot{display:table-row-group}
           },
           {
             key: "pay-grouped",
-            label: batchPaying ? "Processando..." : "Pagar em grupo (1 movimentação)",
+            label: batchPaying ? "Processando..." : "Pagar agrupado (mesmo fornecedor)",
             icon: HandCoins,
             mode: "batch",
             priority: true,
@@ -1819,7 +1834,7 @@ tfoot{display:table-row-group}
 
       {/* Expense Detail Dialog (from installment card) */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md overflow-x-hidden">
+        <DialogContent className="max-w-lg overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Detalhes da Despesa</DialogTitle>
           </DialogHeader>
@@ -1917,6 +1932,31 @@ tfoot{display:table-row-group}
                   </div>
                 )}
 
+                <div className="border-t border-border pt-3 space-y-1">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><span className="text-muted-foreground block">Pago</span><span className="font-mono font-semibold">{formatCurrency(Number(detailExpense.valor_pago || 0))}</span></div>
+                    <div><span className="text-muted-foreground block">Saldo a pagar</span><span className="font-mono font-semibold">{formatCurrency(Math.max(Number(detailExpense.valor_total) - Number(detailExpense.valor_pago || 0), 0))}</span></div>
+                    <div><span className="text-muted-foreground block">Vencimento</span>{detailExpense.data_vencimento ? formatDateBR(detailExpense.data_vencimento) : "—"}</div>
+                    {detailExpense.centro_custo && <div><span className="text-muted-foreground block">Centro de custo</span>{detailExpense.centro_custo}</div>}
+                    {detailExpense.fornecedor_cnpj && <div><span className="text-muted-foreground block">CNPJ</span>{detailExpense.fornecedor_cnpj}</div>}
+                    <div><span className="text-muted-foreground block">Registrado em</span>{formatDateBR(detailExpense.created_at)}</div>
+                  </div>
+                  {detailExpense.chave_nfe && <p className="text-[10px] font-mono break-all text-muted-foreground">Chave: {detailExpense.chave_nfe}</p>}
+                  <p className="text-xs font-medium text-muted-foreground pt-2">Pagamentos registrados</p>
+                  {detailPayments.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhum pagamento registrado.</p>
+                  ) : detailPayments.map((p) => (
+                    <div key={p.id} className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/50">
+                      <span>{formatDateBR(p.data_pagamento)}</span>
+                      <span className="text-muted-foreground uppercase">{p.forma_pagamento}</span>
+                      <span className="ml-auto font-mono">{formatCurrency(Number(p.valor))}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button type="button" variant="outline" size="sm" className="w-full gap-1.5" onClick={() => void exportExpenseDetailPdf(detailExpense.id).catch((e) => toast.error("Não foi possível gerar o PDF", { description: e?.message }))}>
+                  <Download className="h-3.5 w-3.5" /> Exportar PDF
+                </Button>
               </div>
             );
           })()}
