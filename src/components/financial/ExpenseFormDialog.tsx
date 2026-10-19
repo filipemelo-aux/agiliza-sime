@@ -659,6 +659,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
   const isMaintenanceType = isManutencao;
 
+  // Auto-soma: itens de manutenção ou itens da nota definem o Valor (campo fica somente leitura)
+  const maintItemsSum = useMemo(() => itensManutencao.reduce((s, i) => s + Number(i.quantidade || 0) * Number(i.valor_unitario || 0), 0), [itensManutencao]);
+  const notaItemsSum = useMemo(() => itensNota.reduce((s, i) => s + Number(i.quantidade || 0) * Number(i.valor_unitario || 0), 0), [itensNota]);
+  const autoSumActive = (isMaintenanceType && itensManutencao.length > 0 && maintItemsSum > 0)
+    || (!isMaintenanceType && manualItemsEnabled && itensNota.length > 0 && notaItemsSum > 0);
+  useEffect(() => {
+    if (!autoSumActive) return;
+    const sum = isMaintenanceType ? maintItemsSum : notaItemsSum;
+    setValorTotal(sum.toFixed(2));
+  }, [autoSumActive, isMaintenanceType, maintItemsSum, notaItemsSum]);
+
   useEffect(() => {
     const shouldSyncTotalFromItems = manualItemsEnabled && inputMode === "manual" && itensNota.length > 0 && !isMaintenanceType;
 
@@ -1125,9 +1136,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           )}
 
+
+          {/* ═══ 1. Identificação ═══ */}
           {/* ── Conta Contábil (Plano de Contas) ── */}
           <div className="space-y-1.5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs flex items-center gap-1">
                   <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
@@ -1165,6 +1178,55 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             )}
           </div>
 
+          {/* ── Favorecido + CNPJ ── */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs">Favorecido</Label>
+              <PersonSearchInput
+                categories={["fornecedor", "cliente", "proprietario", "motorista", "colaborador", "banco"]}
+                placeholder="Buscar pessoa..."
+                selectedName={favorecidoNome || undefined}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
+                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); setFavorecidoCategory(null); }}
+                endAction={
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateFornecedor(true)}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Cadastrar fornecedor"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </button>
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">CNPJ Fornecedor</Label>
+              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="h-9" />
+            </div>
+          </div>
+
+          {/* Fuel suggestion */}
+          {showFuelSuggestion && unfueledRecords.length > 0 && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Fuel className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium">Abastecimentos não faturados</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  Existem {unfueledRecords.length} abastecimentos pendentes. Use o módulo de Abastecimentos para gerar contas a pagar em lote.
+                </p>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
+                  window.location.href = "/admin/fuelings";
+                }}>
+                  Ir para Abastecimentos
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ═══ 2. Composição do valor ═══ */}
           {/* ── É manutenção? ── */}
           <div className={`rounded-lg border p-3 transition-colors ${isManutencao ? "border-primary/50 bg-primary/5" : "border-border"}`}>
             <div className="flex items-center justify-between">
@@ -1198,59 +1260,120 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             )}
           </div>
 
-          {/* Fuel suggestion */}
-          {showFuelSuggestion && unfueledRecords.length > 0 && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Fuel className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-medium">Abastecimentos não faturados</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mb-2">
-                  Existem {unfueledRecords.length} abastecimentos pendentes. Use o módulo de Abastecimentos para gerar contas a pagar em lote.
-                </p>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
-                  window.location.href = "/admin/fuelings";
-                }}>
-                  Ir para Abastecimentos
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ── Favorecido + CNPJ ── */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs">Favorecido</Label>
-              <PersonSearchInput
-                categories={["fornecedor", "cliente", "proprietario", "motorista", "colaborador", "banco"]}
-                placeholder="Buscar pessoa..."
-                selectedName={favorecidoNome || undefined}
-                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
-                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); setFavorecidoCategory(null); }}
-                endAction={
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateFornecedor(true)}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                    title="Cadastrar fornecedor"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </button>
-                }
+          {/* ── Manutenção ── */}
+          {isMaintenanceType && (
+            <div className="space-y-4 p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold text-foreground">Dados da Manutenção</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground -mt-1">
+                Essa despesa será registrada também no histórico de manutenção do veículo.
+              </p>
+              <MaintenanceFields
+                veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
+                kmAtual={kmAtual} onKmAtualChange={setKmAtual}
+                tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
+                descricaoServico={descricaoServico} onDescricaoServicoChange={setDescricaoServico}
+                tipoServico={tipoServico} onTipoServicoChange={setTipoServico}
+                tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
+                proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
+                dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
+                itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
+                onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
+                hasNfse={hasNfse}
+                onHasNfseChange={setHasNfse}
               />
             </div>
-            <div>
-              <Label className="text-xs">CNPJ Fornecedor</Label>
-              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="h-9" />
-            </div>
-          </div>
+          )}
 
+          {/* Manual item entry (non-maintenance) */}
+          {!isMaintenanceType && (
+            <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                  <div>
+                    <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
+                    <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
+                  </div>
+                </div>
+                <Switch id="manual-items-toggle" checked={manualItemsEnabled} onCheckedChange={setManualItemsEnabled} />
+              </div>
+
+              {manualItemsEnabled && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-col sm:flex-row gap-1.5" onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
+                          if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
+                          const qtd = Number(newItemQtd) || 1;
+                          const vu = Number(newItemValor);
+                          setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
+                          setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
+                        }
+                      }}>
+                        <Input className="flex-1 h-9 min-w-0" value={newItemDesc} onChange={e => setNewItemDesc(maskSentence(e.target.value))} placeholder="Descrição do item" />
+                        <div className="flex gap-1.5">
+                          <Input className="w-[60px] h-9" type="number" value={newItemQtd} onChange={e => setNewItemQtd(e.target.value)} placeholder="Qtd" />
+                          <Input className="w-[90px] h-9" value={newItemValor ? maskCurrency(String(Math.round(parseFloat(newItemValor) * 100))) : ""} onChange={e => setNewItemValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+                            if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
+                            if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
+                            const qtd = Number(newItemQtd) || 1;
+                            const vu = Number(newItemValor);
+                            setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
+                            setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
+                          }}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                  </div>
+
+                  {/* Items da Nota */}
+                  {itensNota.length > 0 && (
+                    <div>
+                      <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
+                      <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-[10px]">Descrição</TableHead>
+                              <TableHead className="text-[10px] text-right">Qtd</TableHead>
+                              <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
+                              <TableHead className="text-[10px] text-right">Total</TableHead>
+                              <TableHead className="text-[10px] w-[32px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {itensNota.map((item, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="text-[11px] truncate">{item.descricao}</TableCell>
+                                <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
+                                <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
+                                <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
+                                <TableCell>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══ 3. Financeiro e total ═══ */}
           {/* ── Valor, Emissão, Vencimento ── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <Label className="text-xs">Valor (R$) *</Label>
-              <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" />
+              <Label className="text-xs">Valor (R$) *{autoSumActive && <span className="ml-1 text-[10px] text-muted-foreground font-normal">(soma dos itens)</span>}</Label>
+              <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" readOnly={autoSumActive} disabled={autoSumActive} title={autoSumActive ? "Calculado automaticamente pela soma dos itens acima" : undefined} />
             </div>
             <div>
               <Label className="text-xs">Emissão</Label>
@@ -1533,6 +1656,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             )}
           </div>
 
+          {/* ═══ 4. Gerencial e classificação ═══ */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Centro de Custo</Label>
@@ -1575,7 +1699,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               </Button>
             </div>
           )}
-
 
 
           {/* ── Vinculação opcional de veículo (qualquer despesa não-manutenção) ── */}
@@ -1649,30 +1772,42 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           )}
 
-          {/* ── Manutenção ── */}
-          {isMaintenanceType && (
-            <div className="space-y-4 p-3 rounded-lg border border-primary/20 bg-primary/5">
-              <div className="flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-primary" />
-                <span className="text-xs font-semibold text-foreground">Dados da Manutenção</span>
+          {/* ═══ 5. Documental ═══ */}
+          {/* ── Doc Fiscal (collapsible) ── */}
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            onClick={() => setShowDocFiscal(!showDocFiscal)}
+          >
+            {showDocFiscal ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            Documento Fiscal
+            {(docFiscal || chaveNfe) && <Badge variant="secondary" className="text-[9px] ml-1">Preenchido</Badge>}
+          </button>
+          {showDocFiscal && (
+            <div className="space-y-4 pl-5 border-l-2 border-muted">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Nº Doc. Fiscal</Label>
+                  <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" className="h-9" />
+                </div>
+                <div>
+                  <Label className="text-xs">Chave NF-e</Label>
+                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value.replace(/\D/g, "").slice(0, 44))} placeholder="44 dígitos" maxLength={44} className="h-9" />
+                </div>
               </div>
-              <p className="text-[10px] text-muted-foreground -mt-1">
-                Essa despesa será registrada também no histórico de manutenção do veículo.
-              </p>
-              <MaintenanceFields
-                veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
-                kmAtual={kmAtual} onKmAtualChange={setKmAtual}
-                tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
-                descricaoServico={descricaoServico} onDescricaoServicoChange={setDescricaoServico}
-                tipoServico={tipoServico} onTipoServicoChange={setTipoServico}
-                tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
-                proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
-                dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
-                itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
-                onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
-                hasNfse={hasNfse}
-                onHasNfseChange={setHasNfse}
-              />
+
+              {isEditing && (
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Origem:</span>{" "}
+                    <span>{ORIGEM_MAP[expense?.origem || "manual"] || expense?.origem}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Importado:</span>{" "}
+                    <span>{documentoImportado ? "Sim" : "Não"}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -2005,125 +2140,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             <Label className="text-xs">Observações</Label>
             <Textarea value={observacoes} onChange={e => setObservacoes(maskSentence(e.target.value))} rows={2} className="text-sm" />
           </div>
-
-          {/* ── Doc Fiscal (collapsible) ── */}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
-            onClick={() => setShowDocFiscal(!showDocFiscal)}
-          >
-            {showDocFiscal ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            Documento Fiscal
-            {(docFiscal || chaveNfe) && <Badge variant="secondary" className="text-[9px] ml-1">Preenchido</Badge>}
-          </button>
-          {showDocFiscal && (
-            <div className="space-y-4 pl-5 border-l-2 border-muted">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs">Nº Doc. Fiscal</Label>
-                  <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs">Chave NF-e</Label>
-                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value.replace(/\D/g, "").slice(0, 44))} placeholder="44 dígitos" maxLength={44} className="h-9" />
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Origem:</span>{" "}
-                    <span>{ORIGEM_MAP[expense?.origem || "manual"] || expense?.origem}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Importado:</span>{" "}
-                    <span>{documentoImportado ? "Sim" : "Não"}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Manual item entry (non-maintenance) */}
-          {!isMaintenanceType && (
-            <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                  <div>
-                    <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
-                    <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
-                  </div>
-                </div>
-                <Switch id="manual-items-toggle" checked={manualItemsEnabled} onCheckedChange={setManualItemsEnabled} />
-              </div>
-
-              {manualItemsEnabled && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex flex-col sm:flex-row gap-1.5" onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
-                          if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
-                          const qtd = Number(newItemQtd) || 1;
-                          const vu = Number(newItemValor);
-                          setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
-                          setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
-                        }
-                      }}>
-                        <Input className="flex-1 h-9 min-w-0" value={newItemDesc} onChange={e => setNewItemDesc(maskSentence(e.target.value))} placeholder="Descrição do item" />
-                        <div className="flex gap-1.5">
-                          <Input className="w-[60px] h-9" type="number" value={newItemQtd} onChange={e => setNewItemQtd(e.target.value)} placeholder="Qtd" />
-                          <Input className="w-[90px] h-9" value={newItemValor ? maskCurrency(String(Math.round(parseFloat(newItemValor) * 100))) : ""} onChange={e => setNewItemValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
-                          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-                            if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
-                            if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
-                            const qtd = Number(newItemQtd) || 1;
-                            const vu = Number(newItemValor);
-                            setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
-                            setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
-                          }}><Plus className="h-4 w-4" /></Button>
-                        </div>
-                  </div>
-
-                  {/* Items da Nota */}
-                  {itensNota.length > 0 && (
-                    <div>
-                      <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
-                      <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="text-[10px]">Descrição</TableHead>
-                              <TableHead className="text-[10px] text-right">Qtd</TableHead>
-                              <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
-                              <TableHead className="text-[10px] text-right">Total</TableHead>
-                              <TableHead className="text-[10px] w-[32px]"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {itensNota.map((item, idx) => (
-                              <TableRow key={idx}>
-                                <TableCell className="text-[11px] truncate">{item.descricao}</TableCell>
-                                <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
-                                <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
-                                <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
-                                <TableCell>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
-                                    <Trash2 className="h-3 w-3 text-destructive" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* ── Histórico (editing only, collapsible) ── */}
           {isEditing && (
