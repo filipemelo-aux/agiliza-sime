@@ -201,7 +201,21 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   // Permite valor negativo quando descontos superam o frete bruto
   const valorFrete = +(valorBruto - valorDesconto).toFixed(2);
 
+  // Trava contra cliques repetidos (cada clique extra criava outro rascunho).
+  const saveLockRef = useRef(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const handleSave = async (keepOpenForNext = false) => {
+    if (saveLockRef.current) return;
+    saveLockRef.current = true;
+    setSaveBusy(true);
+    try {
+      await handleSaveInner(keepOpenForNext);
+    } finally {
+      saveLockRef.current = false;
+      setSaveBusy(false);
+    }
+  };
+  const handleSaveInner = async (keepOpenForNext = false) => {
     if (!form.remetente_nome || !form.destinatario_nome) {
       toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
       return;
