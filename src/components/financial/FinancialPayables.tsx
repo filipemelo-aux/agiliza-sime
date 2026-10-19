@@ -282,7 +282,7 @@ export function FinancialPayables() {
     ]);
     const failed = results.find(result => result.error);
     if (failed?.error) throw new Error(failed.error.message);
-    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }] = results;
+    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }, { data: paymentsData }] = results;
     setEmpresaId((estab as any)?.id || "");
     const people = ((peopleData as any[]) || []);
 
