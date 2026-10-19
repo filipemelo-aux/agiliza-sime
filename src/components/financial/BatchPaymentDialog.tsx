@@ -312,7 +312,9 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
           </DialogTitle>
           {consolidated && (
             <p className="text-xs text-muted-foreground mt-1">
-              Os pagamentos serão registrados individualmente, mas gerarão uma única movimentação consolidada no fluxo de caixa.
+              {hasInstallments
+                ? "Pagamento agrupado: o valor informado é distribuído entre as parcelas, da mais antiga para a mais nova, com uma única saída no caixa."
+                : "Pagamento agrupado: as contas abaixo viram uma única conta a pagar do fornecedor, e o valor informado é pago nela."}
             </p>
           )}
           {mixedSuppliers && (
@@ -338,7 +340,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
                   <span className="text-muted-foreground font-mono whitespace-nowrap">
                     {formatCurrency(item.valor)}
                   </span>
-                  <Input
+                  {!consolidated && <Input
                     className="h-7 w-32 text-xs font-mono"
                     value={(() => {
                       const raw = valores[item.id];
@@ -356,8 +358,8 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
                       const next = unmasked === "" ? "" : (isNeg ? `-${unmasked}` : unmasked);
                       setValores(v => ({ ...v, [item.id]: next }));
                     }}
-                  />
-                  {Math.abs(diff) > 0.005 && (
+                  />}
+                  {!consolidated && Math.abs(diff) > 0.005 && (
                     <span className={`text-[10px] font-bold whitespace-nowrap ${diff > 0 ? "text-yellow-600" : "text-orange-600"}`}>
                       {diff > 0 ? `+${formatCurrency(diff)} juros` : `${formatCurrency(diff)} parcial`}
                     </span>
@@ -367,10 +369,32 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
             })}
           </div>
 
-          <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
-            <span className="text-sm font-medium text-muted-foreground">Total a pagar</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(totalGeral)}</span>
-          </div>
+          {consolidated ? (
+            <div className="rounded-md bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Soma das contas</span>
+                <span className="font-mono">{formatCurrency(somaOriginal)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-sm font-medium">Valor total a pagar agora</Label>
+                <Input
+                  className="h-9 w-40 text-right font-mono font-bold"
+                  value={totalAgrupado === "" ? "" : maskCurrency(String(Math.round(Number(totalAgrupado) * 100)))}
+                  onChange={e => setTotalAgrupado(unmaskCurrency(e.target.value))}
+                />
+              </div>
+              {totalAgrupadoNum + 0.005 < somaOriginal && totalAgrupadoNum > 0 && (
+                <p className="text-[11px] text-orange-600">
+                  Pagamento parcial — ficará um saldo de {formatCurrency(somaOriginal - totalAgrupadoNum)} na conta agrupada.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
+              <span className="text-sm font-medium text-muted-foreground">Total a pagar</span>
+              <span className="text-lg font-bold text-primary">{formatCurrency(totalGeral)}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -392,54 +416,22 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
 
-          {consolidated && !hasInstallments && (
-            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 space-y-3">
-              <p className="text-xs font-medium text-muted-foreground">
-                Criar nova conta a pagar (agrupar)
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Vencimento da nova conta</Label>
-                  <Input
-                    type="date"
-                    value={novaDataVencimento}
-                    onChange={e => setNovaDataVencimento(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">
-                    Favorecido {favorecidosDistintos.length > 1 ? "(múltiplos detectados)" : ""}
-                  </Label>
-                  <Select value={novoFavorecidoId} onValueChange={setNovoFavorecidoId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {favorecidosDistintos.map(f => (
-                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="flex flex-col sm:flex-row gap-2">
-            {consolidated && !hasInstallments && (
+            {consolidated ? (
               <Button
-                type="button"
-                variant="outline"
-                onClick={handleCreatePayable}
+                onClick={hasInstallments ? handleConfirm : handleCreatePayable}
                 className="sm:flex-1"
                 disabled={creating || saving || mixedSuppliers}
               >
-                {creating ? "Criando..." : "Criar Conta a Pagar"}
+                {creating || saving
+                  ? "Processando..."
+                  : hasInstallments ? "Confirmar pagamento agrupado" : "Criar conta agrupada e pagar"}
+              </Button>
+            ) : (
+              <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating || mixedSuppliers}>
+                {saving ? "Processando..." : "Confirmar Pagamento"}
               </Button>
             )}
-            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating || mixedSuppliers}>
-              {saving ? "Processando..." : "Confirmar Pagamento"}
-            </Button>
           </div>
         </div>
       </DialogContent>
