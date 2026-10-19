@@ -30,7 +30,7 @@ import { CheckIssueDialog } from "./CheckIssueDialog";
 import VehicleRateioEditor from "./VehicleRateioEditor";
 import { type RateioRow, loadRateio, saveRateio, validateRateio } from "@/lib/rateio";
 import { EmpresaSelect } from "./EmpresaControls";
-import { type ExpenseComposition, expenseCompositionTotal, sumExpenseItems } from "@/lib/expenseComposition";
+import { type ExpenseComposition, expenseCompositionTotal, sumExpenseItems, compositionFromAccountCode } from "@/lib/expenseComposition";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -122,7 +122,7 @@ interface Props {
   empresaId: string;
   chartAccounts: ChartAccount[];
   onSaved: (savedExpenseId?: string) => void;
-  initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string; favorecidoId?: string | null; favorecidoNome?: string | null } | null;
+  initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string; favorecidoId?: string | null; favorecidoNome?: string | null; planoContasCodigo?: string; veiculoId?: string | null } | null;
   /** XML de NF-e para pré-importar ao abrir (ex.: vindo da consulta de notas recebidas). */
   initialXml?: string | null;
 }
@@ -147,6 +147,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [numeroCheque, setNumeroCheque] = useState("");
   const [checkDialogOpen, setCheckDialogOpen] = useState(false);
   const [autoSavedId, setAutoSavedId] = useState<string | null>(null);
+  const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
+  const [partsServiceLink, setPartsServiceLink] = useState<{ id: string; valor: number; doc: string | null } | null>(null);
   const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
   useEffect(() => {
     if (!open && autoSavedId) { onSaved(autoSavedId); setAutoSavedId(null); setCheckExpenseId(null); }
@@ -324,8 +326,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       // Determine maintenance from chart account tipo_operacional OR from existing expense data
       const expAccount = chartAccounts.find(c => c.id === expense.plano_contas_id);
       const hasMaintData = !!(expense.tipo_manutencao || expense.km_atual);
-      setIsManutencao(hasMaintData);
-      setComposition(hasMaintData ? "servico" : expense.veiculo_id && expense.documento_fiscal_numero ? "pecas" : "geral");
+      const accountMode = compositionFromAccountCode(expAccount?.codigo);
+      const loadedMode = accountMode !== "geral" ? accountMode : hasMaintData ? "servico" : "geral";
+      setIsManutencao(loadedMode === "servico");
+      setComposition(loadedMode);
       setHasNfse(false);
       setLinkedNfseId(null);
       setDescricaoServico(expense.descricao);
@@ -558,6 +562,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
     setComposition("geral"); setLinkedNfseId(null); setLinkedServicePaid(false);
+    setPartsServiceLink(null); setServiceDialogOpen(false);
     setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
     setVeiculoId(null); setRateioAtivo(false); setRateioRows([]); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
@@ -729,6 +734,24 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       setNfseDataEmissao(dataEmissao); setNfseDataVencimento(dataVencimento); setNfseFormaPagamento(formaPagamento);
     }
   };
+
+  // Pré-preenchimento vindo de outra despesa (ex.: manutenção aberta a partir das peças)
+  const appliedInitialAccountRef = useRef(false);
+  useEffect(() => {
+    if (!open) { appliedInitialAccountRef.current = false; return; }
+    if (expense || appliedInitialAccountRef.current || !initialValues?.planoContasCodigo) return;
+    const acc = chartAccounts.find(c => c.codigo === initialValues.planoContasCodigo);
+    if (!acc) return;
+    appliedInitialAccountRef.current = true;
+    setPlanoContasId(acc.id);
+    if (acc.centro_custo_default) setCentroCusto(acc.centro_custo_default);
+    selectComposition(compositionFromAccountCode(acc.codigo));
+    if (initialValues.veiculoId) {
+      setVeiculoId(initialValues.veiculoId);
+      setVeiculoPlaca(fleetVehicles.find(v => v.id === initialValues.veiculoId)?.plate || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, chartAccounts, initialValues, expense]);
 
   const handleSave = async (opts?: { keepOpen?: boolean }): Promise<string | undefined> => {
     if (!empresaSelecionada) return void toast.error("Selecione a Empresa / Unidade");
@@ -1155,19 +1178,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold">O que é este lançamento?</Label>
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Tipo de lançamento">
-              {([
-                ["pecas", "Só Peças", Package], ["servico", "Só Serviço / Manutenção", Wrench],
-                ["misto", "Peças e Serviço", Package], ["geral", "Despesa Geral", Building2],
-              ] as const).map(([mode, label, Icon]) => (
-                <Button key={mode} type="button" variant={composition === mode ? "default" : "outline"}
-                  className="h-10 gap-1.5 text-xs whitespace-normal" aria-pressed={composition === mode}
-                  onClick={() => selectComposition(mode)}><Icon className="h-4 w-4 shrink-0" />{label}</Button>
-              ))}
+          {planoContasId && composition !== "geral" && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {composition === "servico" ? <Wrench className="h-3.5 w-3.5" /> : <Package className="h-3.5 w-3.5" />}
+              Tipo definido pela conta contábil: <strong className="text-foreground">{composition === "servico" ? "Serviço (manutenção)" : composition === "pecas" ? "Peças" : "Peças e serviço"}</strong>
             </div>
-          </div>
+          )}
           {/* Input mode selector */}
           {composition !== "servico" && <>
           <div className="flex gap-2">
@@ -1215,6 +1231,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     setPlanoContasId(id);
                     const acc = chartAccounts.find(c => c.id === id);
                     if (acc?.centro_custo_default) setCentroCusto(acc.centro_custo_default);
+                    if (!linkedNfseId) {
+                      const mode = compositionFromAccountCode(acc?.codigo);
+                      if (mode !== composition) selectComposition(mode);
+                    }
                   }}
                   options={despesaChartAccounts}
                 />
@@ -1298,6 +1318,29 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <SelectContent>{fleetVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>)}</SelectContent>
             </Select>
           </div>}
+          {composition === "pecas" && (
+            <div className={`rounded-lg border p-3 ${partsServiceLink ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Wrench className={`h-4 w-4 ${partsServiceLink ? "text-primary" : "text-muted-foreground"}`} />
+                  <div>
+                    <Label className="text-xs font-medium cursor-pointer" htmlFor="parts-has-service">Possui serviço (manutenção)?</Label>
+                    <p className="text-[10px] text-muted-foreground">Grava esta despesa e abre a manutenção para lançar a nota de serviço</p>
+                  </div>
+                </div>
+                <Switch id="parts-has-service" checked={!!partsServiceLink || serviceDialogOpen} disabled={!!partsServiceLink || serviceDialogOpen || saving}
+                  onCheckedChange={async (checked) => {
+                    if (!checked) return;
+                    const id = await handleSave({ keepOpen: true });
+                    if (!id) return;
+                    setServiceDialogOpen(true);
+                  }} />
+              </div>
+              {partsServiceLink && (
+                <p className="mt-2 text-xs">Manutenção lançada{partsServiceLink.doc ? ` (NFSe/OS ${partsServiceLink.doc})` : ""}: <strong>{formatCurrency(partsServiceLink.valor)}</strong></p>
+              )}
+            </div>
+          )}
           {/* Manual item entry (non-maintenance) */}
           {composition !== "servico" && (
             <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
@@ -2290,6 +2333,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       onSaved={handleChequeSaved}
     />
     {ConfirmDialog}
+    {serviceDialogOpen && (
+      <ExpenseFormDialog
+        open={serviceDialogOpen}
+        onOpenChange={setServiceDialogOpen}
+        empresaId={empresaSelecionada || empresaId}
+        chartAccounts={externalChartAccounts}
+        initialValues={{
+          descricao: "", dataEmissao, dataVencimento,
+          favorecidoId, favorecidoNome,
+          planoContasCodigo: "2.1.3.02", veiculoId,
+        }}
+        onSaved={async (serviceId) => {
+          if (!serviceId) return;
+          const { data } = await supabase.from("expenses").select("id, valor_total, documento_fiscal_numero").eq("id", serviceId).maybeSingle();
+          if (data) setPartsServiceLink({ id: data.id, valor: Number(data.valor_total) || 0, doc: data.documento_fiscal_numero });
+          toast.success("Manutenção lançada. Conclua agora a despesa das peças.");
+        }}
+      />
+    )}
   </>
 
   );
