@@ -1284,6 +1284,30 @@ export function FinancialPayables() {
     return count;
   }, [selectedIds, items, installmentsMap]);
 
+  // Mesmo fornecedor entre as contas não pagas selecionadas (mesma chave do pagamento agrupado)
+  const selectedUnpaidSameFavorecido = useMemo(() => {
+    const keys = new Set<string>();
+    const favKey = (e?: { favorecido_id: string | null; favorecido_nome: string | null }) =>
+      e ? (e.favorecido_id || (e.favorecido_nome || "").trim().toLowerCase()) : "";
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const [expId, installs] of Object.entries(installmentsMap)) {
+          const foundInst = installs.find(i => i.id === instId);
+          if (foundInst && foundInst.status !== "pago") {
+            const expense = items.find(i => i.id === expId);
+            if (expense) keys.add(favKey(expense));
+            break;
+          }
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item && item.status !== "pago") keys.add(favKey(item));
+      }
+    }
+    return keys.size <= 1;
+  }, [selectedIds, items, installmentsMap]);
+
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
       setSelectedIds(new Set());
