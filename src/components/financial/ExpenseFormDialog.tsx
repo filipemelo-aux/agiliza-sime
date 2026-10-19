@@ -1294,7 +1294,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 <div className="flex items-center gap-2">
                   <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <div>
-                    <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
+                    <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota (manual)?</Label>
                     <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
                   </div>
                 </div>
