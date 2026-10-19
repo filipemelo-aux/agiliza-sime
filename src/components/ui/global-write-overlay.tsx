@@ -39,10 +39,18 @@ function labelFor(method: string, url: string) {
   return resource ? `Atualizando ${resource}...` : "Atualizando...";
 }
 
+/** Última interação do usuário (clique/tecla): escritas sem ação recente são automáticas e não exibem aviso. */
+let lastUserAction = 0;
+let userBatch = false;
+const USER_WINDOW_MS = 3000;
+
 let installed = false;
 function install() {
   if (installed || typeof window === "undefined") return;
   installed = true;
+  const mark = () => { lastUserAction = Date.now(); };
+  window.addEventListener("pointerdown", mark, true);
+  window.addEventListener("keydown", mark, true);
   const orig = window.fetch.bind(window);
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -53,7 +61,10 @@ function install() {
       /\/(rest\/v1|functions\/v1|storage\/v1)\//.test(url) &&
       !url.includes("/auth/v1/");
     if (!isWrite) return orig(input as any, init);
+    // Carregamentos/sincronizações automáticas: concluem em silêncio, sem quadro.
+    if (pending === 0 && Date.now() - lastUserAction > USER_WINDOW_MS) return orig(input as any, init);
     pending++;
+    userBatch = true;
     if (pending === 1) failedWrites = 0;
     lastLabel = labelFor(method, url);
     notify();
