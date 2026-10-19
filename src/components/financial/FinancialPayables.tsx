@@ -1018,6 +1018,7 @@ export function FinancialPayables() {
       chartLabel: string;
       vencimento: string;
       valor: number;
+      saldo: number;
       status: string;
       isPago: boolean;
       isOverdue: boolean;
@@ -1050,7 +1051,9 @@ export function FinancialPayables() {
               parcela: `${inst.numero_parcela}/${inst.total_parcelas ?? installs.length}`,
               chartLabel,
               vencimento: inst.data_vencimento,
-              valor: isPago ? Number(inst.valor) : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
+              // Valor = valor original da parcela; Saldo = o que falta pagar
+              valor: Number(inst.valor),
+              saldo: isPago ? 0 : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
               status: isOverdue ? "atrasado" : inst.status,
               isPago,
               isOverdue,
@@ -1074,9 +1077,9 @@ export function FinancialPayables() {
         parcela: null,
         chartLabel,
         vencimento: isPago && item.data_pagamento ? item.data_pagamento : (item.data_vencimento || item.data_emissao || ""),
-        valor: isPago
-          ? (Number(item.valor_pago) || Number(item.valor_total))
-          : Math.max(Number(item.valor_total) - Number(item.valor_pago || 0), 0),
+        // Valor = valor original da conta; Saldo = o que falta pagar
+        valor: Number(item.valor_total),
+        saldo: isPago ? 0 : Math.max(Number(item.valor_total) - Number(item.valor_pago || 0), 0),
         status: isOverdue ? "atrasado" : item.status,
         isPago,
         isOverdue,
@@ -1190,36 +1193,29 @@ export function FinancialPayables() {
     },
     {
       key: "parcial",
-      header: "Pagto. Parcial",
+      header: "Saldo a Pagar",
       width: "108px",
       align: "right",
-      sortValue: (r) => {
-        if (r.inst) {
-          if (r.inst.status === "pago") return 0;
-          const p = instPaidMap[r.inst.id] || 0;
-          return p > 0 ? Math.max(Number(r.inst.valor) - p, 0) : 0;
-        }
-        const paid = Number(r.item.valor_pago) || 0;
-        const total = Number(r.item.valor_total) || 0;
-        return paid > 0 && paid < total ? total - paid : 0;
-      },
+      sortValue: (r) => r.saldo,
       cell: (r) => {
+        const isPago = r.inst ? r.inst.status === "pago" : r.item.status === "pago";
+        if (isPago) return <span className="text-muted-foreground">—</span>;
         const paid = r.inst
-          ? (r.inst.status === "pago" ? 0 : (instPaidMap[r.inst.id] || 0))
+          ? (instPaidMap[r.inst.id] || 0)
           : (Number(r.item.valor_pago) || 0);
-        const total = r.inst ? Number(r.inst.valor) || 0 : Number(r.item.valor_total) || 0;
-        const remaining = total - paid;
-        if (paid > 0 && remaining > 0 && paid < total) {
-          return (
-            <span className="inline-flex flex-col items-end leading-tight">
-              <span className="text-[10px] text-muted-foreground font-mono">Pago {formatCurrency(paid)}</span>
-              <span className="text-[11px] font-mono font-semibold text-amber-600 dark:text-amber-400">
-                Saldo {formatCurrency(remaining)}
-              </span>
-            </span>
-          );
+        // Sem pagamento parcial: valor integral (igual à coluna Valor)
+        if (!(paid > 0 && r.saldo > 0 && paid < r.valor)) {
+          return <span className="font-mono">{formatCurrency(r.valor)}</span>;
         }
-        return <span className="text-muted-foreground">—</span>;
+        // Com pagamento parcial: saldo em destaque + contexto do pago
+        return (
+          <span className="inline-flex flex-col items-end leading-tight">
+            <span className="text-[11px] font-mono font-semibold text-amber-600 dark:text-amber-400">
+              {formatCurrency(r.saldo)}
+            </span>
+            <span className="text-[9px] text-muted-foreground font-mono">(Pago: {formatCurrency(paid)})</span>
+          </span>
+        );
       },
     },
   ], [profilesMap, instPaidMap]);
@@ -1743,7 +1739,7 @@ tfoot{display:table-row-group}
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{flatRows.length} registro(s)</span>
             <span className="font-mono">
-              Total exibido: {formatCurrency(flatRows.reduce((s, r) => s + r.valor, 0))}
+              Total exibido: {formatCurrency(flatRows.reduce((s, r) => s + r.saldo, 0))}
             </span>
           </div>
         }
@@ -1761,7 +1757,7 @@ tfoot{display:table-row-group}
       <p className="px-1 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <span className="h-2 w-2 rounded-sm bg-amber-400" />
-          Linhas com pagamento parcial exibem o valor já pago e o saldo a pagar na coluna "Pagto. Parcial".
+          Linhas com pagamento parcial exibem o saldo a pagar em destaque e o valor já pago logo abaixo, na coluna "Saldo a Pagar". O total do rodapé soma apenas os saldos.
         </span>
       </p>
 
