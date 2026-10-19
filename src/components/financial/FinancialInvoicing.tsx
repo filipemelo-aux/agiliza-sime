@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2, ChevronDown, X } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCNPJ, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { receivableBalance, totalReceivableBalance } from "@/lib/receivableBalance";
 import { limitDisplayText } from "@/lib/displayText";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
@@ -1791,15 +1792,29 @@ ${hasRecebimentos ? `
       key: "valor", header: "Valor", width: "140px", align: "right",
       sortValue: (f) => Number(f.valor_total),
       cell: (f) => (
-        <span className="tabular-nums font-medium">
+        <span className="font-mono font-semibold whitespace-nowrap">
           {formatCurrency(Number(f.valor_total))}
-          {f.has_partial && (
-            <span className="block text-[10px] text-amber-600 font-normal">
-              Receb: {formatCurrency(f.valor_recebido_total || 0)} · Saldo: {formatCurrency(Math.max(0, Number(f.valor_total) - Number(f.valor_recebido_total || 0)))}
-            </span>
-          )}
         </span>
       ),
+    },
+    {
+      key: "saldo", header: "Saldo a Receber", width: "150px", align: "right",
+      sortValue: (f) => receivableBalance(f),
+      cell: (f) => {
+        const saldo = receivableBalance(f);
+        const received = Number(f.valor_recebido_total || 0);
+        const partial = received > 0 && saldo > 0;
+        return (
+          <span className="inline-flex flex-col items-end leading-tight whitespace-nowrap">
+            <span className={cn("font-mono", partial && "text-[11px] font-semibold text-warning")}>
+              {formatCurrency(saldo)}
+            </span>
+            {partial && (
+              <span className="text-[9px] text-muted-foreground font-mono">(Recebido: {formatCurrency(received)})</span>
+            )}
+          </span>
+        );
+      },
     },
     {
       key: "condicao", header: "Condição", width: "110px", align: "center",
@@ -1826,7 +1841,7 @@ ${hasRecebimentos ? `
 
   return (
     <div className="space-y-3">
-      <PageTitle>Faturamento</PageTitle>
+      <PageTitle>Faturas a Receber</PageTitle>
 
 
       <div className="grid grid-cols-2 gap-2">
@@ -1936,7 +1951,7 @@ ${hasRecebimentos ? `
       >
         {selectedFaturaIds.size > 0 && (
           <span className="text-[11px] font-mono text-primary">
-            {formatCurrency(selectedFaturas.reduce((s, f) => s + Number(f.valor_total), 0))}
+            {formatCurrency(totalReceivableBalance(selectedFaturas))}
           </span>
         )}
       </GlobalToolbar>
@@ -1949,12 +1964,12 @@ ${hasRecebimentos ? `
         rowClassName={(f) => rowToneClass(f.status === "paga" ? "resolved" : "pending")}
         onSelectedChange={setSelectedFaturaIds}
         loading={loading}
-        minWidth={1000}
+        minWidth={1150}
         emptyMessage='Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.'
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{faturasVisiveis.length} fatura(s)</span>
-            <span className="font-mono">Total: {formatCurrency(totalFaturado)}</span>
+            <span className="font-mono">Total exibido: {formatCurrency(totalReceivableBalance(faturasVisiveis))}</span>
           </div>
         }
       />

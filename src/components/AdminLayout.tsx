@@ -38,7 +38,7 @@ export const allMenuItems = [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       { title: "Cheques", url: "/admin/financial/checks", icon: WalletCards },
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
-      { title: "Faturas e Contas a Receber", url: "/admin/financial/invoicing", icon: Receipt },
+      { title: "Faturas a Receber", url: "/admin/financial/invoicing", icon: Receipt },
       
       { title: "Previsões a Receber", url: "/admin/financial/forecasts", icon: TrendingUp },
     ],
