@@ -633,7 +633,7 @@ export function FinancialPayables() {
             batchItems.push({
               id: `inst-${instId}`,
               descricao: expense?.favorecido_nome || expense?.descricao || "Parcela",
-              valor: Number(foundInst.valor),
+              valor: Math.max(Number(foundInst.valor) - (instPaidMap[instId] || 0), 0),
               tipo: "installment",
               expenseId: expId,
               installmentId: instId,
@@ -1049,7 +1049,7 @@ export function FinancialPayables() {
               parcela: `${inst.numero_parcela}/${inst.total_parcelas ?? installs.length}`,
               chartLabel,
               vencimento: inst.data_vencimento,
-              valor: Number(inst.valor),
+              valor: isPago ? Number(inst.valor) : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
               status: isOverdue ? "atrasado" : inst.status,
               isPago,
               isOverdue,
@@ -1193,16 +1193,20 @@ export function FinancialPayables() {
       width: "108px",
       align: "right",
       sortValue: (r) => {
-        if (r.inst) return 0;
+        if (r.inst) {
+          if (r.inst.status === "pago") return 0;
+          const p = instPaidMap[r.inst.id] || 0;
+          return p > 0 ? Math.max(Number(r.inst.valor) - p, 0) : 0;
+        }
         const paid = Number(r.item.valor_pago) || 0;
         const total = Number(r.item.valor_total) || 0;
         return paid > 0 && paid < total ? total - paid : 0;
       },
       cell: (r) => {
-        // Parcelas individuais são binárias (paga/aberta) — sem quitação parcial.
-        if (r.inst) return <span className="text-muted-foreground">—</span>;
-        const paid = Number(r.item.valor_pago) || 0;
-        const total = Number(r.item.valor_total) || 0;
+        const paid = r.inst
+          ? (r.inst.status === "pago" ? 0 : (instPaidMap[r.inst.id] || 0))
+          : (Number(r.item.valor_pago) || 0);
+        const total = r.inst ? Number(r.inst.valor) || 0 : Number(r.item.valor_total) || 0;
         const remaining = total - paid;
         if (paid > 0 && remaining > 0 && paid < total) {
           return (
