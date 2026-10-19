@@ -1221,7 +1221,7 @@ export function FinancialPayables() {
         return <span className="text-muted-foreground">—</span>;
       },
     },
-  ], [profilesMap]);
+  ], [profilesMap, instPaidMap]);
 
 
   const hasSelectedPaid = useMemo(() => {
@@ -1238,7 +1238,7 @@ export function FinancialPayables() {
       }
     }
     return false;
-  }, [selectedIds, items, installmentsMap, instPaidMap]);
+  }, [selectedIds, items, installmentsMap]);
 
   const hasSelectedUnpaid = useMemo(() => {
     for (const id of selectedIds) {
@@ -1343,7 +1343,7 @@ export function FinancialPayables() {
       }
     });
     return total;
-  }, [selectedIds, items, installmentsMap]);
+  }, [selectedIds, items, installmentsMap, instPaidMap]);
 
   // Check if any selected item is a harvest payment
   const hasSelectedHarvest = useMemo(() => {
