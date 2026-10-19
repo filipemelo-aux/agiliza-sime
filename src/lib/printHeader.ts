@@ -52,14 +52,14 @@ export function buildPrintHeaderHtml(opts: {
     </div>`;
   }
   const F = "Arial,Helvetica,sans-serif";
-  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:2px solid #111;margin-bottom:14px;font-family:${F}"><tr>
-  ${logoUrl ? `<td style="width:1%;vertical-align:middle;padding:0 14px 12px 0"><img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:56px;max-width:110px;width:auto;border:0" /></td>` : ""}
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:2px solid #111;margin-bottom:14px;font-family:${F};table-layout:auto;border-collapse:collapse"><tr>
+  ${logoUrl ? `<td style="width:124px;min-width:124px;vertical-align:middle;padding:0 14px 12px 0"><img src="${logoUrl}" alt="Logo da empresa" style="display:block;max-height:56px;max-width:110px;width:auto;border:0" /></td>` : ""}
   <td style="vertical-align:middle;padding-bottom:12px">
     <div style="font-size:16px;font-weight:800;color:#111;text-transform:uppercase">${company.name}</div>
     ${company.docLine ? `<div style="font-size:11px;color:#444;margin-top:5px">${company.docLine}</div>` : ""}
     ${company.address ? `<div style="font-size:10px;color:#777;margin-top:3px;text-transform:uppercase;line-height:1.4">${company.address}</div>` : ""}
   </td>
-  <td style="vertical-align:middle;text-align:right;padding:0 0 12px 12px;white-space:nowrap">
+  <td style="width:38%;vertical-align:middle;text-align:right;padding:0 0 12px 12px">
     <div style="font-size:19px;font-weight:800;color:#111">${title}</div>
     ${subtitle ? `<div style="font-family:'Courier New',monospace;font-size:10px;color:#555;margin-top:5px">${subtitle}</div>` : ""}
     ${highlight ? `<div style="font-size:13px;font-weight:700;color:#111;margin-top:4px">${highlight}</div>` : ""}
