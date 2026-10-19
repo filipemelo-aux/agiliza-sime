@@ -278,6 +278,7 @@ export function FinancialPayables() {
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
       supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
       supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia"),
+      supabase.from("expense_payments" as any).select("expense_id, installment_id, valor, juros"),
     ]);
     const failed = results.find(result => result.error);
     if (failed?.error) throw new Error(failed.error.message);
