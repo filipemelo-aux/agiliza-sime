@@ -51,18 +51,29 @@ export async function buildHtmlPdf(
     // A imagem SVG usada na captura nativa precisa conter suas próprias imagens.
     await Promise.all(Array.from(doc.images).map(async (img) => {
       if (!img.src || img.src.startsWith("data:")) return;
-      const response = await fetch(img.src);
-      if (!response.ok) throw new Error("Não foi possível carregar a logomarca do documento.");
-      const blob = await response.blob();
+      let blob: Blob | null = null;
+      for (let attempt = 0; attempt < 3 && !blob; attempt++) {
+        try {
+          const response = await fetch(img.src, { cache: attempt ? "reload" : "default", mode: "cors" });
+          if (response.ok) { const b = await response.blob(); if (b.size > 0) blob = b; }
+        } catch { /* tenta de novo */ }
+        if (!blob) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      }
+      if (!blob) throw new Error("Não foi possível carregar a logomarca do documento. Tente baixar novamente.");
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Imagem inválida."));
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
+      img.removeAttribute("srcset");
+      img.removeAttribute("loading");
       img.src = dataUrl;
-      await img.decode();
+      await img.decode().catch(() => undefined);
+      if (!img.naturalWidth) throw new Error("A logomarca não carregou. Tente baixar novamente.");
     }));
+    // Dá tempo ao navegador de pintar as imagens embutidas antes da captura.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 150))));
     const pages = Array.from(doc.querySelectorAll<HTMLElement>(".doc-page"));
     const targets = pages.length ? pages : [doc.body];
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation });
