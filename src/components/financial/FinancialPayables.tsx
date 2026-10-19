@@ -1050,7 +1050,9 @@ export function FinancialPayables() {
               parcela: `${inst.numero_parcela}/${inst.total_parcelas ?? installs.length}`,
               chartLabel,
               vencimento: inst.data_vencimento,
-              valor: isPago ? Number(inst.valor) : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
+              // Valor = valor original da parcela; Saldo = o que falta pagar
+              valor: Number(inst.valor),
+              saldo: isPago ? 0 : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
               status: isOverdue ? "atrasado" : inst.status,
               isPago,
               isOverdue,
@@ -1074,9 +1076,9 @@ export function FinancialPayables() {
         parcela: null,
         chartLabel,
         vencimento: isPago && item.data_pagamento ? item.data_pagamento : (item.data_vencimento || item.data_emissao || ""),
-        valor: isPago
-          ? (Number(item.valor_pago) || Number(item.valor_total))
-          : Math.max(Number(item.valor_total) - Number(item.valor_pago || 0), 0),
+        // Valor = valor original da conta; Saldo = o que falta pagar
+        valor: Number(item.valor_total),
+        saldo: isPago ? 0 : Math.max(Number(item.valor_total) - Number(item.valor_pago || 0), 0),
         status: isOverdue ? "atrasado" : item.status,
         isPago,
         isOverdue,
