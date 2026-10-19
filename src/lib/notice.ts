@@ -88,7 +88,9 @@ export const toast = Object.assign(
   sonner,
   {
     error: (m: unknown, d?: any) => central("error", m, d),
-    success: (m: unknown, d?: any) => central("success", m, d),
+    // Confirmações aparecem só no quadro de processamento (ProcessingOverlay);
+    // apenas retornos solicitados explicitamente (persistent) abrem aviso.
+    success: (m: unknown, d?: any) => (d && typeof d === "object" && d.persistent === true ? central("success", m, d) : 0),
     info: (m: unknown, d?: any) => central("info", m, d),
     warning: (m: unknown, d?: any) => central("warning", m, d),
     message: (m: unknown, d?: any) => central("info", m, d),
