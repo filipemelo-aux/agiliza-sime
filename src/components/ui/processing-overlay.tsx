@@ -1,8 +1,8 @@
 import { createPortal } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 
 /** Full-screen blocking overlay naming the operation in progress. */
-export function ProcessingOverlay({ open, label = "Processando..." }: { open: boolean; label?: string }) {
+export function ProcessingOverlay({ open, label = "Processando...", status = "processing" }: { open: boolean; label?: string; status?: "processing" | "success" }) {
   if (!open) return null;
   return createPortal(
     <div
@@ -11,13 +11,21 @@ export function ProcessingOverlay({ open, label = "Processando..." }: { open: bo
       onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onKeyDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
-      <div className="flex flex-col items-center gap-3 rounded-lg border bg-card px-8 py-6 shadow-lg">
+      <div className="flex flex-col items-center gap-3 rounded-lg border bg-card px-8 py-6 shadow-lg transition-all">
         <div className="relative h-14 w-14">
-          <div className="absolute inset-0 rounded-full border-4 border-muted" />
-          <Loader2 className="absolute inset-0 h-14 w-14 animate-spin text-primary" />
+          {status === "success" ? (
+            <CheckCircle2 className="absolute inset-0 h-14 w-14 text-green-600 animate-scale-in" />
+          ) : (
+            <>
+              <div className="absolute inset-0 rounded-full border-4 border-muted" />
+              <Loader2 className="absolute inset-0 h-14 w-14 animate-spin text-primary" />
+            </>
+          )}
         </div>
-        <p className="text-sm font-medium text-foreground text-center max-w-sm">Aguarde, não feche esta tela.</p>
-        <p className="text-[10px] text-muted-foreground text-center max-w-sm">{label}</p>
+        <p className="text-sm font-medium text-foreground text-center max-w-sm">
+          {status === "success" ? "Concluído com sucesso!" : "Aguarde, não feche esta tela."}
+        </p>
+        <p className="text-[10px] text-muted-foreground text-center max-w-sm">{status === "success" ? "" : label}</p>
       </div>
     </div>,
     document.body,
