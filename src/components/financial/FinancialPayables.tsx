@@ -1186,7 +1186,7 @@ export function FinancialPayables() {
     {
       key: "status",
       header: "Status",
-      width: "84px",
+      width: "78px",
       align: "center",
       sortValue: (r) => r.status,
       cell: (r) => (
@@ -1200,7 +1200,7 @@ export function FinancialPayables() {
     {
       key: "valor",
       header: "Valor",
-      width: "96px",
+      width: "92px",
       align: "right",
       sortValue: (r) => r.valor,
       cell: (r) => <span className="font-mono font-semibold">{formatCurrency(r.valor)}</span>,
