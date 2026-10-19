@@ -343,7 +343,7 @@
 
     .data-grid-table th[data-column-key="origem"],
     .data-grid-table td[data-column-key="origem"] {
-      width: 68px !important;
+      width: 80px !important;
     }
 
     .data-grid-table th[data-column-key="amount"],
