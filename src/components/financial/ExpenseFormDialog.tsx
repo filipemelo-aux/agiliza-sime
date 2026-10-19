@@ -735,6 +735,24 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   };
 
+  // Pré-preenchimento vindo de outra despesa (ex.: manutenção aberta a partir das peças)
+  const appliedInitialAccountRef = useRef(false);
+  useEffect(() => {
+    if (!open) { appliedInitialAccountRef.current = false; return; }
+    if (expense || appliedInitialAccountRef.current || !initialValues?.planoContasCodigo) return;
+    const acc = chartAccounts.find(c => c.codigo === initialValues.planoContasCodigo);
+    if (!acc) return;
+    appliedInitialAccountRef.current = true;
+    setPlanoContasId(acc.id);
+    if (acc.centro_custo_default) setCentroCusto(acc.centro_custo_default);
+    selectComposition(compositionFromAccountCode(acc.codigo));
+    if (initialValues.veiculoId) {
+      setVeiculoId(initialValues.veiculoId);
+      setVeiculoPlaca(fleetVehicles.find(v => v.id === initialValues.veiculoId)?.plate || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, chartAccounts, initialValues, expense]);
+
   const handleSave = async (opts?: { keepOpen?: boolean }): Promise<string | undefined> => {
     if (!empresaSelecionada) return void toast.error("Selecione a Empresa / Unidade");
     if (!planoContasId) return void toast.error("Selecione a conta contábil");
