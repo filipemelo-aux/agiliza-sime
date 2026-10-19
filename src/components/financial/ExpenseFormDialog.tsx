@@ -1906,7 +1906,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       {parcelas.map((p, idx) => {
                         const isPaid = p.status === "pago";
                         return (
-                        <TableRow key={idx} className={isPaid ? "opacity-60 bg-muted/30" : ""}>
+                        <TableRow key={p.id || `n-${idx}`} className={isPaid ? "bg-muted/50 text-muted-foreground" : ""} title={isPaid ? "Parcela paga — bloqueada para edição" : undefined}>
                           <TableCell className="text-[11px] font-mono">
                             {p.numero}
                             {isPaid && <Badge variant="default" className="ml-1 text-[8px] px-1 py-0">Pago</Badge>}
@@ -1916,7 +1916,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                               type="date"
                               value={p.data_vencimento}
                               onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
-                              className="h-7 text-[11px]"
+                              className={`h-7 text-[11px] ${isPaid ? "bg-muted cursor-not-allowed" : ""}`}
                               disabled={isPaid}
                             />
                           </TableCell>
@@ -1943,7 +1943,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                   return updated;
                                 });
                               }}
-                              className="h-7 text-[11px] text-right font-mono"
+                              className={`h-7 text-[11px] text-right font-mono ${isPaid ? "bg-muted cursor-not-allowed" : ""}`}
                               disabled={isPaid}
                             />
                           </TableCell>
@@ -2305,7 +2305,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Save ── */}
           <div className="pt-2 border-t">
-            <Button onClick={() => handleSave()} className="w-full" disabled={saving}>
+            <Button onClick={() => handleSave()} className="w-full" disabled={saving || parcelasMismatch} title={parcelasMismatch ? "A soma das parcelas não bate com o valor total" : undefined}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
