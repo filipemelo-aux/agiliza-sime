@@ -1090,7 +1090,7 @@ export function FinancialPayables() {
         ? b.vencimento.localeCompare(a.vencimento)
         : a.vencimento.localeCompare(b.vencimento)
     );
-  }, [filtered, installmentsMap, chartIdMap, matchesPeriod, matchesQuickFilter, quickFilter]);
+  }, [filtered, installmentsMap, instPaidMap, chartIdMap, matchesPeriod, matchesQuickFilter, quickFilter]);
 
   type PayableRow = (typeof flatRows)[number];
 
@@ -1238,7 +1238,7 @@ export function FinancialPayables() {
       }
     }
     return false;
-  }, [selectedIds, items, installmentsMap]);
+  }, [selectedIds, items, installmentsMap, instPaidMap]);
 
   const hasSelectedUnpaid = useMemo(() => {
     for (const id of selectedIds) {
@@ -1328,7 +1328,7 @@ export function FinancialPayables() {
         const instId = id.replace("inst-", "");
         for (const installs of Object.values(installmentsMap)) {
           const inst = installs.find(i => i.id === instId);
-          if (inst) { total += Number(inst.valor); break; }
+          if (inst) { total += inst.status === "pago" ? Number(inst.valor) : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0); break; }
         }
       } else {
         const item = items.find(i => i.id === id);
@@ -1372,7 +1372,7 @@ export function FinancialPayables() {
               favorecido: item?.favorecido_nome || "Sem favorecido",
               descricao: `${item?.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ` : ""}${item?.descricao || "Serviço"} (P${inst.numero_parcela}/${inst.total_parcelas ?? installs.length})`,
               vencimento: inst.data_vencimento,
-              valor: Number(inst.valor),
+              valor: inst.status === "pago" ? Number(inst.valor) : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
               status: isOverdue ? "atrasado" : inst.status,
               planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
             });
