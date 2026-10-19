@@ -1318,29 +1318,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <SelectContent>{fleetVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>)}</SelectContent>
             </Select>
           </div>}
-          {composition === "pecas" && (
-            <div className={`rounded-lg border p-3 ${partsServiceLink ? "border-primary/50 bg-primary/5" : "border-border"}`}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Wrench className={`h-4 w-4 ${partsServiceLink ? "text-primary" : "text-muted-foreground"}`} />
-                  <div>
-                    <Label className="text-xs font-medium cursor-pointer" htmlFor="parts-has-service">Possui serviço (manutenção)?</Label>
-                    <p className="text-[10px] text-muted-foreground">Grava esta despesa e abre a manutenção para lançar a nota de serviço</p>
-                  </div>
-                </div>
-                <Switch id="parts-has-service" checked={!!partsServiceLink || serviceDialogOpen} disabled={!!partsServiceLink || serviceDialogOpen || saving}
-                  onCheckedChange={async (checked) => {
-                    if (!checked) return;
-                    const id = await handleSave({ keepOpen: true });
-                    if (!id) return;
-                    setServiceDialogOpen(true);
-                  }} />
-              </div>
-              {partsServiceLink && (
-                <p className="mt-2 text-xs">Manutenção lançada{partsServiceLink.doc ? ` (NFSe/OS ${partsServiceLink.doc})` : ""}: <strong>{formatCurrency(partsServiceLink.valor)}</strong></p>
-              )}
-            </div>
-          )}
           {/* Manual item entry (non-maintenance) */}
           {composition !== "servico" && (
             <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
@@ -2050,6 +2027,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               </div>
             )}
           </div>
+
+          {composition === "pecas" && (
+            <div className={`rounded-lg border p-3 ${partsServiceLink ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Wrench className={`h-4 w-4 ${partsServiceLink ? "text-primary" : "text-muted-foreground"}`} />
+                  <div>
+                    <Label className="text-xs font-medium cursor-pointer" htmlFor="parts-has-service">Possui serviço (manutenção)?</Label>
+                    <p className="text-[10px] text-muted-foreground">Grava esta despesa e abre a manutenção para lançar a nota de serviço</p>
+                  </div>
+                </div>
+                <Switch id="parts-has-service" checked={!!partsServiceLink || serviceDialogOpen} disabled={!!partsServiceLink || serviceDialogOpen || saving}
+                  onCheckedChange={async (checked) => {
+                    if (!checked) return;
+                    const id = await handleSave({ keepOpen: true });
+                    if (!id) return;
+                    setServiceDialogOpen(true);
+                  }} />
+              </div>
+              {partsServiceLink && (
+                <p className="mt-2 text-xs">Manutenção lançada{partsServiceLink.doc ? ` (NFSe/OS ${partsServiceLink.doc})` : ""}: <strong>{formatCurrency(partsServiceLink.valor)}</strong></p>
+              )}
+            </div>
+          )}
 
           {/* ═══ 4. Gerencial e classificação ═══ */}
           <div className="grid grid-cols-2 gap-4">
