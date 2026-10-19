@@ -23,11 +23,9 @@ afterEach(() => {
 const show = (fn: () => void) => act(fn);
 
 describe("Fechamento dos avisos centrais", () => {
-  it("fecha sozinho o aviso de sucesso", () => {
+  it("não abre aviso com X para confirmação de sucesso", () => {
     render(<NoticeHost />);
     show(() => { toast.success("Cadastro salvo"); });
-    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
-    act(() => { vi.advanceTimersByTime(4100); });
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
