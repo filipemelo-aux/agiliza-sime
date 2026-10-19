@@ -19,3 +19,17 @@ describe("Composição de despesas", () => {
     expect(sumExpenseItems([{ quantidade: 3, valor_unitario: 0.1 }])).toBe(0.3);
   });
 });
+import { compositionFromAccountCode } from "./expenseComposition";
+describe("compositionFromAccountCode", () => {
+  it("peças: 2.1.3.01 e 2.1.6.05", () => {
+    expect(compositionFromAccountCode("2.1.3.01")).toBe("pecas");
+    expect(compositionFromAccountCode("2.1.6.05")).toBe("pecas");
+  });
+  it("serviço: 2.1.3.02 a 06 e 2.1.6.02", () => {
+    for (const c of ["2.1.3.02", "2.1.3.03", "2.1.3.04", "2.1.3.05", "2.1.3.06", "2.1.6.02"]) expect(compositionFromAccountCode(c)).toBe("servico");
+  });
+  it("demais contas: geral", () => {
+    expect(compositionFromAccountCode("2.1.1.01")).toBe("geral");
+    expect(compositionFromAccountCode("2.1.3.07")).toBe("geral");
+  });
+});
