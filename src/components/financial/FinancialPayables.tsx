@@ -1073,7 +1073,9 @@ export function FinancialPayables() {
         parcela: null,
         chartLabel,
         vencimento: isPago && item.data_pagamento ? item.data_pagamento : (item.data_vencimento || item.data_emissao || ""),
-        valor: isPago ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total),
+        valor: isPago
+          ? (Number(item.valor_pago) || Number(item.valor_total))
+          : Math.max(Number(item.valor_total) - Number(item.valor_pago || 0), 0),
         status: isOverdue ? "atrasado" : item.status,
         isPago,
         isOverdue,
