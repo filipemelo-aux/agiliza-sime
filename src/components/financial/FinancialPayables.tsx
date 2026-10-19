@@ -201,6 +201,7 @@ export function FinancialPayables() {
   const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
   const [batchConsolidated, setBatchConsolidated] = useState(false);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
+  const [instPaidMap, setInstPaidMap] = useState<Record<string, number>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editInstValor, setEditInstValor] = useState("");
@@ -278,10 +279,11 @@ export function FinancialPayables() {
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
       supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
       supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia"),
+      supabase.from("expense_payments" as any).select("expense_id, installment_id, valor, juros"),
     ]);
     const failed = results.find(result => result.error);
     if (failed?.error) throw new Error(failed.error.message);
-    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }] = results;
+    const [{ data: estab }, { data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }, { data: groupItemsData }, { data: fuelingLinksData }, { data: peopleData }, { data: paymentsData }] = results;
     setEmpresaId((estab as any)?.id || "");
     const people = ((peopleData as any[]) || []);
 
@@ -399,6 +401,15 @@ export function FinancialPayables() {
       iMap[inst.expense_id].push(inst);
     });
     setInstallmentsMap(iMap);
+
+    // Soma de pagamentos por parcela (para o Saldo Devedor real dos cards)
+    const paidMap: Record<string, number> = {};
+    ((paymentsData as any[]) || []).forEach((p: any) => {
+      if (p?.installment_id) {
+        paidMap[p.installment_id] = (paidMap[p.installment_id] || 0) + (Number(p.valor || 0) - Number(p.juros || 0));
+      }
+    });
+    setInstPaidMap(paidMap);
 
     const allItems = [...processed, ...harvestItems];
     setItems(allItems);
@@ -1062,7 +1073,9 @@ export function FinancialPayables() {
         parcela: null,
         chartLabel,
         vencimento: isPago && item.data_pagamento ? item.data_pagamento : (item.data_vencimento || item.data_emissao || ""),
-        valor: isPago ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total),
+        valor: isPago
+          ? (Number(item.valor_pago) || Number(item.valor_total))
+          : Math.max(Number(item.valor_total) - Number(item.valor_pago || 0), 0),
         status: isOverdue ? "atrasado" : item.status,
         isPago,
         isOverdue,
@@ -1278,11 +1291,14 @@ export function FinancialPayables() {
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
           if (inst.status === "pago") return;
+          // Saldo devedor da parcela = valor da parcela - pagamentos já realizados nela
+          const instRemaining = Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0);
+          if (instRemaining <= 0.009) return;
           registros++;
           if (inst.data_vencimento < today) {
-            atrasado += Number(inst.valor);
+            atrasado += instRemaining;
           } else {
-            pendente += Number(inst.valor);
+            pendente += instRemaining;
           }
         });
       } else {
@@ -1298,7 +1314,7 @@ export function FinancialPayables() {
     });
 
     return { totalPendente: pendente, totalAtrasado: atrasado, totalRegistros: registros };
-  }, [items, installmentsMap]);
+  }, [items, installmentsMap, instPaidMap]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
