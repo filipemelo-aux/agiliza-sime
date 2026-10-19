@@ -455,6 +455,13 @@ export function FinancialPaid() {
       cell: (r) => <span className="whitespace-nowrap">{formatDateBR(r.paid_at)}</span>,
     },
     {
+      key: "created_at",
+      header: "Data de Registro",
+      width: "96px",
+      sortValue: (r) => r.created_at || "",
+      cell: (r) => <span className="whitespace-nowrap">{r.created_at ? formatDateBR(String(r.created_at).slice(0, 10)) : "—"}</span>,
+    },
+    {
       key: "empresa",
       header: "Agência",
       width: "76px",

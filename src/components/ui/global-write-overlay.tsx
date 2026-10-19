@@ -54,6 +54,7 @@ function install() {
       !url.includes("/auth/v1/");
     if (!isWrite) return orig(input as any, init);
     pending++;
+    if (pending === 1) failedWrites = 0;
     lastLabel = labelFor(method, url);
     notify();
     try {
