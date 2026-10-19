@@ -1,6 +1,8 @@
 # Roadmap
 
 - [x] Renomear Faturas a Receber e mostrar saldo/recebimento parcial no grid; fatura 615 e total dos saldos R$ 17.283,61 conferidos na tela, quatro testes aprovados.
+- [x] Colocar Valor e Saldo a Receber como duas colunas no fim do grid de Faturas a Receber, sem cortes; títulos completos conferidos na tela com 23 faturas.
+- [x] Eliminar títulos cortados nos grids de Contas a Pagar, Contas Pagas e Cheques e permitir rolagem quando o grid é mais largo que a tela; medido em 10 telas.
 
 - [x] Simplificar Nova Despesa em peças, serviço, peças e serviço e despesa geral; soma validada nos três cenários e serviço gravado/conferido na lista, teste removido.
 
