@@ -4,10 +4,11 @@ import { ProcessingOverlay } from "./processing-overlay";
 /**
  * Shows the blocking ProcessingOverlay automatically whenever a write request
  * (insert/update/delete/rpc/function call) to the backend takes longer than a short delay.
+ * Operações no banco apenas processam: ao terminar, o quadro fecha em silêncio,
+ * sem aviso de conclusão — a confirmação fica somente nas janelas do usuário.
  */
 type Listener = (count: number, label: string) => void;
 let pending = 0;
-let failedWrites = 0;
 let lastLabel = "Processando...";
 const listeners = new Set<Listener>();
 const notify = () => listeners.forEach((l) => l(pending, lastLabel));
@@ -39,9 +40,8 @@ function labelFor(method: string, url: string) {
   return resource ? `Atualizando ${resource}...` : "Atualizando...";
 }
 
-/** Última interação do usuário (clique/tecla): escritas sem ação recente são automáticas e não exibem aviso. */
+/** Última interação do usuário (clique/tecla): escritas sem ação recente são automáticas e não exibem quadro. */
 let lastUserAction = 0;
-let userBatch = false;
 const USER_WINDOW_MS = 3000;
 
 let installed = false;
@@ -64,21 +64,12 @@ function install() {
     // Carregamentos/sincronizações automáticas: concluem em silêncio, sem quadro.
     if (pending === 0 && Date.now() - lastUserAction > USER_WINDOW_MS) return orig(input as any, init);
     pending++;
-    userBatch = true;
-    if (pending === 1) failedWrites = 0;
     lastLabel = labelFor(method, url);
     notify();
-    try {
-      const res = await orig(input as any, init);
-      if (!res.ok) failedWrites++;
-      return res;
-    } catch (err) {
-      failedWrites++;
-      throw err;
-    } finally {
+    return orig(input as any, init).finally(() => {
       pending = Math.max(0, pending - 1);
       notify();
-    }
+    });
   };
 }
 install();
@@ -87,7 +78,6 @@ export function GlobalWriteOverlay() {
   const [count, setCount] = useState(0);
   const [label, setLabel] = useState(lastLabel);
   const [show, setShow] = useState(false);
-  const [status, setStatus] = useState<"processing" | "success">("processing");
 
   useEffect(() => {
     const l: Listener = (c, lb) => { setCount(c); setLabel(lb); };
@@ -97,22 +87,13 @@ export function GlobalWriteOverlay() {
 
   useEffect(() => {
     if (count > 0) {
-      setStatus("processing");
       const t = setTimeout(() => setShow(true), 350);
       return () => clearTimeout(t);
     }
-    // Ao concluir todas as escritas sem falha, transiciona para "Sucesso"
-    // no mesmo componente e fecha automaticamente em até 1 segundo.
-    if (show && failedWrites === 0) {
-      setStatus("success");
-      const t = setTimeout(() => setShow(false), 900);
-      failedWrites = 0;
-      return () => clearTimeout(t);
-    }
-    failedWrites = 0;
+    // Sem aviso de conclusão: o quadro apenas fecha quando as operações terminam.
     const t = setTimeout(() => setShow(false), 150);
     return () => clearTimeout(t);
-  }, [count]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [count]);
 
-  return <ProcessingOverlay open={show} label={label} status={status} />;
+  return <ProcessingOverlay open={show} label={label} status="processing" />;
 }
