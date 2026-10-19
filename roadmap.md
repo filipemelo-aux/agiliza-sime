@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Simplificar Nova Despesa em peças, serviço, peças e serviço e despesa geral; preservar documentos e fornecedores, validar soma e gravação.
+
 - [x] Aplicar margens de 2 cm no contrato e na fatura, compactar textos secundários; PDFs conferidos: individuais em uma página, lote 9/8 em duas, sem sobreposição e com marcas.
 
 - [x] Igualar o cabeçalho do contrato de frete ao da fatura; contratos 9/8 conferidos, uma página por contrato e margens de 2,5 cm preservadas.
