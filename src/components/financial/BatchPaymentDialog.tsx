@@ -50,6 +50,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
   const [creating, setCreating] = useState(false);
   // Per-item amount edits, keyed by item.id (string of cents)
   const [valores, setValores] = useState<Record<string, string>>({});
+  const [totalAgrupado, setTotalAgrupado] = useState<string>("");
   // Metadata of source expenses (for "Criar Conta a Pagar" flow)
   const [expensesMeta, setExpensesMeta] = useState<Record<string, any>>({});
   const [novoFavorecidoId, setNovoFavorecidoId] = useState<string>("");
@@ -60,6 +61,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       const init: Record<string, string> = {};
       items.forEach(it => { init[it.id] = String(it.valor); });
       setValores(init);
+      setTotalAgrupado(String(Math.round(items.reduce((s, i) => s + i.valor, 0) * 100) / 100));
       setObservacoes("");
       setFormaPagamento("pix");
       setDataPagamento(getLocalDateISO());
@@ -101,7 +103,24 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     return keys.size > 1;
   })();
 
+  const somaOriginal = items.reduce((s, i) => s + i.valor, 0);
+  const totalAgrupadoNum = (() => { const n = Number(totalAgrupado); return isNaN(n) ? 0 : n; })();
+  // Agrupado com parcelas: distribui o total informado da mais antiga para a mais nova
+  const distribuido: Record<string, number> = (() => {
+    const out: Record<string, number> = {};
+    let rest = Math.round(totalAgrupadoNum * 100) / 100;
+    const sorted = [...items].sort((a, b) => (a.dataVencimento || "").localeCompare(b.dataVencimento || ""));
+    sorted.forEach((it, idx) => {
+      const isLast = idx === sorted.length - 1;
+      const v = isLast ? rest : Math.min(rest, it.valor);
+      out[it.id] = Math.max(0, Math.round(v * 100) / 100);
+      rest = Math.round((rest - out[it.id]) * 100) / 100;
+    });
+    return out;
+  })();
+
   const getValor = (id: string, fallback: number) => {
+    if (consolidated) return distribuido[id] ?? 0;
     const v = valores[id];
     const n = v !== undefined ? Number(v) : fallback;
     return isNaN(n) ? 0 : n;
@@ -116,9 +135,13 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     if (mixedSuppliers) return toast.error("Pagamento agrupado só é permitido para contas do mesmo fornecedor.");
 
     // Validate all values
-    for (const it of items) {
-      const v = getValor(it.id, it.valor);
-      if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
+    if (consolidated) {
+      if (!(totalAgrupadoNum > 0)) return toast.error("Informe o valor total a pagar");
+    } else {
+      for (const it of items) {
+        const v = getValor(it.id, it.valor);
+        if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
+      }
     }
 
     setSaving(true);
@@ -134,6 +157,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
 
       for (const item of items) {
         const valorPago = getValor(item.id, item.valor);
+        if (consolidated && valorPago <= 0.004) continue;
         const saldoItem = item.valor; // valor original do item (parcela ou saldo da despesa)
         const juros = Math.max(0, Math.round((valorPago - saldoItem) * 100) / 100);
         const obsBase = observacoes.trim();
@@ -233,29 +257,24 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
 
   const handleCreatePayable = async () => {
     if (items.length === 0) return;
-    if (hasInstallments) {
-      return toast.error("Não é possível agrupar parcelas. Selecione apenas contas inteiras.");
-    }
-    if (!novaDataVencimento) return toast.error("Informe a data de vencimento da nova conta");
-    if (favorecidosDistintos.length === 0) return toast.error("Carregando favorecidos, aguarde...");
-    if (!novoFavorecidoId) return toast.error("Selecione o favorecido da nova conta");
-
-    for (const it of items) {
-      const v = getValor(it.id, it.valor);
-      if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
-    }
+    if (mixedSuppliers) return toast.error("Pagamento agrupado só é permitido para contas do mesmo fornecedor.");
+    if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
+    if (!dataPagamento) return toast.error("Informe a data do pagamento");
+    if (favorecidosDistintos.length === 0) return toast.error("Carregando dados do fornecedor, aguarde...");
+    const favId = novoFavorecidoId || favorecidosDistintos[0]?.id;
+    if (!(totalAgrupadoNum > 0)) return toast.error("Informe o valor total a pagar");
 
     setCreating(true);
     try {
-      const total = items.reduce((s, i) => s + getValor(i.id, i.valor), 0);
+      const total = Math.round(somaOriginal * 100) / 100;
       const template = expensesMeta[items[0].expenseId];
       if (!template) throw new Error("Metadados da conta original não carregados");
 
-      const favorecidoNome = favorecidosDistintos.find(f => f.id === novoFavorecidoId)?.nome || null;
+      const favorecidoNome = favorecidosDistintos.find(f => f.id === favId)?.nome || null;
       const expenseIds = Array.from(new Set(items.map(i => i.expenseId)));
 
-      const descricaoBase = `Agrupamento de ${items.length} conta(s)`;
-      const obsLista = items.map((it, i) => `${i + 1}. ${it.descricao} — ${formatCurrency(getValor(it.id, it.valor))}`).join("\n");
+      const descricaoBase = `Pagamento agrupado de ${items.length} conta(s)`;
+      const obsLista = items.map((it, i) => `${i + 1}. ${it.descricao} — ${formatCurrency(it.valor)}`).join("\n");
       const obsFinal = [observacoes.trim(), `Contas agrupadas:\n${obsLista}`].filter(Boolean).join("\n\n");
 
       const { data: novaExpense, error: insErr } = await supabase.from("expenses").insert({
@@ -265,11 +284,11 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
         centro_custo: template.centro_custo,
         tipo_despesa: template.tipo_despesa,
         valor_total: total,
-        data_emissao: novaDataVencimento,
-        data_vencimento: novaDataVencimento,
-        data_competencia: novaDataVencimento,
+        data_emissao: dataPagamento,
+        data_vencimento: dataPagamento,
+        data_competencia: dataPagamento,
         status: "pendente",
-        favorecido_id: novoFavorecidoId,
+        favorecido_id: favId,
         favorecido_nome: favorecidoNome,
         observacoes: obsFinal,
         created_by: user?.id,
@@ -277,12 +296,11 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       } as any).select("id").single();
       if (insErr) throw insErr;
 
-      // Vincular contas originais à conta consolidada (rastreabilidade)
       const grupoId = (novaExpense as any).id as string;
       const groupRows = items.map(it => ({
         grupo_expense_id: grupoId,
         original_expense_id: it.expenseId,
-        valor: getValor(it.id, it.valor),
+        valor: it.valor,
       }));
       const { error: grpErr } = await supabase.from("expense_group_items" as any).insert(groupRows);
       if (grpErr) throw grpErr;
@@ -293,13 +311,32 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
         .in("id", expenseIds);
       if (delErr) throw delErr;
 
-      toast.success(`Nova conta a pagar criada (${items.length} contas agrupadas)`);
+      // Pagamento do valor definido pelo usuário na nova conta agrupada
+      const valorPago = Math.round(totalAgrupadoNum * 100) / 100;
+      const juros = Math.max(0, Math.round((valorPago - total) * 100) / 100);
+      const { data: payRow, error: payErr } = await supabase.from("expense_payments" as any).insert({
+        expense_id: grupoId,
+        valor: valorPago,
+        forma_pagamento: formaPagamento,
+        data_pagamento: dataPagamento,
+        observacoes: observacoes.trim() || null,
+        created_by: user?.id,
+        juros,
+      } as any).select("id").single();
+      if (payErr) throw new Error(`Conta agrupada criada, mas o pagamento falhou: ${payErr.message}`);
+      if (!(payRow as any)?.id) throw new Error("Conta agrupada criada, mas o pagamento não foi gravado.");
+      await supabase.from("expenses").update({ forma_pagamento: formaPagamento, data_pagamento: dataPagamento } as any).eq("id", grupoId);
+
+      toast.success(valorPago + 0.005 < total
+        ? `Conta agrupada criada e paga parcialmente (saldo ${formatCurrency(total - valorPago)})`
+        : `Conta agrupada criada e paga (${items.length} contas)`);
       setCreating(false);
       onOpenChange(false);
       onSaved();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar conta a pagar");
+      toast.error(err.message || "Erro ao criar pagamento agrupado");
       setCreating(false);
+      onSaved();
     }
   };
 
@@ -312,7 +349,9 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
           </DialogTitle>
           {consolidated && (
             <p className="text-xs text-muted-foreground mt-1">
-              Os pagamentos serão registrados individualmente, mas gerarão uma única movimentação consolidada no fluxo de caixa.
+              {hasInstallments
+                ? "Pagamento agrupado: o valor informado é distribuído entre as parcelas, da mais antiga para a mais nova, com uma única saída no caixa."
+                : "Pagamento agrupado: as contas abaixo viram uma única conta a pagar do fornecedor, e o valor informado é pago nela."}
             </p>
           )}
           {mixedSuppliers && (
@@ -338,7 +377,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
                   <span className="text-muted-foreground font-mono whitespace-nowrap">
                     {formatCurrency(item.valor)}
                   </span>
-                  <Input
+                  {!consolidated && <Input
                     className="h-7 w-32 text-xs font-mono"
                     value={(() => {
                       const raw = valores[item.id];
@@ -356,8 +395,8 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
                       const next = unmasked === "" ? "" : (isNeg ? `-${unmasked}` : unmasked);
                       setValores(v => ({ ...v, [item.id]: next }));
                     }}
-                  />
-                  {Math.abs(diff) > 0.005 && (
+                  />}
+                  {!consolidated && Math.abs(diff) > 0.005 && (
                     <span className={`text-[10px] font-bold whitespace-nowrap ${diff > 0 ? "text-yellow-600" : "text-orange-600"}`}>
                       {diff > 0 ? `+${formatCurrency(diff)} juros` : `${formatCurrency(diff)} parcial`}
                     </span>
@@ -367,10 +406,32 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
             })}
           </div>
 
-          <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
-            <span className="text-sm font-medium text-muted-foreground">Total a pagar</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(totalGeral)}</span>
-          </div>
+          {consolidated ? (
+            <div className="rounded-md bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Soma das contas</span>
+                <span className="font-mono">{formatCurrency(somaOriginal)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-sm font-medium">Valor total a pagar agora</Label>
+                <Input
+                  className="h-9 w-40 text-right font-mono font-bold"
+                  value={totalAgrupado === "" ? "" : maskCurrency(String(Math.round(Number(totalAgrupado) * 100)))}
+                  onChange={e => setTotalAgrupado(unmaskCurrency(e.target.value))}
+                />
+              </div>
+              {totalAgrupadoNum + 0.005 < somaOriginal && totalAgrupadoNum > 0 && (
+                <p className="text-[11px] text-orange-600">
+                  Pagamento parcial — ficará um saldo de {formatCurrency(somaOriginal - totalAgrupadoNum)} na conta agrupada.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
+              <span className="text-sm font-medium text-muted-foreground">Total a pagar</span>
+              <span className="text-lg font-bold text-primary">{formatCurrency(totalGeral)}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -392,54 +453,22 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
 
-          {consolidated && !hasInstallments && (
-            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 space-y-3">
-              <p className="text-xs font-medium text-muted-foreground">
-                Criar nova conta a pagar (agrupar)
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Vencimento da nova conta</Label>
-                  <Input
-                    type="date"
-                    value={novaDataVencimento}
-                    onChange={e => setNovaDataVencimento(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">
-                    Favorecido {favorecidosDistintos.length > 1 ? "(múltiplos detectados)" : ""}
-                  </Label>
-                  <Select value={novoFavorecidoId} onValueChange={setNovoFavorecidoId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {favorecidosDistintos.map(f => (
-                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="flex flex-col sm:flex-row gap-2">
-            {consolidated && !hasInstallments && (
+            {consolidated ? (
               <Button
-                type="button"
-                variant="outline"
-                onClick={handleCreatePayable}
+                onClick={hasInstallments ? handleConfirm : handleCreatePayable}
                 className="sm:flex-1"
                 disabled={creating || saving || mixedSuppliers}
               >
-                {creating ? "Criando..." : "Criar Conta a Pagar"}
+                {creating || saving
+                  ? "Processando..."
+                  : hasInstallments ? "Confirmar pagamento agrupado" : "Criar conta agrupada e pagar"}
+              </Button>
+            ) : (
+              <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating || mixedSuppliers}>
+                {saving ? "Processando..." : "Confirmar Pagamento"}
               </Button>
             )}
-            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating || mixedSuppliers}>
-              {saving ? "Processando..." : "Confirmar Pagamento"}
-            </Button>
           </div>
         </div>
       </DialogContent>
