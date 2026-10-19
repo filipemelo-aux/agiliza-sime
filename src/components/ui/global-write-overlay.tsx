@@ -94,6 +94,7 @@ export function GlobalWriteOverlay() {
     if (show && failedWrites === 0) {
       setStatus("success");
       const t = setTimeout(() => setShow(false), 900);
+      failedWrites = 0;
       return () => clearTimeout(t);
     }
     failedWrites = 0;
