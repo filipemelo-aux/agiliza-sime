@@ -21,5 +21,5 @@
 - Brand footers share `printBrand.ts` assets and physical sizes; cheques remain isolated.
 - Freight contracts use fixed wrapping tables, matching A4 margins and an unbreakable signature/brand closing block with compact print spacing to prevent orphaned logos; `fiscalProtocol.ts` extracts protocol numbers to prevent overflow.
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
-- Payables reads wait for authenticated access, surface query errors, and paginate expenses through fetchAllRows so session restoration and row limits cannot silently hide records.
-- Paid-account and cash-flow reads also wait for authenticated access and paginate ordered results; expense total/due-date edits reuse the payment-state recalculation trigger so existing payments remain authoritative for settlement.
+- Financial reads wait for auth, paginate with fetchAllRows and surface errors; amount edits reuse payment-state triggers so payments remain authoritative.
+- Expense composition uses expenseComposition.ts totals; combined parts/service keeps separate payable IDs and aggregates only maintenance cost to avoid double-counting.
