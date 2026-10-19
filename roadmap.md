@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Renomear Faturas a Receber e mostrar saldo/recebimento parcial no grid, com rodapé pelos saldos; validar com dados reais.
+- [x] Renomear Faturas a Receber e mostrar saldo/recebimento parcial no grid; fatura 615 e total dos saldos R$ 17.283,61 conferidos na tela, quatro testes aprovados.
 
 - [x] Simplificar Nova Despesa em peças, serviço, peças e serviço e despesa geral; soma validada nos três cenários e serviço gravado/conferido na lista, teste removido.
 
