@@ -1757,17 +1757,17 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "empresa", header: "Agência", width: "76px", align: "center",
+      key: "empresa", header: "Agência", width: "68px", align: "center",
       sortValue: (f) => f.empresa_id || "",
       cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
-      key: "numero", header: "Nº", width: "80px",
+      key: "numero", header: "Nº", width: "56px",
       sortValue: (f) => f.numero,
       cell: (f) => <span className="font-mono text-muted-foreground">#{String(f.numero).padStart(4, "0")}</span>,
     },
     {
-      key: "emissao", header: "Emissão", width: "110px",
+      key: "emissao", header: "Emissão", width: "76px",
       sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
       cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
     },
@@ -1777,7 +1777,7 @@ ${hasRecebimentos ? `
       cell: (f) => <span className="font-medium block truncate whitespace-nowrap" title={f.cliente_nome || ""}>{limitDisplayText(f.cliente_nome)}</span>,
     },
     {
-      key: "vencimento", header: "Vencimento", width: "130px",
+      key: "vencimento", header: "Vencimento", width: "98px",
       sortValue: (f) => (f as any).data_vencimento_ref || f.data_emissao,
       cell: (f) => (
         <span className="tabular-nums whitespace-nowrap">
@@ -1789,7 +1789,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "condicao", header: "Condição", width: "110px", align: "center",
+      key: "condicao", header: "Condição", width: "84px", align: "center",
       sortValue: (f) => (f as any).condicao_label || "",
       cell: (f) => (
         <span className="text-muted-foreground whitespace-nowrap">
@@ -1798,7 +1798,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "status", header: "Status", width: "100px", align: "center",
+      key: "status", header: "Status", width: "92px", align: "center",
       sortValue: (f) => (f.has_partial ? "parcial" : f.status),
       cell: (f) => {
         const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
@@ -1810,7 +1810,7 @@ ${hasRecebimentos ? `
       },
     },
     {
-      key: "valor", header: "Valor", width: "140px", align: "right",
+      key: "valor", header: "Valor", width: "92px", align: "right",
       sortValue: (f) => Number(f.valor_total),
       cell: (f) => (
         <span className="font-mono font-semibold whitespace-nowrap">
@@ -1819,7 +1819,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "saldo", header: "Saldo a Receber", width: "150px", align: "right",
+      key: "saldo", header: "Saldo a Receber", width: "132px", align: "right",
       sortValue: (f) => receivableBalance(f),
       cell: (f) => {
         const saldo = receivableBalance(f);
