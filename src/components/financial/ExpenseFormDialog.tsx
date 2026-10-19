@@ -687,7 +687,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeItem = (index: number) => setItensNota(prev => prev.filter((_, i) => i !== index));
+  const removeItem = (index: number) => {
+    if (itensNota.length === 1) setValorTotal("");
+    setItensNota(prev => prev.filter((_, i) => i !== index));
+  };
 
   const isMaintenanceType = isManutencao;
 
@@ -1391,7 +1394,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
                 proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
                 dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
-                itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
+                itensManutencao={itensManutencao} onItensManutencaoChange={(items) => {
+                  if (items.length === 0 && composition === "servico") setValorTotal("");
+                  setItensManutencao(items);
+                }}
                 onTotalChange={() => {}}
                 hideItems={composition === "misto"}
                 serviceItems
