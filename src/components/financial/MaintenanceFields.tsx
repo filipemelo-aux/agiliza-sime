@@ -47,6 +47,9 @@ interface Props {
   onTotalChange: (total: number) => void;
   hasNfse?: boolean;
   onHasNfseChange?: (v: boolean) => void;
+  hideItems?: boolean;
+  serviceItems?: boolean;
+  expenseId?: string | null;
 }
 
 export function MaintenanceFields({
@@ -62,6 +65,9 @@ export function MaintenanceFields({
   onTotalChange,
   hasNfse = false,
   onHasNfseChange,
+  hideItems = false,
+  serviceItems = false,
+  expenseId,
 }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [lastKm, setLastKm] = useState<number | null>(null);
@@ -86,13 +92,14 @@ export function MaintenanceFields({
       .eq("veiculo_id", veiculoId)
       .not("km_atual", "is", null)
       .is("deleted_at", null)
+      .neq("id", expenseId || "00000000-0000-0000-0000-000000000000")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
         setLastKm(data?.km_atual ? Number(data.km_atual) : null);
       });
-  }, [veiculoId]);
+  }, [veiculoId, expenseId]);
 
   useEffect(() => {
     if (!kmAtual || lastKm === null) { setKmError(""); return; }
@@ -224,15 +231,15 @@ export function MaintenanceFields({
       </div>
 
       {/* Items */}
-      <div>
-        <Label className="text-xs mb-1 block">Itens da Manutenção ({itensManutencao.length})</Label>
+      {!hideItems && <div>
+        <Label className="text-xs mb-1 block">{serviceItems ? "Serviços executados" : "Itens da Manutenção"} ({itensManutencao.length})</Label>
         
         {/* Add item row */}
         <div className="flex gap-1.5 mb-2">
-          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(maskSentence(e.target.value))} placeholder="Descrição do item" />
+          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(maskSentence(e.target.value))} placeholder={serviceItems ? "Descrição do serviço executado" : "Descrição do item"} />
           <Input className="w-[60px] h-9" type="number" value={newQtd} onChange={e => setNewQtd(e.target.value)} placeholder="Qtd" />
           <Input className="w-[90px] h-9" value={newValor ? maskCurrency(String(Math.round(parseFloat(newValor) * 100))) : ""} onChange={e => setNewValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
-          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={addItem}><Plus className="h-4 w-4" /></Button>
+          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={addItem} aria-label={serviceItems ? "Adicionar serviço" : "Adicionar item"}><Plus className="h-4 w-4" /></Button>
         </div>
 
         {itensManutencao.length > 0 && (
@@ -277,7 +284,7 @@ export function MaintenanceFields({
             </span>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
