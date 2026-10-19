@@ -54,7 +54,7 @@ const ORIGEM_MAP: Record<string, string> = {
   abastecimento: "Abastecimento",
 };
 
-interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; tipo_operacional?: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; tipo_operacional?: string | null; centro_custo_default?: string | null; }
 
 
 interface Expense {
@@ -226,7 +226,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (externalChartAccounts.length > 0) {
       setChartAccounts(externalChartAccounts);
     } else {
-      supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo")
+      supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional, centro_custo_default").eq("ativo", true).order("codigo")
         .then(({ data }) => setChartAccounts((data as any) || []));
     }
     supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).eq("fleet_type", "propria").order("plate")
@@ -1134,7 +1134,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 </Label>
                 <PlanoContasCombobox
                   value={planoContasId}
-                  onChange={setPlanoContasId}
+                  onChange={(id) => {
+                    setPlanoContasId(id);
+                    const acc = chartAccounts.find(c => c.id === id);
+                    if (acc?.centro_custo_default) setCentroCusto(acc.centro_custo_default);
+                  }}
                   options={despesaChartAccounts}
                 />
 

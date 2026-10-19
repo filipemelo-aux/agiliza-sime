@@ -7,6 +7,7 @@ import { ProcessingOverlay } from "./processing-overlay";
  */
 type Listener = (count: number, label: string) => void;
 let pending = 0;
+let failedWrites = 0;
 let lastLabel = "Processando...";
 const listeners = new Set<Listener>();
 const notify = () => listeners.forEach((l) => l(pending, lastLabel));
@@ -53,10 +54,16 @@ function install() {
       !url.includes("/auth/v1/");
     if (!isWrite) return orig(input as any, init);
     pending++;
+    if (pending === 1) failedWrites = 0;
     lastLabel = labelFor(method, url);
     notify();
     try {
-      return await orig(input as any, init);
+      const res = await orig(input as any, init);
+      if (!res.ok) failedWrites++;
+      return res;
+    } catch (err) {
+      failedWrites++;
+      throw err;
     } finally {
       pending = Math.max(0, pending - 1);
       notify();
@@ -69,6 +76,7 @@ export function GlobalWriteOverlay() {
   const [count, setCount] = useState(0);
   const [label, setLabel] = useState(lastLabel);
   const [show, setShow] = useState(false);
+  const [status, setStatus] = useState<"processing" | "success">("processing");
 
   useEffect(() => {
     const l: Listener = (c, lb) => { setCount(c); setLabel(lb); };
@@ -78,12 +86,22 @@ export function GlobalWriteOverlay() {
 
   useEffect(() => {
     if (count > 0) {
+      setStatus("processing");
       const t = setTimeout(() => setShow(true), 350);
       return () => clearTimeout(t);
     }
+    // Ao concluir todas as escritas sem falha, transiciona para "Sucesso"
+    // no mesmo componente e fecha automaticamente em até 1 segundo.
+    if (show && failedWrites === 0) {
+      setStatus("success");
+      const t = setTimeout(() => setShow(false), 900);
+      failedWrites = 0;
+      return () => clearTimeout(t);
+    }
+    failedWrites = 0;
     const t = setTimeout(() => setShow(false), 150);
     return () => clearTimeout(t);
-  }, [count]);
+  }, [count]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <ProcessingOverlay open={show} label={label} />;
+  return <ProcessingOverlay open={show} label={label} status={status} />;
 }
