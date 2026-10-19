@@ -265,7 +265,9 @@ export function PaymentDischargeDialog({
             <div className="flex items-center gap-4 text-sm flex-wrap">
               {isInstallmentMode ? (
                 <>
-                  <span className="text-muted-foreground">Valor da parcela: <strong className="text-primary font-bold">{formatCurrency(effectiveTotal)}</strong></span>
+                  <span className="text-muted-foreground">Valor da parcela: <strong className="text-foreground">{formatCurrency(effectiveTotal)}</strong></span>
+                  {effectivePago > 0 && <span className="text-muted-foreground">Pago: <strong className="text-foreground">{formatCurrency(effectivePago)}</strong></span>}
+                  {effectivePago > 0 && <span className="text-muted-foreground">Restante: <strong className="text-primary font-bold">{formatCurrency(saldoRestante)}</strong></span>}
                   <span className="text-muted-foreground text-xs">(Total da conta: {formatCurrency(valorTotal)})</span>
                 </>
               ) : (
