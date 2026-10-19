@@ -273,7 +273,7 @@ export function FinancialPayables() {
       supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle(),
       fetchAllRows((from, to) => supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }).order("id").range(from, to)),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
-      supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
+      supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional, centro_custo_default").eq("ativo", true).order("codigo"),
       supabase.from("expense_installments").select("*").order("numero_parcela"),
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
