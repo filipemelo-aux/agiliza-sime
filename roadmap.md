@@ -50,5 +50,6 @@
 - [x] Aplicar margens padrão de 2,5 cm na impressão do contrato de frete e da fatura.
 - [x] Validar contrato individual, lote (9/8) e fatura: uma página cada, assinaturas e marca no rodapé, nada cortado.
 - [x] Contabilidade > Fechamento Contábil: pacote ZIP da competência (contas a pagar abertas/pagas, CT-es por agência e CST, XMLs, NF-es destinatário).
-- [ ] Corrigir sobreposição de atrasadas e abertas em Bancos > Relatórios, saldos parciais e carregamento; comparar com Contas a Pagar.
+- [x] Corrigir sobreposição de atrasadas e abertas em Bancos > Relatórios, descontar juros do principal de parcelas, paginar leituras e aplicar período imediatamente; seis testes aprovados e consulta real confirmou quatro parciais vencidas.
+- [ ] Comparar totais reais na tela de Bancos e Contas a Pagar: sessão de conferência não acessa contas da Sime e acesso de suporte foi negado.
 - [ ] Varredura do DRE: conferir competência e fontes sem confundir com saldo a pagar.

@@ -395,7 +395,7 @@ tfoot{display:table-row-group}
         <td colspan="7" class="totals-labels">
           <div class="totals-row">
             <span class="total-item">Atrasado: <b>${esc(formatCurrency(totais.atrasado))}</b></span>
-            ${hideAberto ? "" : `<span class="total-item">Em aberto: <b>${esc(formatCurrency(totais.aberto))}</b></span>`}
+            ${hideAberto ? "" : `<span class="total-item">A vencer: <b>${esc(formatCurrency(totais.aberto))}</b></span>`}
             <span class="total-item">Pago: <b>${esc(formatCurrency(totais.pago))}</b></span>
             <span class="total-item"><b>TOTAL</b></span>
           </div>
@@ -560,7 +560,7 @@ tfoot{display:table-row-group}
           <span className="font-semibold">{filtered.length} registro(s)</span>
           <div className="flex items-center gap-2 text-muted-foreground">
             <span>Atrasado: <span className="font-bold text-red-600">{formatCurrency(totais.atrasado)}</span></span>
-            {!hideAberto && <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>}
+            {!hideAberto && <span>A vencer: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>}
             <span>Pago: <span className="font-bold text-emerald-600">{formatCurrency(totais.pago)}</span></span>
             <span>Total: <span className="font-bold text-primary tabular-nums">{formatCurrency(totais.total)}</span></span>
           </div>
