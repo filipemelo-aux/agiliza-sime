@@ -129,7 +129,7 @@ export default function ContabilidadeFechamento() {
           <FilterField label="Competência" className="sm:mr-auto">
             <MonthPicker className="w-[190px] text-xs" value={ym} onChange={(v) => { setYm(v); setBlob(null); }} />
           </FilterField>
-          <FilterField label="Planos de contas — Contas a Pagar" className="w-full sm:w-[360px]">
+          <FilterField label="Contas de despesa — Contas a Pagar" className="w-full sm:w-[360px]">
             <AccountingAccountsFilter options={accounts} value={selectedAccounts} onChange={(v) => { setSelectedAccounts(v); setBlob(null); }} disabled={busy || !accountsReady} />
           </FilterField>
         </SearchFilterCard>
