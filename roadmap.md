@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Corrigir imagens ausentes nos PDFs HTML compartilhados e conferir downloads reais de contas e faturas, preservando CT-e/MDF-e.
+- [x] Corrigir imagens ausentes nos PDFs HTML compartilhados; três downloads pelo fluxo comum conferidos com marcas e cinco testes aprovados; CT-e/MDF-e preservados.
+- [ ] Conferir downloads de contas e faturas existentes: sessão de conferência não retornou contas, impedindo validar documentos reais.
 
 - [x] Renomear Faturas a Receber e mostrar saldo/recebimento parcial no grid; fatura 615 e total dos saldos R$ 17.283,61 conferidos na tela, quatro testes aprovados.
 - [x] Colocar Valor e Saldo a Receber como duas colunas no fim do grid de Faturas a Receber, sem cortes; títulos completos conferidos na tela com 23 faturas.
