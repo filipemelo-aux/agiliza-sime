@@ -1,7 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst } from "./contabilidadeExport";
+import { competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst, includesAccountingAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "./contabilidadeExport";
 
 describe("contabilidadeExport", () => {
+  it("separa contratos de frete PJ e PF pelo tipo registrado no contrato", () => {
+    const pj = { numero: 9, contratado_tipo: "PJ" };
+    const pf = { numero: 10, contratado_tipo: "PF" };
+    expect(splitAccountingContracts([pj, pf])).toEqual({ PJ: [pj], PF: [pf] });
+  });
+  it("inclui apenas os planos selecionados e permite excluir um plano", () => {
+    expect(includesAccountingAccount("2.1.3.01", ["2.1.3.02"])).toBe(false);
+    expect(includesAccountingAccount("2.1.3.02", ["2.1.3.02"])).toBe(true);
+    expect(includesAccountingAccount("2.1.3.01", null)).toBe(true);
+    expect(includesAccountingAccount("2.1.3.01", [])).toBe(false);
+    expect(includesAccountingAccount(null, ["sem_classificacao"])).toBe(true);
+  });
+  it("identifica a agência apenas por Matriz ou Filial e UF", () => {
+    expect(accountingAgency({ type: "matriz", endereco_uf: "TO" })).toBe("Matriz - TO");
+    expect(accountingAgency({ type: "filial", endereco_uf: "PA" })).toBe("Filial - PA");
+  });
+  it("distingue CT-e Normal de Subcontratação", () => {
+    expect(accountingCteServiceType(0)).toBe("Normal");
+    expect(accountingCteServiceType("1")).toBe("Subcontratação");
+    expect(accountingCteServiceType(2)).toBe("Redespacho");
+    expect(accountingCteServiceType(null)).toBe("Não informado");
+  });
   it("competência cobre o mês inteiro", () => {
     expect(competenciaRange("2026-02")).toMatchObject({ ini: "2026-02-01", fim: "2026-02-28" });
   });

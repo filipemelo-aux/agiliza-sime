@@ -23,4 +23,4 @@
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Financial reads wait for auth, paginate with fetchAllRows and surface errors; edits reuse payment-state triggers. Receivables grid uses receivableBalance.ts for cent-rounded remaining principal and visible-row totals, separate from original values.
 - Expense composition uses expenseComposition.ts totals; combined parts/service keeps separate payable IDs and aggregates only maintenance cost to avoid double-counting.
-- Accounting exports use `contabilidadeExport.ts`; bank payables use `payableReportState.ts` for disjoint overdue/not-yet-due filters and principal balances, with paginated reads.
+- Accounting uses `contabilidadeExport.ts` for payable account filters, agency labels, CT-e types and contract splits by stored date/type; bank reports use `payableReportState.ts` for disjoint due filters and principal balances.

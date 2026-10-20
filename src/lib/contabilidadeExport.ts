@@ -1,5 +1,28 @@
 /** Pure helpers for the monthly accounting package (Contabilidade > Fechamento). */
 
+export const UNCLASSIFIED_ACCOUNT = "sem_classificacao";
+
+/** null means all accounts; an empty selection deliberately exports no payables. */
+export function includesAccountingAccount(id: string | null | undefined, selected: string[] | null) {
+  return selected === null || selected.includes(id || UNCLASSIFIED_ACCOUNT);
+}
+
+export function accountingAgency(establishment?: { type: string; endereco_uf?: string | null } | null) {
+  if (!establishment) return "Sem agência";
+  const kind = establishment.type === "matriz" ? "Matriz" : "Filial";
+  return `${kind} - ${establishment.endereco_uf?.trim().toUpperCase() || "Sem UF"}`;
+}
+
+export function accountingCteServiceType(value: unknown) {
+  if (value === null || value === undefined || value === "") return "Não informado";
+  const labels: Record<string, string> = { "0": "Normal", "1": "Subcontratação", "2": "Redespacho", "3": "Redespacho intermediário", "4": "Serviço vinculado a multimodal" };
+  return labels[String(value)] || "Não informado";
+}
+
+export function splitAccountingContracts<T extends { contratado_tipo: string }>(rows: T[]) {
+  return { PJ: rows.filter((r) => r.contratado_tipo === "PJ"), PF: rows.filter((r) => r.contratado_tipo === "PF") };
+}
+
 export function competenciaRange(ym: string) {
   const [y, m] = ym.split("-").map(Number);
   const last = new Date(y, m, 0).getDate();
