@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Corrigir arquivo de contas do fechamento: atrasadas por vencimento na competência e pagas por pagamento na competência, preservando parcelas e filtros de planos; validar testes e download.
+
 - [x] Ajustar fechamento contábil: seleção de planos de contas, agências Matriz/Filial - UF, tipo CT-e e Excel de contratos PJ/PF; oito testes aprovados e ZIP real conferido com 80 abertas, 119 pagas, exclusão de plano e contratos em abas separadas.
 
 - [x] Corrigir imagens ausentes nos PDFs HTML compartilhados; três downloads pelo fluxo comum conferidos com marcas e cinco testes aprovados; CT-e/MDF-e preservados.
