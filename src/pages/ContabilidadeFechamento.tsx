@@ -62,7 +62,7 @@ export default function ContabilidadeFechamento() {
 
       // Contas a pagar: parcelas quando existirem, senão a despesa inteira
       const [expenseResult, installmentResult, paymentResult] = await Promise.all([
-        fetchAllRows<any>((a, b) => sb.from("expenses").select("id, descricao, favorecido_nome, fornecedor_cnpj, documento_fiscal_numero, data_emissao, data_vencimento, data_pagamento, valor_total, valor_pago, status, forma_pagamento, centro_custo, empresa_id, plano_contas_id").is("deleted_at", null).order("id").range(a, b)),
+        fetchAllRows<any>((a, b) => sb.from("expenses").select("id, descricao, favorecido_nome, fornecedor_cnpj, data_emissao, data_vencimento, data_pagamento, valor_total, valor_pago, status, forma_pagamento, centro_custo, empresa_id, plano_contas_id").is("deleted_at", null).order("id").range(a, b)),
         fetchAllRows<any>((a, b) => sb.from("expense_installments").select("id, expense_id, numero_parcela, total_parcelas, data_vencimento, valor, status").order("id").range(a, b)),
         fetchAllRows<any>((a, b) => sb.from("expense_payments").select("expense_id, installment_id, data_pagamento, valor, juros, desconto, forma_pagamento").order("id").range(a, b)),
       ]);
@@ -79,9 +79,9 @@ export default function ContabilidadeFechamento() {
         if (!includesAccountingAccount(e.plano_contas_id, selectedAccounts)) continue;
         const entries = accountingPayableEntries(e, byExp.get(e.id) || [], paymentsByExp.get(e.id) || [], ym, today);
         const codigo = plano.find((x: any) => x.id === e.plano_contas_id)?.codigo;
-        const base = (l: { parcela: string; venc: string; total: number }, pagamento?: string) => ({ Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Documento: e.documento_fiscal_numero, Descrição: e.descricao, "Conta contábil": conta(e.plano_contas_id), "Tipo de conta": accountingExpenseKind(codigo), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), ...(pagamento !== undefined ? { "Data pagamento": pagamento } : {}), Valor: l.total });
+        const base = (l: { parcela: string; venc: string; total: number }, pagamento?: string) => ({ Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Descrição: e.descricao, "Conta contábil": conta(e.plano_contas_id), "Tipo de conta": accountingExpenseKind(codigo), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), ...(pagamento !== undefined ? { "Data pagamento": pagamento } : {}), Valor: l.total });
         for (const l of entries.atrasadas) abertas.push({ ...base(l), Pago: l.pago, "Saldo a pagar": payableBalance(l.total, l.pago), Status: "Atrasado" });
-        for (const l of entries.pagas) pagas.push({ ...base(l, br(l.data)), "Valor pago": l.pago, Juros: l.juros, Desconto: l.desconto, "Forma pagamento": l.forma });
+        for (const l of entries.pagas) pagas.push({ ...base(l, br(l.data)), "Valor pago": l.pago, Juros: l.juros, Desconto: l.desconto });
       }
 
       // CT-es emitidos (autorizados) da competência
