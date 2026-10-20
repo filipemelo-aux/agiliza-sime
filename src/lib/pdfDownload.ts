@@ -95,7 +95,7 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
       ? html.split(TENANT_LOGO_MARKER).join(logo)
       : html.replace(/<img[^>]*__TENANT_LOGO__[^>]*>/g, "");
   }
-  // Rodapé padrão: Agiliza TMS by fsm ao final do documento.
+  // Rodapé padrão: logo Agiliza TMS ao final do documento.
   if (!html.includes('class="agiliza-brand-footer"')) {
     html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
   }
