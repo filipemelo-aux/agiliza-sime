@@ -309,7 +309,7 @@ async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loa
 
   // ===== Rodapé =====
   P.hl(35, 1259, 835);
-  drawPrintBrandFooter(pdf, k(841), agilizaLogo, null);
+  drawPrintBrandFooter(pdf, k(841), agilizaLogo);
 }
 
 /** Gera o DAMDFE (um MDF-e por página, A4 paisagem) idêntico ao modelo aprovado. */

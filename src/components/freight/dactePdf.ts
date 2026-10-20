@@ -621,7 +621,7 @@ async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType
   pdf.setDrawColor(210);
   pdf.line(27, 812.5, 568, 812.5);
   pdf.setDrawColor(0);
-  drawPrintBrandFooter(pdf, 816, agilizaLogo, null);
+  drawPrintBrandFooter(pdf, 816, agilizaLogo);
 }
 
 /** Gera o DACTE (um CT-e por página A4) idêntico ao modelo oficial. */

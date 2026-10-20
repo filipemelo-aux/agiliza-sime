@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { jsPDF } from "jspdf";
-import { drawPrintBrandFooter } from "./printBrand";
+import { drawPrintBrandFooter, printBrandFooterHtml } from "./printBrand";
 
 const PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -13,16 +13,18 @@ function contentOf(pdf: jsPDF) {
   return s;
 }
 
-describe("drawPrintBrandFooter", () => {
-  it("does not draw the word 'by' when only the Agiliza logo is present", () => {
-    const pdf = new jsPDF({ compress: false });
-    drawPrintBrandFooter(pdf, 800, img, null);
-    expect(contentOf(pdf)).not.toContain("(by) Tj");
+describe("printBrand", () => {
+  it("footer HTML shows only the Agiliza logo, without 'by' or the fsm logo", () => {
+    const html = printBrandFooterHtml();
+    expect(html).toContain("Agiliza TMS");
+    expect(html).not.toContain("fsm-systems-logo");
+    expect(html).not.toMatch(/>\s*by\s*</);
   });
 
-  it("draws the word 'by' between the two logos", () => {
+  it("draws only the Agiliza logo, without the word 'by'", () => {
     const pdf = new jsPDF({ compress: false });
-    drawPrintBrandFooter(pdf, 800, img, img);
-    expect(contentOf(pdf)).toContain("(by) Tj");
+    drawPrintBrandFooter(pdf, 800, img);
+    expect(contentOf(pdf)).toContain("PNG");
+    expect(contentOf(pdf)).not.toContain("(by) Tj");
   });
 });
