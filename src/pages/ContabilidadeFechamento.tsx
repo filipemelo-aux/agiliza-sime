@@ -97,17 +97,35 @@ export default function ContabilidadeFechamento() {
       const separated = splitAccountingContracts(contracts);
       const contractRows = (rows: any[]) => rows.map((c) => ({ Agência: agencia(c.establishment_id), "Número contrato": c.numero, "Data contrato": br(c.data_contrato), "Tipo contratado": c.contratado_tipo, Contratado: c.contratado_nome, "CPF/CNPJ contratado": c.contratado_documento, "Número CT-e": c.cte?.numero, "Série CT-e": c.cte?.serie, Motorista: c.motorista_nome, "CPF motorista": c.motorista_cpf, Placa: c.placa_veiculo, Origem: c.municipio_origem, "UF origem": c.uf_origem, Destino: c.municipio_destino, "UF destino": c.uf_destino, Carga: c.natureza_carga, "Peso (kg)": Number(c.peso_kg || 0), "Valor por tonelada": Number(c.valor_tonelada || 0), "Valor contrato": Number(c.valor_total || 0), "Status conta a pagar": c.payable?.status, "Data pagamento": br(c.payable?.data_pagamento) }));
 
+      // Extrato da conta corrente: unifica as importações de conciliação da competência (deduplicando por FITID)
+      const [recsResult, recItemsResult] = await Promise.all([
+        fetchAllRows<any>((a, b) => sb.from("bank_reconciliations").select("id, bank_name, account_id").order("id").range(a, b)),
+        fetchAllRows<any>((a, b) => sb.from("bank_reconciliation_items").select("reconciliation_id, transaction_date, description, amount, tipo, fitid").gte("transaction_date", ini).lte("transaction_date", fim).order("transaction_date").order("id").range(a, b)),
+      ]);
+      const recById = new Map<string, any>((recsResult.data || []).map((r: any) => [r.id, r]));
+      const vistos = new Set<string>();
+      const extratoRows = (recItemsResult.data || []).filter((i: any) => {
+        const chave = i.fitid || `${i.transaction_date}|${i.description}|${i.amount}|${i.tipo}`;
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      }).map((i: any) => {
+        const rec = recById.get(i.reconciliation_id);
+        return { Banco: rec?.bank_name || "", Conta: rec?.account_id || "", Data: br(i.transaction_date), Descrição: i.description, Tipo: i.tipo === "entrada" ? "Entrada" : "Saída", Valor: Number(i.amount || 0) };
+      });
+
       const zip = new JSZip();
       zip.file(`Contas_a_Pagar_${ym}.xlsx`, book({ "Em atraso": abertas, Pagas: pagas }));
       zip.file(`CTes_Emitidos_${ym}.xlsx`, book({ "Resumo Agência x CST": resumoCte, "CT-es": cteRows }));
       zip.file(`NFes_Destinatario_${ym}.xlsx`, book({ "NF-es": nfeRows }));
       zip.file(`Contratos_de_Frete_${ym}.xlsx`, book({ "Contratos PJ": contractRows(separated.PJ), "Contratos PF": contractRows(separated.PF) }));
+      zip.file(`Extrato_Conta_Corrente_${ym}.xlsx`, book({ Extrato: extratoRows }));
       const xmls = zip.folder("XML_CTes");
       if (!xmls) throw new Error("Não foi possível criar a pasta dos XMLs");
       let nx = 0;
       for (const c of ctes) if (c.xml_autorizado) { xmls.file(`${c.chave_acesso || c.numero}.xml`, c.xml_autorizado); nx++; }
       setBlob(await zip.generateAsync({ type: "blob", compression: "DEFLATE" }));
-      setResumo(`${abertas.length} contas em atraso, ${pagas.length} pagamentos na competência, ${ctes.length} CT-es (${nx} XMLs), ${nfes.length} NF-es, ${separated.PJ.length} contratos PJ e ${separated.PF.length} contratos PF.`);
+      setResumo(`${abertas.length} contas em atraso, ${pagas.length} pagamentos na competência, ${ctes.length} CT-es (${nx} XMLs), ${nfes.length} NF-es, ${separated.PJ.length} contratos PJ, ${separated.PF.length} contratos PF e ${extratoRows.length} lançamentos no extrato.`);
     } catch (e: any) {
       toast.error("Falha ao gerar o pacote contábil", { description: e.message });
     } finally { setBusy(false); }
