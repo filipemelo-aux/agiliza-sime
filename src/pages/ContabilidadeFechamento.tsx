@@ -78,7 +78,7 @@ export default function ContabilidadeFechamento() {
       for (const e of exps) {
         if (!includesAccountingAccount(e.plano_contas_id, selectedAccounts)) continue;
         const entries = accountingPayableEntries(e, byExp.get(e.id) || [], paymentsByExp.get(e.id) || [], ym, today);
-        const base = (l: { parcela: string; venc: string; total: number }) => ({ Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Documento: e.documento_fiscal_numero, Descrição: e.descricao, "Conta contábbil": conta(e.plano_contas_id), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), Valor: l.total });
+        const base = (l: { parcela: string; venc: string; total: number }) => ({ Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Documento: e.documento_fiscal_numero, Descrição: e.descricao, "Conta contábil": conta(e.plano_contas_id), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), Valor: l.total });
         for (const l of entries.atrasadas) abertas.push({ ...base(l), Pago: l.pago, "Saldo a pagar": payableBalance(l.total, l.pago), Status: "Atrasado" });
         for (const l of entries.pagas) pagas.push({ ...base(l), "Valor pago": l.pago, Juros: l.juros, Desconto: l.desconto, "Data pagamento": br(l.data), "Forma pagamento": l.forma });
       }
