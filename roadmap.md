@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Remover Documento das duas abas e Forma pagamento da aba Pagas na planilha de Contas a Pagar do fechamento; ZIP de outubro baixado e cabeçalhos conferidos (14 colunas em atraso, 15 em pagas).
+
+
+
 - [x] Corrigir arquivo de contas do fechamento: atrasadas por vencimento na competência e pagas por pagamento na competência; 17 testes aprovados e ZIP de outubro conferido com 24 atrasadas e 130 pagamentos, todas as datas na competência.
 
 - [x] Ajustar fechamento contábil: seleção de planos de contas, agências Matriz/Filial - UF, tipo CT-e e Excel de contratos PJ/PF; oito testes aprovados e ZIP real conferido com 80 abertas, 119 pagas, exclusão de plano e contratos em abas separadas.
