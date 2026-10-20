@@ -327,7 +327,7 @@ async function driverDocument(id?: string | null) {
   return digits((data as Dict | null)?.cnpj);
 }
 
-async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
+async function drawPage(pdf: jsPDF, cte: CtePrintInput, logo: Awaited<ReturnType<typeof loadLogo>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
   const P = new Painter(pdf);
   const [emit, actors, driverDoc] = await Promise.all([
     loadEmitente(cte.establishment_id),
@@ -636,7 +636,7 @@ export async function buildDactePdf(ctes: CtePrintInput[]): Promise<jsPDF> {
   const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < ctes.length; i++) {
     if (i > 0) pdf.addPage();
-    await drawPage(pdf, ctes[i], logo, null, agilizaLogo);
+    await drawPage(pdf, ctes[i], logo, agilizaLogo);
   }
   const page = pdf.internal.pageSize;
   const validA4 = Math.abs(page.getWidth() - DACTE_LAYOUT.width) < 0.1

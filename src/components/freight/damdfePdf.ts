@@ -143,7 +143,7 @@ async function loadData(m: Dict) {
   return { emit, veh, owner, ctes, estNames };
 }
 
-async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, fsmLogo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
+async function drawPage(pdf: jsPDF, m: Dict, logo: Awaited<ReturnType<typeof loadImage>>, agilizaLogo: Awaited<ReturnType<typeof loadImage>> = null) {
   const P = new Painter(pdf);
   const [{ emit, veh, owner, ctes, estNames }, condutores] = await Promise.all([
     loadData(m),
@@ -319,7 +319,7 @@ export async function buildDamdfePdf(mdfes: Dict[]): Promise<jsPDF> {
   const agilizaLogo = await loadImage(printBrandAssets.agiliza);
   for (let i = 0; i < mdfes.length; i++) {
     if (i > 0) pdf.addPage("a4", "landscape");
-    await drawPage(pdf, mdfes[i], logo, null, agilizaLogo);
+    await drawPage(pdf, mdfes[i], logo, agilizaLogo);
   }
   return pdf;
 }
