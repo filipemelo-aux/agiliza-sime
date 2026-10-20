@@ -12,6 +12,17 @@ export function isExpenseAccount(tipo: string | null | undefined) {
   return String(tipo ?? "").trim().toLowerCase() === "despesa";
 }
 
+const FUEL_CODES = ["2.1.1.01", "2.1.1.02", "2.1.6.01"];
+const MAINTENANCE_CODES = ["2.1.6.02", "2.1.6.05"];
+
+/** Classifies an expense account as Combustível, Manutenção (parts/services) or Genérica by its code. */
+export function accountingExpenseKind(codigo: string | null | undefined) {
+  const c = String(codigo ?? "").trim();
+  if (FUEL_CODES.includes(c)) return "Combustível";
+  if (c.startsWith("2.1.3.") || MAINTENANCE_CODES.includes(c)) return "Manutenção";
+  return "Genérica";
+}
+
 export function accountingAgency(establishment?: { type: string; endereco_uf?: string | null } | null) {
   if (!establishment) return "Sem agência";
   const kind = establishment.type === "matriz" ? "Matriz" : "Filial";
