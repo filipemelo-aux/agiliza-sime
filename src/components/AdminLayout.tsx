@@ -107,6 +107,13 @@ export const allMenuItems = [
     ],
   },
   {
+    title: "Contabilidade",
+    icon: Landmark,
+    children: [
+      { title: "Fechamento Contábil", url: "/admin/contabilidade/fechamento", icon: FileSpreadsheet },
+    ],
+  },
+  {
     title: "Cadastros",
     icon: Users,
     children: [

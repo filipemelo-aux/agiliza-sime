@@ -60,7 +60,7 @@ export default function ContabilidadeFechamento() {
         for (const l of linhas) {
           const base = { Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Documento: e.documento_fiscal_numero, Descrição: e.descricao, "Conta contábil": conta(e.plano_contas_id), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), Valor: l.total };
           const saldo = payableBalance(l.total, l.pago);
-          const st = payableStatus(l.total, l.pago, l.venc, fim > mesAtual() ? fim : fim);
+          const st = payableStatus(l.total, l.pago, l.venc, fim);
           if (saldo > 0 && String(l.venc).slice(0, 10) <= fim) abertas.push({ ...base, Pago: l.pago, "Saldo a pagar": saldo, Status: st });
           if (l.pago > 0 && e.data_pagamento && e.data_pagamento.slice(0, 10) >= ini && e.data_pagamento.slice(0, 10) <= fim)
             pagas.push({ ...base, "Valor pago": l.pago, "Data pagamento": br(e.data_pagamento), "Forma pagamento": e.forma_pagamento });
