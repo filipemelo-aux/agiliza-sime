@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst, includesAccountingAccount, accountingAgency, accountingCteServiceType } from "./contabilidadeExport";
+import { competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst, includesAccountingAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "./contabilidadeExport";
 
 describe("contabilidadeExport", () => {
+  it("separa contratos de frete PJ e PF pelo tipo registrado no contrato", () => {
+    const pj = { numero: 9, contratado_tipo: "PJ" };
+    const pf = { numero: 10, contratado_tipo: "PF" };
+    expect(splitAccountingContracts([pj, pf])).toEqual({ PJ: [pj], PF: [pf] });
+  });
   it("inclui apenas os planos selecionados e permite excluir um plano", () => {
     expect(includesAccountingAccount("2.1.3.01", ["2.1.3.02"])).toBe(false);
     expect(includesAccountingAccount("2.1.3.02", ["2.1.3.02"])).toBe(true);

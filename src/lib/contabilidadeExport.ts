@@ -19,6 +19,10 @@ export function accountingCteServiceType(value: unknown) {
   return labels[String(value)] || "Não informado";
 }
 
+export function splitAccountingContracts<T extends { contratado_tipo: string }>(rows: T[]) {
+  return { PJ: rows.filter((r) => r.contratado_tipo === "PJ"), PF: rows.filter((r) => r.contratado_tipo === "PF") };
+}
+
 export function competenciaRange(ym: string) {
   const [y, m] = ym.split("-").map(Number);
   const last = new Date(y, m, 0).getDate();
