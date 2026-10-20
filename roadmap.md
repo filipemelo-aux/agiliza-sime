@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Ajustar fechamento contábil: seleção de planos de contas, agências Matriz/Filial - UF, tipo de serviço CT-e e Excel de contratos PJ/PF; testar geração e conteúdo.
+
 - [x] Corrigir imagens ausentes nos PDFs HTML compartilhados; três downloads pelo fluxo comum conferidos com marcas e cinco testes aprovados; CT-e/MDF-e preservados.
 - [ ] Conferir downloads de contas e faturas existentes: sessão de conferência não retornou contas, impedindo validar documentos reais.
 - [x] Trocar o seletor de competência de Fechamento Contábil pelo MonthPicker de clique; painel com 12 meses, troca de ano e seleção conferidos na tela.
