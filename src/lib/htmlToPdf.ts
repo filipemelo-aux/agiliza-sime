@@ -15,6 +15,7 @@ function isBlankCanvas(c: HTMLCanvasElement): boolean {
 
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { preparePdfImages, paintPdfImages } from "@/lib/pdfImages";
 
 /** Renderiza um HTML completo (A4) num iframe oculto e devolve o jsPDF (uma página por .doc-page). */
 export async function buildHtmlPdf(
@@ -23,7 +24,6 @@ export async function buildHtmlPdf(
 ): Promise<jsPDF> {
   const orientation = opts?.orientation ?? "portrait";
   const margin = opts?.marginMm ?? 6;
-  const contentWidthMm = opts?.contentWidthMm;
   const pageW = orientation === "landscape" ? 297 : 210;
   const pageH = orientation === "landscape" ? 210 : 297;
   const usableW = pageW - margin * 2, usableH = pageH - margin * 2;
@@ -39,39 +39,7 @@ export async function buildHtmlPdf(
     doc.close();
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     await doc.fonts?.ready;
-    await Promise.all(
-      Array.from(doc.images).map((img) =>
-        img.complete ? img.decode?.().catch(() => undefined) : new Promise<void>((resolve) => {
-          const finish = () => resolve();
-          img.onload = img.onerror = finish;
-          window.setTimeout(finish, 5000);
-        }),
-      ),
-    );
-    // A imagem SVG usada na captura nativa precisa conter suas próprias imagens.
-    await Promise.all(Array.from(doc.images).map(async (img) => {
-      if (!img.src || img.src.startsWith("data:")) return;
-      let blob: Blob | null = null;
-      for (let attempt = 0; attempt < 3 && !blob; attempt++) {
-        try {
-          const response = await fetch(img.src, { cache: attempt ? "reload" : "default", mode: "cors" });
-          if (response.ok) { const b = await response.blob(); if (b.size > 0) blob = b; }
-        } catch { /* tenta de novo */ }
-        if (!blob) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
-      }
-      if (!blob) throw new Error("Não foi possível carregar a logomarca do documento. Tente baixar novamente.");
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Imagem inválida."));
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      img.removeAttribute("srcset");
-      img.removeAttribute("loading");
-      img.src = dataUrl;
-      await img.decode().catch(() => undefined);
-      if (!img.naturalWidth) throw new Error("A logomarca não carregou. Tente baixar novamente.");
-    }));
+    await preparePdfImages(doc);
     // Dá tempo ao navegador de pintar as imagens embutidas antes da captura.
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 150))));
     const pages = Array.from(doc.querySelectorAll<HTMLElement>(".doc-page"));
@@ -92,8 +60,11 @@ export async function buildHtmlPdf(
           if (clonedEl.classList.contains("doc-page")) {
             clonedDoc.body.replaceChildren(clonedEl);
           }
+          // Keep image geometry but do not rely on nested SVG image decoding.
+          clonedEl.querySelectorAll<HTMLElement>("img").forEach((img) => img.style.setProperty("visibility", "hidden", "important"));
         },
       });
+      paintPdfImages(canvas, el);
       // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
       const elWidthMm = Math.min((el as HTMLElement).offsetWidth * 25.4 / 96, opts?.contentWidthMm ?? usableW);
       const pxPerMm = canvas.width / elWidthMm;
