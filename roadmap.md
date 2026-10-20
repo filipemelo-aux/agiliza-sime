@@ -53,5 +53,6 @@
 - [x] Validar contrato individual, lote (9/8) e fatura: uma página cada, assinaturas e marca no rodapé, nada cortado.
 - [x] Contabilidade > Fechamento Contábil: pacote ZIP da competência (contas a pagar abertas/pagas, CT-es por agência e CST, XMLs, NF-es destinatário).
 - [x] Corrigir sobreposição de atrasadas e abertas em Bancos > Relatórios, descontar juros do principal de parcelas, paginar leituras e aplicar período imediatamente; seis testes aprovados e consulta real confirmou quatro parciais vencidas.
+- [x] Na seleção de contas do fechamento contábil, listar somente contas de despesa (receitas fora); conferido na tela: 104 opções, nenhuma receita.
 - [ ] Comparar totais reais na tela de Bancos e Contas a Pagar: sessão de conferência não acessa contas da Sime e acesso de suporte foi negado.
 - [ ] Varredura do DRE: conferir competência e fontes sem confundir com saldo a pagar.
