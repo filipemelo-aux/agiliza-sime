@@ -6,7 +6,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MonthPicker } from "@/components/MonthPicker";
 import { Label } from "@/components/ui/label";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,7 +108,7 @@ export default function ContabilidadeFechamento() {
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Competência</Label>
-                <Input type="month" className="h-9 w-[170px] text-xs" value={ym} onChange={(e) => { setYm(e.target.value); setBlob(null); }} />
+                <MonthPicker className="w-[190px] text-xs" value={ym} onChange={(v) => { setYm(v); setBlob(null); }} />
               </div>
               <Button className="h-10" onClick={gerar} disabled={busy || !ym}>Gerar pacote</Button>
               {blob && <Button className="h-10 gap-2" variant="secondary" onClick={baixar}><Download className="h-4 w-4" /> Baixar {nome}</Button>}
