@@ -23,3 +23,4 @@
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Financial reads wait for auth, paginate with fetchAllRows and surface errors; edits reuse payment-state triggers. Receivables grid uses receivableBalance.ts for cent-rounded remaining principal and visible-row totals, separate from original values.
 - Expense composition uses expenseComposition.ts totals; combined parts/service keeps separate payable IDs and aggregates only maintenance cost to avoid double-counting.
+- The monthly accounting package (Contabilidade > Fechamento) is built client-side from `contabilidadeExport.ts` pure helpers so payable status/balance rules stay testable and match the payables grid.
