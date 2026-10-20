@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst, includesAccountingAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "./contabilidadeExport";
+import { competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst, includesAccountingAccount, isExpenseAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "./contabilidadeExport";
 
 describe("contabilidadeExport", () => {
   it("separa contratos de frete PJ e PF pelo tipo registrado no contrato", () => {
@@ -46,5 +46,12 @@ describe("contabilidadeExport", () => {
       { agencia: "A", cst: "20", quantidade: 2, frete: 150, base: 120, icms: 14.4 },
       { agencia: "A", cst: "40", quantidade: 1, frete: 10, base: 0, icms: 0 },
     ]);
+  });
+  it("oferece apenas contas de despesa na seleção do pacote", () => {
+    expect(isExpenseAccount("despesa")).toBe(true);
+    expect(isExpenseAccount(" DESPESA ")).toBe(true);
+    expect(isExpenseAccount("receita")).toBe(false);
+    expect(isExpenseAccount(null)).toBe(false);
+    expect(isExpenseAccount(undefined)).toBe(false);
   });
 });
