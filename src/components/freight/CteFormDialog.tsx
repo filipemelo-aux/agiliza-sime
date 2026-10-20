@@ -1667,7 +1667,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
     }, 400);
     return () => clearTimeout(h);
   }, [form.produto_predominante]);
-  const piso = calcPisoMinimo({ tabela: fm.tabela, tipo: fm.tipo, eixos: form.numero_eixos, distanciaKm: fm.distancia_km, retornoVazio: fm.retorno_vazio });
+  // Piso ANTT não se aplica a CT-e de subcontratação (tp_serv 1) — sem cálculo nem trava.
+  const piso = form.tp_serv === 1 ? null : calcPisoMinimo({ tabela: fm.tabela, tipo: fm.tipo, eixos: form.numero_eixos, distanciaKm: fm.distancia_km, retornoVazio: fm.retorno_vazio });
   const [distLoading, setDistLoading] = useState(false);
   const calcularDistancia = async (silent?: boolean) => {
     if (!form.municipio_origem_nome || !form.uf_origem || !form.municipio_destino_nome || !form.uf_destino) {
@@ -2362,7 +2363,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
 
           {/* 7. Documentos */}
 
-          {/* 8. Frete mínimo ANTT */}
+          {/* 8. Frete mínimo ANTT (oculto na subcontratação) */}
+          {form.tp_serv !== 1 && (
           <FormBlock icon={MapPin} title="8. Frete Mínimo ANTT" summary={piso ? `piso ${formatBRL(piso.total)}` : "informe distância, carga e eixos"}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
               <div className="col-span-2 space-y-1 sm:col-span-3">
