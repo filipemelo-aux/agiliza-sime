@@ -27,7 +27,7 @@ export function AccountingAccountsFilter({ options, value, onChange, disabled }:
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" disabled={disabled} className="w-full justify-between gap-2 text-xs" aria-label="Planos de contas a incluir">
-          <span className="truncate">{value === null ? "Todos os planos de contas" : `${value.length} selecionados`}</span>
+          <span className="truncate">{value === null ? "Todas as contas de despesa" : `${value.length} selecionados`}</span>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0" />
         </Button>
       </PopoverTrigger>

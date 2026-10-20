@@ -13,7 +13,7 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { competenciaRange, payableStatus, payableBalance, groupCtesByAgenciaCst, normalizeCst, includesAccountingAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "@/lib/contabilidadeExport";
+import { competenciaRange, payableStatus, payableBalance, groupCtesByAgenciaCst, normalizeCst, includesAccountingAccount, isExpenseAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "@/lib/contabilidadeExport";
 
 const sb = supabase as any;
 const br = (d: unknown) => (d ? String(d).slice(0, 10).split("-").reverse().join("/") : "");
