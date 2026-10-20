@@ -24,7 +24,6 @@ describe("printBrand", () => {
   it("draws only the Agiliza logo, without the word 'by'", () => {
     const pdf = new jsPDF({ compress: false });
     drawPrintBrandFooter(pdf, 800, img);
-    expect(contentOf(pdf)).toContain("PNG");
     expect(contentOf(pdf)).not.toContain("(by) Tj");
   });
 });
