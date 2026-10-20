@@ -50,4 +50,5 @@
 - [x] Aplicar margens padrão de 2,5 cm na impressão do contrato de frete e da fatura.
 - [x] Validar contrato individual, lote (9/8) e fatura: uma página cada, assinaturas e marca no rodapé, nada cortado.
 - [x] Contabilidade > Fechamento Contábil: pacote ZIP da competência (contas a pagar abertas/pagas, CT-es por agência e CST, XMLs, NF-es destinatário).
-- [ ] Varredura: alinhar Contas a Pagar atrasadas com Bancos > Relatórios e DRE.
+- [ ] Corrigir sobreposição de atrasadas e abertas em Bancos > Relatórios, saldos parciais e carregamento; comparar com Contas a Pagar.
+- [ ] Varredura do DRE: conferir competência e fontes sem confundir com saldo a pagar.
