@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Corrigir imagens ausentes nos PDFs HTML compartilhados e conferir downloads reais de contas e faturas, preservando CT-e/MDF-e.
+
 - [x] Renomear Faturas a Receber e mostrar saldo/recebimento parcial no grid; fatura 615 e total dos saldos R$ 17.283,61 conferidos na tela, quatro testes aprovados.
 - [x] Colocar Valor e Saldo a Receber como duas colunas no fim do grid de Faturas a Receber, sem cortes; títulos completos conferidos na tela com 23 faturas.
 - [x] Eliminar títulos cortados nos grids de Contas a Pagar, Contas Pagas e Cheques e permitir rolagem quando o grid é mais largo que a tela; medido em 10 telas.
