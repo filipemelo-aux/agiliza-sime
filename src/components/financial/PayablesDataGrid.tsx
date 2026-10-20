@@ -2,6 +2,9 @@ import { printHeaderMarker } from "@/lib/printHeader";
 import { useEffect, useMemo, useState } from "react";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { paymentPrincipal, payableReportState, matchesPayableReportFilter } from "@/lib/payableReportState";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +57,7 @@ const statusLabel: Record<Row["status"], string> = {
 };
 
 export function PayablesDataGrid() {
+  const { user, loading: authLoading, supportTenantId } = useAuth();
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [status, setStatus] = useState<StatusFilter>("todos");
@@ -64,43 +68,32 @@ export function PayablesDataGrid() {
   const [excludedCategorias, setExcludedCategorias] = useState<Set<string>>(new Set());
 
   const load = async () => {
+    if (authLoading || !user) return;
     setLoading(true);
     try {
-      const { data: chart } = await supabase.from("chart_of_accounts").select("id, codigo, nome");
-      const chartMap = new Map((chart || []).map((c: any) => [c.id, `${c.codigo} ${c.nome}`]));
-
-      let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
-      const { data: expenses, error } = await q.limit(10000);
-      if (error) throw error;
-      const expIds = (expenses || []).map((e: any) => e.id);
-      const profileIds = [...new Set((expenses || []).map((e: any) => e.favorecido_id as string).filter(Boolean))] as string[];
-      const profilesRes = profileIds.length
-        ? await supabase.from("profiles").select("id, full_name, razao_social, nome_fantasia").in("id", profileIds)
-        : { data: [] as any[] };
-      const profileById = new Map((profilesRes.data || []).map((p: any) => [p.id, p]));
-
-      const [instRes, payRes, contractRes] = await Promise.all([
-        expIds.length
-          ? supabase.from("expense_installments").select("*").in("expense_id", expIds).order("numero_parcela")
-          : Promise.resolve({ data: [] as any[] } as any),
-        expIds.length
-          ? supabase.from("expense_payments").select("expense_id, installment_id, valor")
-              .in("expense_id", expIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-        expIds.length
-          ? supabase.from("freight_contracts")
-              .select("expense_id, numero, cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome)")
-              .in("expense_id", expIds)
-          : Promise.resolve({ data: [] as any[] } as any),
+      const [chartRes, expensesRes, profilesRes, instRes, payRes, contractRes] = await Promise.all([
+        fetchAllRows((from, to) => supabase.from("chart_of_accounts").select("id, codigo, nome").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("expenses").select("*").is("deleted_at", null).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("profiles").select("id, full_name, razao_social, nome_fantasia").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("expense_installments").select("*").order("numero_parcela").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("expense_payments").select("id, expense_id, installment_id, valor, juros").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("freight_contracts")
+          .select("id, expense_id, numero, cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome)")
+          .order("id").range(from, to)),
       ]);
+      const chart = chartRes.data;
+      const expenses = expensesRes.data;
+      const chartMap = new Map((chart || []).map((c: any) => [c.id, `${c.codigo} ${c.nome}`]));
+      const profileById = new Map((profilesRes.data || []).map((p: any) => [p.id, p]));
 
       const installmentsByExp: Record<string, any[]> = {};
       (instRes.data || []).forEach((i: any) => { (installmentsByExp[i.expense_id] ||= []).push(i); });
       const pagoByInst: Record<string, number> = {};
       const pagoByExp: Record<string, number> = {};
       (payRes.data || []).forEach((p: any) => {
-        if (p.installment_id) pagoByInst[p.installment_id] = (pagoByInst[p.installment_id] || 0) + Number(p.valor || 0);
-        pagoByExp[p.expense_id] = (pagoByExp[p.expense_id] || 0) + Number(p.valor || 0);
+        const principal = paymentPrincipal(p.valor, p.juros);
+        if (p.installment_id) pagoByInst[p.installment_id] = (pagoByInst[p.installment_id] || 0) + principal;
+        pagoByExp[p.expense_id] = (pagoByExp[p.expense_id] || 0) + principal;
       });
       const contractDescByExp: Record<string, string> = {};
       (contractRes.data || []).forEach((c: any) => {
@@ -111,10 +104,10 @@ export function PayablesDataGrid() {
       });
 
       const today = format(new Date(), "yyyy-MM-dd");
-      const inRange = (d: string | null) => !!d && d >= dataInicio && d <= dataFim;
       const out: Row[] = [];
 
       (expenses || []).forEach((e: any) => {
+        if (e.status === "cancelado") return;
         const categoria = e.plano_contas_id ? (chartMap.get(e.plano_contas_id) as string) || "—" : "—";
         const veiculo = e.veiculo_placa || "—";
         const descricao = contractDescByExp[e.id] || e.descricao || "—";
@@ -127,21 +120,15 @@ export function PayablesDataGrid() {
 
         if (installs.length > 0) {
           installs.forEach((inst: any) => {
+            if (inst.status === "cancelado") return;
             const dv = inst.data_vencimento;
-            if (!inRange(dv)) return;
             const pago = pagoByInst[inst.id] || 0;
-            const isPago = inst.status === "pago";
-            // Mantém 'parcial' quando há pagamento; só marca 'atrasado' quando ainda pendente sem quitação
-            let s: Row["status"];
-            if (isPago) s = "pago";
-            else if (pago > 0) s = "parcial";
-            else if (dv && dv < today) s = "atrasado";
-            else s = (inst.status as Row["status"]) || "pendente";
-            const restante = isPago ? Number(inst.valor) : Math.max(Number(inst.valor) - pago, 0);
+            const state = payableReportState(Number(inst.valor), pago, inst.status, dv, today);
+            const restante = state.status === "pago" ? Number(inst.valor) : state.balance;
             out.push({
               id: `${e.id}-${inst.id}`,
-              status: s,
-              vencido: !isPago && !!dv && dv < today,
+              status: state.status,
+              vencido: state.overdue,
               dataVencimento: dv,
               fornecedor,
               razaoSocial,
@@ -151,24 +138,18 @@ export function PayablesDataGrid() {
               categoria,
               veiculo,
               valor: restante,
-              valorPago: pago,
+              valorPago: state.status === "pago" ? Number(inst.valor) : pago,
             });
           });
         } else {
           const dv = e.data_vencimento || e.data_emissao;
-          if (!inRange(dv)) return;
           const pago = Number(e.valor_pago || 0);
-          const isPago = e.status === "pago";
-          let s: Row["status"];
-          if (isPago) s = "pago";
-          else if (pago > 0) s = "parcial";
-          else if (dv && dv < today) s = "atrasado";
-          else s = (e.status as Row["status"]) || "pendente";
-          const restante = isPago ? Number(e.valor_total) : Math.max(Number(e.valor_total) - pago, 0);
+          const state = payableReportState(Number(e.valor_total), pago, e.status, dv, today);
+          const restante = state.status === "pago" ? Number(e.valor_total) : state.balance;
           out.push({
             id: e.id,
-            status: s,
-            vencido: !isPago && !!dv && dv < today,
+            status: state.status,
+            vencido: state.overdue,
             dataVencimento: dv,
             fornecedor,
             razaoSocial,
@@ -178,7 +159,7 @@ export function PayablesDataGrid() {
             categoria,
             veiculo,
             valor: restante,
-            valorPago: pago,
+            valorPago: state.status === "pago" ? Number(e.valor_total) : pago,
           });
         }
       });
@@ -186,22 +167,22 @@ export function PayablesDataGrid() {
       out.sort((a, b) => (a.dataVencimento || "").localeCompare(b.dataVencimento || ""));
       setRows(out);
     } catch (e: any) {
+      setRows([]);
       toast.error("Erro ao carregar", { description: e.message });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [authLoading, user?.id, supportTenantId]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const vterm = veiculoQ.trim().toLowerCase();
     return rows.filter((r) => {
-      // 'atrasado' inclui: status='atrasado' OU parcial vencido
-      if (status === "atrasado" && !(r.status === "atrasado" || (r.status === "parcial" && r.vencido))) return false;
-      if (status === "aberto" && !(r.status === "pendente" || r.status === "parcial")) return false;
-      if (status === "pago" && r.status !== "pago") return false;
+      if (dataInicio && r.dataVencimento < dataInicio) return false;
+      if (dataFim && r.dataVencimento > dataFim) return false;
+      if (!matchesPayableReportFilter(r, status)) return false;
       if (vterm && !r.veiculo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(vterm)) return false;
       if (term) {
         const t = term;
@@ -214,7 +195,7 @@ export function PayablesDataGrid() {
       if (excludedCategorias.has(r.categoria)) return false;
       return true;
     });
-  }, [rows, status, veiculoQ, search, excludedCategorias]);
+  }, [rows, status, veiculoQ, search, excludedCategorias, dataInicio, dataFim]);
 
   const categoriasDisponiveis = useMemo(() => {
     return Array.from(new Set(rows.map((r) => r.categoria))).sort((a, b) => a.localeCompare(b));
@@ -238,24 +219,22 @@ export function PayablesDataGrid() {
     },
   );
 
-  const hideAberto = useMemo(() => {
-    const today = format(new Date(), "yyyy-MM-dd");
-    return dataFim < today;
-  }, [dataFim]);
+  const hideAberto = false;
 
   const totais = useMemo(() => {
-    const total = filtered.reduce((s, r) => s + r.valor, 0);
-    const atrasado = filtered.filter((r) => r.status === "atrasado" || (r.status === "parcial" && r.vencido)).reduce((s, r) => s + r.valor, 0);
-    const aberto = hideAberto ? 0 : filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
-    const pago = filtered.filter((r) => r.status === "pago").reduce((s, r) => s + r.valorPago, 0);
+    const sum = (filter: StatusFilter) => filtered.filter(r => matchesPayableReportFilter(r, filter)).reduce((s, r) => s + Math.round(r.valor * 100), 0) / 100;
+    const total = sum("todos");
+    const atrasado = sum("atrasado");
+    const aberto = sum("aberto");
+    const pago = sum("pago");
     return { total, atrasado, aberto, pago };
-  }, [filtered, hideAberto]);
+  }, [filtered]);
 
 
   const statusButtons: { v: StatusFilter; label: string }[] = [
     { v: "todos", label: "Todos" },
     { v: "atrasado", label: "Atrasado" },
-    { v: "aberto", label: "Em aberto" },
+    { v: "aberto", label: "A vencer" },
     { v: "pago", label: "Pago" },
   ];
 
