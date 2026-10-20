@@ -4,7 +4,7 @@
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
-- Production and service CT-es share one DACTE vector renderer for identical geometry.
+- Production/service CT-es share one DACTE renderer.
 - The DAMDFE PDF always uses the fixed vector renderer in `src/components/freight/damdfePdf.ts` (A4 landscape, geometry from the user-approved model), never HTML/canvas or the Focus PDF, so the print is identical on every machine.
 - SEFAZ operations on a CT-e (transmit, status, DACTE PDF, XML, CC-e, cancel) are grouped in one dialog opened by the toolbar SEFAZ button; the focus-nfe function exposes them per saved CT-e id so the emission environment stays consistent.
 - CT-e CFOP is derived centrally from the service origin/destination states and service type, so route changes cannot leave an internal/interstate code inconsistent.
@@ -23,4 +23,4 @@
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Financial reads wait for auth, paginate with fetchAllRows and surface errors; edits reuse payment-state triggers. Receivables grid uses receivableBalance.ts for cent-rounded remaining principal and visible-row totals, separate from original values.
 - Expense composition uses expenseComposition.ts totals; combined parts/service keeps separate payable IDs and aggregates only maintenance cost to avoid double-counting.
-- The monthly accounting package (Contabilidade > Fechamento) is built client-side from `contabilidadeExport.ts` pure helpers so payable status/balance rules stay testable and match the payables grid.
+- Accounting package (Contabilidade > Fechamento) is built client-side via `contabilidadeExport.ts` pure helpers, keeping payable status/balance rules testable.
