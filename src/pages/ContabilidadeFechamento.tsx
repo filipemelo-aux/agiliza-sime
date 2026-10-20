@@ -46,8 +46,8 @@ export default function ContabilidadeFechamento() {
     if (authLoading || !user) return;
     let alive = true;
     setAccountsReady(false); setBlob(null); setSelectedAccounts(null);
-    fetchAllRows<AccountingAccountOption>((a, b) => sb.from("chart_of_accounts").select("id, codigo, nome").order("codigo").order("id").range(a, b))
-      .then(({ data }) => { if (alive) { setAccounts(data || []); setAccountsReady(true); } })
+    fetchAllRows<AccountingAccountOption & { tipo: string | null }>((a, b) => sb.from("chart_of_accounts").select("id, codigo, nome, tipo").eq("tipo", "despesa").order("codigo").order("id").range(a, b))
+      .then(({ data }) => { if (alive) { setAccounts((data || []).filter((x) => isExpenseAccount(x.tipo))); setAccountsReady(true); } })
       .catch((e) => { if (alive) toast.error("Falha ao carregar planos de contas", { description: e.message }); });
     return () => { alive = false; };
   }, [authLoading, user?.id, supportTenantId]);

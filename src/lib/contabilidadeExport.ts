@@ -7,6 +7,11 @@ export function includesAccountingAccount(id: string | null | undefined, selecte
   return selected === null || selected.includes(id || UNCLASSIFIED_ACCOUNT);
 }
 
+/** The closing package lists expense accounts only; revenue accounts stay out for now. */
+export function isExpenseAccount(tipo: string | null | undefined) {
+  return String(tipo ?? "").trim().toLowerCase() === "despesa";
+}
+
 export function accountingAgency(establishment?: { type: string; endereco_uf?: string | null } | null) {
   if (!establishment) return "Sem agência";
   const kind = establishment.type === "matriz" ? "Matriz" : "Filial";
