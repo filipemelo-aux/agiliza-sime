@@ -15,7 +15,7 @@ function isBlankCanvas(c: HTMLCanvasElement): boolean {
 
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { preparePdfImages, paintPdfImages } from "@/lib/pdfImages";
+import { preparePdfImages, snapshotPdfImages } from "@/lib/pdfImages";
 
 /** Renderiza um HTML completo (A4) num iframe oculto e devolve o jsPDF (uma página por .doc-page). */
 export async function buildHtmlPdf(
@@ -52,6 +52,7 @@ export async function buildHtmlPdf(
       pdf.addImage(dataUrl, "JPEG", (pageW - wMm) / 2, margin, wMm, hMm);
     };
     for (const el of targets) {
+      const paintImages = snapshotPdfImages(el);
       const canvas = await html2canvas(el, {
         scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794,
         width: Math.ceil(el.getBoundingClientRect().width),
@@ -64,7 +65,7 @@ export async function buildHtmlPdf(
           clonedEl.querySelectorAll<HTMLElement>("img").forEach((img) => img.style.setProperty("visibility", "hidden", "important"));
         },
       });
-      paintPdfImages(canvas, el);
+      paintImages(canvas);
       // Largura real do bloco em mm (1px ≈ 25.4/96 mm); nunca maior que a área útil.
       const elWidthMm = Math.min((el as HTMLElement).offsetWidth * 25.4 / 96, opts?.contentWidthMm ?? usableW);
       const pxPerMm = canvas.width / elWidthMm;

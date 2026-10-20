@@ -32,15 +32,11 @@ export async function preparePdfImages(doc: Document): Promise<void> {
 }
 
 /** Paint images directly, bypassing nested SVG image loading in foreignObject capture. */
-export function paintPdfImages(canvas: HTMLCanvasElement, target: HTMLElement): void {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Não foi possível desenhar as imagens do PDF.");
+export function snapshotPdfImages(target: HTMLElement): (canvas: HTMLCanvasElement) => void {
   const bounds = target.getBoundingClientRect();
-  const scale = canvas.width / bounds.width;
   const view = target.ownerDocument.defaultView;
   if (!view) throw new Error("Janela do documento indisponível.");
-  ctx.save();
-  ctx.scale(scale, scale);
+  const placements: { img: HTMLImageElement; x: number; y: number; w: number; h: number; opacity: number }[] = [];
   for (const img of Array.from(target.querySelectorAll("img"))) {
     const style = view.getComputedStyle(img);
     const rect = img.getBoundingClientRect();
@@ -55,8 +51,17 @@ export function paintPdfImages(canvas: HTMLCanvasElement, target: HTMLElement): 
       w = img.naturalWidth * ratio;
       h = img.naturalHeight * ratio;
     }
-    ctx.globalAlpha = Number(style.opacity);
-    ctx.drawImage(img, rect.left - bounds.left + leftInset + (width - w) / 2, rect.top - bounds.top + topInset + (height - h) / 2, w, h);
+    placements.push({ img, x: rect.left - bounds.left + leftInset + (width - w) / 2, y: rect.top - bounds.top + topInset + (height - h) / 2, w, h, opacity: Number(style.opacity) });
   }
-  ctx.restore();
+  return (canvas) => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Não foi possível desenhar as imagens do PDF.");
+    ctx.save();
+    ctx.scale(canvas.width / bounds.width, canvas.width / bounds.width);
+    for (const { img, x, y, w, h, opacity } of placements) {
+      ctx.globalAlpha = opacity;
+      ctx.drawImage(img, x, y, w, h);
+    }
+    ctx.restore();
+  };
 }

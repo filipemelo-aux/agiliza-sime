@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { preparePdfImages, paintPdfImages } from "./pdfImages";
+import { preparePdfImages, snapshotPdfImages } from "./pdfImages";
 
 function image(doc: Document, valid = true) {
   const img = doc.createElement("img");
@@ -33,7 +33,8 @@ describe("required PDF images", () => {
     vi.spyOn(img, "getBoundingClientRect").mockReturnValue({ left: 40, top: 70, width: 100, height: 50 } as DOMRect);
     const ctx = { save: vi.fn(), restore: vi.fn(), scale: vi.fn(), drawImage: vi.fn(), globalAlpha: 1 };
     const canvas = { width: 800, getContext: () => ctx } as unknown as HTMLCanvasElement;
-    paintPdfImages(canvas, document.body);
+    const paint = snapshotPdfImages(document.body);
+    paint(canvas);
     expect(ctx.scale).toHaveBeenCalledWith(2, 2);
     expect(ctx.drawImage).toHaveBeenCalledWith(img, 30, 50, 100, 50);
   });
