@@ -13,7 +13,7 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { competenciaRange, payableStatus, payableBalance, groupCtesByAgenciaCst, normalizeCst, includesAccountingAccount, isExpenseAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "@/lib/contabilidadeExport";
+import { competenciaRange, accountingPayableEntries, payableBalance, groupCtesByAgenciaCst, normalizeCst, includesAccountingAccount, isExpenseAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "@/lib/contabilidadeExport";
 
 const sb = supabase as any;
 const br = (d: unknown) => (d ? String(d).slice(0, 10).split("-").reverse().join("/") : "");
@@ -61,27 +61,26 @@ export default function ContabilidadeFechamento() {
       const agencia = (id: string) => accountingAgency(ests.find((x: any) => x.id === id));
 
       // Contas a pagar: parcelas quando existirem, senão a despesa inteira
-      const exps = (await fetchAllRows<any>((a, b) => sb.from("expenses").select("id, descricao, favorecido_nome, fornecedor_cnpj, documento_fiscal_numero, data_emissao, data_vencimento, data_pagamento, valor_total, valor_pago, forma_pagamento, centro_custo, empresa_id, plano_contas_id").is("deleted_at", null).range(a, b))).data || [];
-      const inst = (await fetchAllRows<any>((a, b) => sb.from("expense_installments").select("expense_id, numero_parcela, total_parcelas, data_vencimento, valor, status").range(a, b))).data || [];
+      const [expenseResult, installmentResult, paymentResult] = await Promise.all([
+        fetchAllRows<any>((a, b) => sb.from("expenses").select("id, descricao, favorecido_nome, fornecedor_cnpj, documento_fiscal_numero, data_emissao, data_vencimento, data_pagamento, valor_total, valor_pago, status, forma_pagamento, centro_custo, empresa_id, plano_contas_id").is("deleted_at", null).order("id").range(a, b)),
+        fetchAllRows<any>((a, b) => sb.from("expense_installments").select("id, expense_id, numero_parcela, total_parcelas, data_vencimento, valor, status").order("id").range(a, b)),
+        fetchAllRows<any>((a, b) => sb.from("expense_payments").select("expense_id, installment_id, data_pagamento, valor, juros, desconto, forma_pagamento").order("id").range(a, b)),
+      ]);
+      const exps = expenseResult.data || [], inst = installmentResult.data || [], payments = paymentResult.data || [];
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
       const plano = accounts;
       const conta = (id: string) => { const p = plano.find((x: any) => x.id === id); return p ? `${p.codigo} ${p.nome}` : ""; };
       const byExp = new Map<string, any[]>();
       inst.forEach((i: any) => byExp.set(i.expense_id, [...(byExp.get(i.expense_id) || []), i]));
+      const paymentsByExp = new Map<string, any[]>();
+      payments.forEach((p: any) => paymentsByExp.set(p.expense_id, [...(paymentsByExp.get(p.expense_id) || []), p]));
       const abertas: any[] = [], pagas: any[] = [];
       for (const e of exps) {
         if (!includesAccountingAccount(e.plano_contas_id, selectedAccounts)) continue;
-        const parts = byExp.get(e.id);
-        const linhas = parts?.length
-          ? (() => { let resto = Number(e.valor_pago || 0); return parts.sort((a, b) => a.numero_parcela - b.numero_parcela).map((p) => { const pago = Math.min(Number(p.valor), Math.max(0, resto)); resto -= pago; return { parcela: `${p.numero_parcela}/${p.total_parcelas}`, venc: p.data_vencimento, total: Number(p.valor), pago: p.status === "pago" ? Number(p.valor) : pago }; }); })()
-          : [{ parcela: "Única", venc: e.data_vencimento, total: Number(e.valor_total), pago: Number(e.valor_pago || 0) }];
-        for (const l of linhas) {
-          const base = { Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Documento: e.documento_fiscal_numero, Descrição: e.descricao, "Conta contábil": conta(e.plano_contas_id), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), Valor: l.total };
-          const saldo = payableBalance(l.total, l.pago);
-          const st = payableStatus(l.total, l.pago, l.venc, fim);
-          if (saldo > 0 && String(l.venc).slice(0, 10) <= fim) abertas.push({ ...base, Pago: l.pago, "Saldo a pagar": saldo, Status: st });
-          if (l.pago > 0 && e.data_pagamento && e.data_pagamento.slice(0, 10) >= ini && e.data_pagamento.slice(0, 10) <= fim)
-            pagas.push({ ...base, "Valor pago": l.pago, "Data pagamento": br(e.data_pagamento), "Forma pagamento": e.forma_pagamento });
-        }
+        const entries = accountingPayableEntries(e, byExp.get(e.id) || [], paymentsByExp.get(e.id) || [], ym, today);
+        const base = (l: { parcela: string; venc: string; total: number }) => ({ Agência: agencia(e.empresa_id), Favorecido: e.favorecido_nome, "CNPJ/CPF": e.fornecedor_cnpj, Documento: e.documento_fiscal_numero, Descrição: e.descricao, "Conta contábbil": conta(e.plano_contas_id), "Centro de custo": e.centro_custo, Parcela: l.parcela, Emissão: br(e.data_emissao), Vencimento: br(l.venc), Valor: l.total });
+        for (const l of entries.atrasadas) abertas.push({ ...base(l), Pago: l.pago, "Saldo a pagar": payableBalance(l.total, l.pago), Status: "Atrasado" });
+        for (const l of entries.pagas) pagas.push({ ...base(l), "Valor pago": l.pago, Juros: l.juros, Desconto: l.desconto, "Data pagamento": br(l.data), "Forma pagamento": l.forma });
       }
 
       // CT-es emitidos (autorizados) da competência
@@ -98,7 +97,7 @@ export default function ContabilidadeFechamento() {
       const contractRows = (rows: any[]) => rows.map((c) => ({ Agência: agencia(c.establishment_id), "Número contrato": c.numero, "Data contrato": br(c.data_contrato), "Tipo contratado": c.contratado_tipo, Contratado: c.contratado_nome, "CPF/CNPJ contratado": c.contratado_documento, "Número CT-e": c.cte?.numero, "Série CT-e": c.cte?.serie, Motorista: c.motorista_nome, "CPF motorista": c.motorista_cpf, Placa: c.placa_veiculo, Origem: c.municipio_origem, "UF origem": c.uf_origem, Destino: c.municipio_destino, "UF destino": c.uf_destino, Carga: c.natureza_carga, "Peso (kg)": Number(c.peso_kg || 0), "Valor por tonelada": Number(c.valor_tonelada || 0), "Valor contrato": Number(c.valor_total || 0), "Status conta a pagar": c.payable?.status, "Data pagamento": br(c.payable?.data_pagamento) }));
 
       const zip = new JSZip();
-      zip.file(`Contas_a_Pagar_${ym}.xlsx`, book({ "Em aberto": abertas, Pagas: pagas }));
+      zip.file(`Contas_a_Pagar_${ym}.xlsx`, book({ "Em atraso": abertas, Pagas: pagas }));
       zip.file(`CTes_Emitidos_${ym}.xlsx`, book({ "Resumo Agência x CST": resumoCte, "CT-es": cteRows }));
       zip.file(`NFes_Destinatario_${ym}.xlsx`, book({ "NF-es": nfeRows }));
       zip.file(`Contratos_de_Frete_${ym}.xlsx`, book({ "Contratos PJ": contractRows(separated.PJ), "Contratos PF": contractRows(separated.PF) }));
@@ -107,7 +106,7 @@ export default function ContabilidadeFechamento() {
       let nx = 0;
       for (const c of ctes) if (c.xml_autorizado) { xmls.file(`${c.chave_acesso || c.numero}.xml`, c.xml_autorizado); nx++; }
       setBlob(await zip.generateAsync({ type: "blob", compression: "DEFLATE" }));
-      setResumo(`${abertas.length} contas em aberto, ${pagas.length} pagas, ${ctes.length} CT-es (${nx} XMLs), ${nfes.length} NF-es, ${separated.PJ.length} contratos PJ e ${separated.PF.length} contratos PF.`);
+      setResumo(`${abertas.length} contas em atraso, ${pagas.length} pagamentos na competência, ${ctes.length} CT-es (${nx} XMLs), ${nfes.length} NF-es, ${separated.PJ.length} contratos PJ e ${separated.PF.length} contratos PF.`);
     } catch (e: any) {
       toast.error("Falha ao gerar o pacote contábil", { description: e.message });
     } finally { setBusy(false); }
