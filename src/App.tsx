@@ -34,6 +34,7 @@ import AdminReports from "./pages/AdminReports";
 import AdminTransportReports from "./pages/AdminTransportReports";
 import AdminFleetMetrics from "./pages/AdminFleetMetrics";
 import AdminRH from "./pages/AdminRH";
+import ContabilidadeFechamento from "./pages/ContabilidadeFechamento";
 import NotFound from "./pages/NotFound";
 import SuperAdminTenants from "./pages/superadmin/SuperAdminTenants";
 import { UpdateNotification } from "./components/UpdateNotification";
@@ -100,6 +101,7 @@ const App = () => (
             <Route path="/admin/rh/comissoes" element={<Navigate to="/admin/rh/movimentacoes" replace />} />
             <Route path="/admin/rh/descontos" element={<Navigate to="/admin/rh/movimentacoes" replace />} />
             <Route path="/admin/rh/configuracoes" element={<AdminRH section="config" />} />
+            <Route path="/admin/contabilidade/fechamento" element={<ContabilidadeFechamento />} />
             <Route path="/admin/quotations" element={<AdminQuotations />} />
             <Route path="/admin/financial" element={<Navigate to="/admin/financial/invoicing" replace />} />
             <Route path="/admin/financial/invoicing" element={<AdminFinancial section="invoicing" />} />
