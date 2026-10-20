@@ -31,11 +31,12 @@ describe("required PDF images", () => {
     img.style.cssText = "display:block;object-fit:contain;opacity:1;border:0;padding:0";
     vi.spyOn(document.body, "getBoundingClientRect").mockReturnValue({ left: 10, top: 20, width: 400, height: 600 } as DOMRect);
     vi.spyOn(img, "getBoundingClientRect").mockReturnValue({ left: 40, top: 70, width: 100, height: 50 } as DOMRect);
-    const ctx = { save: vi.fn(), restore: vi.fn(), scale: vi.fn(), drawImage: vi.fn(), globalAlpha: 1 };
+    const ctx = { save: vi.fn(), restore: vi.fn(), resetTransform: vi.fn(), scale: vi.fn(), drawImage: vi.fn(), globalAlpha: 1 };
     const canvas = { width: 800, getContext: () => ctx } as unknown as HTMLCanvasElement;
     const paint = snapshotPdfImages(document.body);
     paint(canvas);
     expect(ctx.scale).toHaveBeenCalledWith(2, 2);
+    expect(ctx.resetTransform).toHaveBeenCalledOnce();
     expect(ctx.drawImage).toHaveBeenCalledWith(img, 30, 50, 100, 50);
   });
 });

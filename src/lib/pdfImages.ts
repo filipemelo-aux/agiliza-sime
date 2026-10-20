@@ -57,6 +57,7 @@ export function snapshotPdfImages(target: HTMLElement): (canvas: HTMLCanvasEleme
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Não foi possível desenhar as imagens do PDF.");
     ctx.save();
+    ctx.resetTransform();
     ctx.scale(canvas.width / bounds.width, canvas.width / bounds.width);
     for (const { img, x, y, w, h, opacity } of placements) {
       ctx.globalAlpha = opacity;
