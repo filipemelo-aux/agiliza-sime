@@ -13,7 +13,7 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { competenciaRange, payableStatus, payableBalance, groupCtesByAgenciaCst, normalizeCst, includesAccountingAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "@/lib/contabilidadeExport";
+import { competenciaRange, payableStatus, payableBalance, groupCtesByAgenciaCst, normalizeCst, includesAccountingAccount, isExpenseAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "@/lib/contabilidadeExport";
 
 const sb = supabase as any;
 const br = (d: unknown) => (d ? String(d).slice(0, 10).split("-").reverse().join("/") : "");
@@ -46,8 +46,8 @@ export default function ContabilidadeFechamento() {
     if (authLoading || !user) return;
     let alive = true;
     setAccountsReady(false); setBlob(null); setSelectedAccounts(null);
-    fetchAllRows<AccountingAccountOption>((a, b) => sb.from("chart_of_accounts").select("id, codigo, nome").order("codigo").order("id").range(a, b))
-      .then(({ data }) => { if (alive) { setAccounts(data || []); setAccountsReady(true); } })
+    fetchAllRows<AccountingAccountOption & { tipo: string | null }>((a, b) => sb.from("chart_of_accounts").select("id, codigo, nome, tipo").eq("tipo", "despesa").order("codigo").order("id").range(a, b))
+      .then(({ data }) => { if (alive) { setAccounts((data || []).filter((x) => isExpenseAccount(x.tipo))); setAccountsReady(true); } })
       .catch((e) => { if (alive) toast.error("Falha ao carregar planos de contas", { description: e.message }); });
     return () => { alive = false; };
   }, [authLoading, user?.id, supportTenantId]);
@@ -129,7 +129,7 @@ export default function ContabilidadeFechamento() {
           <FilterField label="Competência" className="sm:mr-auto">
             <MonthPicker className="w-[190px] text-xs" value={ym} onChange={(v) => { setYm(v); setBlob(null); }} />
           </FilterField>
-          <FilterField label="Planos de contas — Contas a Pagar" className="w-full sm:w-[360px]">
+          <FilterField label="Contas de despesa — Contas a Pagar" className="w-full sm:w-[360px]">
             <AccountingAccountsFilter options={accounts} value={selectedAccounts} onChange={(v) => { setSelectedAccounts(v); setBlob(null); }} disabled={busy || !accountsReady} />
           </FilterField>
         </SearchFilterCard>
