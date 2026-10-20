@@ -2412,6 +2412,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
               <p className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[11px] font-medium text-destructive">O frete ({formatBRL(form.valor_frete)}) está abaixo do piso mínimo da ANTT. Multa prevista: R$ 550,00.</p>
             )}
           </FormBlock>
+          )}
 
           {/* 9. Composição do frete */}
           <FormBlock icon={DollarSign} title="9. Composição do Frete" summary={`prestação ${formatBRL(form.valor_frete)} · a receber ${formatBRL(form.valor_receber)}`}>
