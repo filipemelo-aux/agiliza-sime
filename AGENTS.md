@@ -4,8 +4,8 @@
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.
 - CT-e authorization is initiated only from the list toolbar and uses the Focus NFe backend connector; fiscal forms only save drafts.
-- Production/service CT-es share one DACTE renderer.
-- The DAMDFE PDF always uses the fixed vector renderer in `src/components/freight/damdfePdf.ts` (A4 landscape, geometry from the user-approved model), never HTML/canvas or the Focus PDF, for identical prints.
+- CT-e talões share DACTE and must open Other payer fields with inline person creation; service actors use CteActorSection.
+- DAMDFE uses only `damdfePdf.ts` vectors (A4 landscape, approved geometry), never HTML/canvas or Focus PDF, for identical prints.
 - SEFAZ operations on a CT-e (transmit, status, DACTE PDF, XML, CC-e, cancel) are grouped in one dialog opened by the toolbar SEFAZ button; the focus-nfe function exposes them per saved CT-e id keeping the environment consistent.
 - CT-e CFOP is derived centrally from the service origin/destination states and service type, so route changes cannot leave an internal/interstate code inconsistent.
 - Official fiscal glyphs (SEFAZ, MDF-e) come from the Sime SVG set stored as CDN assets and are exposed only through wrapper components in `src/components/icons`, for reuse .
