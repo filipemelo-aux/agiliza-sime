@@ -38,6 +38,10 @@ it.skipIf(!process.env.OPERATOR_TEST_SESSION_FILE)("operator saves, reads, edits
     expect(grouped.data.valor).toBe(2);
     const denied = await db.rpc("next_cte_number", { _establishment_id: "00000000-0000-0000-0000-000000000000" });
     expect(denied.error?.message).toContain("Agência não encontrada ou sem acesso");
+    const fiscal = await db.functions.invoke("focus-nfe", { body: { action: "emitir_cte_salvo", cte_id: "00000000-0000-0000-0000-000000000000" } });
+    expect(fiscal.error?.context?.status).toBe(404);
+    const response = await fiscal.error?.context?.json();
+    expect(response?.error).toBe("CT-e não encontrado");
   } finally {
     if (ids.length) {
       const links = await db.from("expense_group_items").delete().in("grupo_expense_id", ids);
