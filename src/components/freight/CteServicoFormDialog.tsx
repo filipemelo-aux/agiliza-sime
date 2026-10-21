@@ -47,7 +47,8 @@ interface Props {
 interface FormState {
   // Tomador / cliente (mantido para previsão de recebimento)
   tomador_id: string | null;
-  tomador_tipo: number;
+  tomador_tipo: number | null;
+  tomador_nome: string; tomador_cnpj: string; tomador_ie: string; tomador_endereco: string; tomador_municipio_ibge: string; tomador_uf: string;
   // Atores fiscais
   remetente_nome: string; remetente_cnpj: string; remetente_ie: string; remetente_endereco: string; remetente_municipio_ibge: string; remetente_uf: string;
   destinatario_nome: string; destinatario_cnpj: string; destinatario_ie: string; destinatario_endereco: string; destinatario_municipio_ibge: string; destinatario_uf: string;
@@ -70,7 +71,8 @@ interface FormState {
 
 const empty: FormState = {
   tomador_id: null,
-  tomador_tipo: null as any,
+  tomador_tipo: null,
+  tomador_nome: "", tomador_cnpj: "", tomador_ie: "", tomador_endereco: "", tomador_municipio_ibge: "", tomador_uf: "",
   remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_municipio_ibge: "", remetente_uf: "",
   destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_municipio_ibge: "", destinatario_uf: "",
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
@@ -141,6 +143,12 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       setForm({
         tomador_id: cte.tomador_id ?? null,
         tomador_tipo: (cte as any).tomador_tipo ?? null,
+        tomador_nome: c.tomador_nome || "",
+        tomador_cnpj: c.tomador_cnpj ? maskCNPJ(c.tomador_cnpj) : "",
+        tomador_ie: c.tomador_ie || "",
+        tomador_endereco: c.tomador_endereco || "",
+        tomador_municipio_ibge: c.tomador_municipio_ibge || "",
+        tomador_uf: c.tomador_uf || "",
         remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
         remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
@@ -325,6 +333,12 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         numero_interno,
         // Atores fiscais
         tomador_id: form.tomador_id,
+        tomador_nome: form.tomador_nome ? maskName(form.tomador_nome) : null,
+        tomador_cnpj: unmaskCNPJ(form.tomador_cnpj) || null,
+        tomador_ie: form.tomador_ie || null,
+        tomador_endereco: form.tomador_endereco || null,
+        tomador_municipio_ibge: form.tomador_municipio_ibge || null,
+        tomador_uf: form.tomador_uf || null,
         remetente_nome: maskName(form.remetente_nome),
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj || null,
         remetente_ie: form.remetente_ie || null,
@@ -589,6 +603,14 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                   );
                 })}
               </div>
+              {form.tomador_tipo === 4 && (
+                <CteActorSection
+                  title="Dados do Tomador (Outros)"
+                  prefix="tomador"
+                  form={form}
+                  set={(k, v) => setForm((f) => ({ ...f, [k]: v }))}
+                />
+              )}
             </CardContent>
           </Card>
 
