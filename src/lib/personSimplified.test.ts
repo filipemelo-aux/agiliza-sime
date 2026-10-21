@@ -61,7 +61,7 @@ describe("validateInformalSupplier", () => {
       validateInformalSupplier({ ...base, person_type: "cnpj", phone: "(63) 99999-9999", address_city: "Araguaína", address_state: "TO" })
     ).toBeNull();
     expect(
-      validateInformalSupplier({ ...base, person_type: "cnpj", cnpj: "05.050.995/0001-1", address_city: "Araguaína", address_state: "TO" })
+      validateInformalSupplier({ ...base, person_type: "cnpj", cnpj: "05.050.995/0001-1", phone: "(63) 99999-9999", address_city: "Araguaína", address_state: "TO" })
     ).toMatch(/CNPJ incompleto/);
   });
 });
