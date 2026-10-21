@@ -54,6 +54,7 @@ interface CertificateInfo {
 
 async function fetchCertificate(
   supabaseClient: any,
+  tenantId: string,
   establishmentId?: string
 ): Promise<CertificateInfo> {
   let certPath: string | null = null;
@@ -66,6 +67,7 @@ async function fetchCertificate(
       .from("establishment_certificates")
       .select("certificate_id")
       .eq("establishment_id", establishmentId)
+      .eq("tenant_id", tenantId)
       .limit(1)
       .maybeSingle();
 
@@ -74,6 +76,7 @@ async function fetchCertificate(
         .from("fiscal_certificates")
         .select("caminho_storage, senha_criptografada, nome")
         .eq("id", link.certificate_id)
+        .eq("tenant_id", tenantId)
         .eq("ativo", true)
         .single();
 
@@ -88,6 +91,7 @@ async function fetchCertificate(
       .from("fiscal_establishments")
       .select("cnpj")
       .eq("id", establishmentId)
+      .eq("tenant_id", tenantId)
       .single();
     if (est) certCnpj = est.cnpj;
   }
@@ -97,6 +101,7 @@ async function fetchCertificate(
     const { data: settings } = await supabaseClient
       .from("fiscal_settings")
       .select("certificado_a1_path, senha_certificado_encrypted, cnpj")
+      .eq("tenant_id", tenantId)
       .limit(1)
       .maybeSingle();
 
@@ -250,13 +255,15 @@ serve(async (req) => {
     maxBodySize: 600_000,
   });
 
-  if (!security.ok) return security.response!;
+  if (!security.ok) return security.response;
 
   // ── Authentication & Authorization ──────────────────────────────
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return secureError("Não autorizado", 401);
   }
+  let tenantId: string | null = null;
+  let userClient: ReturnType<typeof createClient> | null = null;
   try {
     const anonClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -269,29 +276,39 @@ serve(async (req) => {
       return secureError("Token inválido", 401);
     }
     const userId = claimsData.claims.sub;
-    const { data: roleData } = await security.client
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .in("role", ["admin", "moderator"])
-      .limit(1)
-      .maybeSingle();
-    if (!roleData) {
+    const checks = await Promise.all(["admin", "moderator", "operador"].map((_role) =>
+      anonClient.rpc("has_role", { _user_id: userId, _role })
+    ));
+    const { data: tenant, error: tenantError } = await anonClient.rpc("current_tenant_id");
+    if (!checks.some(({ data, error }) => !error && data === true) || tenantError || !tenant) {
       await logSecurityEvent(security.client, {
         event_type: "unauthorized_sign_attempt",
         source_ip: security.clientIp,
         function_name: "sign-fiscal-xml",
         details: { user_id: userId },
       });
-      return secureError("Acesso negado: requer papel administrador ou moderador", 403);
+      return secureError("Acesso negado à assinatura fiscal", 403);
     }
+    tenantId = tenant;
+    userClient = anonClient;
   } catch (e: any) {
     return secureError("Falha na autenticação: " + e.message, 401);
   }
 
   try {
-    const body = security.body!;
+    const body = security.body;
+    if (!body || !tenantId || !userClient) return secureError("Não autorizado", 401);
     const { xml, document_type, document_id, establishment_id } = body as Record<string, any>;
+    if (document_type !== "cte" && document_type !== "mdfe") return secureError("Tipo de documento inválido", 400);
+    const { data: document } = await userClient.from(document_type === "cte" ? "ctes" : "mdfe")
+      .select("id, establishment_id").eq("id", document_id).eq("tenant_id", tenantId).maybeSingle();
+    if (!document || !document.establishment_id || (establishment_id && document.establishment_id !== establishment_id)) {
+      return secureError("Documento ou agência sem acesso", 403);
+    }
+    const { data: establishment } = await userClient.from("fiscal_establishments").select("cnpj")
+      .eq("id", document.establishment_id).eq("tenant_id", tenantId).maybeSingle();
+    const issuer = String(xml).match(/<emit\b[^>]*>[\s\S]*?<CNPJ>(\d+)<\/CNPJ>/)?.[1];
+    if (!establishment || issuer !== String(establishment.cnpj).replace(/\D/g, "")) return secureError("Emitente do XML incompatível com a agência", 403);
 
     // Sanitize XML (XXE protection)
     let cleanXml: string;
@@ -308,7 +325,7 @@ serve(async (req) => {
     }
 
     // Buscar certificado
-    const cert = await fetchCertificate(security.client, establishment_id);
+    const cert = await fetchCertificate(security.client, tenantId, document.establishment_id);
 
     console.log(
       `[sign] ${document_type} ${document_id} | CNPJ: ${cert.cnpj} | PFX: ${Math.round(cert.pfxBase64.length * 0.75 / 1024)}KB`

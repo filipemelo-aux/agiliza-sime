@@ -2,7 +2,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 const normRntrc = (v: unknown) => { const d = String(v ?? '').replace(/\D/g, ''); if (!d) return undefined; return d.slice(-8).padStart(8, '0'); };
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Focus NFe connector (homologação by default). Admin/moderator only.
+// Fiscal operations: authenticated tenant staff; administrative secrets remain server-only.
 const BASES = {
   homologacao: "https://homologacao.focusnfe.com.br",
   producao: "https://api.focusnfe.com.br",
@@ -25,11 +25,13 @@ Deno.serve(async (req) => {
   const { data: claims, error: authErr } = await supabase.auth.getClaims(auth.replace("Bearer ", ""));
   if (authErr || !claims?.claims?.sub) return json({ error: "Não autenticado" }, 401);
   const uid = claims.claims.sub;
-  const [{ data: isAdmin }, { data: isMod }] = await Promise.all([
+  const [{ data: isAdmin }, { data: isMod }, { data: isOperator }, { data: tenantId }] = await Promise.all([
     supabase.rpc("has_role", { _user_id: uid, _role: "admin" }),
     supabase.rpc("has_role", { _user_id: uid, _role: "moderator" }),
+    supabase.rpc("has_role", { _user_id: uid, _role: "operador" }),
+    supabase.rpc("current_tenant_id"),
   ]);
-  if (!isAdmin && !isMod) return json({ error: "Sem permissão" }, 403);
+  if ((!isAdmin && !isMod && !isOperator) || !tenantId) return json({ error: "Sem permissão" }, 403);
 
   // Tokens Focus: os da empresa (tenant_secrets) têm prioridade; sem eles, usa os padrões do servidor.
   let tenantTok: { focus_nfe_token_production?: string | null; focus_nfe_token_homologation?: string | null } | null = null;
@@ -46,6 +48,8 @@ Deno.serve(async (req) => {
   // Token próprio do estabelecimento (matriz/filial, definido no SuperAdmin) tem prioridade sobre o da empresa.
   const estTok = async (estId: string | null | undefined, prod: boolean) => {
     if (estId) {
+      const { data: owned } = await supabase.from("fiscal_establishments").select("id").eq("id", estId).eq("tenant_id", tenantId).maybeSingle();
+      if (!owned) throw new Error("Agência não encontrada ou sem acesso");
       const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const { data } = await svc.from("establishment_secrets").select("focus_nfe_token_production, focus_nfe_token_homologation").eq("establishment_id", estId).maybeSingle();
       const t = prod ? data?.focus_nfe_token_production : data?.focus_nfe_token_homologation;
