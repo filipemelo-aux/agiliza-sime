@@ -42,10 +42,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/hooks/useTenant";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown } from "lucide-react";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature, Search, Upload, ChevronDown, UserPlus } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskName, maskPlate, maskPlateInput, unmaskPlate, formatCurrency } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo, resolveProfileId } from "@/lib/vehicleDriverLookup";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
@@ -418,6 +419,8 @@ function ActorSection({
   cnpjStep,
   setCnpjError,
   onCityResolved,
+  defaultOpen,
+  createCategory = "cliente",
 }: {
   title: string;
   prefix: string;
@@ -430,12 +433,48 @@ function ActorSection({
   cnpjStep?: string;
   setCnpjError: (v: string) => void;
   onCityResolved?: (prefix: string, city: { cidade: string; uf: string; ibge: string } | null) => void;
+  /** Mantém o bloco já aberto quando o usuário escolhe uma opção que exige cadastro manual. */
+  defaultOpen?: boolean;
+  /** Categoria sugerida no botão "+" da busca de cadastro. */
+  createCategory?: string;
 }) {
   const nome = String(form[`${prefix}_nome`] || "");
   const uf = String(form[`${prefix}_uf`] || "");
   const doc = String(form[`${prefix}_cnpj`] || "");
   const filled = nome.trim().length > 0;
-  const [expanded, setExpanded] = useState(filled);
+  const [expanded, setExpanded] = useState(filled || !!defaultOpen);
+  const [creating, setCreating] = useState(false);
+
+  const fillFromProfile = useCallback(
+    async (profileUserId: string) => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, razao_social, cnpj, inscricao_estadual, address_street, address_number, address_neighborhood, address_city, address_state")
+        .eq("user_id", profileUserId)
+        .maybeSingle();
+      if (!data) return;
+      set(`${prefix}_nome`, (data.razao_social || data.full_name) ?? "");
+      set(`${prefix}_cnpj`, data.cnpj ? maskDocument(data.cnpj) : "");
+      set(`${prefix}_ie`, data.inscricao_estadual ?? "");
+      set(`${prefix}_uf`, data.address_state ?? "");
+      set(`${prefix}_endereco`, [data.address_street, data.address_number, data.address_neighborhood].filter(Boolean).join(", "));
+      const cidade = data.address_city ? maskName(data.address_city) : "";
+      const ufSel = data.address_state || "";
+      if (cidade && ufSel) {
+        onCityResolved?.(prefix, { cidade, uf: ufSel, ibge: "" });
+        buscarCodigoIbgePorMunicipio(ufSel, cidade).then((ibge) => {
+          if (ibge) {
+            set(`${prefix}_municipio_ibge`, ibge);
+            onCityResolved?.(prefix, { cidade, uf: ufSel, ibge });
+          }
+        });
+      } else {
+        onCityResolved?.(prefix, null);
+      }
+      setExpanded(true);
+    },
+    [prefix, set, onCityResolved],
+  );
 
   return (
     <section className={`rounded-lg border bg-card [&>button]:rounded-t-lg ${filled ? "border-border" : "border-dashed border-border"}`}>
@@ -488,6 +527,17 @@ function ActorSection({
               set(`${prefix}_municipio_ibge`, "");
               onCityResolved?.(prefix, null);
             }}
+            endAction={
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border bg-muted/40 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                title={`Cadastrar ${title.toLowerCase().replace("dados do ", "").replace(" (outros)", "")}`}
+                aria-label={`Cadastrar ${title.toLowerCase().replace("dados do ", "").replace(" (outros)", "")}`}
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+              </button>
+            }
           />
         </div>
         <div className="grid grid-cols-2 gap-x-2 gap-y-2">
@@ -541,6 +591,14 @@ function ActorSection({
           </div>
         </div>
       </div>
+      <PersonCreateDialog
+        open={creating}
+        onOpenChange={setCreating}
+        defaultCategory={createCategory}
+        onCreated={(uid) => {
+          if (uid) void fillFromProfile(uid);
+        }}
+      />
     </section>
   );
 
@@ -2138,6 +2196,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
                 cnpjError={cnpjErrors.tomador || ""}
                 cnpjStep={cnpjSteps.tomador || ""}
                 setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
+                defaultOpen
+                createCategory="cliente"
               />
             )}
             </SubBlock>
