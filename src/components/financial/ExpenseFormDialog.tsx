@@ -802,7 +802,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
     if (isMaintenanceType) {
       if (!veiculoId) return void toast.error("Selecione o veículo para manutenção");
-      if (!kmAtual || Number(kmAtual) <= 0) return void toast.error("Informe o KM atual");
       if (!tipoManutencao) return void toast.error("Selecione o tipo de manutenção");
       if (!hasNfse && !descricaoServico.trim()) return void toast.error("Informe a descrição do serviço");
       if (hasNfse && nfseFornecedorNome.trim() && !nfseFornecedorId) {
@@ -825,7 +824,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         .maybeSingle();
 
       const lastKm = lastKmData?.km_atual ? Number(lastKmData.km_atual) : null;
-      if (lastKm !== null && Number(kmAtual) <= lastKm) {
+      if (kmAtual && Number(kmAtual) > 0 && lastKm !== null && Number(kmAtual) <= lastKm) {
         return void toast.error(`KM deve ser maior que o último registrado (${lastKm.toLocaleString("pt-BR")} km)`);
       }
     }

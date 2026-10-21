@@ -125,7 +125,6 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
 
   const handleSave = async () => {
     if (!veiculoId) return toast.error("Selecione o veículo (Placa) — obrigatório para o histórico da frota.");
-    if (!kmAtual) return toast.error("Informe o KM atual");
     if (!descricaoServico.trim() && itensManutencao.length === 0) {
       return toast.error("Informe a descrição ou adicione itens");
     }
