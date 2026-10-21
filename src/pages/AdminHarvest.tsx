@@ -72,14 +72,14 @@ export default function AdminHarvest() {
 
   useEffect(() => {
     if (!roleLoading && !hasAdminAccess) navigate("/");
-  }, [isAdmin, isModerator, roleLoading, navigate]);
+  }, [hasAdminAccess, roleLoading, navigate]);
 
   useEffect(() => {
-    if (hasAdminAccess) {
+    if (!roleLoading && hasAdminAccess) {
       fetchJobs();
       fetchClients();
     }
-  }, [isAdmin, isModerator]);
+  }, [roleLoading, hasAdminAccess]);
 
   const fetchClients = async () => {
     const { data } = await supabase

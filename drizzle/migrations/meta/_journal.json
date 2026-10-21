@@ -78,6 +78,13 @@
       "when": 1792182580401,
       "tag": "0010_block_total_below_paid",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792590540986,
+      "tag": "0011_operator_operational_permissions",
+      "breakpoints": true
     }
   ]
 }

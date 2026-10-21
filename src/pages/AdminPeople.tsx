@@ -92,11 +92,11 @@ export default function AdminPeople() {
       const timer = setTimeout(() => navigate("/"), 100);
       return () => clearTimeout(timer);
     }
-  }, [roleLoading]);
+  }, [roleLoading, hasAdminAccess, navigate]);
 
   useEffect(() => {
-    if (hasAdminAccess) fetchAll();
-  }, [isAdmin, isModerator]);
+    if (!roleLoading && hasAdminAccess) fetchAll();
+  }, [roleLoading, hasAdminAccess]);
 
   const fetchAll = async () => {
     setLoading(true);

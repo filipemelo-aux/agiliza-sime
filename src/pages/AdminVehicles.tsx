@@ -126,11 +126,11 @@ export default function AdminVehicles() {
       const timer = setTimeout(() => navigate("/"), 100);
       return () => clearTimeout(timer);
     }
-  }, [roleLoading]);
+  }, [roleLoading, hasAdminAccess, navigate]);
 
   useEffect(() => {
-    if (hasAdminAccess) fetchVehicles();
-  }, [isAdmin, isModerator]);
+    if (!roleLoading && hasAdminAccess) fetchVehicles();
+  }, [roleLoading, hasAdminAccess]);
 
   const fetchVehicles = async () => {
     setLoading(true);
