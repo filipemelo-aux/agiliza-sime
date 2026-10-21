@@ -17,10 +17,13 @@ it.skipIf(!process.env.OPERATOR_TEST_SESSION_FILE)("operator saves, reads, edits
   });
   const role = await db.rpc("has_role", { _user_id: minted.session.user.id, _role: "operador" });
   expect(role.data).toBe(true);
+  const establishment = await db.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).single();
+  if (establishment.error) throw establishment.error;
   const ids: string[] = [];
   try {
     const result = await db.from("expenses").insert([1, 2].map(n => ({
       descricao: `TESTE TEMPORÁRIO ACESSO OPERADOR ${n}`, valor_total: n,
+      empresa_id: establishment.data.id,
       tipo_despesa: "outros", centro_custo: "administrativo",
       data_emissao: "2026-10-21", data_vencimento: "2026-10-21", created_by: minted.session.user.id,
     }))).select("id");
