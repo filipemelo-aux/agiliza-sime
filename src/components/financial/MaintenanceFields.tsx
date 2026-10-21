@@ -169,7 +169,7 @@ export function MaintenanceFields({
       {/* KM + Fornecedor */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-xs">KM Atual (Odômetro) *</Label>
+          <Label className="text-xs">KM Atual (Odômetro)</Label>
           <Input
             type="number"
             value={kmAtual}
