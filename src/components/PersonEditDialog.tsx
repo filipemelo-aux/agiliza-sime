@@ -598,7 +598,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
 interface PersonCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (createdUserId?: string) => void;
+  onCreated: (createdUserId?: string, fullName?: string) => void;
   defaultCategory?: string;
   /** Valores pré-preenchidos (ex.: dados vindos do XML da nota) */
   prefill?: Partial<FormState>;
