@@ -12,7 +12,7 @@ import {
   VALIDATION_SCHEMAS,
 } from "../_shared/security.ts";
 
-// ─── Auth middleware (JWT + admin role) ───────────────────────
+// ─── Auth middleware (JWT + operational role + tenant RLS) ─────
 async function authenticate(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -33,23 +33,15 @@ async function authenticate(req: Request) {
 
   const userId = data.claims.sub as string;
 
-  const serviceClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  const checks = await Promise.all(
+    ["admin", "moderator", "operador"].map((_role) => supabase.rpc("has_role", { _user_id: userId, _role }))
   );
-
-  const { data: roleData } = await serviceClient
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-
-  if (!roleData) {
+  const { data: tenantId, error: tenantError } = await supabase.rpc("current_tenant_id");
+  if (!checks.some(({ data, error }) => !error && data === true) || tenantError || !tenantId) {
     throw new Error("FORBIDDEN");
   }
-
-  return { userId, serviceClient };
+  // Every document read/write uses the caller's RLS, never an unscoped service-role client.
+  return { userId, serviceClient: supabase };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -493,7 +485,7 @@ Deno.serve(async (req) => {
       maxBodySize: 512_000, // 512KB max for fiscal service
     });
 
-    if (!security.ok) return security.response!;
+    if (!security.ok) return security.response;
 
     const { userId, serviceClient } = await authenticate(req);
 
