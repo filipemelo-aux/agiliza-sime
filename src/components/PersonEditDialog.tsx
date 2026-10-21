@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Car } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
+import { validateInformalSupplier } from "@/lib/personSimplified";
 
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
@@ -597,13 +598,16 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
 interface PersonCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (createdUserId?: string) => void;
+  onCreated: (createdUserId?: string, fullName?: string) => void;
   defaultCategory?: string;
   /** Valores pré-preenchidos (ex.: dados vindos do XML da nota) */
   prefill?: Partial<FormState>;
+  /** Cadastro simplificado (fornecedor informal: borracharia/lavajato) — exige Cidade/UF
+      e ao menos um contato (CPF/CNPJ, telefone ou e-mail); rua, número e bairro opcionais. */
+  simplified?: boolean;
 }
 
-export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCategory, prefill }: PersonCreateDialogProps) {
+export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCategory, prefill, simplified }: PersonCreateDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>({ ...emptyForm, category: defaultCategory || "motorista" });
@@ -620,7 +624,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
 
   const doCreate = async (): Promise<string | null> => {
-    const basicErr = validateBasics(form);
+    const basicErr = simplified ? validateInformalSupplier(form) : validateBasics(form);
     if (basicErr) {
       toast({ title: "Dados básicos obrigatórios", description: basicErr, variant: "destructive" });
       return null;
@@ -679,7 +683,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
     if (uid) {
       toast({ title: "Cadastro criado com sucesso!" });
       onOpenChange(false);
-      onCreated(uid);
+      onCreated(uid, form.full_name || undefined);
     }
   };
 
@@ -698,11 +702,11 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md max-h-[90vh] p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle>Novo Cadastro</DialogTitle>
+            <DialogTitle>{simplified ? "Novo Cadastro (Simplificado)" : "Novo Cadastro"}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh]">
             <div className="px-6 pb-6">
-              <PersonFormFields form={form} setForm={setForm} onAddVehicle={form.category === "motorista" ? handleCreateAndAddVehicle : undefined} />
+              <PersonFormFields form={form} setForm={setForm} simplified={simplified} onAddVehicle={form.category === "motorista" ? handleCreateAndAddVehicle : undefined} />
               <Button className="w-full mt-4" onClick={handleCreate} disabled={loading}>
                 {loading ? "Criando..." : "Criar Cadastro"}
               </Button>
@@ -724,7 +728,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 }
 
 // ---- SHARED FORM FIELDS ----
-function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean; onAddVehicle?: () => void }) {
+function PersonFormFields({ form, setForm, isEdit, onAddVehicle, simplified }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean; onAddVehicle?: () => void; simplified?: boolean }) {
   const isMotorista = form.category === "motorista";
   const isColaborador = form.category === "colaborador";
   const isProprietario = form.category === "proprietario";
@@ -785,6 +789,14 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
 
   return (
     <div className="space-y-4 pt-2">
+      {simplified && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug">
+          <span className="font-medium">Cadastro simplificado (fornecedor informal).</span> Informe Cidade e UF e ao
+          menos um contato: CPF/CNPJ, telefone ou e-mail. Rua, número e bairro são opcionais.
+        </div>
+      )}
+      {!simplified && (
+      <>
       {/* Category */}
       <div className="space-y-1.5">
         <Label className="text-xs">Categoria *</Label>
@@ -820,6 +832,8 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </div>
         <p className="text-[10px] text-muted-foreground">A pessoa será encontrada nas buscas/filtros de qualquer categoria marcada.</p>
       </div>
+      </>
+      )}
 
       {/* Person Type toggle buttons - only for non-motorista and non-colaborador */}
       {!isMotorista && !isColaborador && (
@@ -982,7 +996,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* Flag GLOBAL de Colaborador RH — fonte única da verdade.
           Oculto quando a categoria já é "Colaborador" (nesse caso é sempre true automaticamente).
           Disponível para outras categorias (motorista, cliente, fornecedor, proprietário). */}
-      {!isColaborador && (
+      {!isColaborador && !simplified && (
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
           <input
             id="is_colaborador_rh"

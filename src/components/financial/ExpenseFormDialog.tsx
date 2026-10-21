@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
+import { isInformalSupplierAccount } from "@/lib/personSimplified";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "@/lib/notice";
 import { Switch } from "@/components/ui/switch";
@@ -265,6 +266,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // Derive maintenance from selected chart account
   const selectedAccount = chartAccounts.find(c => c.id === planoContasId);
   const isCategoryMaintenance = selectedAccount?.tipo_operacional === "manutencao";
+  // Fornecedor informal (borracharia/lavajato): habilita cadastro simplificado e busca por telefone/e-mail.
+  const informalSupplier = isInformalSupplierAccount(selectedAccount?.codigo);
 
   // When maintenance switch is toggled ON, auto-select the maintenance chart account
   useEffect(() => {
@@ -1299,6 +1302,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <Label className="text-xs">Favorecido</Label>
               <PersonSearchInput
                 categories={["fornecedor", "cliente", "proprietario", "motorista", "colaborador", "banco"]}
+                searchContacts={informalSupplier}
                 placeholder="Buscar pessoa..."
                 selectedName={favorecidoNome || undefined}
                 onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
@@ -1545,6 +1549,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <Label className="text-xs">Prestador / Oficina</Label>
                         <PersonSearchInput
                           categories={["fornecedor"]}
+                          searchContacts={informalSupplier}
                           placeholder="Buscar prestador..."
                           selectedName={nfseFornecedorNome || undefined}
                           onSelect={p => { setNfseFornecedorNome(p.razao_social || p.nome_fantasia || p.full_name); setNfseFornecedorId(p.id); }}
@@ -2315,8 +2320,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     <PersonCreateDialog
       open={showCreateFornecedor}
       onOpenChange={setShowCreateFornecedor}
-      onCreated={() => {}}
+      onCreated={(_, name) => { if (name) setFavorecidoNome(name); }}
       defaultCategory="fornecedor"
+      simplified={informalSupplier}
     />
 
     <CheckIssueDialog
