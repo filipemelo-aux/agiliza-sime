@@ -122,13 +122,13 @@ export default function AdminApplications() {
     if (!roleLoading && !hasAdminAccess) {
       navigate("/");
     }
-  }, [isAdmin, isModerator, roleLoading, navigate]);
+  }, [hasAdminAccess, roleLoading, navigate]);
 
   useEffect(() => {
-    if (hasAdminAccess) {
+    if (!roleLoading && hasAdminAccess) {
       fetchApplications();
     }
-  }, [isAdmin, isModerator]);
+  }, [roleLoading, hasAdminAccess]);
 
   const fetchApplications = async () => {
     try {

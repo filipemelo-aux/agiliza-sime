@@ -70,15 +70,15 @@ export default function AdminDashboard() {
     if (!roleLoading && !hasAdminAccess) {
       navigate("/");
     }
-  }, [isAdmin, isModerator, roleLoading, navigate]);
+  }, [hasAdminAccess, roleLoading, navigate]);
 
   useEffect(() => {
-    if (hasAdminAccess && !financeiroOff) {
+    if (!roleLoading && hasAdminAccess && !financeiroOff) {
       fetchFinancialPreview();
     } else if (financeiroOff) {
       setLoading(false);
     }
-  }, [isAdmin, isModerator, financeiroOff]);
+  }, [roleLoading, hasAdminAccess, financeiroOff]);
 
   const fetchFinancialPreview = async () => {
     try {
