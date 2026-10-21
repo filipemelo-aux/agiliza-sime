@@ -3,7 +3,7 @@ import { maskPlateInput, validatePlate } from "./masks";
 
 describe("maskPlateInput — formato antigo e Mercosul", () => {
   it("bloqueia dígitos nas três primeiras posições", () => {
-    expect(maskPlateInput("1B2C3D4")).toBe("BCD-34");
+    expect(maskPlateInput("1B2C3D4")).toBe("BCD-4");
   });
 
   it("exige dígito na 4ª posição", () => {
@@ -19,7 +19,7 @@ describe("maskPlateInput — formato antigo e Mercosul", () => {
   });
 
   it("só aceita dígitos nas duas últimas posições", () => {
-    expect(maskPlateInput("ABC12D3")).toBe("ABC-12");
+    expect(maskPlateInput("ABC12D3")).toBe("ABC-123");
     expect(maskPlateInput("ABC1D2E")).toBe("ABC-1D2");
   });
 
