@@ -22,6 +22,8 @@ interface PersonResult {
   address_city: string | null;
   address_state: string | null;
   inscricao_estadual: string | null;
+  phone?: string | null;
+  email?: string | null;
 }
 
 interface PersonSearchInputProps {
@@ -34,6 +36,8 @@ interface PersonSearchInputProps {
   selectedName?: string;
   /** Optional action element rendered inside the input (e.g. a "new" button) */
   endAction?: ReactNode;
+  /** Buscar também por telefone (dígitos) e e-mail — fluxo de fornecedor informal. */
+  searchContacts?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -74,6 +78,7 @@ export function PersonSearchInput({
   onClear,
   selectedName,
   endAction,
+  searchContacts,
 }: PersonSearchInputProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PersonResult[]>([]);
@@ -115,7 +120,7 @@ export function PersonSearchInput({
         if (includeOwners) orParts.push(`is_owner.eq.true`);
         const query = supabase
           .from("profiles")
-          .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state, inscricao_estadual, is_owner")
+          .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state, inscricao_estadual, phone, email, is_owner")
           .or(orParts.join(","));
         const digits = q.replace(/\D/g, "");
         const matchParts = [
@@ -126,6 +131,9 @@ export function PersonSearchInput({
         ];
         // Permite buscar digitando o documento com máscara (05.050.995/0001-19).
         if (digits.length >= 2 && digits !== q) matchParts.push(`cnpj.ilike.%${digits}%`);
+        // Fluxo informal (borracharia/lavajato): busca também por telefone e e-mail.
+        if (searchContacts && digits.length >= 2) matchParts.push(`phone.ilike.%${digits}%`);
+        if (searchContacts && q.length >= 3) matchParts.push(`email.ilike.%${q}%`);
         const { data } = await query
           .or(matchParts.join(","))
           .order("full_name")
