@@ -2,7 +2,10 @@ import { useCallback, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Loader2 } from "lucide-react";
+import { Building2, Loader2, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { maskCNPJ, unmaskCNPJ, maskDocument, maskName } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
 
@@ -43,6 +46,17 @@ export function CteActorSection({
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
   const [cnpjStep, setCnpjStep] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const selectPerson = (person: { id: string; full_name: string | null; razao_social: string | null; cnpj: string | null; inscricao_estadual: string | null; address_state: string | null; address_street: string | null; address_number: string | null; address_neighborhood: string | null }) => {
+    set(`${prefix}_profile_id`, person.id);
+    if (prefix === "tomador") set("tomador_id", person.id);
+    set(`${prefix}_nome`, person.razao_social || person.full_name || "");
+    set(`${prefix}_cnpj`, person.cnpj ? maskDocument(person.cnpj) : "");
+    set(`${prefix}_ie`, person.inscricao_estadual || "");
+    set(`${prefix}_uf`, person.address_state || "");
+    set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", "));
+  };
 
   const lookupCnpj = useCallback(async (raw: string) => {
     if (raw.length !== 14) return;
@@ -76,16 +90,9 @@ export function CteActorSection({
           categories={searchCategories}
           placeholder={`Buscar ${title.toLowerCase()} cadastrado...`}
           selectedName={form[`${prefix}_nome`] || undefined}
-          onSelect={(person) => {
-            set(`${prefix}_profile_id`, person.id);
-            set(`${prefix}_nome`, person.razao_social || person.full_name);
-            if (person.cnpj) set(`${prefix}_cnpj`, maskDocument(person.cnpj));
-            if (person.inscricao_estadual) set(`${prefix}_ie`, person.inscricao_estadual);
-            if (person.address_state) set(`${prefix}_uf`, person.address_state);
-            const endereco = [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ");
-            if (endereco) set(`${prefix}_endereco`, endereco);
-          }}
+          onSelect={selectPerson}
           onClear={() => {
+            if (prefix === "tomador") set("tomador_id", null);
             set(`${prefix}_profile_id`, "");
             set(`${prefix}_nome`, "");
             set(`${prefix}_cnpj`, "");
@@ -94,6 +101,11 @@ export function CteActorSection({
             set(`${prefix}_uf`, "");
             set(`${prefix}_municipio_ibge`, "");
           }}
+          endAction={
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" title={`Cadastrar ${prefix}`} aria-label={`Cadastrar ${prefix}`} onClick={() => setCreating(true)}>
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          }
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
@@ -145,6 +157,16 @@ export function CteActorSection({
           <Input value={form[`${prefix}_endereco`] || ""} onChange={(e) => set(`${prefix}_endereco`, e.target.value)} placeholder="Logradouro, nº, bairro" />
         </div>
       </div>
+      <PersonCreateDialog
+        open={creating}
+        onOpenChange={setCreating}
+        defaultCategory="cliente"
+        onCreated={async (userId) => {
+          if (!userId) return;
+          const { data } = await supabase.from("profiles").select("id, full_name, razao_social, cnpj, inscricao_estadual, address_state, address_street, address_number, address_neighborhood").eq("user_id", userId).maybeSingle();
+          if (data) selectPerson(data);
+        }}
+      />
     </section>
   );
 }

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Corrigir Tomador Outros no talão de Serviço: abrir campos, manter cadastro + e preservar os dados ao editar; conferir na tela autenticada.
+
 - [x] Remover Documento das duas abas e Forma pagamento da aba Pagas na planilha de Contas a Pagar do fechamento; ZIP de outubro baixado e cabeçalhos conferidos (14 colunas em atraso, 15 em pagas).
 
 
