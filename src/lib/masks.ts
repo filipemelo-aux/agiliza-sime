@@ -42,8 +42,8 @@ export const unmaskPlate = (value: string): string => {
 };
 
 /**
- * Máscara de placa com classe por posição: letras nas 3 primeiras, dígito na 4ª,
- * 5ª aceita letra (Mercosul) ou dígito (formato antigo) e as duas últimas só dígitos.
+ * Máscara de placa por posição, aceitando Mercosul (ABC1D23) e formato antigo (ABC1234):
+ * 3 primeiras posições só letras, 4ª só dígito, 5ª letra ou dígito e as duas últimas só dígitos.
  * Símbolos, espaços e acentos são ignorados, o texto vira maiúsculo e há teto de 7 caracteres.
  */
 export const maskPlateInput = (value: string): string => {
@@ -54,8 +54,8 @@ export const maskPlateInput = (value: string): string => {
     const isDigit = ch >= "0" && ch <= "9";
     if (!isLetter && !isDigit) continue;
     const pos = out.length;
-    // Mercosul only: LLL N L NN
-    if (pos === 3 || pos >= 5) {
+    // Posição 4: Mercosul aceita letra, formato antigo aceita dígito
+    if (pos === 3 || pos === 5 || pos === 6) {
       if (!isDigit) continue;
     } else if (!isLetter) continue;
     out += ch;
