@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Revisar permissões de Moderador e Operador em telas, operações e políticas; corrigir bloqueios indevidos preservando Consultor, configurações e isolamento entre empresas.
+- [x] Revisar acessos Moderador/Operador: corrigidos carregamentos, numeração fiscal, recebimentos, agrupamentos e funções fiscais; novo operador conferido em Pessoas, Veículos, Financeiro, CT-e, MDF-e e Conciliação; testes reais de gravação/edição/agrupamento/exclusão aprovados. Consultor, regras de páginas e configurações preservados; nenhuma emissão real executada.
 
 - [x] Corrigir Tomador Outros no talão de Serviço: campos abertos e cadastro + conferidos na tela autenticada; dados preservados ao alternar opções, snapshots incluídos na gravação sem alterar registros de teste.
 
