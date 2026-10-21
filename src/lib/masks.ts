@@ -54,10 +54,10 @@ export const maskPlateInput = (value: string): string => {
     const isDigit = ch >= "0" && ch <= "9";
     if (!isLetter && !isDigit) continue;
     const pos = out.length;
-    // Posição 4: Mercosul aceita letra, formato antigo aceita dígito
-    if (pos === 3 || pos === 5 || pos === 6) {
-      if (!isDigit) continue;
-    } else if (!isLetter) continue;
+    // 3 primeiras posições: só letras; 4ª, 6ª e 7ª: só dígitos; 5ª: letra (Mercosul) ou dígito (antigo)
+    if (pos <= 2) {
+      if (!isLetter) continue;
+    } else if (pos !== 4 && !isDigit) continue;
     out += ch;
   }
   return out.length <= 3 ? out : `${out.slice(0, 3)}-${out.slice(3)}`;
