@@ -92,6 +92,13 @@
       "when": 1792670104670,
       "tag": "0012_independent_vehicle_units_and_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792670381659,
+      "tag": "0013_vehicle_unit_integrity_and_projection",
+      "breakpoints": true
     }
   ]
 }
