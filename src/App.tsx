@@ -12,6 +12,7 @@ import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
 import AdminPeople from "./pages/AdminPeople";
 import AdminVehicles from "./pages/AdminVehicles";
+import AdminVehicleAssignments from "./pages/AdminVehicleAssignments";
 import AdminHarvest from "./pages/AdminHarvest";
 
 import AdminSettings from "./pages/AdminSettings";
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="/admin/fleet/metrics" element={<AdminFleetMetrics />} />
             <Route path="/admin/people" element={<AdminPeople />} />
             <Route path="/admin/vehicles" element={<AdminVehicles />} />
+            <Route path="/admin/vehicle-assignments" element={<AdminVehicleAssignments />} />
             <Route path="/admin/drivers" element={<Navigate to="/admin/people" replace />} />
             <Route path="/admin/services" element={<Navigate to="/admin" replace />} />
             <Route path="/admin/harvest" element={<AdminHarvest />} />

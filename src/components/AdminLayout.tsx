@@ -122,6 +122,7 @@ export const allMenuItems = [
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
       { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
+      { title: "Vinculações", url: "/admin/vehicle-assignments", icon: ArrowLeftRight },
     ],
   },
   { title: "_spacer", url: "", icon: Settings },

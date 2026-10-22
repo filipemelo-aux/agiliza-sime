@@ -25,7 +25,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
 
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("id, plate, driver_id, antt_number, owner_id, vehicle_type, trailer_plate_1, trailer_plate_2")
+    .select("id, plate, driver_id, antt_number, owner_id, vehicle_type, trailer_plate_1, trailer_plate_2, trailer_plate_3")
     .eq("plate", plate)
     .maybeSingle();
 
@@ -57,7 +57,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
     owner_documento: owner?.documento || null,
     owner_is_emitter: owner?.is_emitter ?? false,
     vehicle_type: vehicle.vehicle_type || null,
-    trailers: [vehicle.trailer_plate_1, vehicle.trailer_plate_2].filter(Boolean) as string[],
+    trailers: [vehicle.trailer_plate_1, vehicle.trailer_plate_2, vehicle.trailer_plate_3].filter(Boolean) as string[],
     motorista_id,
     motorista_nome,
     rntrc: vehicle.antt_number || null,
@@ -124,7 +124,7 @@ export async function lookupVehicleByDriver(
 
   const { data } = await supabase
     .from("vehicles")
-    .select("id, plate, antt_number, is_active, vehicle_type, owner_id, trailer_plate_1, trailer_plate_2")
+    .select("id, plate, antt_number, is_active, vehicle_type, owner_id, trailer_plate_1, trailer_plate_2, trailer_plate_3")
     .in("driver_id", ids);
 
   if (!data || data.length === 0) return null;
@@ -144,7 +144,7 @@ export async function lookupVehicleByDriver(
     owner_id: owner?.id ?? null, owner_nome: owner?.nome || null, owner_documento: owner?.documento || null,
     owner_is_emitter: owner?.is_emitter ?? false,
     vehicle_type: v.vehicle_type || null,
-    trailers: [v.trailer_plate_1, v.trailer_plate_2].filter(Boolean),
+    trailers: [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean),
   };
 }
 
