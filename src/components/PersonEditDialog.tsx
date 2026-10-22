@@ -573,7 +573,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
           </DialogHeader>
           <ScrollArea className="max-h-[70vh]">
             <div className="px-6 pb-6">
-              <PersonFormFields form={form} setForm={setForm} isEdit onAddVehicle={person?.category === "motorista" ? () => setVehicleModalOpen(true) : undefined} />
+              <PersonFormFields form={form} setForm={setForm} isEdit />
               <Button className="w-full mt-4" onClick={handleSave} disabled={loading}>
                 {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
@@ -706,7 +706,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
           </DialogHeader>
           <ScrollArea className="max-h-[70vh]">
             <div className="px-6 pb-6">
-              <PersonFormFields form={form} setForm={setForm} simplified={simplified} onAddVehicle={form.category === "motorista" ? handleCreateAndAddVehicle : undefined} />
+              <PersonFormFields form={form} setForm={setForm} simplified={simplified} />
               <Button className="w-full mt-4" onClick={handleCreate} disabled={loading}>
                 {loading ? "Criando..." : "Criar Cadastro"}
               </Button>

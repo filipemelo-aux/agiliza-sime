@@ -74,7 +74,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   if(!form.category) err.category="Selecione a categoria";
   if(!form.brand.trim()) err.brand="Marca obrigatória";
   if(!form.model.trim()) err.model="Modelo obrigatório";
-  if(Number(form.year)<1900 || Number(form.year)>new Date().getFullYear()+1) err.year="Ano inválido";
+   if(!Number.isInteger(Number(form.year)) || Number(form.year)<1900 || Number(form.year)>new Date().getFullYear()+1) err.year="Ano inválido";
   if([form.tare,form.capacity].some(v=>v && (!Number.isFinite(Number(v)) || Number(v)<0))) err.weights="Informe pesos válidos";
   setErrors(err); if(Object.keys(err).length) return;
   lock.current=true; setLoading(true);
@@ -93,7 +93,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
    const {data:check,error:checkError}=await supabase.from("vehicles").select("plate,unit_category").eq("id",data.id).single();
    if(checkError || check?.plate!==payload.plate || check.unit_category!==payload.unit_category) throw new Error("Não foi possível confirmar a gravação. Atualize a lista antes de tentar novamente.");
    onSaved(); onOpenChange(false);
-  }catch(e){toast.error(e instanceof Error?e.message:"Não foi possível salvar o veículo");}
+  }catch(e){toast.error((e as {message?:string})?.message || "Não foi possível salvar o veículo");}
   finally{setLoading(false);lock.current=false;}
  };
  const changeCategory=(category:string)=>setForm(p=>({...p,category,vehicleType:category==="cavalo"?"carreta":category==="rigido"?"truck":["utilitario","passeio"].includes(category)?category:"carreta"}));
