@@ -99,6 +99,13 @@
       "when": 1792670381659,
       "tag": "0013_vehicle_unit_integrity_and_projection",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792673285929,
+      "tag": "0014_assignment_single_live_record",
+      "breakpoints": true
     }
   ]
 }
