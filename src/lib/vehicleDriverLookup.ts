@@ -26,6 +26,7 @@ export async function lookupDriverByPlate(rawPlate: string): Promise<DriverByPla
   const { data: vehicle } = await supabase
     .from("vehicles")
     .select("id, plate, driver_id, antt_number, owner_id, vehicle_type, trailer_plate_1, trailer_plate_2, trailer_plate_3")
+    .not("unit_category", "in", "(semirreboque,dolly,reboque)")
     .eq("plate", plate)
     .maybeSingle();
 
@@ -125,6 +126,7 @@ export async function lookupVehicleByDriver(
   const { data } = await supabase
     .from("vehicles")
     .select("id, plate, antt_number, is_active, vehicle_type, owner_id, trailer_plate_1, trailer_plate_2, trailer_plate_3")
+    .not("unit_category", "in", "(semirreboque,dolly,reboque)")
     .in("driver_id", ids);
 
   if (!data || data.length === 0) return null;
