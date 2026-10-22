@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link2, Pencil, Plus, Unlink, RefreshCw } from "lucide-react";
+import { Link2, Pencil, Plus, RefreshCw } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-car
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { toast } from "@/lib/notice";
 import { assignmentValidation, isImplement, unitCategory, unitLabel } from "@/lib/vehicleUnits";
@@ -26,7 +25,6 @@ type Vehicle = Tables<"vehicles">;
 type Person = Pick<Tables<"profiles">,"id"|"full_name"|"cnpj">;
 export default function AdminVehicleAssignments() {
   const { canEdit, hasAdminAccess, loading: roleLoading } = useUserRole();
-  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
   const [people,setPeople]=useState<Person[]>([]);
   const [rows,setRows]=useState<Assignment[]>([]);
@@ -60,8 +58,9 @@ export default function AdminVehicleAssignments() {
   const person=(id:string|null)=>people.find(p=>p.id===id);
   const current=rows.find(r=>selected.has(r.id));
   const active=rows.filter(r=>!r.ended_at && r.id!==editing?.id);
-  const availableVehicles=vehicles.filter(v=>v.is_active!==false && !isImplement(v) && !active.some(a=>a.vehicle_id===v.id));
-  const availableImplements=vehicles.filter(v=>v.is_active!==false && isImplement(v) && !active.some(a=>a.implement_ids.includes(v.id)));
+  const availableVehicles=vehicles.filter(v=>v.is_active!==false && !isImplement(v));
+  const existing=active.find(a=>a.vehicle_id===vehicleId);
+  const availableImplements=vehicles.filter(v=>v.is_active!==false && isImplement(v) && !active.some(a=>a.vehicle_id!==vehicleId && a.implement_ids.includes(v.id)));
   const begin=(row:Assignment|null)=>{
     setEditing(row);setVehicleId(row?.vehicle_id || "");setDriverId(row?.driver_profile_id || "");
     setDriverName(person(row?.driver_profile_id || null)?.full_name || "");
@@ -77,24 +76,12 @@ export default function AdminVehicleAssignments() {
     if(message){toast.error(message);return;}
     lock.current=true;setSaving(true);
     try{
-      const {data:id,error}=await supabase.rpc("save_vehicle_assignment",{_vehicle_id:vehicleId,_driver_profile_id:driverId || undefined,_implement_ids:ids,_previous_id:editing?.id,_notes:notes});
+      const {data:id,error}=await supabase.rpc("save_vehicle_assignment",{_vehicle_id:vehicleId,_driver_profile_id:driverId || undefined,_implement_ids:ids,_previous_id:editing?.id || existing?.id,_notes:notes});
       if(error || !id) throw error || new Error("Vinculação não gravada");
       const {data:check,error:readError}=await supabase.from("vehicle_assignments").select("*").eq("id",id).single();
       if(readError || !check || check.ended_at || check.vehicle_id!==vehicleId || check.driver_profile_id!==(driverId || null) || check.implement_ids.join()!==ids.join()) throw new Error("Não foi possível confirmar a gravação. Atualize a lista antes de tentar novamente.");
       await load();setOpen(false);
     }catch(e){toast.error(e instanceof Error?e.message:(e as {message?:string})?.message || "Erro ao salvar vinculação");}
-    finally{lock.current=false;setSaving(false);}
-  };
-  const end=async()=>{
-    if(!current || !canEdit || lock.current) return;
-    if(!await confirm({title:"Desengatar conjunto?",description:`Encerrar a vinculação de ${maskPlate(vehicle(current.vehicle_id)?.plate || "")}? O histórico será preservado.`,confirmLabel:"Desengatar"})) return;
-    lock.current=true;setSaving(true);
-    try{
-      const {error}=await supabase.rpc("end_vehicle_assignment",{_id:current.id});if(error) throw error;
-      const {data,error:readError}=await supabase.from("vehicle_assignments").select("ended_at").eq("id",current.id).single();
-      if(readError || !data?.ended_at) throw new Error("Não foi possível confirmar o encerramento.");
-      await load();
-    }catch(e){toast.error((e as {message?:string})?.message || "Erro ao desengatar conjunto");}
     finally{lock.current=false;setSaving(false);}
   };
   const filtered=rows.filter(r=>(status==="all" || (status==="active"?!r.ended_at:!!r.ended_at)) && (!search || matchesText([vehicle(r.vehicle_id)?.plate,person(r.driver_profile_id)?.full_name,...r.implement_ids.map(id=>vehicle(id)?.plate)].join(" "),search)));
@@ -115,19 +102,17 @@ export default function AdminVehicleAssignments() {
     <GlobalToolbar selectedCount={selected.size} actions={[
       {key:"new",label:"Nova vinculação",icon:Plus,mode:"create",disabled:!canEdit || saving,onClick:()=>begin(null)},
       {key:"edit",label:"Trocar motorista ou conjunto",icon:Pencil,mode:"single",disabled:!canEdit || saving || !!current?.ended_at,onClick:()=>current && begin(current)},
-      {key:"end",label:"Desengatar conjunto",icon:Unlink,mode:"single",disabled:!canEdit || saving || !!current?.ended_at,onClick:()=>void end()},
       {key:"refresh",label:"Atualizar",icon:RefreshCw,mode:"always",disabled:saving,onClick:()=>void load()},
     ]}/>
     <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={1250} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
     <Dialog open={open} onOpenChange={v=>!saving && setOpen(v)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{editing?"Trocar vinculação":"Nova vinculação"}</DialogTitle></DialogHeader>
       <div className="space-y-3">
-        <div className="space-y-1"><Label>Tração / Veículo *</Label><Select value={vehicleId} onValueChange={id=>{setVehicleId(id);setImplements(["","",""]);}}><SelectTrigger aria-label="Tração / Veículo"><SelectValue placeholder="Selecione a placa"/></SelectTrigger><SelectContent>{availableVehicles.map(v=><SelectItem key={v.id} value={v.id}>{maskPlate(v.plate)} — {unitLabel(v)}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-1"><Label>Tração / Veículo *</Label><Select value={vehicleId} onValueChange={id=>{setVehicleId(id);const ex=active.find(a=>a.vehicle_id===id);setImplements([ex?.implement_ids[0] || "",ex?.implement_ids[1] || "",ex?.implement_ids[2] || ""]);if(ex){setDriverId(ex.driver_profile_id || "");setDriverName(person(ex.driver_profile_id)?.full_name || "");}}}><SelectTrigger aria-label="Tração / Veículo"><SelectValue placeholder="Selecione a placa"/></SelectTrigger><SelectContent>{availableVehicles.map(v=><SelectItem key={v.id} value={v.id}>{maskPlate(v.plate)} — {unitLabel(v)}{active.some(a=>a.vehicle_id===v.id)?" (possui conjunto)":""}</SelectItem>)}</SelectContent></Select>{existing && <p className="text-xs text-warning">Esta placa já possui conjunto. Ao salvar, o conjunto será substituído pelo informado abaixo.</p>}</div>
         <div className="space-y-1"><Label>Motorista / Colaborador</Label><PersonSearchInput categories={["motorista","colaborador"]} placeholder="Buscar motorista ou colaborador..." selectedName={driverName || undefined} onSelect={p=>{setDriverId(p.id);setDriverName(p.full_name);}} onClear={()=>{setDriverId("");setDriverName("");}}/></div>
         {vehicleId && !["utilitario","passeio"].includes(category) && implementsIds.map((id,index)=><div key={index} className="space-y-1"><Label>{index+1}º Implemento</Label><Select value={id || "none"} onValueChange={value=>setImplements(p=>p.map((old,i)=>i===index?(value==="none"?"":value):old))}><SelectTrigger aria-label={`${index+1}º Implemento`}><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">Sem implemento</SelectItem>{availableImplements.filter(v=>v.id===id || !implementsIds.includes(v.id)).map(v=><SelectItem key={v.id} value={v.id}>{maskPlate(v.plate)} — {unitLabel(v)}</SelectItem>)}</SelectContent></Select></div>)}
         <div className="space-y-1"><Label>Observações</Label><Input value={notes} onChange={e=>setNotes(e.target.value)}/></div>
         <Button className="w-full" disabled={saving || !canEdit} onClick={()=>void save()}><Link2 className="h-4 w-4"/>{saving?"Salvando...":"Salvar vinculação"}</Button>
       </div>
     </DialogContent></Dialog>
-    {ConfirmDialog}
   </main></AdminLayout>;
 }
