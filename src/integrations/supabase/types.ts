@@ -6014,7 +6014,6 @@ export type Database = {
         Returns: string
       }
       current_tenant_id: { Args: never; Returns: string }
-      end_vehicle_assignment: { Args: { _id: string }; Returns: undefined }
       fn_contract_city_from_address: {
         Args: { _addr: string }
         Returns: string

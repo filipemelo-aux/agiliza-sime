@@ -70,3 +70,4 @@
 - [x] Na seleção de contas do fechamento contábil, listar somente contas de despesa (receitas fora); conferido na tela: 104 opções, nenhuma receita.
 - [ ] Comparar totais reais na tela de Bancos e Contas a Pagar: sessão de conferência não acessa contas da Sime e acesso de suporte foi negado.
 - [ ] Varredura do DRE: conferir competência e fontes sem confundir com saldo a pagar.
+- [x] Remover início/término e status do conjunto em Vinculações: uma única vinculação viva por veículo atualizada no lugar, coluna de histórico desativada no banco, grid com 5 colunas conferido na tela e teste de integração aprovando troca de conjunto, bloqueio de placa em outro conjunto e recusa de registro ultrapassado.

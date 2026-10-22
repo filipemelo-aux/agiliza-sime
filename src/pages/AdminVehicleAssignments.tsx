@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -69,7 +68,6 @@ export default function AdminVehicleAssignments() {
   const [selected,setSelected]=useState<Set<string>>(new Set());
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState("");
-  const [status,setStatus]=useState("active");
   const [open,setOpen]=useState(false);
   const [editing,setEditing]=useState<Assignment|null>(null);
   const [vehicleId,setVehicleId]=useState("");
@@ -83,7 +81,7 @@ export default function AdminVehicleAssignments() {
     setLoading(true);
     try {
       const [a,v,p]=await Promise.all([
-        fetchAllRows<Assignment>((from,to)=>supabase.from("vehicle_assignments").select("*").order("started_at",{ascending:false}).range(from,to)),
+        fetchAllRows<Assignment>((from,to)=>supabase.from("vehicle_assignments").select("*").range(from,to)),
         fetchAllRows<Vehicle>((from,to)=>supabase.from("vehicles").select("*").order("plate").range(from,to)),
         fetchAllRows<Person>((from,to)=>supabase.from("profiles").select("id,full_name,cnpj").order("id").range(from,to)),
       ]);
@@ -95,7 +93,7 @@ export default function AdminVehicleAssignments() {
   const vehicle=(id:string)=>vehicles.find(v=>v.id===id);
   const person=(id:string|null)=>people.find(p=>p.id===id);
   const current=rows.find(r=>selected.has(r.id));
-  const active=rows.filter(r=>!r.ended_at && r.id!==editing?.id);
+  const active=rows.filter(r=>r.id!==editing?.id);
   const availableVehicles=vehicles.filter(v=>v.is_active!==false && !isImplement(v));
   const existing=active.find(a=>a.vehicle_id===vehicleId);
   const availableImplements=vehicles.filter(v=>v.is_active!==false && isImplement(v) && !active.some(a=>a.vehicle_id!==vehicleId && a.implement_ids.includes(v.id)));
@@ -117,32 +115,29 @@ export default function AdminVehicleAssignments() {
       const {data:id,error}=await supabase.rpc("save_vehicle_assignment",{_vehicle_id:vehicleId,_driver_profile_id:driverId || undefined,_implement_ids:ids,_previous_id:editing?.id || existing?.id,_notes:notes});
       if(error || !id) throw error || new Error("Vinculação não gravada");
       const {data:check,error:readError}=await supabase.from("vehicle_assignments").select("*").eq("id",id).single();
-      if(readError || !check || check.ended_at || check.vehicle_id!==vehicleId || check.driver_profile_id!==(driverId || null) || check.implement_ids.join()!==ids.join()) throw new Error("Não foi possível confirmar a gravação. Atualize a lista antes de tentar novamente.");
+      if(readError || !check || check.vehicle_id!==vehicleId || check.driver_profile_id!==(driverId || null) || check.implement_ids.join()!==ids.join()) throw new Error("Não foi possível confirmar a gravação. Atualize a lista antes de tentar novamente.");
       await load();setOpen(false);
     }catch(e){toast.error(e instanceof Error?e.message:(e as {message?:string})?.message || "Erro ao salvar vinculação");}
     finally{lock.current=false;setSaving(false);}
   };
-  const filtered=rows.filter(r=>(status==="all" || (status==="active"?!r.ended_at:!!r.ended_at)) && (!search || matchesText([vehicle(r.vehicle_id)?.plate,person(r.driver_profile_id)?.full_name,...r.implement_ids.map(id=>vehicle(id)?.plate)].join(" "),search)));
-  const date=(v:string|null)=>v?new Date(v).toLocaleString("pt-BR"):"—";
+  const plateOf=(r:Assignment)=>vehicle(r.vehicle_id)?.plate || "";
+  const filtered=rows.filter(r=>!search || matchesText([plateOf(r),person(r.driver_profile_id)?.full_name,...r.implement_ids.map(id=>vehicle(id)?.plate)].join(" "),search)).sort((a,b)=>plateOf(a).localeCompare(plateOf(b)));
   const columns:DataGridColumn<Assignment>[]=[
     {key:"plate",header:"Tração / Veículo",width:"150px",cell:r=><div><span className="font-medium">{maskPlate(vehicle(r.vehicle_id)?.plate || "")}</span><div className="text-[10px] text-muted-foreground">{unitLabel(vehicle(r.vehicle_id) || {})}</div></div>},
     {key:"driver",header:"Motorista / Colaborador",cell:r=><div>{person(r.driver_profile_id)?.full_name || "—"}{person(r.driver_profile_id)?.cnpj && <div className="text-[10px] text-muted-foreground">{maskDocument(person(r.driver_profile_id)?.cnpj)}</div>}</div>},
     ...[0,1,2].map((index):DataGridColumn<Assignment>=>({key:`implement_${index}`,header:`${index+1}º Implemento`,width:"140px",sortValue:r=>vehicle(r.implement_ids[index] || "")?.plate || "",cell:r=>{const v=vehicle(r.implement_ids[index] || "");return v?<div><span className="font-medium">{maskPlate(v.plate)}</span><div className="text-[10px] text-muted-foreground">{unitLabel(v)}</div></div>:<span className="text-muted-foreground">—</span>;}})),
-    {key:"start",header:"Início",width:"145px",cell:r=>date(r.started_at)},
-    {key:"end",header:"Encerramento",width:"145px",cell:r=>date(r.ended_at)},
-    {key:"status",header:"Status",width:"90px",cell:r=><span className={r.ended_at?"text-muted-foreground":"text-success"}>{r.ended_at?"Encerrado":"Ativo"}</span>},
   ];
   if(roleLoading || !hasAdminAccess) return null;
   const category=unitCategory(vehicle(vehicleId) || {});
   return <AdminLayout><main className="px-4 py-3 md:px-6 space-y-3">
     <PageTitle>Vinculações</PageTitle>
-    <SearchFilterCard><FilterField label="Placa ou motorista" className="flex-1"><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar placa ou motorista"/></FilterField><FilterField label="Status"><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="active">Ativos</SelectItem><SelectItem value="ended">Encerrados</SelectItem><SelectItem value="all">Todos</SelectItem></SelectContent></Select></FilterField></SearchFilterCard>
+    <SearchFilterCard><FilterField label="Placa ou motorista" className="flex-1"><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar placa ou motorista"/></FilterField></SearchFilterCard>
     <GlobalToolbar selectedCount={selected.size} actions={[
       {key:"new",label:"Nova vinculação",icon:Plus,mode:"create",disabled:!canEdit || saving,onClick:()=>begin(null)},
-      {key:"edit",label:"Trocar motorista ou conjunto",icon:Pencil,mode:"single",disabled:!canEdit || saving || !!current?.ended_at,onClick:()=>current && begin(current)},
+      {key:"edit",label:"Trocar motorista ou conjunto",icon:Pencil,mode:"single",disabled:!canEdit || saving,onClick:()=>current && begin(current)},
       {key:"refresh",label:"Atualizar",icon:RefreshCw,mode:"always",disabled:saving,onClick:()=>void load()},
     ]}/>
-    <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={1250} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
+    <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={900} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
     <Dialog open={open} onOpenChange={v=>!saving && setOpen(v)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{editing?"Trocar vinculação":"Nova vinculação"}</DialogTitle></DialogHeader>
       <div className="space-y-3">
         <div className="space-y-1"><Label>Tração / Veículo *</Label><PlateCombobox placeholder="Buscar placa..." options={availableVehicles.map(v=>({id:v.id,plate:v.plate,label:unitLabel(v),note:active.some(a=>a.vehicle_id===v.id)?"(possui conjunto)":undefined}))} value={vehicleId} onSelect={id=>{setVehicleId(id);const ex=active.find(a=>a.vehicle_id===id);setImplements([ex?.implement_ids[0] || "",ex?.implement_ids[1] || "",ex?.implement_ids[2] || ""]);if(ex){setDriverId(ex.driver_profile_id || "");setDriverName(person(ex.driver_profile_id)?.full_name || "");}}}/>{existing && <p className="text-xs text-warning">Esta placa já possui conjunto. Ao salvar, o conjunto será substituído pelo informado abaixo.</p>}</div>
