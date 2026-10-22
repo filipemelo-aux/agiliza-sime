@@ -211,7 +211,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   if(!uid) return;
   const {data,error}=await supabase.from("profiles").select("id,full_name,razao_social").or(`id.eq.${uid},user_id.eq.${uid}`).limit(1);
   if(error || !data?.[0]){toast.error("Não foi possível selecionar o proprietário criado.");return;}
-  setForm(p=>({...p,ownerId:data[0].id}));setOwnerName(data[0].razao_social || data[0].full_name);
+  await selectOwner(data[0].id,data[0].razao_social || data[0].full_name);
  }}/>
  </>;
 }
