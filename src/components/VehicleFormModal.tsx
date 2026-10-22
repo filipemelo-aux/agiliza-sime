@@ -96,7 +96,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   }catch(e){toast.error((e as {message?:string})?.message || "Não foi possível salvar o veículo");}
   finally{setLoading(false);lock.current=false;}
  };
- const changeCategory=(category:string)=>setForm(p=>({...p,category,vehicleType:category==="cavalo"?"carreta":category==="rigido"?"truck":["utilitario","passeio"].includes(category)?category:"carreta"}));
+ const changeCategory=(category:string)=>setForm(p=>p.category===category?p:{...p,category,vehicleType:category==="cavalo"?"carreta":category==="rigido"?"truck":["utilitario","passeio"].includes(category)?category:"carreta"});
  const selectOwner=async(id:string,name:string)=>{
   setForm(f=>({...f,ownerId:id}));setOwnerName(name);
   const {data,error}=await supabase.from("fiscal_establishments").select("id").eq("profile_id",id).limit(1);
@@ -113,6 +113,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
  <TabsContent value="cadastro" className="space-y-3 mt-3">
  {form.registrationPending && <p className="text-xs text-warning">Placa preservada do conjunto anterior. Complete marca, modelo e ano.</p>}
  <div className="space-y-1"><Label>Categoria *</Label><Select value={form.category} onValueChange={changeCategory}><SelectTrigger aria-label="Categoria"><SelectValue placeholder="Selecione a categoria"/></SelectTrigger><SelectContent>{UNIT_CATEGORIES.map(c=><SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select>{errors.category && <p className="text-xs text-destructive">{errors.category}</p>}</div>
+ {form.category==="rigido" && <div className="space-y-1"><Label>Tipo de caminhão</Label><Select value={form.vehicleType} onValueChange={vehicleType=>setForm(p=>({...p,vehicleType}))}><SelectTrigger aria-label="Tipo de caminhão"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="truck">Truck</SelectItem><SelectItem value="bitruck">Bitruck</SelectItem>{form.vehicleType==="treminhao" && <SelectItem value="treminhao">Treminhão (cadastro anterior)</SelectItem>}</SelectContent></Select></div>}
  <div className="grid grid-cols-2 gap-3">
  {[{name:"plate",label:"Placa *",placeholder:"ABC-1234",maxLength:8},{name:"renavam",label:"RENAVAM *",placeholder:"00000000000",maxLength:11},{name:"brand",label:"Marca *"},{name:"model",label:"Modelo *"},{name:"year",label:"Ano *",maxLength:4},{name:"chassis",label:"Chassi",maxLength:17}].map(f=><div key={f.name} className="space-y-1"><Label htmlFor={`vehicle-${f.name}`} className="text-xs">{f.label}</Label><Input id={`vehicle-${f.name}`} name={f.name} value={String(form[f.name as keyof typeof form])} placeholder={f.placeholder} maxLength={f.maxLength} onChange={handleChange}/>{errors[f.name] && <p className="text-xs text-destructive">{errors[f.name]}</p>}</div>)}
  <div className="space-y-1"><Label className="text-xs">RNTRC</Label><Input name="anttNumber" value={form.anttNumber} onChange={handleChange}/></div>
