@@ -48,7 +48,7 @@ const PlateCombobox = ({ options, value, onSelect, onClear, placeholder }: { opt
           <CommandList className="max-h-64">
             <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">Nenhuma placa encontrada.</CommandEmpty>
             <CommandGroup className="p-1.5">
-              {filtered.map(o => <CommandItem key={o.id} value={o.id} className="text-xs" onSelect={() => { onSelect(o.id); setOpen(false); setQuery(""); }}>
+              {filtered.map(o => <CommandItem key={o.id} value={`${maskPlate(o.plate)} — ${o.label}${o.note ? ` ${o.note}` : ""}`} className="text-xs" onSelect={() => { onSelect(o.id); setOpen(false); setQuery(""); }}>
                 <span className="font-medium">{maskPlate(o.plate)}</span><span className="text-muted-foreground ml-1">— {o.label}</span>{o.note && <span className="text-warning ml-1">{o.note}</span>}
                 {o.id === value && <Check className="ml-auto h-3.5 w-3.5"/>}
               </CommandItem>)}
