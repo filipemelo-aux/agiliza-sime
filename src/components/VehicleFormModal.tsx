@@ -97,6 +97,12 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   finally{setLoading(false);lock.current=false;}
  };
  const changeCategory=(category:string)=>setForm(p=>({...p,category,vehicleType:category==="cavalo"?"carreta":category==="rigido"?"truck":["utilitario","passeio"].includes(category)?category:"carreta"}));
+ const selectOwner=async(id:string,name:string)=>{
+  setForm(f=>({...f,ownerId:id}));setOwnerName(name);
+  const {data,error}=await supabase.from("fiscal_establishments").select("id").eq("profile_id",id).limit(1);
+  if(error){toast.error(error.message);return;}
+  setForm(f=>f.ownerId===id?{...f,fleetType:data?.length?"propria":"terceiros"}:f);
+ };
  return <>
  <Dialog open={open} onOpenChange={v=>!loading && onOpenChange(v)}>
  <DialogContent className="max-w-2xl max-h-[90vh]">
@@ -115,7 +121,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
  <div className="space-y-1"><Label className="text-xs">Capacidade (kg)</Label><Input name="capacity" type="number" min="0" value={form.capacity} onChange={handleChange}/></div>
  </div>{errors.weights && <p className="text-xs text-destructive">{errors.weights}</p>}
  <Separator/>
- <div className="space-y-1"><Label className="text-xs">Proprietário</Label><PersonSearchInput categories={["proprietario"]} placeholder="Buscar proprietário..." selectedName={ownerName || undefined} onSelect={p=>{setForm(f=>({...f,ownerId:p.id}));setOwnerName(personDisplayName(p));}} onClear={()=>{setForm(f=>({...f,ownerId:""}));setOwnerName("");}} endAction={<Button type="button" size="icon" variant="ghost" className="h-6 w-6" aria-label="Cadastrar proprietário" title="Cadastrar proprietário" onClick={()=>setPersonCreateOpen(true)}><Plus className="h-4 w-4"/></Button>}/></div>
+ <div className="space-y-1"><Label className="text-xs">Proprietário</Label><PersonSearchInput categories={["proprietario"]} placeholder="Buscar proprietário..." selectedName={ownerName || undefined} onSelect={p=>void selectOwner(p.id,personDisplayName(p))} onClear={()=>{setForm(f=>({...f,ownerId:""}));setOwnerName("");}} endAction={<Button type="button" size="icon" variant="ghost" className="h-6 w-6" aria-label="Cadastrar proprietário" title="Cadastrar proprietário" onClick={()=>setPersonCreateOpen(true)}><Plus className="h-4 w-4"/></Button>}/></div>
  <div className="space-y-1"><Label className="text-xs">Tipo de Frota</Label><RadioGroup value={form.fleetType} onValueChange={fleetType=>setForm(p=>({...p,fleetType}))} className="flex gap-4">{[{value:"propria",label:"Frota Própria"},{value:"terceiros",label:"Frota Terceiros"}].map(f=><div key={f.value} className="flex items-center gap-2"><RadioGroupItem id={`fleet-${f.value}`} value={f.value}/><Label htmlFor={`fleet-${f.value}`} className="text-xs">{f.label}</Label></div>)}</RadioGroup></div>
  {form.fleetType==="propria" && <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Intervalo de Revisão (KM)</Label><Input type="number" name="intervaloRevisaoKm" value={form.intervaloRevisaoKm} onChange={handleChange}/></div><div><Label className="text-xs">Próxima Revisão (KM)</Label><Input type="number" name="proximaRevisaoKm" value={form.proximaRevisaoKm} onChange={handleChange}/></div></div>}
  </TabsContent>
