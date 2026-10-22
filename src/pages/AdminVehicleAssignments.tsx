@@ -34,6 +34,7 @@ const PlateCombobox = ({ options, value, onSelect, onClear, placeholder }: { opt
   const [query, setQuery] = useState("");
   const selected = options.find(o => o.id === value);
   const filtered = options.filter(o => !query.trim() || matchesText(`${o.plate} ${o.label}`, query));
+  console.log("DBG plates", JSON.stringify(query), options.length, filtered.length, JSON.stringify(options[0]));
   return <div className="flex gap-1.5">
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
