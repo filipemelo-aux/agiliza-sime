@@ -52,7 +52,7 @@ export default function AdminVehicleAssignments() {
         fetchAllRows<Person>((from,to)=>supabase.from("profiles").select("id,full_name,cnpj").order("id").range(from,to)),
       ]);
       setRows(a.data || []);setVehicles(v.data || []);setPeople(p.data || []);setSelected(new Set());
-    }catch(e){toast.error(e instanceof Error?e.message:"Erro ao carregar vinculações");}
+    }catch(e){toast.error((e as {message?:string})?.message || "Erro ao carregar vinculações");}
     finally{setLoading(false);}
   };
   useEffect(()=>{if(!roleLoading && hasAdminAccess) void load();},[roleLoading,hasAdminAccess]);
