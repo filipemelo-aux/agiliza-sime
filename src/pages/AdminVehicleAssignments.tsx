@@ -87,7 +87,7 @@ export default function AdminVehicleAssignments() {
   };
   const end=async()=>{
     if(!current || !canEdit || lock.current) return;
-    if(!await confirm({title:"Desengatar conjunto?",description:`Encerrar a vinculação de ${maskPlate(vehicle(current.vehicle_id)?.plate || "")}? O histórico será preservado.`,confirmText:"Desengatar"})) return;
+    if(!await confirm({title:"Desengatar conjunto?",description:`Encerrar a vinculação de ${maskPlate(vehicle(current.vehicle_id)?.plate || "")}? O histórico será preservado.`,confirmLabel:"Desengatar"})) return;
     lock.current=true;setSaving(true);
     try{
       const {error}=await supabase.rpc("end_vehicle_assignment",{_id:current.id});if(error) throw error;
@@ -128,6 +128,6 @@ export default function AdminVehicleAssignments() {
         <Button className="w-full" disabled={saving || !canEdit} onClick={()=>void save()}><Link2 className="h-4 w-4"/>{saving?"Salvando...":"Salvar vinculação"}</Button>
       </div>
     </DialogContent></Dialog>
-    <ConfirmDialog/>
+    {ConfirmDialog}
   </main></AdminLayout>;
 }

@@ -23,10 +23,10 @@ export function unitLabel(v: { unit_category?: string | null; vehicle_type?: str
   return UNIT_CATEGORIES.find(c => c.value === unitCategory(v))?.label || "—";
 }
 
-export function assignmentValidation(category: string, implements: string[]) {
-  if (implements.length > 3) return "Permitidos até três implementos por conjunto.";
-  if (new Set(implements).size !== implements.length) return "Não repita placas na composição.";
+export function assignmentValidation(category: string, implementIds: string[]) {
+  if (implementIds.length > 3) return "Permitidos até três implementos por conjunto.";
+  if (new Set(implementIds).size !== implementIds.length) return "Não repita placas na composição.";
   if (["semirreboque", "dolly", "reboque"].includes(category)) return "Selecione uma unidade de tração.";
-  if (["utilitario", "passeio"].includes(category) && implements.length) return "Veículos leves não recebem implementos.";
+  if (["utilitario", "passeio"].includes(category) && implementIds.length) return "Veículos leves não recebem implementos.";
   return null;
 }

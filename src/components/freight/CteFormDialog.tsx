@@ -984,12 +984,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   // Carretas do veículo selecionado (somente se ainda vazias)
   useEffect(() => {
     if (!form.veiculo_id) return;
-    supabase.from("trailers").select("plate").eq("vehicle_id", form.veiculo_id).order("created_at").then(({ data }) => {
-      if (!data?.length) return;
+    supabase.from("vehicles").select("trailer_plate_1,trailer_plate_2,trailer_plate_3").eq("id", form.veiculo_id).single().then(({ data }) => {
+      if (!data) return;
       setForm((p) => ({
         ...p,
-        reboque1_placa: p.reboque1_placa || (data[0]?.plate ? maskPlate(data[0].plate) : ""),
-        reboque2_placa: p.reboque2_placa || (data[1]?.plate ? maskPlate(data[1].plate) : ""),
+        reboque1_placa: p.reboque1_placa || (data.trailer_plate_1 ? maskPlate(data.trailer_plate_1) : ""),
+        reboque2_placa: p.reboque2_placa || (data.trailer_plate_2 ? maskPlate(data.trailer_plate_2) : ""),
       }));
     });
   }, [form.veiculo_id]);
