@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Cadastro universal por placa: separar implementos, preservar proprietários e migrar conjuntos existentes.
+- [ ] Cadastros > Vinculações: montar/desmontar conjuntos e trocar motoristas com histórico e proteção contra vínculo simultâneo.
+- [ ] Integrar vínculos aos fluxos fiscais/operacionais e validar cadastro, gravação e leitura na tela.
+
 - [x] Revisar acessos Moderador/Operador: corrigidos carregamentos, numeração fiscal, recebimentos, agrupamentos e funções fiscais; novo operador conferido em Pessoas, Veículos, Financeiro, CT-e, MDF-e e Conciliação; testes reais de gravação/edição/agrupamento/exclusão aprovados. Consultor, regras de páginas e configurações preservados; nenhuma emissão real executada.
 
 - [x] Corrigir Tomador Outros no talão de Serviço: campos abertos e cadastro + conferidos na tela autenticada; dados preservados ao alternar opções, snapshots incluídos na gravação sem alterar registros de teste.
