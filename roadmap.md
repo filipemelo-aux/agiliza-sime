@@ -68,6 +68,6 @@
 - [x] Contabilidade > Fechamento Contábil: pacote ZIP da competência (contas a pagar abertas/pagas, CT-es por agência e CST, XMLs, NF-es destinatário).
 - [x] Corrigir sobreposição de atrasadas e abertas em Bancos > Relatórios, descontar juros do principal de parcelas, paginar leituras e aplicar período imediatamente; seis testes aprovados e consulta real confirmou quatro parciais vencidas.
 - [x] Na seleção de contas do fechamento contábil, listar somente contas de despesa (receitas fora); conferido na tela: 104 opções, nenhuma receita.
-- [ ] Comparar totais reais na tela de Bancos e Contas a Pagar: sessão de conferência não acessa contas da Sime e acesso de suporte foi negado.
-- [ ] Varredura do DRE: conferir competência e fontes sem confundir com saldo a pagar.
+- [ ] Comparar totais reais de Bancos e Contas a Pagar com sessão autenticada e corrigir divergências de fontes, parcelas e filtros.
+- [ ] Auditar e corrigir o DRE: competência, caixa, fontes e duplicidades; validar cálculos com dados reais e testes.
 - [x] Remover início/término e status do conjunto em Vinculações: uma única vinculação viva por veículo atualizada no lugar, coluna de histórico desativada no banco, grid com 5 colunas conferido na tela e teste de integração aprovando troca de conjunto, bloqueio de placa em outro conjunto e recusa de registro ultrapassado.
