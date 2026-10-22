@@ -26,6 +26,41 @@ import type { Tables } from "@/integrations/supabase/types";
 type Assignment = Tables<"vehicle_assignments">;
 type Vehicle = Tables<"vehicles">;
 type Person = Pick<Tables<"profiles">,"id"|"full_name"|"cnpj">;
+
+type PlateOption = { id: string; plate: string; label: string; note?: string };
+
+const PlateCombobox = ({ options, value, onSelect, onClear, placeholder }: { options: PlateOption[]; value: string; onSelect: (id: string) => void; onClear?: () => void; placeholder: string }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = options.find(o => o.id === value);
+  const filtered = options.filter(o => !query.trim() || matchesText(`${o.plate} ${o.label}`, query));
+  return <div className="flex gap-1.5">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" role="combobox" aria-expanded={open} className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background">
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected ? `${maskPlate(selected.plate)} — ${selected.label}${selected.note ? ` ${selected.note}` : ""}` : placeholder}</span>
+          <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1"/>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
+        <Command shouldFilter={false} className="bg-popover">
+          <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none" placeholder="Digite a placa..." value={query} onValueChange={setQuery}/>
+          <CommandList className="max-h-64">
+            <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">Nenhuma placa encontrada.</CommandEmpty>
+            <CommandGroup className="p-1.5">
+              {filtered.map(o => <CommandItem key={o.id} value={o.id} className="text-xs" onSelect={() => { onSelect(o.id); setOpen(false); setQuery(""); }}>
+                <span className="font-medium">{maskPlate(o.plate)}</span><span className="text-muted-foreground ml-1">— {o.label}</span>{o.note && <span className="text-warning ml-1">{o.note}</span>}
+                {o.id === value && <Check className="ml-auto h-3.5 w-3.5"/>}
+              </CommandItem>)}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+    {onClear && value && <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Remover seleção" onClick={() => { onClear(); setQuery(""); }}><X className="h-3.5 w-3.5"/></Button>}
+  </div>;
+};
+
 export default function AdminVehicleAssignments() {
   const { canEdit, hasAdminAccess, loading: roleLoading } = useUserRole();
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
