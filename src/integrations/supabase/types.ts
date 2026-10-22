@@ -5601,12 +5601,72 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_assignments: {
+        Row: {
+          created_by: string | null
+          driver_profile_id: string | null
+          ended_at: string | null
+          id: string
+          implement_ids: string[]
+          notes: string | null
+          started_at: string
+          tenant_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_by?: string | null
+          driver_profile_id?: string | null
+          ended_at?: string | null
+          id?: string
+          implement_ids?: string[]
+          notes?: string | null
+          started_at?: string
+          tenant_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_by?: string | null
+          driver_profile_id?: string | null
+          ended_at?: string | null
+          id?: string
+          implement_ids?: string[]
+          notes?: string | null
+          started_at?: string
+          tenant_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_assignments_driver_profile_id_fkey"
+            columns: ["driver_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           alienado: boolean
           antt_number: string | null
           brand: string
+          capacity_kg: number | null
           cargo_type: string | null
+          chassis: string | null
           created_at: string
           driver_id: string | null
           fleet_type: string
@@ -5620,7 +5680,9 @@ export type Database = {
           owner_id: string | null
           plate: string
           proxima_revisao_km: number | null
+          registration_pending: boolean
           renavam: string
+          tare_kg: number | null
           tenant_id: string
           tipo_alienacao: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1: string | null
@@ -5629,6 +5691,7 @@ export type Database = {
           trailer_renavam_1: string | null
           trailer_renavam_2: string | null
           trailer_renavam_3: string | null
+          unit_category: string | null
           updated_at: string
           user_id: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
@@ -5638,7 +5701,9 @@ export type Database = {
           alienado?: boolean
           antt_number?: string | null
           brand: string
+          capacity_kg?: number | null
           cargo_type?: string | null
+          chassis?: string | null
           created_at?: string
           driver_id?: string | null
           fleet_type?: string
@@ -5652,7 +5717,9 @@ export type Database = {
           owner_id?: string | null
           plate: string
           proxima_revisao_km?: number | null
+          registration_pending?: boolean
           renavam: string
+          tare_kg?: number | null
           tenant_id?: string
           tipo_alienacao?: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1?: string | null
@@ -5661,6 +5728,7 @@ export type Database = {
           trailer_renavam_1?: string | null
           trailer_renavam_2?: string | null
           trailer_renavam_3?: string | null
+          unit_category?: string | null
           updated_at?: string
           user_id: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
@@ -5670,7 +5738,9 @@ export type Database = {
           alienado?: boolean
           antt_number?: string | null
           brand?: string
+          capacity_kg?: number | null
           cargo_type?: string | null
+          chassis?: string | null
           created_at?: string
           driver_id?: string | null
           fleet_type?: string
@@ -5684,7 +5754,9 @@ export type Database = {
           owner_id?: string | null
           plate?: string
           proxima_revisao_km?: number | null
+          registration_pending?: boolean
           renavam?: string
+          tare_kg?: number | null
           tenant_id?: string
           tipo_alienacao?: Database["public"]["Enums"]["tipo_alienacao"] | null
           trailer_plate_1?: string | null
@@ -5693,6 +5765,7 @@ export type Database = {
           trailer_renavam_1?: string | null
           trailer_renavam_2?: string | null
           trailer_renavam_3?: string | null
+          unit_category?: string | null
           updated_at?: string
           user_id?: string
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
@@ -5941,6 +6014,7 @@ export type Database = {
         Returns: string
       }
       current_tenant_id: { Args: never; Returns: string }
+      end_vehicle_assignment: { Args: { _id: string }; Returns: undefined }
       fn_contract_city_from_address: {
         Args: { _addr: string }
         Returns: string
@@ -6017,6 +6091,16 @@ export type Database = {
       save_credit_card_invoice_edit: {
         Args: { _invoice: Json; _invoice_id: string; _items: Json }
         Returns: undefined
+      }
+      save_vehicle_assignment: {
+        Args: {
+          _driver_profile_id?: string
+          _implement_ids?: string[]
+          _notes?: string
+          _previous_id?: string
+          _vehicle_id: string
+        }
+        Returns: string
       }
       set_support_tenant: { Args: { _tenant_id: string }; Returns: undefined }
       sync_card_item_rateio: {

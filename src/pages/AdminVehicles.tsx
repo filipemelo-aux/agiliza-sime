@@ -25,6 +25,8 @@ import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-car
 import { matchesText } from "@/lib/search";
 import { maskPlateInput, unmaskPlate } from "@/lib/masks";
 import { TRUCK_TYPES } from "@/lib/vehicleTypes";
+import { UNIT_CATEGORIES, unitCategory, unitLabel, isImplement } from "@/lib/vehicleUnits";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
@@ -42,6 +44,7 @@ const TRAILER_LABELS: Record<string, string[]> = {
 
 interface VehicleRow {
   id: string; user_id: string; plate: string; brand: string; model: string;
+  unit_category?: string | null; registration_pending?: boolean;
   year: number; vehicle_type: string; cargo_type: string | null;
   trailer_plate_1: string | null; trailer_plate_2: string | null; trailer_plate_3: string | null;
   driver_id: string | null; owner_id: string | null;
@@ -137,17 +140,18 @@ export default function AdminVehicles() {
     try {
       const [vehiclesRes, profilesRes, fuelingsRes] = await Promise.all([
         supabase.from("vehicles").select("*").order("brand"),
-        supabase.from("profiles").select("user_id, full_name"),
+        supabase.from("profiles").select("id, user_id, full_name"),
         supabase.from("fuelings")
           .select("id, veiculo_id, data_abastecimento, quantidade_litros, valor_total, km_atual, posto_combustivel, tipo_combustivel")
           .is("deleted_at", null)
           .order("data_abastecimento", { ascending: false })
           .limit(5000),
       ]);
+      for (const result of [vehiclesRes, profilesRes, fuelingsRes]) if (result.error) throw result.error;
       const profiles = profilesRes.data || [];
       const vehicleRows: VehicleRow[] = (vehiclesRes.data || []).map((v: any) => {
-        const driver = profiles.find((p: any) => p.user_id === v.driver_id);
-        const owner = profiles.find((p: any) => p.user_id === v.owner_id);
+        const driver = profiles.find((p: any) => p.user_id === v.driver_id || p.id === v.driver_id);
+        const owner = profiles.find((p: any) => p.user_id === v.owner_id || p.id === v.owner_id);
         return { ...v, driver_name: driver?.full_name, owner_name: owner?.full_name };
       });
       const fuelMap: Record<string, FuelingRow[]> = {};
@@ -160,6 +164,7 @@ export default function AdminVehicles() {
       setSelected(new Set());
     } catch (error: any) {
       console.error("Error fetching vehicles:", error);
+      toast({title:"Erro ao carregar veículos",description:error.message,variant:"destructive"});
     } finally {
       setLoading(false);
     }
@@ -192,9 +197,7 @@ export default function AdminVehicles() {
 
   const plateQuery = unmaskPlate(plateSearch);
   const filteredVehicles = vehicles.filter((v) => {
-    const matchType = filterType === "__all__" ||
-      (filterType === "caminhao" && TRUCK_TYPES.has(v.vehicle_type)) ||
-      (filterType === "leve" && !TRUCK_TYPES.has(v.vehicle_type));
+    const matchType = filterType === "__all__" || unitCategory(v) === filterType;
     const matchPlate = !plateQuery || matchesText(unmaskPlate(v.plate), plateQuery);
     const matchDriver = !driverSearch || matchesText(v.driver_name ?? "", driverSearch);
     const matchOwner = !ownerSearch || matchesText(v.owner_name ?? "", ownerSearch);
@@ -210,15 +213,12 @@ export default function AdminVehicles() {
       width: "110px",
       sortValue: (v) => v.plate || "",
       cell: (v) => {
-        const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
         return (
           <div className="whitespace-nowrap">
             <span className="font-medium text-foreground">
-              <span className="mr-1">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"}</span>{v.plate}
+              {maskPlateInput(v.plate)}
             </span>
-            {trailerPlates.length > 0 && (
-              <div className="text-[10px] text-muted-foreground">{trailerPlates.join(" · ")}</div>
-            )}
+            {v.registration_pending && <div className="text-[10px] text-warning">Completar cadastro</div>}
           </div>
         );
       },
@@ -236,12 +236,11 @@ export default function AdminVehicles() {
     },
     {
       key: "type",
-      header: "Tipo",
-      width: "100px",
-      sortValue: (v) => VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type || "",
-      cell: (v) => <Badge variant="outline" className="text-[10px]">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>,
+      header: "Categoria",
+      width: "170px",
+      sortValue: (v) => unitLabel(v),
+      cell: (v) => <span className="text-xs">{unitLabel(v)}</span>,
     },
-    { key: "driver", header: "Motorista", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.driver_name || "—"}</span> },
     { key: "owner", header: "Proprietário", sortValue: (v) => v.owner_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.owner_name || "—"}</span> },
     {
       key: "avg",
@@ -268,6 +267,7 @@ export default function AdminVehicles() {
   ];
 
   const toolbarActions: ToolbarAction[] = [
+    { key: "assignments", label: "Vinculações", icon: Truck, mode: "always", onClick: () => navigate("/admin/vehicle-assignments") },
     { key: "new", label: "Novo Veículo", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditVehicleId(null); setVehicleModalOpen(true); } },
     { key: "view", label: "Visualizar", icon: Eye, mode: "single", onClick: () => selectedRows[0] && setViewVehicle(selectedRows[0]) },
     { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: () => { if (selectedRows[0]) { setEditVehicleId(selectedRows[0].id); setVehicleModalOpen(true); } } },
@@ -335,25 +335,8 @@ export default function AdminVehicles() {
               />
             </div>
           </FilterField>
-          <FilterField label="Tipo" className="ml-auto shrink-0">
-            <div className="flex shrink-0 items-center gap-0.5 rounded-md bg-muted/60 p-0.5">
-              {[
-                { v: "__all__", label: "Todos" },
-                { v: "caminhao", label: "Caminhões" },
-                { v: "leve", label: "Leves" },
-              ].map((opt) => (
-                <Button
-                  key={opt.v}
-                  size="sm"
-                  variant={filterType === opt.v ? "default" : "ghost"}
-                  className="h-7 px-2 text-[11px] rounded-sm gap-1 whitespace-nowrap"
-                  onClick={() => { setFilterType(opt.v); setSelected(new Set()); }}
-                >
-                  {opt.label}
-                  <Badge variant="secondary" className="h-4 px-1 text-[9px]">{countByFilter(opt.v)}</Badge>
-                </Button>
-              ))}
-            </div>
+          <FilterField label="Categoria" className="ml-auto w-full md:w-56">
+            <Select value={filterType} onValueChange={value=>{setFilterType(value);setSelected(new Set());}}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="__all__">Todas as categorias</SelectItem>{UNIT_CATEGORIES.map(c=><SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select>
           </FilterField>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
@@ -398,7 +381,7 @@ export default function AdminVehicles() {
             <div className="space-y-4 text-sm">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-base">{TRUCK_TYPES.has(viewVehicle.vehicle_type) ? "🚛" : "🚗"} {viewVehicle.plate}</span>
-                <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
+                <Badge variant="outline">{unitLabel(viewVehicle)}</Badge>
                 {viewVehicle.cargo_type && <Badge variant="secondary" className="capitalize">{viewVehicle.cargo_type}</Badge>}
                 {viewVehicle.alienado && (
                   <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Alienado</Badge>
@@ -414,19 +397,6 @@ export default function AdminVehicles() {
 
                 <TabsContent value="geral" className="mt-3 space-y-3">
               <p><span className="text-muted-foreground">Veículo:</span> {viewVehicle.brand} {viewVehicle.model} • {viewVehicle.year}</p>
-              {(() => {
-                const trailerLabels = TRAILER_LABELS[viewVehicle.vehicle_type] || [];
-                const trailerPlates = [viewVehicle.trailer_plate_1, viewVehicle.trailer_plate_2, viewVehicle.trailer_plate_3].filter(Boolean);
-                return trailerPlates.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <span className="text-muted-foreground">Conjunto:</span>
-                    {trailerPlates.map((plate, i) => (
-                      <p key={i} className="ml-2">{trailerLabels[i] || `Impl. ${i+1}`}: <strong>{plate}</strong></p>
-                    ))}
-                  </div>
-                ) : null;
-              })()}
-              {viewVehicle.driver_name && <p><span className="text-muted-foreground">Motorista:</span> {viewVehicle.driver_name}</p>}
               {viewVehicle.owner_name && <p><span className="text-muted-foreground">Proprietário:</span> {viewVehicle.owner_name}</p>}
 
               {(() => {

@@ -184,8 +184,8 @@ export function MdfeFormDialog({ open, onOpenChange, editing, initialCteIds, onS
     const last = list[list.length - 1];
     let reboques: string[] = [];
     if (first.veiculo_id && !first.reboque1_placa) {
-      const { data } = await supabase.from("trailers").select("plate").eq("vehicle_id", first.veiculo_id).limit(2);
-      reboques = (data || []).map((t: any) => maskPlate(t.plate || ""));
+      const { data } = await supabase.from("vehicles").select("trailer_plate_1,trailer_plate_2,trailer_plate_3").eq("id", first.veiculo_id).maybeSingle();
+      reboques = [data?.trailer_plate_1,data?.trailer_plate_2,data?.trailer_plate_3].filter(Boolean).map(p=>maskPlate(p || ""));
     }
     const est = establishments.find((e) => e.id === first.establishment_id);
     const ncmCte = list.flatMap((c: any) => Array.isArray(c.nfe_detalhes) ? c.nfe_detalhes : [])

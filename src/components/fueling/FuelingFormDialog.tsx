@@ -69,7 +69,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   useEffect(() => {
     if (!open) return;
     const loadData = async () => {
-      const vRes = await supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).eq("fleet_type", "propria");
+      const vRes = await supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).eq("fleet_type", "propria").not("unit_category", "in", "(semirreboque,dolly,reboque)");
       const dRes = await supabase.from("profiles").select("id, full_name, role");
       setVehicles(vRes.data || []);
       setDrivers(dRes.data || []);

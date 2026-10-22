@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Cadastro universal por placa: categorias individuais e proprietário preservados; 43 implementos separados dos conjuntos existentes; cadastro de placa antiga e Mercosul gravado e conferido na tela.
+- [x] Cadastros > Vinculações: montagem/desengate com motorista real e histórico conferidos; proteção de simultaneidade e categoria vinculada validada no banco.
+- [x] Integrar vínculos aos fluxos fiscais/operacionais: projeção transacional dos campos legados, preenchimento fiscal e exclusão de implementos dos abastecimentos; 15 testes aprovados, registros temporários removidos e compilação válida.
+
 - [x] Revisar acessos Moderador/Operador: corrigidos carregamentos, numeração fiscal, recebimentos, agrupamentos e funções fiscais; novo operador conferido em Pessoas, Veículos, Financeiro, CT-e, MDF-e e Conciliação; testes reais de gravação/edição/agrupamento/exclusão aprovados. Consultor, regras de páginas e configurações preservados; nenhuma emissão real executada.
 
 - [x] Corrigir Tomador Outros no talão de Serviço: campos abertos e cadastro + conferidos na tela autenticada; dados preservados ao alternar opções, snapshots incluídos na gravação sem alterar registros de teste.

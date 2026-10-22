@@ -121,6 +121,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
       .select("id, plate, brand, model, driver_id, vehicle_type")
       .eq("is_active", true)
       .eq("fleet_type", "propria")
+      .not("unit_category", "in", "(semirreboque,dolly,reboque)")
       .order("plate")
       .then(async ({ data }) => {
         const vList = data || [];

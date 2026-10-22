@@ -122,6 +122,7 @@ export const allMenuItems = [
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
       { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
+      { title: "Vinculações", url: "/admin/vehicle-assignments", icon: ArrowLeftRight },
     ],
   },
   { title: "_spacer", url: "", icon: Settings },
@@ -282,7 +283,7 @@ function SidebarNav() {
   };
 
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
-  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart" || location.pathname.startsWith("/admin/reports");
+  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/vehicle-assignments") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart" || location.pathname.startsWith("/admin/reports");
   
   const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/forecasts", "/admin/financial/receipts", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
 
