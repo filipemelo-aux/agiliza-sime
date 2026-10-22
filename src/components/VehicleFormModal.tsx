@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,765 +7,118 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { personDisplayName } from "@/lib/personName";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
-import { UserPlus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
 import { VehicleAlienacaoParcelas } from "@/components/fleet/VehicleAlienacaoParcelas";
-
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import {
-  maskPlate, unmaskPlate, maskRenavam, maskYear, maskName,
-  validatePlate, validateRenavam,
-  maskPlateInput,
-} from "@/lib/masks";
-
-const trailerRequirements: Record<string, { count: number; labels: string[] }> = {
-  truck: { count: 0, labels: [] },
-  bitruck: { count: 0, labels: [] },
-  carreta: { count: 1, labels: ["Placa da Carreta"] },
-  carreta_ls: { count: 1, labels: ["Placa da Carreta LS"] },
-  rodotrem: { count: 3, labels: ["Placa da 1ª Carreta", "Placa do Dolly", "Placa da 2ª Carreta"] },
-  bitrem: { count: 2, labels: ["Placa da 1ª Carreta", "Placa da 2ª Carreta"] },
-  treminhao: { count: 2, labels: ["Placa do 1º Reboque", "Placa do 2º Reboque"] },
-  utilitario: { count: 0, labels: [] },
-  passeio: { count: 0, labels: [] },
-};
-
-const vehicleTypes = [
-  { value: "truck", label: "Truck", group: "caminhao" },
-  { value: "bitruck", label: "Bitruck", group: "caminhao" },
-  { value: "carreta", label: "Carreta", group: "caminhao" },
-  { value: "carreta_ls", label: "Carreta LS", group: "caminhao" },
-  { value: "rodotrem", label: "Rodotrem", group: "caminhao" },
-  { value: "bitrem", label: "Bitrem", group: "caminhao" },
-  { value: "treminhao", label: "Treminhão", group: "caminhao" },
-  { value: "utilitario", label: "Utilitário", group: "leve" },
-  { value: "passeio", label: "Passeio", group: "leve" },
-];
-
-const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
-
+import { toast } from "@/lib/notice";
+import { maskPlateInput, unmaskPlate, maskRenavam, maskYear, maskName, validatePlate, validateRenavam } from "@/lib/masks";
+import { UNIT_CATEGORIES, unitCategory } from "@/lib/vehicleUnits";
 const TIPOS_ALIENACAO = ["Financiamento", "Consórcio", "Contrato de Custódia", "Outros"] as const;
-
-const cargoTypes = [
-  { value: "cacamba", label: "Caçamba" },
-  { value: "graneleiro", label: "Graneleiro" },
-];
-
-const VEHICLE_TYPE_LABELS: Record<string, string> = {
-  truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "Carreta LS",
-  rodotrem: "Rodotrem", bitrem: "Bitrem", treminhao: "Treminhão",
-  utilitario: "Utilitário", passeio: "Passeio",
+const emptyVehicle = {
+ plate: "", renavam: "", category: "", vehicleType: "truck", brand: "", model: "", year: "", chassis: "", tare: "", capacity: "",
+ anttNumber: "", cargoType: "", ownerId: "", fleetType: "terceiros", intervaloRevisaoKm: "", proximaRevisaoKm: "",
+ alienado: false, tipoAlienacao: "", instituicaoFinanceira: "", instituicaoFinanceiraId: "", observacoesAlienacao: "", registrationPending: false,
 };
-
-interface ProfileOption {
-  user_id: string;
-  full_name: string;
-  category: string;
-}
-
-interface VehicleFormData {
-  plate: string;
-  renavam: string;
-  vehicleType: string;
-  brand: string;
-  model: string;
-  year: string;
-  anttNumber: string;
-  cargoType: string;
-  trailerPlate1: string;
-  trailerRenavam1: string;
-  trailerPlate2: string;
-  trailerRenavam2: string;
-  trailerPlate3: string;
-  trailerRenavam3: string;
-  driverId: string;
-  ownerId: string;
-  fleetType: string;
-  intervaloRevisaoKm: string;
-  proximaRevisaoKm: string;
-  alienado: boolean;
-  tipoAlienacao: string;
-  instituicaoFinanceira: string;
-  instituicaoFinanceiraId: string;
-  observacoesAlienacao: string;
-}
-
-const emptyVehicle: VehicleFormData = {
-  plate: "", renavam: "", vehicleType: "", brand: "", model: "", year: "",
-  anttNumber: "", cargoType: "",
-  trailerPlate1: "", trailerRenavam1: "",
-  trailerPlate2: "", trailerRenavam2: "",
-  trailerPlate3: "", trailerRenavam3: "",
-  driverId: "", ownerId: "", fleetType: "terceiros",
-  intervaloRevisaoKm: "", proximaRevisaoKm: "",
-  alienado: false, tipoAlienacao: "", instituicaoFinanceira: "", instituicaoFinanceiraId: "", observacoesAlienacao: "",
-};
-
-interface ExistingVehicle {
-  id: string;
-  plate: string;
-  brand: string;
-  model: string;
-  year: number;
-  vehicle_type: string;
-}
-
-interface VehicleFormModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  vehicleId?: string | null;
-  onSaved: () => void;
-  defaultDriverId?: string | null;
-}
-
-export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defaultDriverId }: VehicleFormModalProps) {
-  const isEdit = !!vehicleId;
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<VehicleFormData>(emptyVehicle);
-  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
-  const [driverIsOwner, setDriverIsOwner] = useState(false);
-  const [driverName, setDriverName] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [personCreateOpen, setPersonCreateOpen] = useState(false);
-  const [personCreateCategory, setPersonCreateCategory] = useState<string>("motorista");
-  const [savedVehicleIdForLink, setSavedVehicleIdForLink] = useState<string | null>(null);
-  const [personCreateTarget, setPersonCreateTarget] = useState<"driver" | "owner">("driver");
-
-  // Link existing vehicle mode (only when creating with defaultDriverId)
-  const showLinkOption = !isEdit && !!defaultDriverId;
-  const [existingVehicles, setExistingVehicles] = useState<ExistingVehicle[]>([]);
-  const [selectedExistingId, setSelectedExistingId] = useState<string>("");
-
-  // Load profiles for driver/owner linking (exclude system users)
-  useEffect(() => {
-    if (open) {
-      Promise.all([
-        supabase.from("profiles").select("user_id, full_name, category").order("full_name"),
-        supabase.from("user_roles").select("user_id"),
-      ]).then(([profilesRes, rolesRes]) => {
-        const systemUserIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
-        const filtered = ((profilesRes.data as any[]) || []).filter((p: any) => !systemUserIds.has(p.user_id));
-        setProfiles(filtered);
-      });
-
-      // Load existing vehicles for linking
-      if (showLinkOption) {
-        supabase.from("vehicles").select("id, plate, brand, model, year, vehicle_type").order("plate").then(({ data }) => {
-          setExistingVehicles((data as ExistingVehicle[]) || []);
-        });
-      }
-
-      if (!vehicleId && defaultDriverId) {
-        setForm(prev => ({ ...prev, driverId: defaultDriverId }));
-      }
+interface VehicleFormModalProps { open: boolean; onOpenChange: (open: boolean) => void; vehicleId?: string | null; onSaved: () => void; defaultDriverId?: string | null; }
+export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: VehicleFormModalProps) {
+ const isEdit = !!vehicleId;
+ const [loading, setLoading] = useState(false);
+ const lock = useRef(false);
+ const [fetching, setFetching] = useState(false);
+ const [errors, setErrors] = useState<Record<string,string>>({});
+ const [form, setForm] = useState(emptyVehicle);
+ const [ownerName, setOwnerName] = useState("");
+ const [personCreateOpen, setPersonCreateOpen] = useState(false);
+ useEffect(() => {
+  if (!open) return;
+  setErrors({}); setOwnerName(""); setForm(emptyVehicle);
+  if (!vehicleId) return;
+  let cancelled=false; setFetching(true);
+  (async () => {
+   try {
+    const {data,error}=await supabase.from("vehicles").select("*").eq("id",vehicleId).single();
+    if(error || !data) throw error || new Error("Veículo não encontrado");
+    if(cancelled) return;
+    setForm({ plate:maskPlateInput(data.plate),renavam:data.renavam,category:unitCategory(data),vehicleType:data.vehicle_type,
+     brand:data.registration_pending ? "" : data.brand,model:data.registration_pending ? "" : data.model,year:data.registration_pending ? "" : String(data.year),
+     chassis:data.chassis || "",tare:data.tare_kg?.toString() || "",capacity:data.capacity_kg?.toString() || "",anttNumber:data.antt_number || "",cargoType:data.cargo_type || "",
+     ownerId:data.owner_id || "",fleetType:data.fleet_type,intervaloRevisaoKm:data.intervalo_revisao_km?.toString() || "",proximaRevisaoKm:data.proxima_revisao_km?.toString() || "",
+     alienado:data.alienado,tipoAlienacao:data.tipo_alienacao || "",instituicaoFinanceira:data.instituicao_financeira || "",instituicaoFinanceiraId:data.instituicao_financeira_id || "",
+     observacoesAlienacao:data.observacoes_alienacao || "",registrationPending:data.registration_pending });
+    if(data.owner_id){
+     const {data:names,error:err}=await supabase.from("profiles").select("id,full_name,razao_social").or(`id.eq.${data.owner_id},user_id.eq.${data.owner_id}`).limit(1);
+     if(err) throw err;
+     if(!cancelled) setOwnerName(names?.[0]?.razao_social || names?.[0]?.full_name || "");
     }
-  }, [open, defaultDriverId, vehicleId]);
-
-  // Load vehicle data in edit mode
-  useEffect(() => {
-    if (open && isEdit && vehicleId) {
-      setFetching(true);
-      supabase.from("vehicles").select("*").eq("id", vehicleId).single().then(async ({ data, error }) => {
-        if (error || !data) {
-          toast({ title: "Veículo não encontrado", variant: "destructive" });
-          onOpenChange(false);
-          return;
-        }
-        setForm({
-          plate: maskPlate(data.plate || ""),
-          renavam: data.renavam || "",
-          vehicleType: data.vehicle_type || "",
-          brand: data.brand || "",
-          model: data.model || "",
-          year: data.year?.toString() || "",
-          anttNumber: data.antt_number || "",
-          cargoType: data.cargo_type || "",
-          trailerPlate1: maskPlate(data.trailer_plate_1 || ""),
-          trailerRenavam1: data.trailer_renavam_1 || "",
-          trailerPlate2: maskPlate(data.trailer_plate_2 || ""),
-          trailerRenavam2: data.trailer_renavam_2 || "",
-          trailerPlate3: maskPlate(data.trailer_plate_3 || ""),
-          trailerRenavam3: data.trailer_renavam_3 || "",
-          driverId: (data as any).driver_id || "",
-          ownerId: (data as any).owner_id || "",
-          fleetType: (data as any).fleet_type || "terceiros",
-          intervaloRevisaoKm: (data as any).intervalo_revisao_km ? String((data as any).intervalo_revisao_km) : "",
-          proximaRevisaoKm: (data as any).proxima_revisao_km ? String((data as any).proxima_revisao_km) : "",
-          alienado: !!(data as any).alienado,
-          tipoAlienacao: (data as any).tipo_alienacao || "",
-          instituicaoFinanceira: (data as any).instituicao_financeira || "",
-          instituicaoFinanceiraId: (data as any).instituicao_financeira_id || "",
-          observacoesAlienacao: (data as any).observacoes_alienacao || "",
-        });
-        const dId = (data as any).driver_id || "";
-        const oId = (data as any).owner_id || "";
-        setDriverIsOwner(!!dId && dId === oId);
-        // Resolve names for driver/owner
-        const idsToResolve = [dId, oId].filter(Boolean);
-        if (idsToResolve.length > 0) {
-          const { data: names } = await supabase.from("profiles").select("user_id, full_name").in("user_id", idsToResolve);
-          if (names) {
-            const driverProfile = names.find((n: any) => n.user_id === dId);
-            const ownerProfile = names.find((n: any) => n.user_id === oId);
-            if (driverProfile) setDriverName(driverProfile.full_name);
-            if (ownerProfile) setOwnerName(ownerProfile.full_name);
-          }
-        }
-        setFetching(false);
-      });
-    } else if (open && !isEdit) {
-      setForm(defaultDriverId ? { ...emptyVehicle, driverId: defaultDriverId } : emptyVehicle);
-      setErrors({});
-      setDriverIsOwner(false);
-      setDriverName("");
-      setOwnerName("");
-      setSelectedExistingId("");
-      // Resolve default driver name
-      if (defaultDriverId) {
-        supabase.from("profiles").select("full_name").eq("user_id", defaultDriverId).single().then(({ data }) => {
-          if (data) setDriverName(data.full_name);
-        });
-      }
-    }
-  }, [open, vehicleId, isEdit]);
-
-  const trailerConfig = trailerRequirements[form.vehicleType] || { count: 0, labels: [] };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    let masked = value;
-    if (name === "plate" || name.startsWith("trailerPlate")) masked = maskPlateInput(value);
-    else if (name === "renavam" || name.startsWith("trailerRenavam")) masked = maskRenavam(value);
-    else if (name === "brand" || name === "model") masked = maskName(value);
-    else if (name === "year") masked = maskYear(value);
-    else if (name === "anttNumber") masked = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-    setForm((p) => ({ ...p, [name]: masked }));
-    setErrors((p) => ({ ...p, [name]: "" }));
-  };
-
-  const handleVehicleTypeChange = (value: string) => {
-    setForm((p) => ({
-      ...p, vehicleType: value,
-      trailerPlate1: "", trailerRenavam1: "",
-      trailerPlate2: "", trailerRenavam2: "",
-      trailerPlate3: "", trailerRenavam3: "",
-    }));
-    setErrors((p) => ({ ...p, vehicleType: "" }));
-  };
-
-  const validate = (): boolean => {
-    const e: Record<string, string> = {};
-    if (!validatePlate(unmaskPlate(form.plate))) e.plate = "Placa inválida";
-    if (form.renavam && !validateRenavam(form.renavam)) e.renavam = "RENAVAM inválido";
-    if (!form.vehicleType) e.vehicleType = "Selecione o tipo";
-    if (!form.brand.trim() || form.brand.trim().length < 2) e.brand = "Marca obrigatória";
-    if (!form.model.trim() || form.model.trim().length < 2) e.model = "Modelo obrigatório";
-    const year = parseInt(form.year);
-    if (!year || year < 1990 || year > new Date().getFullYear() + 1) e.year = "Ano inválido";
-    if (TRUCK_TYPES.has(form.vehicleType) && !form.cargoType) e.cargoType = "Selecione a carroceria";
-
-    const tc = trailerRequirements[form.vehicleType] || { count: 0 };
-    if (tc.count >= 1) {
-      if (form.trailerPlate1 && !validatePlate(unmaskPlate(form.trailerPlate1))) e.trailerPlate1 = "Placa inválida";
-      if (form.trailerRenavam1 && !validateRenavam(form.trailerRenavam1)) e.trailerRenavam1 = "RENAVAM inválido";
-    }
-    if (tc.count >= 2) {
-      if (form.trailerPlate2 && !validatePlate(unmaskPlate(form.trailerPlate2))) e.trailerPlate2 = "Placa inválida";
-      if (form.trailerRenavam2 && !validateRenavam(form.trailerRenavam2)) e.trailerRenavam2 = "RENAVAM inválido";
-    }
-    if (tc.count >= 3) {
-      if (form.trailerPlate3 && !validatePlate(unmaskPlate(form.trailerPlate3))) e.trailerPlate3 = "Placa inválida";
-      if (form.trailerRenavam3 && !validateRenavam(form.trailerRenavam3)) e.trailerRenavam3 = "RENAVAM inválido";
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const buildPayload = () => ({
-    plate: unmaskPlate(form.plate),
-    renavam: form.renavam,
-    vehicle_type: form.vehicleType as any,
-    brand: form.brand.trim(),
-    model: form.model.trim(),
-    year: parseInt(form.year),
-    antt_number: form.anttNumber || null,
-    cargo_type: form.cargoType || null,
-    trailer_plate_1: unmaskPlate(form.trailerPlate1) || null,
-    trailer_renavam_1: form.trailerRenavam1 || null,
-    trailer_plate_2: unmaskPlate(form.trailerPlate2) || null,
-    trailer_renavam_2: form.trailerRenavam2 || null,
-    trailer_plate_3: unmaskPlate(form.trailerPlate3) || null,
-    trailer_renavam_3: form.trailerRenavam3 || null,
-    driver_id: form.driverId || null,
-    owner_id: driverIsOwner ? (form.driverId || null) : (form.ownerId || null),
-    fleet_type: form.fleetType || "terceiros",
-    intervalo_revisao_km: form.intervaloRevisaoKm ? Number(form.intervaloRevisaoKm) : null,
-    proxima_revisao_km: form.proximaRevisaoKm ? Number(form.proximaRevisaoKm) : null,
-    alienado: form.alienado,
-    tipo_alienacao: form.alienado && form.tipoAlienacao ? (form.tipoAlienacao as any) : null,
-    instituicao_financeira: form.alienado ? (form.instituicaoFinanceira || null) : null,
-    instituicao_financeira_id: form.alienado ? (form.instituicaoFinanceiraId || null) : null,
-    observacoes_alienacao: form.alienado ? (form.observacoesAlienacao || null) : null,
-  });
-
-  // Link existing vehicle to this driver
-  const handleLinkExisting = async () => {
-    if (!selectedExistingId || !defaultDriverId) return;
-    setLoading(true);
-    try {
-      // Duplicate the existing vehicle record with this driver
-      const { data: original, error: fetchErr } = await supabase
-        .from("vehicles").select("*").eq("id", selectedExistingId).single();
-      if (fetchErr || !original) throw new Error("Veículo não encontrado");
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
-      const { id, created_at, updated_at, ...rest } = original as any;
-      const { error } = await supabase.from("vehicles").insert({
-        ...rest,
-        driver_id: defaultDriverId,
-        user_id: user.id,
-      });
-      if (error) throw error;
-      toast({ title: "Veículo vinculado ao motorista!" });
-      onOpenChange(false);
-      onSaved();
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!validate()) return;
-    setLoading(true);
-    try {
-      if (isEdit) {
-        const { error } = await supabase.from("vehicles").update(buildPayload()).eq("id", vehicleId);
-        if (error) throw error;
-        toast({ title: "Veículo atualizado!" });
-      } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Não autenticado");
-        const { error } = await supabase.from("vehicles").insert({ ...buildPayload(), user_id: user.id });
-        if (error) throw error;
-        toast({ title: "Veículo cadastrado!" });
-      }
-      // If driver is also the owner, flag the driver's profile so it shows up in owner searches
-      if (driverIsOwner && form.driverId) {
-        await supabase.from("profiles").update({ is_owner: true }).eq("user_id", form.driverId);
-      }
-      onOpenChange(false);
-      onSaved();
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isLightVehicle = !TRUCK_TYPES.has(form.vehicleType);
-  const isTruck = TRUCK_TYPES.has(form.vehicleType);
-
-  const isLinkingExisting = showLinkOption && !!selectedExistingId;
-
-  return (
-    <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-1">
-          <DialogTitle>{isEdit ? "Editar Veículo" : showLinkOption ? "Vincular Veículo" : "Novo Veículo"}</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[75vh]">
-          <div className="px-6 pb-5 space-y-3">
-            {fetching ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : (
-              <>
-                {/* Select existing vehicle option */}
-                {showLinkOption && (
-                  <>
-                    <div className="space-y-1">
-                      <Label className="text-xs font-medium">Selecionar conjunto já cadastrado</Label>
-                      <Select value={selectedExistingId || "__none__"} onValueChange={(v) => setSelectedExistingId(v === "__none__" ? "" : v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Nenhum — cadastrar novo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Nenhum — cadastrar novo</SelectItem>
-                          {existingVehicles.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>
-                              {maskPlate(v.plate)} — {v.brand} {v.model} ({VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* If linking existing, show summary + button */}
-                {isLinkingExisting ? (
-                  <Button className="w-full" onClick={handleLinkExisting} disabled={loading}>
-                    {loading ? "Vinculando..." : "Vincular Veículo"}
-                  </Button>
-                ) : (
-                  <>
-                    <Tabs defaultValue="cadastro">
-                    <TabsList className="grid w-full grid-cols-3 h-9">
-                      <TabsTrigger value="cadastro" className="text-xs">Cadastro</TabsTrigger>
-                      <TabsTrigger value="alienacao" className="text-xs">Alienação e Crédito</TabsTrigger>
-                      <TabsTrigger value="documentos" className="text-xs">Documentação e Taxas</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="cadastro" className="space-y-3 mt-3">
-                    {/* Categoria do veículo no topo */}
-                    <div className="space-y-1">
-                      <Label className="text-xs font-medium">Categoria *</Label>
-                      <RadioGroup
-                        value={form.vehicleType ? (TRUCK_TYPES.has(form.vehicleType) ? "caminhao" : "leve") : ""}
-                        onValueChange={(cat) => {
-                          if (cat === "caminhao") {
-                            handleVehicleTypeChange("rodotrem");
-                          } else {
-                            handleVehicleTypeChange("passeio");
-                          }
-                        }}
-                        className="flex gap-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="caminhao" id="cat-caminhao" />
-                          <Label htmlFor="cat-caminhao" className="text-sm font-normal cursor-pointer">🚛 Caminhão</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="leve" id="cat-leve" />
-                          <Label htmlFor="cat-leve" className="text-sm font-normal cursor-pointer">🚗 Veículo Leve</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    <Separator className="my-1" />
-
-                    {/* Dados do veículo */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">{isTruck ? "Placa do Cavalo *" : "Placa *"}</Label>
-                        <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
-                        {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">RENAVAM</Label>
-                        <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
-                        {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Marca *</Label>
-                        <Input name="brand" placeholder="Volvo, Scania..." value={form.brand} onChange={handleChange} />
-                        {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Modelo *</Label>
-                        <Input name="model" placeholder="FH 540" value={form.model} onChange={handleChange} />
-                        {errors.model && <p className="text-xs text-destructive">{errors.model}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Ano *</Label>
-                        <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
-                        {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
-                      </div>
-                      {isTruck && (
-                        <div className="space-y-1">
-                          <Label className="text-xs">ANTT (opcional)</Label>
-                          <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tipo específico de veículo */}
-                    <div className="space-y-1">
-                      <Label className="text-xs">Tipo de Veículo *</Label>
-                      <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          {vehicleTypes.filter(t => isTruck ? t.group === "caminhao" : t.group === "leve").map((t) => (
-                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
-                    </div>
-
-                    {isTruck && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Tipo de Carroceria *</Label>
-                        <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
-                          {cargoTypes.map((t) => (
-                            <div key={t.value} className="flex items-center space-x-2">
-                              <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
-                              <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                        {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
-                      </div>
-                    )}
-
-                    {/* Implementos */}
-                    {trailerConfig.count > 0 && (
-                      <>
-                        <Separator className="my-1" />
-                        <p className="text-xs font-medium text-muted-foreground">Implementos do Conjunto</p>
-                        <div className="space-y-2">
-                          {Array.from({ length: trailerConfig.count }).map((_, i) => {
-                            const idx = i + 1;
-                            const plateKey = `trailerPlate${idx}` as keyof VehicleFormData;
-                            const renavamKey = `trailerRenavam${idx}` as keyof VehicleFormData;
-                            return (
-                              <div key={i} className="grid grid-cols-2 gap-3 p-2.5 rounded-lg bg-muted/30 border border-border">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">{trailerConfig.labels[i]}</Label>
-                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={String(form[plateKey] ?? "")} onChange={handleChange} className="uppercase" />
-                                  {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">RENAVAM</Label>
-                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={String(form[renavamKey] ?? "")} onChange={handleChange} />
-                                  {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    )}
-
-                    <Separator className="my-1" />
-
-                    {/* Vínculos */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Vínculos</p>
-                      <div className="space-y-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">{isTruck ? "Motorista" : "Colaborador"}</Label>
-                          <PersonSearchInput
-                            categories={isTruck ? ["motorista"] : ["colaborador"]}
-                            placeholder={isTruck ? "Buscar motorista..." : "Buscar colaborador..."}
-                            selectedName={driverName || undefined}
-                            onSelect={(person) => {
-                              const newDriverId = person.user_id;
-                              setForm((p) => ({
-                                ...p,
-                                driverId: newDriverId,
-                                ...(driverIsOwner ? { ownerId: newDriverId } : {}),
-                              }));
-                              setDriverName(person.full_name);
-                              if (driverIsOwner) setOwnerName(person.full_name);
-                            }}
-                            onClear={() => {
-                              setForm((p) => ({ ...p, driverId: "" }));
-                              setDriverName("");
-                              if (driverIsOwner) {
-                                setDriverIsOwner(false);
-                                setForm((p) => ({ ...p, ownerId: "" }));
-                                setOwnerName("");
-                              }
-                            }}
-                            endAction={
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                title={isTruck ? "Cadastrar motorista" : "Cadastrar colaborador"}
-                                onClick={async () => {
-                                  if (!validate()) {
-                                    toast({ title: "Preencha os dados do veículo antes de cadastrar", variant: "destructive" });
-                                    return;
-                                  }
-                                  setLoading(true);
-                                  try {
-                                    const { data: { user } } = await supabase.auth.getUser();
-                                    if (!user) throw new Error("Não autenticado");
-                                    if (isEdit && vehicleId) {
-                                      const { error } = await supabase.from("vehicles").update(buildPayload()).eq("id", vehicleId);
-                                      if (error) throw error;
-                                      setSavedVehicleIdForLink(vehicleId);
-                                    } else {
-                                      const { data, error } = await supabase.from("vehicles").insert({ ...buildPayload(), user_id: user.id }).select("id").single();
-                                      if (error) throw error;
-                                      setSavedVehicleIdForLink(data.id);
-                                    }
-                                    toast({ title: "Veículo salvo! Agora cadastre o " + (isTruck ? "motorista" : "colaborador") + "." });
-                                    onOpenChange(false);
-                                    onSaved();
-                                    setPersonCreateCategory(isTruck ? "motorista" : "colaborador");
-                                    setPersonCreateTarget("driver");
-                                    setPersonCreateOpen(true);
-                                  } catch (error: any) {
-                                    toast({ title: "Erro ao salvar veículo", description: error.message, variant: "destructive" });
-                                  } finally {
-                                    setLoading(false);
-                                  }
-                                }}
-                              >
-                                <UserPlus className="h-3.5 w-3.5" />
-                              </Button>
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Proprietário</Label>
-                          {driverIsOwner ? (
-                            <Input value={driverName || "—"} disabled className="text-muted-foreground" />
-                          ) : (
-                            <PersonSearchInput
-                              categories={["proprietario"]}
-                              placeholder="Buscar proprietário..."
-                              selectedName={ownerName || undefined}
-                              onSelect={(person) => {
-                                setForm((p) => ({ ...p, ownerId: person.user_id }));
-                                setOwnerName(person.full_name);
-                              }}
-                              onClear={() => {
-                                setForm((p) => ({ ...p, ownerId: "" }));
-                                setOwnerName("");
-                              }}
-                              endAction={
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  title="Cadastrar proprietário"
-                                  onClick={async () => {
-                                    if (!validate()) {
-                                      toast({ title: "Preencha os dados do veículo antes de cadastrar", variant: "destructive" });
-                                      return;
-                                    }
-                                    setLoading(true);
-                                    try {
-                                      const { data: { user } } = await supabase.auth.getUser();
-                                      if (!user) throw new Error("Não autenticado");
-                                      if (isEdit && vehicleId) {
-                                        const { error } = await supabase.from("vehicles").update(buildPayload()).eq("id", vehicleId);
-                                        if (error) throw error;
-                                        setSavedVehicleIdForLink(vehicleId);
-                                      } else {
-                                        const { data, error } = await supabase.from("vehicles").insert({ ...buildPayload(), user_id: user.id }).select("id").single();
-                                        if (error) throw error;
-                                        setSavedVehicleIdForLink(data.id);
-                                      }
-                                      toast({ title: "Veículo salvo! Agora cadastre o proprietário." });
-                                      onOpenChange(false);
-                                      onSaved();
-                                      setPersonCreateCategory("proprietario");
-                                      setPersonCreateTarget("owner");
-                                      setPersonCreateOpen(true);
-                                    } catch (error: any) {
-                                      toast({ title: "Erro ao salvar veículo", description: error.message, variant: "destructive" });
-                                    } finally {
-                                      setLoading(false);
-                                    }
-                                  }}
-                                >
-                                  <UserPlus className="h-3.5 w-3.5" />
-                                </Button>
-                              }
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="driver-is-owner"
-                          checked={driverIsOwner}
-                          onCheckedChange={(checked) => {
-                            const isChecked = !!checked;
-                            setDriverIsOwner(isChecked);
-                            if (isChecked) {
-                              setForm((p) => ({ ...p, ownerId: p.driverId }));
-                              setOwnerName(driverName);
-                            } else {
-                              setForm((p) => ({ ...p, ownerId: "" }));
-                              setOwnerName("");
-                            }
-                          }}
-                          disabled={!form.driverId}
-                        />
-                        <Label htmlFor="driver-is-owner" className="text-xs font-normal cursor-pointer">
-                          {isTruck ? "Motorista é o proprietário do conjunto" : "Colaborador é o proprietário"}
-                        </Label>
-                      </div>
-
-                      {/* Tipo de Frota */}
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium">Tipo de Frota</Label>
-                        <RadioGroup
-                          value={form.fleetType}
-                          onValueChange={(v) => setForm((p) => ({ ...p, fleetType: v }))}
-                          className="flex gap-4"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="propria" id="fleet-propria" />
-                            <Label htmlFor="fleet-propria" className="text-sm font-normal cursor-pointer">Frota Própria</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="terceiros" id="fleet-terceiros" />
-                            <Label htmlFor="fleet-terceiros" className="text-sm font-normal cursor-pointer">Frota Terceiros</Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-
-                      {/* Configurações de Manutenção - apenas frota própria */}
-                      {form.fleetType === "propria" && (
-                        <>
-                          <Separator className="my-1" />
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Configurações de Manutenção</p>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-xs">Intervalo de Revisão (KM)</Label>
-                                <Input
-                                  type="number"
-                                  placeholder="Ex: 10000"
-                                  value={form.intervaloRevisaoKm}
-                                  onChange={(e) => setForm((p) => ({ ...p, intervaloRevisaoKm: e.target.value }))}
-                                />
-                                <p className="text-[10px] text-muted-foreground">Revisão a cada X km</p>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Próxima Revisão (KM)</Label>
-                                <Input
-                                  type="number"
-                                  placeholder="Hodômetro alvo"
-                                  value={form.proximaRevisaoKm}
-                                  onChange={(e) => setForm((p) => ({ ...p, proximaRevisaoKm: e.target.value }))}
-                                />
-                                <p className="text-[10px] text-muted-foreground">Atualizado a cada revisão</p>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    </TabsContent>
-
+   }catch(e){if(!cancelled) toast.error(e instanceof Error ? e.message : "Erro ao carregar veículo");}
+   finally{if(!cancelled) setFetching(false);}
+  })();
+  return () => { cancelled=true; };
+ },[open,vehicleId]);
+ const handleChange=(e:React.ChangeEvent<HTMLInputElement>)=>{
+  const {name,value}=e.target;
+  const masked=name==="plate"?maskPlateInput(value):name==="renavam"?maskRenavam(value):name==="year"?maskYear(value):["brand","model"].includes(name)?maskName(value):value;
+  setForm(p=>({...p,[name]:masked})); setErrors(p=>({...p,[name]:""}));
+ };
+ const handleSubmit=async()=>{
+  if(lock.current) return;
+  const err:Record<string,string>={};
+  if(!validatePlate(form.plate)) err.plate="Placa inválida";
+  if(!validateRenavam(form.renavam)) err.renavam="Informe o RENAVAM com 11 dígitos";
+  if(!form.category) err.category="Selecione a categoria";
+  if(!form.brand.trim()) err.brand="Marca obrigatória";
+  if(!form.model.trim()) err.model="Modelo obrigatório";
+  if(Number(form.year)<1900 || Number(form.year)>new Date().getFullYear()+1) err.year="Ano inválido";
+  if([form.tare,form.capacity].some(v=>v && (!Number.isFinite(Number(v)) || Number(v)<0))) err.weights="Informe pesos válidos";
+  setErrors(err); if(Object.keys(err).length) return;
+  lock.current=true; setLoading(true);
+  try{
+   const {data:{user}}=await supabase.auth.getUser(); if(!user) throw new Error("Não autenticado");
+   const payload={plate:unmaskPlate(form.plate),renavam:form.renavam,unit_category:form.category,
+    vehicle_type:form.vehicleType as "truck", brand:form.brand.trim(),model:form.model.trim(),year:Number(form.year),chassis:form.chassis.toUpperCase() || null,
+    tare_kg:form.tare?Number(form.tare):null,capacity_kg:form.capacity?Number(form.capacity):null,antt_number:form.anttNumber || null,cargo_type:form.cargoType || null,
+    owner_id:form.ownerId || null,fleet_type:form.fleetType,registration_pending:false,
+    intervalo_revisao_km:form.intervaloRevisaoKm?Number(form.intervaloRevisaoKm):null,proxima_revisao_km:form.proximaRevisaoKm?Number(form.proximaRevisaoKm):null,
+    alienado:form.alienado,tipo_alienacao:form.alienado && form.tipoAlienacao?form.tipoAlienacao as typeof TIPOS_ALIENACAO[number]:null,
+    instituicao_financeira:form.alienado?form.instituicaoFinanceira || null:null,instituicao_financeira_id:form.alienado?form.instituicaoFinanceiraId || null:null,
+    observacoes_alienacao:form.alienado?form.observacoesAlienacao || null:null};
+   const query=vehicleId?supabase.from("vehicles").update(payload).eq("id",vehicleId):supabase.from("vehicles").insert({...payload,user_id:user.id});
+   const {data,error}=await query.select("id").single(); if(error || !data) throw error || new Error("O cadastro não foi gravado");
+   const {data:check,error:checkError}=await supabase.from("vehicles").select("plate,unit_category").eq("id",data.id).single();
+   if(checkError || check?.plate!==payload.plate || check.unit_category!==payload.unit_category) throw new Error("Não foi possível confirmar a gravação. Atualize a lista antes de tentar novamente.");
+   onSaved(); onOpenChange(false);
+  }catch(e){toast.error(e instanceof Error?e.message:"Não foi possível salvar o veículo");}
+  finally{setLoading(false);lock.current=false;}
+ };
+ const changeCategory=(category:string)=>setForm(p=>({...p,category,vehicleType:category==="cavalo"?"carreta":category==="rigido"?"truck":["utilitario","passeio"].includes(category)?category:"carreta"}));
+ return <>
+ <Dialog open={open} onOpenChange={v=>!loading && onOpenChange(v)}>
+ <DialogContent className="max-w-2xl max-h-[90vh]">
+ <DialogHeader><DialogTitle>{isEdit?"Editar Veículo":"Novo Veículo"}</DialogTitle></DialogHeader>
+ {fetching?<p className="text-muted-foreground">Carregando...</p>:<>
+ <Tabs defaultValue="cadastro">
+ <TabsList className="grid w-full grid-cols-3 h-9"><TabsTrigger value="cadastro" className="text-xs">Cadastro</TabsTrigger><TabsTrigger value="alienacao" className="text-xs">Alienação e Crédito</TabsTrigger><TabsTrigger value="documentos" className="text-xs">Documentação e Taxas</TabsTrigger></TabsList>
+ <TabsContent value="cadastro" className="space-y-3 mt-3">
+ {form.registrationPending && <p className="text-xs text-warning">Placa preservada do conjunto anterior. Complete marca, modelo e ano.</p>}
+ <div className="space-y-1"><Label>Categoria *</Label><Select value={form.category} onValueChange={changeCategory}><SelectTrigger aria-label="Categoria"><SelectValue placeholder="Selecione a categoria"/></SelectTrigger><SelectContent>{UNIT_CATEGORIES.map(c=><SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select>{errors.category && <p className="text-xs text-destructive">{errors.category}</p>}</div>
+ <div className="grid grid-cols-2 gap-3">
+ {[{name:"plate",label:"Placa *",placeholder:"ABC-1234",maxLength:8},{name:"renavam",label:"RENAVAM *",placeholder:"00000000000",maxLength:11},{name:"brand",label:"Marca *"},{name:"model",label:"Modelo *"},{name:"year",label:"Ano *",maxLength:4},{name:"chassis",label:"Chassi",maxLength:17}].map(f=><div key={f.name} className="space-y-1"><Label htmlFor={`vehicle-${f.name}`} className="text-xs">{f.label}</Label><Input id={`vehicle-${f.name}`} name={f.name} value={String(form[f.name as keyof typeof form])} placeholder={f.placeholder} maxLength={f.maxLength} onChange={handleChange}/>{errors[f.name] && <p className="text-xs text-destructive">{errors[f.name]}</p>}</div>)}
+ <div className="space-y-1"><Label className="text-xs">RNTRC</Label><Input name="anttNumber" value={form.anttNumber} onChange={handleChange}/></div>
+ <div className="space-y-1"><Label className="text-xs">Carroceria</Label><Select value={form.cargoType || "none"} onValueChange={v=>setForm(p=>({...p,cargoType:v==="none"?"":v}))}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{[{value:"none",label:"Não se aplica"},...(["Aberta","Baú","Caçamba","Graneleiro","Tanque","Sider","Plataforma"].map(label=>({value:label.toLowerCase(),label})))].map(c=><SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select></div>
+ <div className="space-y-1"><Label className="text-xs">Tara (kg)</Label><Input name="tare" type="number" min="0" value={form.tare} onChange={handleChange}/></div>
+ <div className="space-y-1"><Label className="text-xs">Capacidade (kg)</Label><Input name="capacity" type="number" min="0" value={form.capacity} onChange={handleChange}/></div>
+ </div>{errors.weights && <p className="text-xs text-destructive">{errors.weights}</p>}
+ <Separator/>
+ <div className="space-y-1"><Label className="text-xs">Proprietário</Label><PersonSearchInput categories={["proprietario"]} placeholder="Buscar proprietário..." selectedName={ownerName || undefined} onSelect={p=>{setForm(f=>({...f,ownerId:p.id}));setOwnerName(personDisplayName(p));}} onClear={()=>{setForm(f=>({...f,ownerId:""}));setOwnerName("");}} endAction={<Button type="button" size="icon" variant="ghost" className="h-6 w-6" aria-label="Cadastrar proprietário" title="Cadastrar proprietário" onClick={()=>setPersonCreateOpen(true)}><Plus className="h-4 w-4"/></Button>}/></div>
+ <div className="space-y-1"><Label className="text-xs">Tipo de Frota</Label><RadioGroup value={form.fleetType} onValueChange={fleetType=>setForm(p=>({...p,fleetType}))} className="flex gap-4">{[{value:"propria",label:"Frota Própria"},{value:"terceiros",label:"Frota Terceiros"}].map(f=><div key={f.value} className="flex items-center gap-2"><RadioGroupItem id={`fleet-${f.value}`} value={f.value}/><Label htmlFor={`fleet-${f.value}`} className="text-xs">{f.label}</Label></div>)}</RadioGroup></div>
+ {form.fleetType==="propria" && <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Intervalo de Revisão (KM)</Label><Input type="number" name="intervaloRevisaoKm" value={form.intervaloRevisaoKm} onChange={handleChange}/></div><div><Label className="text-xs">Próxima Revisão (KM)</Label><Input type="number" name="proximaRevisaoKm" value={form.proximaRevisaoKm} onChange={handleChange}/></div></div>}
+ </TabsContent>
                     <TabsContent value="alienacao" className="space-y-3 mt-3">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -844,32 +196,15 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     </TabsContent>
                     </Tabs>
 
-                    <Button className="w-full mt-2" onClick={handleSubmit} disabled={loading}>
-                      {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
 
-    <PersonCreateDialog
-      open={personCreateOpen}
-      onOpenChange={setPersonCreateOpen}
-      defaultCategory={personCreateCategory}
-      onCreated={async (createdUserId) => {
-        if (createdUserId && savedVehicleIdForLink) {
-          const updateField = personCreateTarget === "driver" ? "driver_id" : "owner_id";
-          await supabase.from("vehicles").update({ [updateField]: createdUserId } as any).eq("id", savedVehicleIdForLink);
-          onSaved();
-          toast({ title: personCreateTarget === "driver" ? "Motorista vinculado ao veículo!" : "Proprietário vinculado ao veículo!" });
-        }
-        setSavedVehicleIdForLink(null);
-      }}
-    />
-    </>
-  );
+ <Button className="w-full" onClick={handleSubmit} disabled={loading}>{loading?"Salvando...":isEdit?"Salvar Alterações":"Cadastrar Veículo"}</Button>
+ </>}
+ </DialogContent></Dialog>
+ <PersonCreateDialog open={personCreateOpen} onOpenChange={setPersonCreateOpen} defaultCategory="proprietario" onCreated={async uid=>{
+  if(!uid) return;
+  const {data,error}=await supabase.from("profiles").select("id,full_name,razao_social").or(`id.eq.${uid},user_id.eq.${uid}`).limit(1);
+  if(error || !data?.[0]){toast.error("Não foi possível selecionar o proprietário criado.");return;}
+  setForm(p=>({...p,ownerId:data[0].id}));setOwnerName(data[0].razao_social || data[0].full_name);
+ }}/>
+ </>;
 }
