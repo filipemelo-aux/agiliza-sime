@@ -102,7 +102,7 @@ export default function AdminVehicleAssignments() {
   const columns:DataGridColumn<Assignment>[]=[
     {key:"plate",header:"Tração / Veículo",width:"150px",cell:r=><div><span className="font-medium">{maskPlate(vehicle(r.vehicle_id)?.plate || "")}</span><div className="text-[10px] text-muted-foreground">{unitLabel(vehicle(r.vehicle_id) || {})}</div></div>},
     {key:"driver",header:"Motorista / Colaborador",cell:r=><div>{person(r.driver_profile_id)?.full_name || "—"}{person(r.driver_profile_id)?.cnpj && <div className="text-[10px] text-muted-foreground">{maskDocument(person(r.driver_profile_id)?.cnpj)}</div>}</div>},
-    {key:"implements",header:"Implementos",cell:r=>r.implement_ids.length?<div className="space-y-1">{r.implement_ids.map(id=><div key={id}>{maskPlate(vehicle(id)?.plate || "")} <span className="text-[10px] text-muted-foreground">{unitLabel(vehicle(id) || {})}</span></div>)}</div>:"—"},
+    ...[0,1,2].map((index):DataGridColumn<Assignment>=>({key:`implement_${index}`,header:`${index+1}º Implemento`,width:"140px",sortValue:r=>vehicle(r.implement_ids[index] || "")?.plate || "",cell:r=>{const v=vehicle(r.implement_ids[index] || "");return v?<div><span className="font-medium">{maskPlate(v.plate)}</span><div className="text-[10px] text-muted-foreground">{unitLabel(v)}</div></div>:<span className="text-muted-foreground">—</span>;}})),
     {key:"start",header:"Início",width:"145px",cell:r=>date(r.started_at)},
     {key:"end",header:"Encerramento",width:"145px",cell:r=>date(r.ended_at)},
     {key:"status",header:"Status",width:"90px",cell:r=><span className={r.ended_at?"text-muted-foreground":"text-success"}>{r.ended_at?"Encerrado":"Ativo"}</span>},
@@ -118,7 +118,7 @@ export default function AdminVehicleAssignments() {
       {key:"end",label:"Desengatar conjunto",icon:Unlink,mode:"single",disabled:!canEdit || saving || !!current?.ended_at,onClick:()=>void end()},
       {key:"refresh",label:"Atualizar",icon:RefreshCw,mode:"always",disabled:saving,onClick:()=>void load()},
     ]}/>
-    <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={950} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
+    <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={1250} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
     <Dialog open={open} onOpenChange={v=>!saving && setOpen(v)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{editing?"Trocar vinculação":"Nova vinculação"}</DialogTitle></DialogHeader>
       <div className="space-y-3">
         <div className="space-y-1"><Label>Tração / Veículo *</Label><Select value={vehicleId} onValueChange={id=>{setVehicleId(id);setImplements(["","",""]);}}><SelectTrigger aria-label="Tração / Veículo"><SelectValue placeholder="Selecione a placa"/></SelectTrigger><SelectContent>{availableVehicles.map(v=><SelectItem key={v.id} value={v.id}>{maskPlate(v.plate)} — {unitLabel(v)}</SelectItem>)}</SelectContent></Select></div>
