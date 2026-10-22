@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link2, Pencil, Plus, RefreshCw } from "lucide-react";
+import { Check, Link2, Pencil, Plus, RefreshCw, Search, X } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
@@ -23,6 +26,41 @@ import type { Tables } from "@/integrations/supabase/types";
 type Assignment = Tables<"vehicle_assignments">;
 type Vehicle = Tables<"vehicles">;
 type Person = Pick<Tables<"profiles">,"id"|"full_name"|"cnpj">;
+
+type PlateOption = { id: string; plate: string; label: string; note?: string };
+
+const PlateCombobox = ({ options, value, onSelect, onClear, placeholder }: { options: PlateOption[]; value: string; onSelect: (id: string) => void; onClear?: () => void; placeholder: string }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = options.find(o => o.id === value);
+  const filtered = options.filter(o => !query.trim() || matchesText(`${o.plate} ${o.label}`, query));
+  return <div className="flex gap-1.5">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" role="combobox" aria-expanded={open} className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background">
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected ? `${maskPlate(selected.plate)} — ${selected.label}${selected.note ? ` ${selected.note}` : ""}` : placeholder}</span>
+          <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1"/>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
+        <Command shouldFilter={false} className="bg-popover">
+          <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none" placeholder="Digite a placa..." value={query} onValueChange={setQuery}/>
+          <CommandList className="max-h-64">
+            <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">Nenhuma placa encontrada.</CommandEmpty>
+            <CommandGroup className="p-1.5">
+              {filtered.map(o => <CommandItem key={o.id} value={`${maskPlate(o.plate)} — ${o.label}${o.note ? ` ${o.note}` : ""}`} className="text-xs" onSelect={() => { onSelect(o.id); setOpen(false); setQuery(""); }}>
+                <span className="font-medium">{maskPlate(o.plate)}</span><span className="text-muted-foreground ml-1">— {o.label}</span>{o.note && <span className="text-warning ml-1">{o.note}</span>}
+                {o.id === value && <Check className="ml-auto h-3.5 w-3.5"/>}
+              </CommandItem>)}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+    {onClear && value && <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Remover seleção" onClick={() => { onClear(); setQuery(""); }}><X className="h-3.5 w-3.5"/></Button>}
+  </div>;
+};
+
 export default function AdminVehicleAssignments() {
   const { canEdit, hasAdminAccess, loading: roleLoading } = useUserRole();
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
@@ -107,9 +145,9 @@ export default function AdminVehicleAssignments() {
     <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={1250} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
     <Dialog open={open} onOpenChange={v=>!saving && setOpen(v)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{editing?"Trocar vinculação":"Nova vinculação"}</DialogTitle></DialogHeader>
       <div className="space-y-3">
-        <div className="space-y-1"><Label>Tração / Veículo *</Label><Select value={vehicleId} onValueChange={id=>{setVehicleId(id);const ex=active.find(a=>a.vehicle_id===id);setImplements([ex?.implement_ids[0] || "",ex?.implement_ids[1] || "",ex?.implement_ids[2] || ""]);if(ex){setDriverId(ex.driver_profile_id || "");setDriverName(person(ex.driver_profile_id)?.full_name || "");}}}><SelectTrigger aria-label="Tração / Veículo"><SelectValue placeholder="Selecione a placa"/></SelectTrigger><SelectContent>{availableVehicles.map(v=><SelectItem key={v.id} value={v.id}>{maskPlate(v.plate)} — {unitLabel(v)}{active.some(a=>a.vehicle_id===v.id)?" (possui conjunto)":""}</SelectItem>)}</SelectContent></Select>{existing && <p className="text-xs text-warning">Esta placa já possui conjunto. Ao salvar, o conjunto será substituído pelo informado abaixo.</p>}</div>
+        <div className="space-y-1"><Label>Tração / Veículo *</Label><PlateCombobox placeholder="Buscar placa..." options={availableVehicles.map(v=>({id:v.id,plate:v.plate,label:unitLabel(v),note:active.some(a=>a.vehicle_id===v.id)?"(possui conjunto)":undefined}))} value={vehicleId} onSelect={id=>{setVehicleId(id);const ex=active.find(a=>a.vehicle_id===id);setImplements([ex?.implement_ids[0] || "",ex?.implement_ids[1] || "",ex?.implement_ids[2] || ""]);if(ex){setDriverId(ex.driver_profile_id || "");setDriverName(person(ex.driver_profile_id)?.full_name || "");}}}/>{existing && <p className="text-xs text-warning">Esta placa já possui conjunto. Ao salvar, o conjunto será substituído pelo informado abaixo.</p>}</div>
         <div className="space-y-1"><Label>Motorista / Colaborador</Label><PersonSearchInput categories={["motorista","colaborador"]} placeholder="Buscar motorista ou colaborador..." selectedName={driverName || undefined} onSelect={p=>{setDriverId(p.id);setDriverName(p.full_name);}} onClear={()=>{setDriverId("");setDriverName("");}}/></div>
-        {vehicleId && !["utilitario","passeio"].includes(category) && implementsIds.map((id,index)=><div key={index} className="space-y-1"><Label>{index+1}º Implemento</Label><Select value={id || "none"} onValueChange={value=>setImplements(p=>p.map((old,i)=>i===index?(value==="none"?"":value):old))}><SelectTrigger aria-label={`${index+1}º Implemento`}><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">Sem implemento</SelectItem>{availableImplements.filter(v=>v.id===id || !implementsIds.includes(v.id)).map(v=><SelectItem key={v.id} value={v.id}>{maskPlate(v.plate)} — {unitLabel(v)}</SelectItem>)}</SelectContent></Select></div>)}
+        {vehicleId && !["utilitario","passeio"].includes(category) && implementsIds.map((id,index)=><div key={index} className="space-y-1"><Label>{index+1}º Implemento</Label><PlateCombobox placeholder="Buscar placa ou deixe sem implemento" options={availableImplements.filter(v=>v.id===id || !implementsIds.includes(v.id)).map(v=>({id:v.id,plate:v.plate,label:unitLabel(v)}))} value={id} onSelect={value=>setImplements(p=>p.map((old,i)=>i===index?value:old))} onClear={()=>setImplements(p=>p.map((old,i)=>i===index?"":old))}/></div>)}
         <div className="space-y-1"><Label>Observações</Label><Input value={notes} onChange={e=>setNotes(e.target.value)}/></div>
         <Button className="w-full" disabled={saving || !canEdit} onClick={()=>void save()}><Link2 className="h-4 w-4"/>{saving?"Salvando...":"Salvar vinculação"}</Button>
       </div>
