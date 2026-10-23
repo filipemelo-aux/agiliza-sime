@@ -21,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
+import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ, maskDocument } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -324,7 +324,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       
       setNumeroMulta(expense.numero_multa || "");
       setNumeroCheque((expense as any).numero_cheque || "");
-      setFornecedorCnpj(expense.fornecedor_cnpj || "");
+      setFornecedorCnpj(maskDocument(expense.fornecedor_cnpj || ""));
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
@@ -519,14 +519,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("category, cnpj, razao_social, nome_fantasia, full_name")
+        .select("category, cnpj, cpf, razao_social, nome_fantasia, full_name")
         .eq("id", favorecidoId)
         .maybeSingle();
       if (cancelled || !data) return;
       const p = data as any;
       setFavorecidoCategory(p.category || null);
       setFavorecidoNome((prev) => prev || p.razao_social || p.full_name || p.nome_fantasia || "");
-      if (p.cnpj) setFornecedorCnpj((prev) => prev || maskCNPJ(p.cnpj));
+      if (p.cnpj || p.cpf) setFornecedorCnpj((prev) => prev || maskDocument(p.cnpj || p.cpf));
     })();
     return () => { cancelled = true; };
   }, [favorecidoId]);
@@ -1349,7 +1349,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 searchContacts={informalSupplier}
                 placeholder="Buscar pessoa..."
                 selectedName={favorecidoNome || undefined}
-                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj || (p as any).cpf) setFornecedorCnpj(maskDocument(p.cnpj || (p as any).cpf)); }}
                 onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); setFavorecidoCategory(null); }}
                 endAction={
                   <button
@@ -1364,8 +1364,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               />
             </div>
             <div>
-              <Label className="text-xs">CNPJ Fornecedor</Label>
-              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="h-9" />
+              <Label className="text-xs">CPF/CNPJ Fornecedor</Label>
+              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(maskDocument(e.target.value))} placeholder="CPF ou CNPJ" className="h-9" />
             </div>
           </div>
 
