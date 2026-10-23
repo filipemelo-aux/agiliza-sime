@@ -2,8 +2,10 @@ import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { expect, it } from "vitest";
 
-it.skipIf(!process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON)("sincroniza principal, juros, desconto e estorno nas parcelas", async () => {
-  const session = JSON.parse(process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON || "{}");
+it.skipIf(!process.env.FINANCIAL_TEST_SESSION_FILE && !process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON)("sincroniza principal, juros, desconto e estorno nas parcelas", async () => {
+  const session = process.env.FINANCIAL_TEST_SESSION_FILE
+    ? JSON.parse(readFileSync(process.env.FINANCIAL_TEST_SESSION_FILE, "utf8")).session
+    : JSON.parse(process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON || "{}");
   const config = readFileSync(`${process.cwd()}/.env`, "utf8");
   const value = (key: string) => {
     const match = config.match(new RegExp(`^${key}=["']?([^"'\\r\\n]+)`, "m"));
