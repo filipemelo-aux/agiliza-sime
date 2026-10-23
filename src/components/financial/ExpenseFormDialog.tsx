@@ -151,6 +151,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
   const [partsServiceLink, setPartsServiceLink] = useState<{ id: string; valor: number; doc: string | null } | null>(null);
   const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
+  const [checkParcela, setCheckParcela] = useState<{ id: string | null; numero: number; total: number; valor: number; data: string } | null>(null);
+  const [chequesParcela, setChequesParcela] = useState<Record<number, string>>({});
   useEffect(() => {
     if (!open && autoSavedId) { onSaved(autoSavedId); setAutoSavedId(null); setCheckExpenseId(null); }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1177,7 +1179,49 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setCheckDialogOpen(true);
   };
 
+  const chequeHistoricoParcela = (numero: number, total: number) => `${descricao} - Parcela ${numero}/${total}`;
+
+  // Cheque por parcela: salva a despesa (mantém aberta) e emite um cheque com o valor/vencimento da parcela
+  const handleGerarChequeParcela = async (numero: number) => {
+    const p = parcelas.find(x => x.numero === numero);
+    if (!p || !(Number(p.valor) > 0)) return toast.error("Informe o valor da parcela antes de emitir o cheque");
+    const id = await handleSave({ keepOpen: true });
+    if (!id) return;
+    const { data: inst } = await supabase.from("expense_installments" as any)
+      .select("id, data_vencimento, valor").eq("expense_id", id).eq("numero_parcela", numero).maybeSingle();
+    setCheckExpenseId(id);
+    setCheckParcela({
+      id: (inst as any)?.id ?? null, numero, total: parcelas.length,
+      valor: Number((inst as any)?.valor ?? p.valor) || 0,
+      data: (inst as any)?.data_vencimento || p.data_vencimento,
+    });
+    setCheckDialogOpen(true);
+  };
+
+  // Carrega os cheques já emitidos por parcela (edição)
+  useEffect(() => {
+    const id = expense?.id || autoSavedId;
+    if (!open || !id || formaPagamento !== "cheque") return;
+    (supabase.from("cheques" as any) as any).select("numero_cheque, historico").eq("expense_id", id).neq("status", "cancelado")
+      .then(({ data }: any) => {
+        const map: Record<number, string> = {};
+        ((data as any[]) || []).forEach(c => {
+          const m = /Parcela (\d+)\/\d+$/.exec(c.historico || "");
+          if (m) map[Number(m[1])] = c.numero_cheque || "s/ nº";
+        });
+        setChequesParcela(map);
+      });
+  }, [open, expense?.id, autoSavedId, formaPagamento]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleChequeSaved = async (n: string, info?: { predatado: boolean; dataVencimento: string | null }) => {
+    if (checkParcela) {
+      const { numero } = checkParcela;
+      setChequesParcela(prev => ({ ...prev, [numero]: n || "s/ nº" }));
+      if (info?.predatado && info.dataVencimento) {
+        setParcelas(prev => prev.map(p => p.numero === numero ? { ...p, data_vencimento: info.dataVencimento! } : p));
+      }
+      return;
+    }
     setNumeroCheque(n);
     if (info?.predatado && info.dataVencimento) setDataVencimento(info.dataVencimento);
     const id = checkExpenseId;
@@ -2078,7 +2122,29 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
            </div>
 
-          {formaPagamento === "cheque" && (
+          {formaPagamento === "cheque" && useParcelas && parcelas.length > 0 && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-medium">Cheques por parcela</p>
+              <div className="space-y-1.5">
+                {parcelas.map(p => (
+                  <div key={p.numero} className="flex items-center gap-3 text-xs">
+                    <span className="w-14 font-medium">{p.numero}/{parcelas.length}</span>
+                    <span className="w-24">{p.data_vencimento ? p.data_vencimento.split("-").reverse().join("/") : "—"}</span>
+                    <span className="w-28 text-right font-mono">{formatCurrency(Number(p.valor) || 0)}</span>
+                    <span className="flex-1 text-muted-foreground">
+                      {p.status === "pago" ? "Paga" : chequesParcela[p.numero] ? `Cheque ${chequesParcela[p.numero]}` : "Sem cheque"}
+                    </span>
+                    <Button type="button" size="sm" variant={chequesParcela[p.numero] ? "outline" : "default"} className="h-7 gap-1"
+                      disabled={saving || p.status === "pago"} onClick={() => handleGerarChequeParcela(p.numero)}>
+                      <Printer className="h-3.5 w-3.5" /> {chequesParcela[p.numero] ? "Reemitir" : "Gerar cheque"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {formaPagamento === "cheque" && !(useParcelas && parcelas.length > 0) && (
             <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
               <div>
                 <Label className="text-xs">Número do Cheque</Label>
@@ -2327,8 +2393,18 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     <CheckIssueDialog
       open={checkDialogOpen}
-      onOpenChange={setCheckDialogOpen}
-      data={{
+      onOpenChange={(v) => { setCheckDialogOpen(v); if (!v) setCheckParcela(null); }}
+      data={checkParcela ? {
+        expenseId: checkExpenseId || expense?.id || null,
+        valor: checkParcela.valor,
+        nominal: favorecidoNome || descricao,
+        data: checkParcela.data,
+        historico: chequeHistoricoParcela(checkParcela.numero, checkParcela.total),
+        numeroCheque: "",
+        planoContasId: planoContasId || null,
+        favorecidoId: favorecidoId || null,
+        installment: { id: checkParcela.id, numero: checkParcela.numero, total: checkParcela.total },
+      } : {
         expenseId: checkExpenseId || expense?.id || null,
         valor: Number(valorTotal) || 0,
         nominal: favorecidoNome || descricao,

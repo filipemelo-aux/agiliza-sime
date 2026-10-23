@@ -30,6 +30,8 @@ export interface CheckIssueData {
   data?: string | null;
   historico?: string | null;
   numeroCheque?: string | null;
+  /** Cheque de uma parcela específica: um cheque por parcela, sem alterar a conta inteira */
+  installment?: { id?: string | null; numero: number; total: number } | null;
 }
 
 interface Props {
@@ -61,7 +63,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     if (!open) return;
     setDataCheque(data.data || getLocalDateISO());
     setNumeroCheque(data.numeroCheque || "");
-    setPredatado(false);
+    setPredatado(!!data.installment && !!data.data && data.data > getLocalDateISO());
     setDataVencimento(data.data || getLocalDateISO());
     setPdfBlobUrl(null);
     setPdfBytes(null);
@@ -121,7 +123,13 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         new Set([...(data.expenseIds || []), ...(data.expenseId ? [data.expenseId] : [])].filter(Boolean) as string[]),
       );
 
-      if (Object.keys(updates).length && linkedExpenseIds.length) {
+      if (data.installment) {
+        // Parcela: o número fica no cheque; pré-datado ajusta só o vencimento da parcela
+        if (predatado && dataVencimento && data.installment.id) {
+          await (supabase.from("expense_installments" as any) as any)
+            .update({ data_vencimento: dataVencimento }).eq("id", data.installment.id).neq("status", "pago");
+        }
+      } else if (Object.keys(updates).length && linkedExpenseIds.length) {
         const { error } = await supabase
           .from("expenses")
           .update(updates as any)
@@ -153,7 +161,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       };
       const chequeQuery = supabase.from("cheques" as any) as any;
       let existingQuery = chequeQuery.select("id").limit(1);
-      if (linkedExpenseIds.length) existingQuery = existingQuery.eq("expense_id", linkedExpenseIds[0]);
+      if (linkedExpenseIds.length && data.installment) existingQuery = existingQuery.eq("expense_id", linkedExpenseIds[0]).eq("historico", chequePayload.historico || "");
+      else if (linkedExpenseIds.length) existingQuery = existingQuery.eq("expense_id", linkedExpenseIds[0]);
       else if (data.freightContractId) existingQuery = existingQuery.eq("freight_contract_id", data.freightContractId);
       else existingQuery = existingQuery.eq("numero_cheque", numeroCheque.trim() || "__sem_numero__");
       const { data: existingCheque } = await existingQuery.maybeSingle();
