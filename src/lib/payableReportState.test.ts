@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { matchesPayableReportFilter, payableReportState, paymentPrincipal } from "./payableReportState";
+import { installmentPrincipalMap, matchesPayableReportFilter, payableReportState, paymentPrincipal } from "./payableReportState";
 
 describe("separação das contas no relatório bancário", () => {
+  it("desconto liquida principal sem contar como saída de caixa", () => {
+    expect(paymentPrincipal(80, 0, 20)).toBe(100);
+  });
+  it("distribui pagamento sem vínculo nas parcelas em ordem e sem duplicar", () => {
+    const parts = [1, 2, 3, 4].map(n => ({ id: String(n), expense_id: "iccap", numero_parcela: n, valor: 975, status: "pendente" }));
+    const paid = installmentPrincipalMap(parts, [{ expense_id: "iccap", valor: 975 }, { expense_id: "iccap", installment_id: "1", valor: 975 }, { expense_id: "iccap", installment_id: "2", valor: 975 }]);
+    expect(paid).toEqual({ "1": 975, "2": 975, "3": 975, "4": 0 });
+  });
+  it("juros não amortizam a parcela parcial", () => {
+    const paid = installmentPrincipalMap([{ id: "p", expense_id: "e", numero_parcela: 1, valor: 1750, status: "pendente" }], [{ expense_id: "e", installment_id: "p", valor: 470.1, juros: 33.1 }]);
+    expect(payableReportState(1750, paid.p, "parcial", "2026-10-01", "2026-10-22").balance).toBe(1313);
+  });
   it("não inclui pagamento parcial vencido em Em aberto", () => {
     const state = payableReportState(3600, 2978.13, "parcial", "2026-10-19", "2026-10-20");
     const row = { status: state.status, vencido: state.overdue };
