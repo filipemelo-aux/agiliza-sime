@@ -231,28 +231,29 @@ export default function AdminVehicles() {
     {
       key: "brand",
       header: "Marca",
-      width: "110px",
+      width: "120px",
       sortValue: (v) => v.brand || "",
       cell: (v) => <span className="truncate block">{v.brand || "—"}</span>,
     },
     {
       key: "model",
       header: "Modelo",
+      width: "16%",
       sortValue: (v) => v.model || "",
       cell: (v) => <span className="truncate block">{v.model || "—"}</span>,
     },
     {
       key: "year",
       header: "Ano",
-      width: "70px",
-      align: "right",
+      width: "64px",
+      align: "center",
       sortValue: (v) => v.year || 0,
       cell: (v) => <span className="tabular-nums">{v.year || "—"}</span>,
     },
     {
       key: "type",
       header: "Categoria",
-      width: "150px",
+      width: "160px",
       sortValue: (v) => unitLabel(v),
       cell: (v) => <span className="text-xs">{unitLabel(v)}</span>,
     },
@@ -263,12 +264,12 @@ export default function AdminVehicles() {
       sortValue: (v) => v.cargo_type || "",
       cell: (v) => <span className="text-xs capitalize truncate block">{v.cargo_type ? CARGO_TYPE_LABELS[v.cargo_type] || v.cargo_type : "—"}</span>,
     },
-    { key: "driver", header: "Motorista", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.driver_name || "—"}</span> },
+    { key: "driver", header: "Motorista", width: "18%", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.driver_name || "—"}</span> },
     { key: "owner", header: "Proprietário", sortValue: (v) => v.owner_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.owner_name || "—"}</span> },
     {
       key: "avg",
       header: "Média",
-      width: "90px",
+      width: "100px",
       align: "right",
       sortValue: (v) => metricsByVehicle[v.id]?.avgKmL ?? 0,
       cell: (v) => {
@@ -279,7 +280,7 @@ export default function AdminVehicles() {
     {
       key: "spent",
       header: "Gasto (mês)",
-      width: "110px",
+      width: "120px",
       align: "right",
       sortValue: (v) => metricsByVehicle[v.id]?.spentMonth ?? 0,
       cell: (v) => {
@@ -290,8 +291,8 @@ export default function AdminVehicles() {
   ];
 
   const toolbarActions: ToolbarAction[] = [
-    { key: "assignments", label: "Vinculações", icon: Truck, mode: "always", onClick: () => navigate("/admin/vehicle-assignments") },
     { key: "new", label: "Novo Veículo", icon: Plus, mode: "create", variant: "default", onClick: () => { setEditVehicleId(null); setVehicleModalOpen(true); } },
+    { key: "assignments", label: "Vinculações", icon: Truck, mode: "create", onClick: () => navigate("/admin/vehicle-assignments") },
     { key: "view", label: "Visualizar", icon: Eye, mode: "single", onClick: () => selectedRows[0] && setViewVehicle(selectedRows[0]) },
     { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: () => { if (selectedRows[0]) { setEditVehicleId(selectedRows[0].id); setVehicleModalOpen(true); } } },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => selectedRows[0] && setDeleteVehicle(selectedRows[0]) },
@@ -371,7 +372,7 @@ export default function AdminVehicles() {
           selected={selected}
           onSelectedChange={setSelected}
           loading={loading}
-          minWidth={1250}
+          minWidth={1280}
           emptyMessage="Nenhum veículo encontrado."
           footer={<div className="text-[11px] text-muted-foreground">{filteredVehicles.length} veículo(s)</div>}
         />
