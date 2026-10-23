@@ -9,6 +9,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllRows } from "@/lib/fetchAllRows";
+import { installmentPrincipalMap } from "@/lib/payableReportState";
 import { startOfMonth, endOfMonth, format, addDays, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
@@ -282,12 +283,12 @@ export function FinancialPayables() {
       fetchAllRows((from, to) => supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }).order("id").range(from, to)),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional, centro_custo_default").eq("ativo", true).order("codigo"),
-      supabase.from("expense_installments").select("*").order("numero_parcela"),
+      fetchAllRows((from, to) => supabase.from("expense_installments").select("*").order("numero_parcela").order("id").range(from, to)),
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
       supabase.from("expense_group_items" as any).select("grupo_expense_id"),
       supabase.from("fuelings" as any).select("expense_id").not("expense_id", "is", null).is("deleted_at", null),
-      supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia"),
-      supabase.from("expense_payments" as any).select("expense_id, installment_id, valor, juros"),
+      fetchAllRows((from, to) => supabase.from("profiles").select("id, user_id, full_name, razao_social, nome_fantasia").order("id").range(from, to)),
+      fetchAllRows((from, to) => supabase.from("expense_payments").select("expense_id, installment_id, valor, juros, desconto").order("id").range(from, to)),
     ]);
     const failed = results.find(result => result.error);
     if (failed?.error) throw new Error(failed.error.message);
@@ -306,7 +307,7 @@ export function FinancialPayables() {
     setGroupedCounts(counts);
 
     const today = format(new Date(), "yyyy-MM-dd");
-    const expenses = ((expData as any) || []) as Expense[];
+    const expenses = (((expData as any[]) || []).filter(e => e.status !== "cancelado")) as Expense[];
     const overdueIds: string[] = [];
     const reopenedPendingIds: string[] = [];
     const reopenedPartialIds: string[] = [];
@@ -405,18 +406,13 @@ export function FinancialPayables() {
     // Build installments map
     const iMap: Record<string, Installment[]> = {};
     ((instData as any) || []).forEach((inst: Installment) => {
+      if (inst.status === "cancelado") return;
       if (!iMap[inst.expense_id]) iMap[inst.expense_id] = [];
       iMap[inst.expense_id].push(inst);
     });
     setInstallmentsMap(iMap);
 
-    // Soma de pagamentos por parcela (para o Saldo Devedor real dos cards)
-    const paidMap: Record<string, number> = {};
-    ((paymentsData as any[]) || []).forEach((p: any) => {
-      if (p?.installment_id) {
-        paidMap[p.installment_id] = (paidMap[p.installment_id] || 0) + (Number(p.valor || 0) - Number(p.juros || 0));
-      }
-    });
+    const paidMap = installmentPrincipalMap((instData as any[]) || [], (paymentsData as any[]) || []);
     setInstPaidMap(paidMap);
 
     const allItems = [...processed, ...harvestItems];

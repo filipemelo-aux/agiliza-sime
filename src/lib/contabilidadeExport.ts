@@ -59,7 +59,7 @@ export function accountingPayableEntries(e: AccountingExpense, installments: Acc
   const { ini, fim } = competenciaRange(ym);
   const history = payments.filter((p) => p.expense_id === e.id);
   const parts = installments.filter((p) => p.expense_id === e.id).sort((a, b) => a.numero_parcela - b.numero_parcela);
-  const amortized = (p: AccountingPayment) => Math.max(0, cents(p.valor) - cents(p.juros)) + cents(p.desconto);
+  const amortized = (p: AccountingPayment) => cents(p.valor) - cents(p.juros) + cents(p.desconto);
   let unlinked = history.length
     ? history.filter((p) => !p.installment_id).reduce((sum, p) => sum + amortized(p), 0)
     : cents(e.valor_pago);

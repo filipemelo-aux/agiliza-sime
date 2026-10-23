@@ -2,6 +2,11 @@ import { describe, it, expect } from "vitest";
 import { accountingPayableEntries, competenciaRange, payableStatus, payableBalance, normalizeCst, groupCtesByAgenciaCst, includesAccountingAccount, isExpenseAccount, accountingAgency, accountingCteServiceType, splitAccountingContracts } from "./contabilidadeExport";
 
 describe("contabilidadeExport", () => {
+  it("estorno negativo não amortiza duas vezes a mesma conta", () => {
+    const e = { id: "rodobras", valor_total: 1459.9, valor_pago: 0, data_vencimento: "2026-10-09", status: "pendente" };
+    const payments = [1459.9, -1459.9].map(valor => ({ expense_id: e.id, installment_id: null, data_pagamento: "2026-10-09", valor, forma_pagamento: "pix" }));
+    expect(accountingPayableEntries(e, [], payments, "2026-10", "2026-10-22").atrasadas[0].pago).toBe(0);
+  });
   const expense = { id: "e", valor_total: 300, valor_pago: 0, data_vencimento: "2026-09-10" };
   const installments = ["2026-09-10", "2026-10-10", "2026-10-25", "2026-11-10"].map((date, i) => ({ id: `p${i}`, expense_id: "e", numero_parcela: i + 1, total_parcelas: 4, valor: 100, data_vencimento: date, status: "pendente" }));
   it("atrasadas incluem somente vencimentos da competência já vencidos, sem meses anteriores ou futuros", () => {

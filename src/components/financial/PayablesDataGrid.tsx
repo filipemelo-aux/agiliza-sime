@@ -4,7 +4,7 @@ import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { paymentPrincipal, payableReportState, matchesPayableReportFilter } from "@/lib/payableReportState";
+import { installmentPrincipalMap, payableReportState, matchesPayableReportFilter } from "@/lib/payableReportState";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,7 @@ export function PayablesDataGrid() {
         fetchAllRows((from, to) => supabase.from("expenses").select("*").is("deleted_at", null).order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("profiles").select("id, full_name, razao_social, nome_fantasia").order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("expense_installments").select("*").order("numero_parcela").order("id").range(from, to)),
-        fetchAllRows((from, to) => supabase.from("expense_payments").select("id, expense_id, installment_id, valor, juros").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("expense_payments").select("id, expense_id, installment_id, valor, juros, desconto").order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("freight_contracts")
           .select("id, expense_id, numero, cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome)")
           .order("id").range(from, to)),
@@ -88,13 +88,7 @@ export function PayablesDataGrid() {
 
       const installmentsByExp: Record<string, any[]> = {};
       (instRes.data || []).forEach((i: any) => { (installmentsByExp[i.expense_id] ||= []).push(i); });
-      const pagoByInst: Record<string, number> = {};
-      const pagoByExp: Record<string, number> = {};
-      (payRes.data || []).forEach((p: any) => {
-        const principal = paymentPrincipal(p.valor, p.juros);
-        if (p.installment_id) pagoByInst[p.installment_id] = (pagoByInst[p.installment_id] || 0) + principal;
-        pagoByExp[p.expense_id] = (pagoByExp[p.expense_id] || 0) + principal;
-      });
+      const pagoByInst = installmentPrincipalMap(instRes.data || [], payRes.data || []);
       const contractDescByExp: Record<string, string> = {};
       (contractRes.data || []).forEach((c: any) => {
         if (!c.expense_id) return;
