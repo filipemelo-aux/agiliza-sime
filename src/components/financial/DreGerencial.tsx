@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import { cardCompetenceValue, effectiveCompetence, inCompetence } from "@/lib/dreCompetence";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,6 +67,7 @@ const ORIGEM_ORDER: OrigemKind[] = ["cartao", "contas_pagar", "direta"];
 
 
 export function DreGerencial() {
+  const { user, loading: authLoading, supportTenantId } = useAuth();
   const [filterEmpresa, setFilterEmpresa] = useState<string>("");
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
@@ -88,16 +92,28 @@ export function DreGerencial() {
   const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("chart_of_accounts")
-      .select("id, codigo, nome, conta_pai_id")
-      .order("codigo")
-      .then(({ data }) => setChartAccounts((data as ChartAccount[]) || []));
-  }, []);
+    setGenerated(false);
+    setMovs([]);
+    setAudit(null);
+  }, [dataInicio, dataFim, filterEmpresa, user?.id, supportTenantId]);
 
   const gerar = useCallback(async () => {
+    if (authLoading || !user) return;
     setLoading(true);
+    setGenerated(false);
+    setAudit(null);
     try {
+      const chart = await fetchAllRows((from, to) => supabase.from("chart_of_accounts")
+        .select("id, codigo, nome, conta_pai_id, tipo").order("id").range(from, to));
+      const accounts = chart.data || [];
+      setChartAccounts(accounts);
+      const expenses = await fetchAllRows((from, to) => {
+        let query = supabase.from("expenses").select("id, empresa_id, descricao, plano_contas_id, valor_total, data_competencia, data_emissao, favorecido_nome")
+          .is("deleted_at", null).order("id").range(from, to);
+        if (filterEmpresa) query = query.eq("empresa_id", filterEmpresa);
+        return query;
+      });
+      const recognizedExpenseIds = new Set((expenses.data || []).map(e => e.id));
       const enriched: MovDetail[] = [];
 
       // ============================================================
@@ -105,10 +121,9 @@ export function DreGerencial() {
       //    (posted_date). Parcelamentos: só a 1ª parcela entra, com o
       //    VALOR TOTAL (parcela × N) no mês da compra.
       // ============================================================
-      const { data: ccInvoices } = await supabase
-        .from("credit_card_invoices")
-        .select("id, expense_id, empresa_id")
-        .is("deleted_at", null);
+      const { data: ccInvoices } = await fetchAllRows((from, to) => supabase
+        .from("credit_card_invoices").select("id, expense_id, empresa_id")
+        .is("deleted_at", null).order("id").range(from, to));
       const ccExpenseIds = new Set<string>(
         (ccInvoices || []).filter((r: any) => r.expense_id).map((r: any) => r.expense_id),
       );
@@ -117,22 +132,20 @@ export function DreGerencial() {
         .map((r: any) => r.id);
 
       if (invoiceIds.length > 0) {
-        let itemsQ: any = supabase
-          .from("credit_card_invoice_items")
-          .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
-          .in("invoice_id", invoiceIds)
-          .eq("ignored", false);
-        if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
-        if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
-        const { data: items } = await itemsQ.limit(20000);
-        (items || []).forEach((it: any) => {
-          const val = Number(it.amount) || 0;
+        const { data: items } = await fetchAllRows((from, to) => {
+          let query = supabase.from("credit_card_invoice_items")
+            .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total, origem_expense_id")
+            .in("invoice_id", invoiceIds).eq("ignored", false).order("id").range(from, to);
+          if (dataInicio) query = query.gte("posted_date", dataInicio);
+          if (dataFim) query = query.lte("posted_date", dataFim);
+          return query;
+        });
+        (items || []).forEach(it => {
+          const val = cardCompetenceValue(it, recognizedExpenseIds);
           if (val === 0) return;
-          const atual = Number(it.parcela_atual) || 0;
           const total = Number(it.parcela_total) || 0;
-          if (total > 0 && atual !== 1) return;
           const parcelaLabel = total > 0 ? `1/${total} • valor total ${total}x` : "à vista";
-          const valorCompetencia = total > 0 ? Math.abs(val) * total : Math.abs(val);
+          const valorCompetencia = Math.abs(val);
           enriched.push({
             tipo: val < 0 ? "entrada" : "saida",
             valor: valorCompetencia,
@@ -151,17 +164,10 @@ export function DreGerencial() {
       //    (fato gerador). Exclui despesas "mãe" de fatura de cartão
       //    para não dobrar (o cartão já foi explodido acima).
       // ============================================================
-      let expQ: any = supabase
-        .from("expenses")
-        .select("id, descricao, plano_contas_id, valor_total, data_competencia, data_emissao, favorecido_nome")
-        .is("deleted_at", null);
-      if (filterEmpresa) expQ = expQ.eq("empresa_id", filterEmpresa);
-      if (dataInicio) expQ = expQ.gte("data_competencia", dataInicio);
-      if (dataFim) expQ = expQ.lte("data_competencia", dataFim);
-      const { data: expData, error: expErr } = await expQ.limit(20000);
-      if (expErr) throw expErr;
-      (expData || []).forEach((e: any) => {
-        if (ccExpenseIds.has(e.id)) return; // fatura de cartão — já contabilizada
+      (expenses.data || []).forEach(e => {
+        if (ccExpenseIds.has(e.id)) return;
+        const date = effectiveCompetence(e);
+        if (!inCompetence(date, dataInicio, dataFim)) return;
         const v = Number(e.valor_total) || 0;
         if (v === 0) return;
         enriched.push({
@@ -169,7 +175,7 @@ export function DreGerencial() {
           valor: Math.abs(v),
           planoId: e.plano_contas_id || null,
           origem: "contas_pagar",
-          data: e.data_competencia || e.data_emissao || null,
+          data: effectiveCompetence(e),
           descricao: (e.favorecido_nome ? `${e.favorecido_nome} — ` : "") + (e.descricao || "—"),
           parcela: "—",
         });
@@ -180,23 +186,19 @@ export function DreGerencial() {
       //    (previsoes_recebimento.data_prevista). Fato gerador da
       //    receita = emissão do CT-e / prestação do serviço.
       // ============================================================
-      const chartRes = await supabase
-        .from("chart_of_accounts")
-        .select("id, codigo")
-        .in("codigo", ["1.1.01", "1.1.02"]);
       const revenueByCodigo = new Map<string, string>();
-      (chartRes.data || []).forEach((c: any) => revenueByCodigo.set(c.codigo, c.id));
+      accounts.forEach(c => revenueByCodigo.set(c.codigo, c.id));
       const planoCte = revenueByCodigo.get("1.1.01") || null;
       const planoColheita = revenueByCodigo.get("1.1.02") || null;
 
-      let prevQ: any = supabase
-        .from("previsoes_recebimento")
-        .select("id, origem_tipo, valor, data_prevista");
-      if (filterEmpresa) prevQ = prevQ.eq("empresa_id", filterEmpresa);
-      if (dataInicio) prevQ = prevQ.gte("data_prevista", dataInicio);
-      if (dataFim) prevQ = prevQ.lte("data_prevista", dataFim);
-      const { data: prevData, error: prevErr } = await prevQ.limit(20000);
-      if (prevErr) throw prevErr;
+      const { data: prevData } = await fetchAllRows((from, to) => {
+        let query = supabase.from("previsoes_recebimento").select("id, origem_tipo, valor, data_prevista")
+          .order("id").range(from, to);
+        if (filterEmpresa) query = query.eq("empresa_id", filterEmpresa);
+        if (dataInicio) query = query.gte("data_prevista", dataInicio);
+        if (dataFim) query = query.lte("data_prevista", dataFim);
+        return query;
+      });
       (prevData || []).forEach((p: any) => {
         const v = Number(p.valor) || 0;
         if (v === 0) return;
@@ -218,24 +220,17 @@ export function DreGerencial() {
       //    previsoes_recebimento). Usamos data_movimentacao como
       //    proxy de competência.
       // ============================================================
-      const { data: revAccts } = await supabase
-        .from("chart_of_accounts")
-        .select("id, codigo")
-        .eq("tipo", "receita");
-      const nonOpRevenueIds = (revAccts || [])
-        .filter((c: any) => !String(c.codigo).startsWith("1.1"))
-        .map((c: any) => c.id);
+      const nonOpRevenueIds = accounts.filter(c => c.tipo === "receita" && !c.codigo.startsWith("1.1")).map(c => c.id);
       if (nonOpRevenueIds.length > 0) {
-        let movQ: any = supabase
-          .from("movimentacoes_bancarias")
-          .select("id, valor, data_movimentacao, descricao, plano_contas_id, origem")
-          .eq("tipo", "entrada")
-          .in("plano_contas_id", nonOpRevenueIds);
-        if (filterEmpresa) movQ = movQ.eq("empresa_id", filterEmpresa);
-        if (dataInicio) movQ = movQ.gte("data_movimentacao", dataInicio);
-        if (dataFim) movQ = movQ.lte("data_movimentacao", dataFim);
-        const { data: movData, error: movErr } = await movQ.limit(20000);
-        if (movErr) throw movErr;
+        const { data: movData } = await fetchAllRows((from, to) => {
+          let query = supabase.from("movimentacoes_bancarias")
+            .select("id, valor, data_movimentacao, descricao, plano_contas_id, origem")
+            .eq("tipo", "entrada").in("plano_contas_id", nonOpRevenueIds).order("id").range(from, to);
+          if (filterEmpresa) query = query.eq("empresa_id", filterEmpresa);
+          if (dataInicio) query = query.gte("data_movimentacao", dataInicio);
+          if (dataFim) query = query.lte("data_movimentacao", dataFim);
+          return query;
+        });
         (movData || []).forEach((m: any) => {
           const v = Number(m.valor) || 0;
           if (v === 0) return;
@@ -258,7 +253,7 @@ export function DreGerencial() {
     } finally {
       setLoading(false);
     }
-  }, [dataInicio, dataFim, filterEmpresa]);
+  }, [dataInicio, dataFim, filterEmpresa, authLoading, user?.id, supportTenantId]);
 
 
 
@@ -272,7 +267,7 @@ export function DreGerencial() {
     chartAccounts.forEach((a) => {
       const key = a.conta_pai_id || null;
       if (!childrenByParent.has(key)) childrenByParent.set(key, []);
-      childrenByParent.get(key)!.push(a);
+      childrenByParent.get(key)?.push(a);
     });
 
     const nodeMap = new Map<string, TreeNode>();
@@ -458,10 +453,20 @@ export function DreGerencial() {
     setAuditLoading(true);
     try {
       // 1) Buscar TODOS os itens de cartão do período (fonte "módulo Cartão")
-      const { data: invs } = await supabase
-        .from("credit_card_invoices")
-        .select("id, card_name, reference_label, expense_id, deleted_at")
-        .is("deleted_at", null);
+      const [{ data: invs }, { data: originalExpenses }] = await Promise.all([
+        fetchAllRows((from, to) => {
+          let query = supabase.from("credit_card_invoices")
+            .select("id, card_name, reference_label, expense_id, deleted_at").is("deleted_at", null).order("id").range(from, to);
+          if (filterEmpresa) query = query.eq("empresa_id", filterEmpresa);
+          return query;
+        }),
+        fetchAllRows((from, to) => {
+          let query = supabase.from("expenses").select("id").is("deleted_at", null).order("id").range(from, to);
+          if (filterEmpresa) query = query.eq("empresa_id", filterEmpresa);
+          return query;
+        }),
+      ]);
+      const recognizedExpenseIds = new Set((originalExpenses || []).map(e => e.id));
       const invMap = new Map<string, { label: string; closed: boolean }>();
       (invs || []).forEach((inv: any) => {
         invMap.set(inv.id, {
@@ -474,41 +479,32 @@ export function DreGerencial() {
         setAudit({ missing: [], extra: [], totalCc: 0, totalDre: 0 });
         return;
       }
-      let q: any = supabase
-        .from("credit_card_invoice_items")
-        .select("id, invoice_id, amount, ignored, posted_date, description, parcela_atual, parcela_total")
-        .in("invoice_id", invIds);
-      if (dataInicio) q = q.gte("posted_date", dataInicio);
-      if (dataFim) q = q.lte("posted_date", dataFim);
-      const { data: items, error } = await q.limit(20000);
-      if (error) throw error;
+      const { data: items } = await fetchAllRows((from, to) => {
+        let query = supabase.from("credit_card_invoice_items")
+          .select("id, invoice_id, amount, ignored, posted_date, description, parcela_atual, parcela_total, origem_expense_id")
+          .in("invoice_id", invIds).order("id").range(from, to);
+        if (dataInicio) query = query.gte("posted_date", dataInicio);
+        if (dataFim) query = query.lte("posted_date", dataFim);
+        return query;
+      });
 
       const dreItemIds = new Set<string>(
         movs.filter((m) => m.origem === "cartao" && m.itemId).map((m) => m.itemId as string),
       );
 
       const ccRows: AuditRow[] = [];
-      const dreExpected = new Set<string>();
       let totalCc = 0;
-      (items || []).forEach((it: any) => {
-        const val = Math.abs(Number(it.amount) || 0);
-        if (val === 0) return;
-        const atual = Number(it.parcela_atual) || 0;
+      (items || []).forEach(it => {
+        const competenciaVal = cardCompetenceValue(it, recognizedExpenseIds);
+        if (competenciaVal === 0) return;
         const total = Number(it.parcela_total) || 0;
-        // REGRA DE COMPETÊNCIA: só à vista (total=0) ou 1ª parcela nascem no mês.
-        // Parcelas 2/N, 3/N... pertencem à competência do mês da compra original.
-        if (total > 0 && atual !== 1) return;
-
-        // Regime de competência: para parcelamentos, considerar o VALOR TOTAL
-        // da compra (parcela × N) no mês da compra original.
-        const competenciaVal = total > 0 ? val * total : val;
         totalCc += competenciaVal;
         const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
         const parcela = total > 0 ? `1/${total} • total ${total}x` : "à vista";
 
         const reasons: string[] = [];
         if (it.ignored) reasons.push("Item marcado como Ignorado");
-        if (!inv.closed) reasons.push("Fatura ainda em aberto (sem despesa gerada)");
+
 
         const row: AuditRow = {
           id: it.id,
@@ -520,7 +516,7 @@ export function DreGerencial() {
           reason: reasons.join(" • ") || "OK — deveria estar na DRE",
         };
         ccRows.push(row);
-        if (reasons.length === 0) dreExpected.add(it.id);
+
       });
 
       const missing: AuditRow[] = ccRows.filter((r) => !dreItemIds.has(r.id));
@@ -542,7 +538,7 @@ export function DreGerencial() {
         });
 
       let totalDre = 0;
-      movs.forEach((m) => { if (m.origem === "cartao") totalDre += m.valor; });
+      movs.forEach((m) => { if (m.origem === "cartao") totalDre += m.tipo === "entrada" ? -m.valor : m.valor; });
 
       setAudit({ missing, extra, totalCc, totalDre });
     } catch (e: any) {
@@ -550,7 +546,7 @@ export function DreGerencial() {
     } finally {
       setAuditLoading(false);
     }
-  }, [dataInicio, dataFim, movs]);
+  }, [dataInicio, dataFim, filterEmpresa, movs]);
 
   const exportAuditCsv = useCallback((rows: AuditRow[], suffix: string) => {
     const mapped = rows.map((r) => ({
@@ -657,7 +653,7 @@ export function DreGerencial() {
 
       <GlobalToolbar
         actions={[
-          { key: "generate", label: loading ? "Gerando" : "Gerar DRE", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading, onClick: gerar },
+          { key: "generate", label: loading ? "Gerando" : "Gerar DRE", icon: loading ? Loader2 : Search, mode: "always", variant: "default", disabled: loading || authLoading || !user, onClick: gerar },
           { key: "expand", label: "Expandir", icon: Expand, mode: "always", disabled: !generated, onClick: expandAll },
           { key: "collapse", label: "Recolher", icon: Shrink, mode: "always", disabled: !generated, onClick: collapseAll },
           { key: "audit", label: "Auditar divergências", icon: auditLoading ? Loader2 : ScanSearch, mode: "always", disabled: !generated || auditLoading, onClick: runAudit },
