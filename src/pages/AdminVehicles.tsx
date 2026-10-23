@@ -34,6 +34,11 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   utilitario: "Utilitário", passeio: "Passeio",
 };
 
+const CARGO_TYPE_LABELS: Record<string, string> = {
+  aberta: "Aberta", bau: "Baú", cacamba: "Caçamba", graneleiro: "Graneleiro",
+  tanque: "Tanque", sider: "Sider", plataforma: "Plataforma",
+};
+
 
 const TRAILER_LABELS: Record<string, string[]> = {
   carreta: ["Carreta"], carreta_ls: ["Carreta"],
@@ -224,23 +229,41 @@ export default function AdminVehicles() {
       },
     },
     {
-      key: "vehicle",
-      header: "Veículo",
-      sortValue: (v) => `${v.brand || ""} ${v.model || ""}`,
-      cell: (v) => (
-        <div>
-          <div>{v.brand} {v.model}</div>
-          <div className="text-[11px] text-muted-foreground">{v.year}{v.cargo_type ? ` · ${v.cargo_type}` : ""}</div>
-        </div>
-      ),
+      key: "brand",
+      header: "Marca",
+      width: "110px",
+      sortValue: (v) => v.brand || "",
+      cell: (v) => <span className="truncate block">{v.brand || "—"}</span>,
+    },
+    {
+      key: "model",
+      header: "Modelo",
+      sortValue: (v) => v.model || "",
+      cell: (v) => <span className="truncate block">{v.model || "—"}</span>,
+    },
+    {
+      key: "year",
+      header: "Ano",
+      width: "70px",
+      align: "right",
+      sortValue: (v) => v.year || 0,
+      cell: (v) => <span className="tabular-nums">{v.year || "—"}</span>,
     },
     {
       key: "type",
       header: "Categoria",
-      width: "170px",
+      width: "150px",
       sortValue: (v) => unitLabel(v),
       cell: (v) => <span className="text-xs">{unitLabel(v)}</span>,
     },
+    {
+      key: "cargo",
+      header: "Carroceria",
+      width: "120px",
+      sortValue: (v) => v.cargo_type || "",
+      cell: (v) => <span className="text-xs capitalize truncate block">{v.cargo_type ? CARGO_TYPE_LABELS[v.cargo_type] || v.cargo_type : "—"}</span>,
+    },
+    { key: "driver", header: "Motorista", sortValue: (v) => v.driver_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.driver_name || "—"}</span> },
     { key: "owner", header: "Proprietário", sortValue: (v) => v.owner_name || "", cell: (v) => <span className="text-muted-foreground truncate block">{v.owner_name || "—"}</span> },
     {
       key: "avg",
@@ -348,7 +371,7 @@ export default function AdminVehicles() {
           selected={selected}
           onSelectedChange={setSelected}
           loading={loading}
-          minWidth={900}
+          minWidth={1250}
           emptyMessage="Nenhum veículo encontrado."
           footer={<div className="text-[11px] text-muted-foreground">{filteredVehicles.length} veículo(s)</div>}
         />
