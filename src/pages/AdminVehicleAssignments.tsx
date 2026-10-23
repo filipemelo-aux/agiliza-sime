@@ -123,9 +123,9 @@ export default function AdminVehicleAssignments() {
   const plateOf=(r:Assignment)=>vehicle(r.vehicle_id)?.plate || "";
   const filtered=rows.filter(r=>!search || matchesText([plateOf(r),person(r.driver_profile_id)?.full_name,...r.implement_ids.map(id=>vehicle(id)?.plate)].join(" "),search)).sort((a,b)=>plateOf(a).localeCompare(plateOf(b)));
   const columns:DataGridColumn<Assignment>[]=[
-    {key:"plate",header:"Tração / Veículo",width:"150px",cell:r=><div><span className="font-medium">{maskPlate(vehicle(r.vehicle_id)?.plate || "")}</span><div className="text-[10px] text-muted-foreground">{unitLabel(vehicle(r.vehicle_id) || {})}</div></div>},
-    {key:"driver",header:"Motorista / Colaborador",cell:r=><div>{person(r.driver_profile_id)?.full_name || "—"}{person(r.driver_profile_id)?.cnpj && <div className="text-[10px] text-muted-foreground">{maskDocument(person(r.driver_profile_id)?.cnpj)}</div>}</div>},
-    ...[0,1,2].map((index):DataGridColumn<Assignment>=>({key:`implement_${index}`,header:`${index+1}º Implemento`,width:"140px",sortValue:r=>vehicle(r.implement_ids[index] || "")?.plate || "",cell:r=>{const v=vehicle(r.implement_ids[index] || "");return v?<div><span className="font-medium">{maskPlate(v.plate)}</span><div className="text-[10px] text-muted-foreground">{unitLabel(v)}</div></div>:<span className="text-muted-foreground">—</span>;}})),
+    {key:"plate",header:"Tração / Veículo",width:"200px",cell:r=><div><span className="font-medium">{maskPlate(vehicle(r.vehicle_id)?.plate || "")}</span><div className="text-[10px] text-muted-foreground">{unitLabel(vehicle(r.vehicle_id) || {})}</div></div>},
+    {key:"driver",header:"Motorista / Colaborador",width:"28%",cell:r=><div>{person(r.driver_profile_id)?.full_name || "—"}{person(r.driver_profile_id)?.cnpj && <div className="text-[10px] text-muted-foreground">{maskDocument(person(r.driver_profile_id)?.cnpj)}</div>}</div>},
+    ...[0,1,2].map((index):DataGridColumn<Assignment>=>({key:`implement_${index}`,header:`${index+1}º Implemento`,width:"180px",sortValue:r=>vehicle(r.implement_ids[index] || "")?.plate || "",cell:r=>{const v=vehicle(r.implement_ids[index] || "");return v?<div><span className="font-medium">{maskPlate(v.plate)}</span><div className="text-[10px] text-muted-foreground">{unitLabel(v)}</div></div>:<span className="text-muted-foreground">—</span>;}})),
   ];
   if(roleLoading || !hasAdminAccess) return null;
   const category=unitCategory(vehicle(vehicleId) || {});
@@ -137,7 +137,7 @@ export default function AdminVehicleAssignments() {
       {key:"edit",label:"Trocar motorista ou conjunto",icon:Pencil,mode:"single",disabled:!canEdit || saving,onClick:()=>current && begin(current)},
       {key:"refresh",label:"Atualizar",icon:RefreshCw,mode:"always",disabled:saving,onClick:()=>void load()},
     ]}/>
-    <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={900} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
+    <DataGrid rows={filtered} columns={columns} rowId={r=>r.id} selected={selected} onSelectedChange={setSelected} loading={loading} minWidth={1100} emptyMessage="Nenhuma vinculação encontrada." footer={<span className="text-xs text-muted-foreground">{filtered.length} vinculação(ões)</span>}/>
     <Dialog open={open} onOpenChange={v=>!saving && setOpen(v)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{editing?"Trocar vinculação":"Nova vinculação"}</DialogTitle></DialogHeader>
       <div className="space-y-3">
         <div className="space-y-1"><Label>Tração / Veículo *</Label><PlateCombobox placeholder="Buscar placa..." options={availableVehicles.map(v=>({id:v.id,plate:v.plate,label:unitLabel(v),note:active.some(a=>a.vehicle_id===v.id)?"(possui conjunto)":undefined}))} value={vehicleId} onSelect={id=>{setVehicleId(id);const ex=active.find(a=>a.vehicle_id===id);setImplements([ex?.implement_ids[0] || "",ex?.implement_ids[1] || "",ex?.implement_ids[2] || ""]);if(ex){setDriverId(ex.driver_profile_id || "");setDriverName(person(ex.driver_profile_id)?.full_name || "");}}}/>{existing && <p className="text-xs text-warning">Esta placa já possui conjunto. Ao salvar, o conjunto será substituído pelo informado abaixo.</p>}</div>
