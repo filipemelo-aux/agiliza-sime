@@ -34,6 +34,11 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   utilitario: "Utilitário", passeio: "Passeio",
 };
 
+const CARGO_TYPE_LABELS: Record<string, string> = {
+  aberta: "Aberta", bau: "Baú", cacamba: "Caçamba", graneleiro: "Graneleiro",
+  tanque: "Tanque", sider: "Sider", plataforma: "Plataforma",
+};
+
 
 const TRAILER_LABELS: Record<string, string[]> = {
   carreta: ["Carreta"], carreta_ls: ["Carreta"],
@@ -366,7 +371,7 @@ export default function AdminVehicles() {
           selected={selected}
           onSelectedChange={setSelected}
           loading={loading}
-          minWidth={900}
+          minWidth={1250}
           emptyMessage="Nenhum veículo encontrado."
           footer={<div className="text-[11px] text-muted-foreground">{filteredVehicles.length} veículo(s)</div>}
         />
