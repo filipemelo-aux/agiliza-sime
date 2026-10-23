@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { cardCompetenceValue, effectiveCompetence, inCompetence } from "./dreCompetence";
+import { cardCompetenceValue, effectiveCompetence, inCompetence, settlementAdjustment } from "./dreCompetence";
 
 describe("competência do DRE", () => {
+  it("reconhece somente juros e desconto na liquidação, sem repetir principal", () => {
+    expect(settlementAdjustment({ juros: 36.96 })).toBe(36.96);
+    expect(settlementAdjustment({ desconto: 20 })).toBe(-20);
+    expect(settlementAdjustment({ juros: 0, desconto: 0 })).toBe(0);
+  });
   it("usa emissão apenas quando competência está ausente", () => {
     expect(effectiveCompetence({ data_competencia: "2026-09-01", data_emissao: "2026-10-02" })).toBe("2026-09-01");
     expect(inCompetence(effectiveCompetence({ data_emissao: "2026-10-02" }), "2026-10-01", "2026-10-31")).toBe(true);

@@ -3,14 +3,14 @@ import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { cardCompetenceValue, effectiveCompetence, inCompetence } from "@/lib/dreCompetence";
+import { cardCompetenceValue, effectiveCompetence, inCompetence, settlementAdjustment } from "@/lib/dreCompetence";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, ChevronRight, ChevronDown, Eye, Download, ScanSearch, Expand, Shrink } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
-import { formatDateBR } from "@/lib/date";
+import { formatDateBR, normalizeDateInput } from "@/lib/date";
 import { toast } from "@/lib/notice";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -245,6 +245,25 @@ export function DreGerencial() {
           });
         });
       }
+
+      // Principal is already recognized by competence. Only settlement adjustments are new costs.
+      const { data: payments } = await fetchAllRows((from, to) => supabase.from("expense_payments")
+        .select("id, expense_id, data_pagamento, juros, desconto").order("id").range(from, to));
+      const expenseById = new Map((expenses.data || []).map(e => [e.id, e]));
+      const interestAccount = accounts.find(c => c.codigo === "2.2.6.02")?.id || null;
+      (payments || []).forEach(payment => {
+        const expense = expenseById.get(payment.expense_id);
+        if (!expense) return;
+        const date = normalizeDateInput(payment.data_pagamento);
+        if (!inCompetence(date, dataInicio, dataFim)) return;
+        const adjustment = settlementAdjustment(payment);
+        if (adjustment === 0) return;
+        enriched.push({ tipo: "saida", valor: adjustment,
+          planoId: adjustment > 0 ? interestAccount : expense.plano_contas_id,
+          origem: "contas_pagar", data: date,
+          descricao: `${adjustment > 0 ? "Juros de liquidação" : "Desconto de liquidação"} — ${expense.descricao}`,
+          parcela: "—" });
+      });
 
       setMovs(enriched);
       setGenerated(true);
