@@ -3,7 +3,7 @@ export type PayableReportFilter = "todos" | "atrasado" | "aberto" | "pago";
 
 /** Interest is cash paid, not amortization of the original debt. */
 export function paymentPrincipal(valor: unknown, juros: unknown, desconto: unknown = 0) {
-  return Math.max(0, Math.round(Number(valor || 0) * 100) - Math.round(Number(juros || 0) * 100) + Math.round(Number(desconto || 0) * 100)) / 100;
+  return (Math.round(Number(valor || 0) * 100) - Math.round(Number(juros || 0) * 100) + Math.round(Number(desconto || 0) * 100)) / 100;
 }
 
 /** Allocate payments without an installment link oldest-first, just like the database trigger. */
@@ -21,7 +21,7 @@ export function installmentPrincipalMap(
   const sorted = [...installments].sort((a, b) => a.numero_parcela - b.numero_parcela || a.id.localeCompare(b.id));
   for (const i of sorted) {
     if (i.status === "cancelado") continue;
-    const extra = Math.min(unallocated[i.expense_id] || 0, Math.max(0, Math.round(Number(i.valor) * 100) - (paid[i.id] || 0)));
+    const extra = Math.min(Math.max(0, unallocated[i.expense_id] || 0), Math.max(0, Math.round(Number(i.valor) * 100) - (paid[i.id] || 0)));
     paid[i.id] = (paid[i.id] || 0) + extra;
     unallocated[i.expense_id] = (unallocated[i.expense_id] || 0) - extra;
   }

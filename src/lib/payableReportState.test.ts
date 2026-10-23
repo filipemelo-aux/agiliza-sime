@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { installmentPrincipalMap, matchesPayableReportFilter, payableReportState, paymentPrincipal } from "./payableReportState";
 
 describe("separação das contas no relatório bancário", () => {
+  it("preserva estorno negativo no cálculo do principal", () => {
+    expect(paymentPrincipal(-1459.9, 0)).toBe(-1459.9);
+    expect(installmentPrincipalMap([{ id: "p", expense_id: "e", numero_parcela: 1, valor: 1459.9, status: "pendente" }], [
+      { expense_id: "e", valor: 1459.9 }, { expense_id: "e", valor: -1459.9 },
+    ]).p).toBe(0);
+  });
   it("desconto liquida principal sem contar como saída de caixa", () => {
     expect(paymentPrincipal(80, 0, 20)).toBe(100);
   });
