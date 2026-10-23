@@ -7,6 +7,11 @@ export function inCompetence(date: string | null | undefined, start: string, end
   return !!day && (!start || day >= start) && (!end || day <= end);
 }
 
+/** Settlement adjustments affect earnings, but principal must not be expensed again. */
+export function settlementAdjustment(payment: { juros?: unknown; desconto?: unknown }) {
+  return (Math.round(Number(payment.juros || 0) * 100) - Math.round(Number(payment.desconto || 0) * 100)) / 100;
+}
+
 /** A card discharge is financing an existing expense, not a second purchase. */
 export function cardCompetenceValue(item: {
   amount: unknown; ignored?: boolean; parcela_atual?: number | null; parcela_total?: number | null;

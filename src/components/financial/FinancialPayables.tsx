@@ -1313,43 +1313,10 @@ export function FinancialPayables() {
   };
 
   const { totalPendente, totalAtrasado, totalRegistros } = useMemo(() => {
-    let pendente = 0;
-    let atrasado = 0;
-    let registros = 0;
-    const today = format(new Date(), "yyyy-MM-dd");
-
-    // Cards exibem totais GERAIS de itens NÃO pagos
-    items.forEach(item => {
-      if (item.status === "pago") return;
-
-      const installs = installmentsMap[item.id];
-      if (installs && installs.length > 0) {
-        installs.forEach(inst => {
-          if (inst.status === "pago") return;
-          // Saldo devedor da parcela = valor da parcela - pagamentos já realizados nela
-          const instRemaining = Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0);
-          if (instRemaining <= 0.009) return;
-          registros++;
-          if (inst.data_vencimento < today) {
-            atrasado += instRemaining;
-          } else {
-            pendente += instRemaining;
-          }
-        });
-      } else {
-        registros++;
-        const remaining = Number(item.valor_total) - Number(item.valor_pago);
-        const dueDate = item.data_vencimento || item.data_emissao;
-        if (dueDate < today) {
-          atrasado += remaining;
-        } else {
-          pendente += remaining;
-        }
-      }
-    });
-
-    return { totalPendente: pendente, totalAtrasado: atrasado, totalRegistros: registros };
-  }, [items, installmentsMap, instPaidMap]);
+    const sum = (overdue: boolean) => flatRows.filter(r => !r.isPago && r.isOverdue === overdue)
+      .reduce((total, row) => total + Math.round(row.saldo * 100), 0) / 100;
+    return { totalPendente: sum(false), totalAtrasado: sum(true), totalRegistros: flatRows.length };
+  }, [flatRows]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
