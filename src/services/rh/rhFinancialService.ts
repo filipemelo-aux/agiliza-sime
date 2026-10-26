@@ -11,6 +11,7 @@
  *   Ao confirmar, a folha CRIA uma despesa líquida em Contas a Pagar
  *   (categoria Salários) por colaborador.
  */
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { supabase } from "@/integrations/supabase/client";
 import { type Comissao } from "./comissoesService";
 
@@ -133,4 +134,21 @@ export async function fetchComissoesPendentesForMonth(
     .lt("data_referencia", end);
   if (error) throw error;
   return (data as Comissao[]) || [];
+}
+
+export type ReembolsoExpense = {
+  id: string; descricao: string; valor_total: number; valor_pago: number;
+  data_competencia: string | null; data_emissao: string;
+  reembolso_colaborador_id: string | null; reembolso_colaborador_nome: string | null;
+};
+
+export async function fetchReembolsosPendentesNoPeriodo(colabIds: string[], inicio: string, fim: string): Promise<ReembolsoExpense[]> {
+  if (!colabIds.length) return [];
+  const { data } = await fetchAllRows((from, to) => supabase.from("expenses")
+    .select("id, descricao, valor_total, valor_pago, data_competencia, data_emissao, reembolso_colaborador_id, reembolso_colaborador_nome")
+    .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds)
+    .is("deleted_at", null).is("reembolso_folha_item_id", null)
+    .not("status", "in", "(pago,cancelado)")
+    .gte("data_competencia", inicio).lte("data_competencia", fim).order("id").range(from, to));
+  return (data || []).filter(e => Number(e.valor_total) > Number(e.valor_pago || 0));
 }

@@ -60,6 +60,10 @@ interface ChartAccount { id: string; codigo: string; nome: string; tipo: string;
 
 
 interface Expense {
+  is_reembolso?: boolean;
+  reembolso_colaborador_id?: string | null;
+  reembolso_colaborador_nome?: string | null;
+  reembolso_folha_item_id?: string | null;
   id: string;
   empresa_id?: string | null;
   descricao: string;
@@ -156,6 +160,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   useEffect(() => {
     if (!open && autoSavedId) { onSaved(autoSavedId); setAutoSavedId(null); setCheckExpenseId(null); }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [isReembolso, setIsReembolso] = useState(false);
+  const [reembolsoColaboradorId, setReembolsoColaboradorId] = useState<string | null>(null);
+  const [reembolsoColaboradorNome, setReembolsoColaboradorNome] = useState("");
+  const reembolsoLocked = !!expense?.reembolso_folha_item_id || (isEditing && Number(expense?.valor_pago || 0) > 0);
   const [favorecidoNome, setFavorecidoNome] = useState("");
   const [favorecidoId, setFavorecidoId] = useState<string | null>(null);
   const [favorecidoCategory, setFavorecidoCategory] = useState<string | null>(null);
@@ -307,6 +315,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (!open) return;
     if (expense) {
       setEmpresaSelecionada(expense.empresa_id || empresaId || "");
+      setIsReembolso(!!expense.is_reembolso);
+      setReembolsoColaboradorId(expense.reembolso_colaborador_id || null);
+      setReembolsoColaboradorNome(expense.reembolso_colaborador_nome || "");
       setDescricao(expense.descricao);
       setPlanoContasId(expense.plano_contas_id || "");
       setCentroCusto(expense.centro_custo);
@@ -582,6 +593,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
 
   const resetForm = () => {
+    setIsReembolso(false); setReembolsoColaboradorId(null); setReembolsoColaboradorNome("");
     setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("");
     setValorTotal(initialValues?.valorTotal || ""); setDataEmissao(initialValues?.dataEmissao || getLocalDateISO()); setDataVencimento(initialValues?.dataVencimento || "");
     setFormaPagamento(""); setFavorecidoNome(initialValues?.favorecidoNome || ""); setFavorecidoId(initialValues?.favorecidoId || null); setFavorecidoCategory(null); setDocFiscal("");
@@ -790,6 +802,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (!descricao.trim()) return void toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return void toast.error("Informe o valor");
     if (!centroCusto) return void toast.error("Selecione o centro de custo");
+    if (isReembolso && !reembolsoColaboradorId) return void toast.error("Selecione o motorista/colaborador do reembolso");
     if (!formaPagamento) return void toast.error("Selecione a forma de pagamento");
     if (favorecidoNome.trim() && !favorecidoId) {
       return void toast.error(
@@ -881,6 +894,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       valor_total: valorTotalFinal, data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
+      is_reembolso: isReembolso, reembolso_colaborador_id: isReembolso ? reembolsoColaboradorId : null,
+      reembolso_colaborador_nome: isReembolso ? reembolsoColaboradorNome : null,
       documento_fiscal_numero: docFiscal.trim() || null, chave_nfe: trimmedChave || null,
       origem: documentoImportado ? "xml" : "manual",
       observacoes: observacoes.trim() || null, veiculo_placa: veiculoPlaca.trim() || null,
@@ -1367,6 +1382,18 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <Label className="text-xs">CPF/CNPJ Fornecedor</Label>
               <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(maskDocument(e.target.value))} placeholder="CPF ou CNPJ" className="h-9" />
             </div>
+          </div>
+
+          <div className="space-y-2 border-t border-border pt-3">
+            <div className="flex items-center gap-2">
+              <Switch id="expense-reimbursement" checked={isReembolso} disabled={reembolsoLocked} onCheckedChange={(checked) => { setIsReembolso(checked); if (!checked) { setReembolsoColaboradorId(null); setReembolsoColaboradorNome(""); } }} />
+              <Label htmlFor="expense-reimbursement" className="text-xs">Pago pelo colaborador (Reembolso)</Label>
+            </div>
+            {isReembolso && <div>
+              <Label className="text-xs">Motorista / Colaborador do reembolso *</Label>
+              {reembolsoLocked ? <Input value={reembolsoColaboradorNome} disabled className="h-9" /> : <PersonSearchInput categories={["motorista", "colaborador"]} placeholder="Buscar motorista ou colaborador..." selectedName={reembolsoColaboradorNome || undefined} onSelect={p => { setReembolsoColaboradorId(p.id); setReembolsoColaboradorNome(p.full_name); }} onClear={() => { setReembolsoColaboradorId(null); setReembolsoColaboradorNome(""); }} />}
+              {expense?.reembolso_folha_item_id && <p className="text-xs text-muted-foreground mt-1">Reembolso reservado na folha</p>}
+            </div>}
           </div>
 
           {/* Fuel suggestion */}
@@ -2397,17 +2424,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       data={checkParcela ? {
         expenseId: checkExpenseId || expense?.id || null,
         valor: checkParcela.valor,
-        nominal: favorecidoNome || descricao,
+        nominal: (isReembolso ? reembolsoColaboradorNome : favorecidoNome) || descricao,
         data: checkParcela.data,
         historico: chequeHistoricoParcela(checkParcela.numero, checkParcela.total),
         numeroCheque: "",
         planoContasId: planoContasId || null,
-        favorecidoId: favorecidoId || null,
+        favorecidoId: isReembolso ? reembolsoColaboradorId : favorecidoId || null,
         installment: { id: checkParcela.id, numero: checkParcela.numero, total: checkParcela.total },
       } : {
         expenseId: checkExpenseId || expense?.id || null,
         valor: Number(valorTotal) || 0,
-        nominal: favorecidoNome || descricao,
+        nominal: (isReembolso ? reembolsoColaboradorNome : favorecidoNome) || descricao,
         data: dataVencimento || dataEmissao,
         historico: descricao,
         numeroCheque: numeroCheque,

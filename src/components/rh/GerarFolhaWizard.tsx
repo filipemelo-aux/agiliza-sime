@@ -34,6 +34,8 @@ import {
   periodoToMesReferencia,
   criarFolhaEmAberto,
   confirmarFolha,
+  fetchReembolsosPendentesNoPeriodo,
+  type ReembolsoExpense,
   fetchAdiantamentosPagosNoPeriodo,
   fetchComissoesPendentesNoPeriodo,
   fetchDescontosPendentesNoPeriodo,
@@ -90,6 +92,8 @@ export function GerarFolhaWizard({
     buildPeriodoQuinzenal(month, "primeira_quinzena")
   );
 
+  const [reembolsos, setReembolsos] = useState<ReembolsoExpense[]>([]);
+  const [selReembolsos, setSelReembolsos] = useState<Set<string>>(new Set());
   const [adiantamentos, setAdiantamentos] = useState<Expense[]>([]);
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [descontos, setDescontos] = useState<DescontoFolha[]>([]);
@@ -133,13 +137,15 @@ export function GerarFolhaWizard({
     }
     setLoadingData(true);
     try {
-      const [adv, com, desc] = await Promise.all([
+      const [adv, com, desc, reimb] = await Promise.all([
         adiantamentoAccountId
           ? fetchAdiantamentosPagosNoPeriodo(colabIds, adiantamentoAccountId, periodo.data_inicio, periodo.data_fim)
           : Promise.resolve([]),
         fetchComissoesPendentesNoPeriodo(colabIds, periodo.data_inicio, periodo.data_fim),
         fetchDescontosPendentesNoPeriodo(colabIds, periodo.data_inicio, periodo.data_fim),
+        fetchReembolsosPendentesNoPeriodo(colabIds, periodo.data_inicio, periodo.data_fim),
       ]);
+      setReembolsos(reimb); setSelReembolsos(new Set(reimb.map(e => e.id)));
       setAdiantamentos(adv);
       setComissoes(com);
       setDescontos(desc);
@@ -162,6 +168,7 @@ export function GerarFolhaWizard({
     () =>
       computePayrollRowsFromPeriodo({
         colaboradores,
+        reembolsos, selectedReembolsoIds: selReembolsos,
         periodo,
         adiantamentos,
         comissoes,
@@ -173,18 +180,19 @@ export function GerarFolhaWizard({
         descontoParcelas: parcelasDesconto,
         selectedColaboradorIds: selColabs,
       }),
-    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, parcelasAdiant, parcelasDesconto, selColabs]
+    [reembolsos, selReembolsos, colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, parcelasAdiant, parcelasDesconto, selColabs]
   );
 
   const totals = rows.reduce(
     (acc, r) => ({
+      reimb: acc.reimb + r.reembolsos,
       base: acc.base + r.salario_base,
       adv: acc.adv + r.adiantamentos,
       desc: acc.desc + r.descontos,
       com: acc.com + r.comissoes,
       liq: acc.liq + r.liquido,
     }),
-    { base: 0, adv: 0, desc: 0, com: 0, liq: 0 }
+    { reimb: 0, base: 0, adv: 0, desc: 0, com: 0, liq: 0 }
   );
 
   const colabName = (id: string) =>
@@ -227,6 +235,7 @@ export function GerarFolhaWizard({
           descontos: r.descontos,
           comissoes: r.comissoes,
           liquido: r.liquido,
+          reembolsos: r.reembolsos, reembolso_expense_ids: r.reembolsoExpenseIds,
           comissao_ids: r.comissaoIds,
           desconto_ids: r.descontoIds,
           adiantamento_expense_ids: r.adiantamentoExpenseIds,
@@ -348,6 +357,7 @@ export function GerarFolhaWizard({
             <ScrollArea className="h-full w-full">
               {loadingData ? <Loading /> : (
                 <SelecaoStep
+                  reembolsos={reembolsos} selReembolsos={selReembolsos} setSelReembolsos={setSelReembolsos}
                   periodo={periodo}
                   adiantamentos={adiantamentos}
                   comissoes={comissoes}
@@ -610,6 +620,7 @@ function PresetCard({ active, onClick, title, subtitle }: any) {
 }
 
 function SelecaoStep({
+  reembolsos, selReembolsos, setSelReembolsos,
   periodo, adiantamentos, comissoes, descontos,
   selAdiant, setSelAdiant, selComissoes, setSelComissoes,
   selDescontos, setSelDescontos, colabName, toggle, selColabs,
@@ -638,6 +649,9 @@ function SelecaoStep({
       </p>
 
 
+      <Bucket title="Reembolso de despesas" tom="positive" hint=""
+        items={reembolsos.filter((e: ReembolsoExpense) => inColab(e.reembolso_colaborador_id)).map((e: ReembolsoExpense) => ({ id: e.id, name: e.reembolso_colaborador_nome || colabName(e.reembolso_colaborador_id), desc: e.descricao, info: formatDate(e.data_competencia || e.data_emissao), value: Number(e.valor_total) - Number(e.valor_pago || 0) }))}
+        selected={selReembolsos} onToggle={(id: string) => toggle(selReembolsos, setSelReembolsos, id)} emptyText="Sem reembolsos pendentes neste período." />
       <Bucket title="Comissões do período" tom="positive"
         hint="Comissões pendentes com data_referencia dentro do período"
         items={comissoesFiltradas.map((c: Comissao) => ({
@@ -795,6 +809,7 @@ function PreviaStep({ rows, totals, periodo }: any) {
       <Card>
         <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
           <Mini label="Salário base" value={formatBRL(totals.base)} />
+          <Mini label="+ Reembolsos" value={formatBRL(totals.reimb)} />
           <Mini label="+ Comissões" value={formatBRL(totals.com)} color="text-emerald-600" />
           <Mini label="− Adiantamentos" value={formatBRL(totals.adv)} color="text-amber-600" />
           <Mini label="− Descontos" value={formatBRL(totals.desc)} color="text-rose-600" />
@@ -814,6 +829,7 @@ function PreviaStep({ rows, totals, periodo }: any) {
                 <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
                 <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                   <Cell label="Base" value={formatBRL(r.salario_base)} />
+                  <Cell label="+ Reembolsos" value={formatBRL(r.reembolsos)} />
                   <Cell label="+ Comissões" value={formatBRL(r.comissoes)} c="text-emerald-600" />
                   <Cell label="− Adiantam." value={formatBRL(r.adiantamentos)} c="text-amber-600" />
                   <Cell label="− Descontos" value={formatBRL(r.descontos)} c="text-rose-600" />
