@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Integrar reembolsos em Nova Despesa, Contas a Pagar e folha, preservar fornecedor/classificação e testar reserva, pagamento e estorno sem duplicidade.
 
 - [x] Cadastro universal por placa: categorias individuais e proprietário preservados; 43 implementos separados dos conjuntos existentes; cadastro de placa antiga e Mercosul gravado e conferido na tela.
 - [x] Cadastros > Vinculações: montagem/desengate com motorista real e histórico conferidos; proteção de simultaneidade e categoria vinculada validada no banco.
