@@ -48,6 +48,8 @@ export type FolhaPagamento = {
 };
 
 export type FolhaItem = {
+  reembolsos?: number;
+  reembolso_expense_ids?: string[];
   id: string;
   folha_id: string;
   colaborador_id: string;
@@ -212,7 +214,7 @@ export async function confirmarFolha(input: {
       }
 
       // 2) Cria a despesa LÍQUIDA em Contas a Pagar (se ainda não existe)
-      const valorLiquido = Number(item.liquido || 0);
+      const valorLiquido = Math.max(0, Number(item.liquido || 0) - Number(item.reembolsos || 0));
       if (valorLiquido > 0 && !item.expense_id) {
         const periodoLabel =
           folha.data_inicio && folha.data_fim
@@ -243,9 +245,10 @@ export async function confirmarFolha(input: {
           .single();
         if (expErr) throw expErr;
 
-        await (supabase.from("folhas_pagamento_itens" as any) as any)
+        const { error: linkError } = await (supabase.from("folhas_pagamento_itens" as any) as any)
           .update({ expense_id: (exp as any).id })
           .eq("id", item.id);
+        if (linkError) throw linkError;
         despesasCriadas++;
       }
 
@@ -257,13 +260,14 @@ export async function confirmarFolha(input: {
   }
 
   if (fail === 0) {
-    await (supabase.from("folhas_pagamento" as any) as any)
+    const { error: confirmError } = await (supabase.from("folhas_pagamento" as any) as any)
       .update({
         status: "confirmada",
         confirmada_em: new Date().toISOString(),
         confirmada_por: input.user_id,
       })
       .eq("id", input.folhaId);
+    if (confirmError) throw confirmError;
   }
 
   return { ok, fail, errors, despesasCriadas };
@@ -353,6 +357,12 @@ export async function reabrirFolhaConfirmada(folhaId: string): Promise<void> {
   if (folha.status !== "confirmada") {
     throw new Error("Apenas folhas confirmadas podem ser reabertas.");
   }
+  const reimbIds = itens.flatMap(i => i.reembolso_expense_ids || []);
+  if (reimbIds.length) {
+    const { data, error } = await supabase.from("expenses").select("valor_pago").in("id", reimbIds);
+    if (error) throw error;
+    if (data?.some(e => Number(e.valor_pago) > 0)) throw new Error("Estorne os pagamentos dos reembolsos antes de reabrir a folha.");
+  }
   const expenseIds = itens.map((i) => i.expense_id).filter(Boolean) as string[];
   if (expenseIds.length > 0) {
     const { data: pagas } = await supabase
@@ -400,7 +410,9 @@ export async function atualizarItemFolhaEmAberto(
   if (folha.status !== "em_aberto") {
     throw new Error("Reabra a folha antes de editar os valores de um colaborador.");
   }
-  const liquido = Math.max(
+  const itemAtual = itens.find(i => i.id === itemId);
+  if (!itemAtual) throw new Error("Colaborador não encontrado na folha.");
+  const liquido = Number(itemAtual.reembolsos || 0) + Math.max(
     0,
     Number(patch.salario_base || 0) +
       Number(patch.comissoes || 0) -
@@ -462,46 +474,17 @@ export async function efetuarPagamentoFolha(input: {
   }
 
   const { itens } = await buscarFolhaComItens(input.folhaId);
-  const alvo = input.itemIds?.length ? itens.filter((i) => input.itemIds!.includes(i.id)) : itens;
-
+  const selectedItemIds = input.itemIds;
+  const alvo = selectedItemIds?.length ? itens.filter(i => selectedItemIds.includes(i.id)) : itens;
   let pagos = 0;
   const erros: string[] = [];
-
   for (const item of alvo) {
     try {
-      if (!item.expense_id) throw new Error("Despesa não encontrada para este colaborador.");
-      const { data: exp, error: expErr } = await supabase
-        .from("expenses")
-        .select("id, valor_total, valor_pago, status")
-        .eq("id", item.expense_id)
-        .single();
-      if (expErr) throw expErr;
-      const total = Number((exp as any).valor_total || 0);
-      const pago = Number((exp as any).valor_pago || 0);
-      const restante = Math.round((total - pago) * 100) / 100;
-      if (restante <= 0) continue;
-
-      const { error: payErr } = await (supabase.from("expense_payments" as any) as any).insert({
-        expense_id: item.expense_id,
-        valor: restante,
-        forma_pagamento: input.forma_pagamento,
-        data_pagamento: input.data_pagamento,
-        observacoes: `Pagamento da folha ${folha.mes_referencia} — ${item.colaborador_nome}`,
-        created_by: input.user_id,
+      const { data, error } = await supabase.rpc("pay_payroll_item_with_reimbursements", {
+        _item_id: item.id, _date: input.data_pagamento, _method: input.forma_pagamento,
       });
-      if (payErr) throw payErr;
-
-      const { error: updErr } = await supabase
-        .from("expenses")
-        .update({
-          valor_pago: total,
-          status: "pago",
-          forma_pagamento: input.forma_pagamento,
-          data_pagamento: input.data_pagamento,
-        } as any)
-        .eq("id", item.expense_id);
-      if (updErr) throw updErr;
-      pagos++;
+      if (error) throw error;
+      pagos += Number(data || 0);
     } catch (e: any) {
       erros.push(`${item.colaborador_nome}: ${e?.message || String(e)}`);
     }

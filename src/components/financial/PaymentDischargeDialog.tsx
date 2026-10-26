@@ -76,6 +76,13 @@ export function PaymentDischargeDialog({
   const saldoRestante = effectiveTotal - effectivePago;
   const effectiveVencimento = isInstallmentMode ? installment!.dataVencimentoParcela : dataVencimento;
 
+  const [reembolsoNome, setReembolsoNome] = useState<string | null>(null);
+  const [reservedReembolso, setReservedReembolso] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setReembolsoNome(null); setReservedReembolso(false);
+    supabase.from("expenses").select("is_reembolso,reembolso_colaborador_nome,reembolso_folha_item_id").eq("id", expenseId).single().then(({ data }) => { if (data) { setReembolsoNome(data.is_reembolso ? data.reembolso_colaborador_nome : null); setReservedReembolso(!!data.reembolso_folha_item_id); } });
+  }, [open, expenseId]);
   const [valor, setValor] = useState(String(saldoRestante));
   const [formaPagamento, setFormaPagamento] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -131,6 +138,8 @@ export function PaymentDischargeDialog({
 
 
   const handleConfirm = async () => {
+    if (reservedReembolso) return toast.warning("Reembolso reservado na folha. Efetue o pagamento pelo RH.");
+    if (reembolsoNome && isCard) return toast.warning("Reembolso deve ser pago ao colaborador, não lançado como compra no cartão.");
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
     if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
@@ -254,10 +263,11 @@ export function PaymentDischargeDialog({
           <DialogTitle>{titleText}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {reservedReembolso && <p className="text-xs text-destructive">Reembolso reservado na folha. Efetue o pagamento pelo RH.</p>}
           {/* Resumo */}
           <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1.5">
             {(favorecidoNome || descricao) && (
-              <p className="text-sm font-medium text-foreground">{favorecidoNome || descricao}</p>
+              <p className="text-sm font-medium text-foreground">{reembolsoNome || favorecidoNome || descricao}</p>
             )}
             {effectiveVencimento && (
               <p className="text-xs text-muted-foreground">Vencimento: {formatDateBR(effectiveVencimento)}</p>

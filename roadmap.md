@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Integrar reembolsos em Nova Despesa, Contas a Pagar e folha: fornecedor/classificação preservados, saldo pendente reservado, crédito separado nos recibos e fora da base tributável; UI gravou R$ 150 e prévia somou R$ 1.535,62 + R$ 150 = R$ 1.685,62; 19 testes aprovados, incluindo pagamento avulso, bloqueio de duplicidade, salário + reembolso com saída única e estorno; registros temporários removidos.
 
 - [x] Cadastro universal por placa: categorias individuais e proprietário preservados; 43 implementos separados dos conjuntos existentes; cadastro de placa antiga e Mercosul gravado e conferido na tela.
 - [x] Cadastros > Vinculações: montagem/desengate com motorista real e histórico conferidos; proteção de simultaneidade e categoria vinculada validada no banco.

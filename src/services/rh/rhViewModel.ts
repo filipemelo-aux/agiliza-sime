@@ -16,7 +16,7 @@
  *     − Σ(descontos pendentes do período)
  */
 import type { ColaboradorRH } from "./rhColaboradoresService";
-import type { Expense } from "./rhFinancialService";
+import type { ReembolsoExpense, Expense } from "./rhFinancialService";
 import type { Comissao } from "./comissoesService";
 import type { DescontoFolha } from "./descontosFolhaService";
 
@@ -164,6 +164,8 @@ export function periodoToMesReferencia(p: { data_inicio: string }): string {
 // =============================================================
 
 export type PayrollRow = {
+  reembolsos: number;
+  reembolsoExpenseIds: string[];
   c: ColaboradorRH;
   /** Salário base proporcional ao período (cadastro, não despesa). */
   salario_base: number;
@@ -230,6 +232,8 @@ export function computePayrollRowsFromPeriodo(input: {
   adiantamentos: Expense[];
   comissoes: Comissao[];
   descontos: DescontoFolha[];
+  reembolsos?: ReembolsoExpense[];
+  selectedReembolsoIds?: Set<string>;
   selectedAdiantamentoIds?: Set<string>;
   selectedComissaoIds?: Set<string>;
   selectedDescontoIds?: Set<string>;
@@ -291,14 +295,18 @@ export function computePayrollRowsFromPeriodo(input: {
       const com = comByColab.get(c.id) || { total: 0, ids: [] };
       const desc = descByColab.get(c.id) || { total: 0, ids: [] };
 
+      const reimb = (input.reembolsos || []).filter(e => e.reembolso_colaborador_id === c.id && (!input.selectedReembolsoIds || input.selectedReembolsoIds.has(e.id)));
+      const reembolsos = reimb.reduce((sum, e) => sum + Math.max(Math.round((Number(e.valor_total) - Number(e.valor_pago || 0)) * 100) / 100, 0), 0);
       const liquido = computeLiquido({
         salary: salario_base,
         adiant: adv.total,
         descontos: desc.total,
         comissoes: com.total,
+        reembolsos,
       });
       return {
         c,
+        reembolsos, reembolsoExpenseIds: reimb.map(e => e.id),
         salario_base,
         adiantamentos: adv.total,
         adiantamentoExpenseIds: adv.ids,
@@ -311,6 +319,7 @@ export function computePayrollRowsFromPeriodo(input: {
     })
     .filter(
       (r) =>
+        r.reembolsos > 0 ||
         r.salario_base > 0 ||
         r.adiantamentos > 0 ||
         r.comissoes > 0 ||
@@ -324,6 +333,7 @@ export function computePayrollRowsFromPeriodo(input: {
  * Resultado nunca negativo (clamp em 0).
  */
 export function computeLiquido(input: {
+  reembolsos?: number;
   salary: number;
   adiant: number;
   descontos: number;
@@ -331,7 +341,7 @@ export function computeLiquido(input: {
 }): number {
   const base = Number(input.salary || 0);
   const liquido = base + Number(input.comissoes || 0) - Number(input.adiant || 0) - Number(input.descontos || 0);
-  return Math.max(0, liquido);
+  return Math.round((Math.max(0, liquido) + Number(input.reembolsos || 0)) * 100) / 100;
 }
 
 // =============================================================

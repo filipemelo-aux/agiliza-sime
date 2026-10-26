@@ -2239,6 +2239,7 @@ export type Database = {
           juros: number
           lote_id: string | null
           observacoes: string | null
+          reembolso_folha_item_id: string | null
           skip_cashflow: boolean
           tenant_id: string
           valor: number
@@ -2256,6 +2257,7 @@ export type Database = {
           juros?: number
           lote_id?: string | null
           observacoes?: string | null
+          reembolso_folha_item_id?: string | null
           skip_cashflow?: boolean
           tenant_id?: string
           valor?: number
@@ -2273,6 +2275,7 @@ export type Database = {
           juros?: number
           lote_id?: string | null
           observacoes?: string | null
+          reembolso_folha_item_id?: string | null
           skip_cashflow?: boolean
           tenant_id?: string
           valor?: number
@@ -2297,6 +2300,13 @@ export type Database = {
             columns: ["installment_id"]
             isOneToOne: false
             referencedRelation: "expense_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_payments_reembolso_folha_item_id_fkey"
+            columns: ["reembolso_folha_item_id"]
+            isOneToOne: false
+            referencedRelation: "folhas_pagamento_itens"
             referencedColumns: ["id"]
           },
           {
@@ -2334,6 +2344,7 @@ export type Database = {
           fornecedor_cnpj: string | null
           fornecedor_mecanica: string | null
           id: string
+          is_reembolso: boolean
           km_atual: number | null
           litros: number | null
           motorista_id: string | null
@@ -2343,6 +2354,9 @@ export type Database = {
           origem: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id: string | null
           proxima_manutencao_km: number | null
+          reembolso_colaborador_id: string | null
+          reembolso_colaborador_nome: string | null
+          reembolso_folha_item_id: string | null
           sefaz_status: string | null
           status: Database["public"]["Enums"]["expense_status"]
           tempo_parado: string | null
@@ -2382,6 +2396,7 @@ export type Database = {
           fornecedor_cnpj?: string | null
           fornecedor_mecanica?: string | null
           id?: string
+          is_reembolso?: boolean
           km_atual?: number | null
           litros?: number | null
           motorista_id?: string | null
@@ -2391,6 +2406,9 @@ export type Database = {
           origem?: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id?: string | null
           proxima_manutencao_km?: number | null
+          reembolso_colaborador_id?: string | null
+          reembolso_colaborador_nome?: string | null
+          reembolso_folha_item_id?: string | null
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           tempo_parado?: string | null
@@ -2430,6 +2448,7 @@ export type Database = {
           fornecedor_cnpj?: string | null
           fornecedor_mecanica?: string | null
           id?: string
+          is_reembolso?: boolean
           km_atual?: number | null
           litros?: number | null
           motorista_id?: string | null
@@ -2439,6 +2458,9 @@ export type Database = {
           origem?: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id?: string | null
           proxima_manutencao_km?: number | null
+          reembolso_colaborador_id?: string | null
+          reembolso_colaborador_nome?: string | null
+          reembolso_folha_item_id?: string | null
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           tempo_parado?: string | null
@@ -2494,6 +2516,20 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_reembolso_colaborador_id_fkey"
+            columns: ["reembolso_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_reembolso_folha_item_id_fkey"
+            columns: ["reembolso_folha_item_id"]
+            isOneToOne: false
+            referencedRelation: "folhas_pagamento_itens"
             referencedColumns: ["id"]
           },
           {
@@ -3242,6 +3278,8 @@ export type Database = {
           folha_id: string
           id: string
           liquido: number
+          reembolso_expense_ids: string[]
+          reembolsos: number
           salario_base: number
           tenant_id: string
           updated_at: string
@@ -3260,6 +3298,8 @@ export type Database = {
           folha_id: string
           id?: string
           liquido?: number
+          reembolso_expense_ids?: string[]
+          reembolsos?: number
           salario_base?: number
           tenant_id?: string
           updated_at?: string
@@ -3278,6 +3318,8 @@ export type Database = {
           folha_id?: string
           id?: string
           liquido?: number
+          reembolso_expense_ids?: string[]
+          reembolsos?: number
           salario_base?: number
           tenant_id?: string
           updated_at?: string
@@ -6074,6 +6116,10 @@ export type Database = {
       next_mdfe_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
+      pay_payroll_item_with_reimbursements: {
+        Args: { _date: string; _item_id: string; _method: string }
+        Returns: number
+      }
       recalculate_fatura: { Args: { _fatura_id: string }; Returns: undefined }
       reconcile_bank_item_with_expenses: {
         Args: {

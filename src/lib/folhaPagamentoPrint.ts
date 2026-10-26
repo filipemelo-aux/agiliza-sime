@@ -46,6 +46,7 @@ const esc = (s: any) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
 export interface HoleriteItem {
+  reembolsos?: number;
   colaborador_nome: string;
   salario_base: number;
   comissoes: number;
@@ -110,6 +111,7 @@ function reciboHtml(folha: HoleriteFolha, item: HoleriteItem, via: string) {
   const bases = calcularBases(item);
 
   const proventos = [
+    ...(Number(item.reembolsos) > 0 ? [{ cod: "0090", desc: "REEMBOLSO DE DESPESAS (RESSARCIMENTO)", ref: "", venc: Number(item.reembolsos) }] : []),
     { cod: "0001", desc: "SALARIO BASE", ref: "30,00", venc: Number(item.salario_base) || 0 },
     ...(Number(item.comissoes) > 0
       ? [{ cod: "0050", desc: "COMISSOES / PRODUCAO", ref: "", venc: Number(item.comissoes) }]
@@ -255,7 +257,7 @@ function resumoHtml(folha: HoleriteFolha, itens: HoleriteItem[]) {
         <tr>
           <th class="w6 c">#</th><th>Empregado</th><th class="w16">Função</th>
           <th class="w12 r">Salário base</th><th class="w11 r">Comissões</th>
-          <th class="w12 r">Adiantam.</th><th class="w11 r">Descontos</th><th class="w12 r">Líquido</th>
+          <th class="w11 r">Reembolsos</th><th class="w12 r">Adiantam.</th><th class="w11 r">Descontos</th><th class="w12 r">Líquido</th>
         </tr>
       </thead>
       <tbody>
@@ -267,6 +269,7 @@ function resumoHtml(folha: HoleriteFolha, itens: HoleriteItem[]) {
           <td>${esc(i.funcao || "—")}</td>
           <td class="r">${formatBRL(i.salario_base)}</td>
           <td class="r">${formatBRL(i.comissoes)}</td>
+          <td class="r">${formatBRL(i.reembolsos || 0)}</td>
           <td class="r">${formatBRL(i.adiantamentos)}</td>
           <td class="r">${formatBRL(i.descontos)}</td>
           <td class="r b">${formatBRL(i.liquido)}</td>
@@ -279,6 +282,7 @@ function resumoHtml(folha: HoleriteFolha, itens: HoleriteItem[]) {
           <td colspan="3" class="b">Totais — ${itens.length} empregado(s)</td>
           <td class="r b">${formatBRL(folha.total_base)}</td>
           <td class="r b">${formatBRL(folha.total_comissoes)}</td>
+          <td class="r b">${formatBRL(itens.reduce((s, i) => s + Number(i.reembolsos || 0), 0))}</td>
           <td class="r b">${formatBRL(folha.total_adiantamentos)}</td>
           <td class="r b">${formatBRL(folha.total_descontos)}</td>
           <td class="r b">${formatBRL(folha.total_liquido)}</td>

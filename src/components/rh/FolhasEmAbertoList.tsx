@@ -110,18 +110,19 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
       // Situação de pagamento via despesas geradas
       const todosItens = itensCarregados.flatMap((r) => r.itens);
-      const expIds = todosItens.map((i) => i.expense_id).filter(Boolean) as string[];
+      const expIds = todosItens.flatMap(i => [i.expense_id, ...(i.reembolso_expense_ids || [])]).filter((id): id is string => !!id);
       const pagoMap: Record<string, boolean> = {};
       if (expIds.length > 0) {
         const { data: exps } = await supabase.from("expenses").select("id, status").in("id", expIds);
         const statusById = new Map(((exps as any[]) || []).map((e) => [e.id, e.status]));
         todosItens.forEach((i) => {
-          if (i.expense_id) pagoMap[i.id] = statusById.get(i.expense_id) === "pago";
+          const ids = [i.expense_id, ...(i.reembolso_expense_ids || [])].filter((id): id is string => !!id);
+          pagoMap[i.id] = ids.length > 0 && ids.every(id => statusById.get(id) === "pago");
         });
         itensCarregados.forEach(({ folhaId, itens }) => {
           const folha = data.find((f) => f.id === folhaId);
           if (!folha || folha.status !== "confirmada") return;
-          const meus = itens.map((i) => statusById.get(i.expense_id || "")).filter(Boolean) as string[];
+          const meus = itens.flatMap(i => [i.expense_id, ...(i.reembolso_expense_ids || [])]).filter((id): id is string => !!id).map(id => statusById.get(id)).filter(Boolean) as string[];
           if (meus.length === 0) return;
           const pagos = meus.filter((s) => s === "pago").length;
           const parciais = meus.filter((s) => s === "parcial").length;
@@ -163,7 +164,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
       const recibos: HoleriteItem[] = escolhidos.map(({ item }) => {
         const p: any = perfis.get(item.colaborador_id) || {};
         return {
-          colaborador_nome: item.colaborador_nome,
+          colaborador_nome: item.colaborador_nome, reembolsos: Number(item.reembolsos || 0),
           salario_base: Number(item.salario_base), comissoes: Number(item.comissoes),
           adiantamentos: Number(item.adiantamentos), descontos: Number(item.descontos), liquido: Number(item.liquido),
           codigo: String(item.colaborador_id || "").slice(0, 8).toUpperCase(), cpf: p.cnpj || null,
@@ -436,6 +437,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                   { label: "Outros descontos", value: formatBRL(Number(f.total_descontos)) },
                 ]}
               />
+              <Bloco tom="positivo" titulo="Reembolsos" principal={formatBRL(itens.reduce((sum, i) => sum + Number(i.reembolsos || 0), 0))} />
               <Bloco tom="positivo" titulo="Comissões" principal={formatBRL(Number(f.total_comissoes))} />
               <Bloco tom="destaque" titulo="Total líquido" principal={formatBRL(Number(f.total_liquido))} />
             </CardContent>
@@ -448,6 +450,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                   {itemPago[item.id] && (
                     <Badge variant="outline" className="h-5 text-[9px] text-emerald-700 border-emerald-300 bg-emerald-50">Pago</Badge>
                   )}
+                  {Number(item.reembolsos) > 0 && <span className="text-xs text-primary">Reembolso: {formatBRL(Number(item.reembolsos))}</span>}
                   <span className="text-xs text-muted-foreground tabular-nums">{formatBRL(Number(item.liquido))}</span>
                   {f.status === "em_aberto" && (
                     <Button
