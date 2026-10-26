@@ -315,9 +315,9 @@ function RHWorkspace(props: any) {
   ];
 
   const allItems: NavItem[] = [
-    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
     { id: "movimentacoes", label: "Movimentações", icon: HandCoins, description: "Adiantamentos, comissões e descontos" },
     { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Em aberto, prévia e histórico" },
+    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
     { id: "config", label: "Configurações", icon: Settings2, description: "Salários, contas e regras" },
   ];
 
