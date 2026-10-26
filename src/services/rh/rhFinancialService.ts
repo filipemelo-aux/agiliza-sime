@@ -148,7 +148,7 @@ export async function fetchReembolsosPendentesNoPeriodo(colabIds: string[], inic
     .select("id, descricao, valor_total, valor_pago, data_competencia, data_emissao, reembolso_colaborador_id, reembolso_colaborador_nome")
     .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds)
     .is("deleted_at", null).is("reembolso_folha_item_id", null)
-    .not("status", "in", "(pago,cancelado)")
+    .neq("status", "pago")
     .gte("data_competencia", inicio).lte("data_competencia", fim).order("id").range(from, to));
   return (data || []).filter(e => Number(e.valor_total) > Number(e.valor_pago || 0));
 }
