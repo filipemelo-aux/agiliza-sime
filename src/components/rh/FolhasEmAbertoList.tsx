@@ -110,18 +110,19 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
       // Situação de pagamento via despesas geradas
       const todosItens = itensCarregados.flatMap((r) => r.itens);
-      const expIds = todosItens.map((i) => i.expense_id).filter(Boolean) as string[];
+      const expIds = todosItens.flatMap(i => [i.expense_id, ...(i.reembolso_expense_ids || [])]).filter((id): id is string => !!id);
       const pagoMap: Record<string, boolean> = {};
       if (expIds.length > 0) {
         const { data: exps } = await supabase.from("expenses").select("id, status").in("id", expIds);
         const statusById = new Map(((exps as any[]) || []).map((e) => [e.id, e.status]));
         todosItens.forEach((i) => {
-          if (i.expense_id) pagoMap[i.id] = statusById.get(i.expense_id) === "pago";
+          const ids = [i.expense_id, ...(i.reembolso_expense_ids || [])].filter((id): id is string => !!id);
+          pagoMap[i.id] = ids.length > 0 && ids.every(id => statusById.get(id) === "pago");
         });
         itensCarregados.forEach(({ folhaId, itens }) => {
           const folha = data.find((f) => f.id === folhaId);
           if (!folha || folha.status !== "confirmada") return;
-          const meus = itens.map((i) => statusById.get(i.expense_id || "")).filter(Boolean) as string[];
+          const meus = itens.flatMap(i => [i.expense_id, ...(i.reembolso_expense_ids || [])]).filter((id): id is string => !!id).map(id => statusById.get(id)).filter(Boolean) as string[];
           if (meus.length === 0) return;
           const pagos = meus.filter((s) => s === "pago").length;
           const parciais = meus.filter((s) => s === "parcial").length;

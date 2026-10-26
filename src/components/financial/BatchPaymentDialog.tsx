@@ -266,6 +266,9 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
 
     setCreating(true);
     try {
+      const { data: reimbursementCheck, error: reimbursementError } = await supabase.from("expenses").select("is_reembolso,reembolso_folha_item_id").in("id", items.map(i => i.expenseId));
+      if (reimbursementError) throw reimbursementError;
+      if (reimbursementCheck?.some(e => e.is_reembolso)) throw new Error("Pague os reembolsos separadamente para preservar as despesas originais.");
       const total = Math.round(somaOriginal * 100) / 100;
       const template = expensesMeta[items[0].expenseId];
       if (!template) throw new Error("Metadados da conta original não carregados");

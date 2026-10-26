@@ -138,6 +138,8 @@ export function PaymentDischargeDialog({
 
 
   const handleConfirm = async () => {
+    if (reservedReembolso) return toast.warning("Reembolso reservado na folha. Efetue o pagamento pelo RH.");
+    if (reembolsoNome && isCard) return toast.warning("Reembolso deve ser pago ao colaborador, não lançado como compra no cartão.");
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
     if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
