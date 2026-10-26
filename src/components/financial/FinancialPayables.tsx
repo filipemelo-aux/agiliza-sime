@@ -84,6 +84,10 @@ interface Installment {
 }
 
 interface Expense {
+  is_reembolso?: boolean;
+  reembolso_colaborador_id?: string | null;
+  reembolso_colaborador_nome?: string | null;
+  reembolso_folha_item_id?: string | null;
   id: string;
   descricao: string;
   plano_contas_id: string | null;
@@ -442,7 +446,7 @@ export function FinancialPayables() {
     if (!authLoading && user) fetchData();
   }, [authLoading, user?.id, supportTenantId]);
 
-  const handleEdit = (item: Expense) => { setEditingExpense(item); setFormOpen(true); };
+  const handleEdit = (item: Expense) => { if (item.reembolso_folha_item_id) return toast.warning("Reembolso reservado: remova o colaborador da folha em aberto antes de editar."); setEditingExpense(item); setFormOpen(true); };
   const handleNew = () => { setEditingExpense(null); setFormOpen(true); };
 
   const restoreGroupedOriginals = async (groupExpenseId: string): Promise<number> => {
@@ -505,7 +509,7 @@ export function FinancialPayables() {
     fetchData();
   };
 
-  const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentInstallment(null); setPaymentOpen(true); };
+  const handlePayment = (item: Expense) => { if (item.reembolso_folha_item_id) return toast.warning("Reembolso reservado na folha. Efetue o pagamento pelo RH."); setPaymentExpense(item); setPaymentInstallment(null); setPaymentOpen(true); };
 
   const showExpenseDetail = (expenseId: string) => {
     const exp = items.find(i => i.id === expenseId);
@@ -627,6 +631,9 @@ export function FinancialPayables() {
   const handleBatchPay = (consolidated = false) => {
     if (selectedIds.size === 0) return;
     const batchItems: BatchItem[] = [];
+    const selectedExpenses = items.filter(e => selectedIds.has(e.id) || (installmentsMap[e.id] || []).some(i => selectedIds.has(`inst-${i.id}`)));
+    if (selectedExpenses.some(e => e.reembolso_folha_item_id)) return toast.warning("Há reembolso reservado na folha. Pague pelo RH.");
+    if (consolidated && selectedExpenses.some(e => e.is_reembolso)) return toast.warning("Pague os reembolsos separadamente para preservar a classificação original.");
 
     for (const id of selectedIds) {
       if (id.startsWith("inst-")) {
@@ -637,7 +644,7 @@ export function FinancialPayables() {
             const expense = items.find(i => i.id === expId);
             batchItems.push({
               id: `inst-${instId}`,
-              descricao: expense?.favorecido_nome || expense?.descricao || "Parcela",
+              descricao: (expense?.is_reembolso ? expense.reembolso_colaborador_nome : expense?.favorecido_nome) || expense?.descricao || "Parcela",
               valor: Math.max(Number(foundInst.valor) - (instPaidMap[instId] || 0), 0),
               tipo: "installment",
               expenseId: expId,
@@ -654,7 +661,7 @@ export function FinancialPayables() {
         if (!item || item.status === "pago") continue;
         batchItems.push({
           id: item.id,
-          descricao: item.favorecido_nome || item.descricao,
+          descricao: (item.is_reembolso ? item.reembolso_colaborador_nome : item.favorecido_nome) || item.descricao,
           valor: Number(item.valor_total) - Number(item.valor_pago),
           tipo: "expense",
           expenseId: item.id,
@@ -1056,7 +1063,7 @@ export function FinancialPayables() {
               id: `inst-${inst.id}`,
               item,
               inst,
-              favorecido: item.favorecido_nome || "Sem favorecido",
+              favorecido: (item.is_reembolso ? item.reembolso_colaborador_nome : item.favorecido_nome) || "Sem favorecido",
               descricao: descDisplay,
               parcela: `${inst.numero_parcela}/${inst.total_parcelas ?? installs.length}`,
               chartLabel,
@@ -1082,7 +1089,7 @@ export function FinancialPayables() {
         id: item.id,
         item,
         inst: null,
-        favorecido: item.favorecido_nome || "Sem favorecido",
+        favorecido: (item.is_reembolso ? item.reembolso_colaborador_nome : item.favorecido_nome) || "Sem favorecido",
         descricao: descDisplay,
         parcela: null,
         chartLabel,
@@ -1143,6 +1150,7 @@ export function FinancialPayables() {
         return (
           <span className="block min-w-0">
             <span className="block truncate whitespace-nowrap font-medium text-foreground" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
+            {r.item.is_reembolso && <span className="block text-[10px] text-primary truncate" title={`Fornecedor: ${r.item.favorecido_nome || "—"}`}>{r.item.reembolso_folha_item_id ? "Reembolso na folha" : "Reembolso a pagar"}</span>}
             {creator && (
               <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}
@@ -1282,6 +1290,7 @@ export function FinancialPayables() {
 
   // Mesmo fornecedor entre as contas não pagas selecionadas (mesma chave do pagamento agrupado)
   const selectedUnpaidSameFavorecido = useMemo(() => {
+    if (selectedRows.some(r => r.item.is_reembolso)) return false;
     const keys = new Set<string>();
     const favKey = (e?: { favorecido_id: string | null; favorecido_nome: string | null }) =>
       e ? (e.favorecido_id || (e.favorecido_nome || "").trim().toLowerCase()) : "";
@@ -1302,7 +1311,7 @@ export function FinancialPayables() {
       }
     }
     return keys.size <= 1;
-  }, [selectedIds, items, installmentsMap]);
+  }, [selectedIds, items, installmentsMap, selectedRows]);
 
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
@@ -1382,7 +1391,7 @@ export function FinancialPayables() {
         if (item) {
           const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
           rows.push({
-            favorecido: item.favorecido_nome || "Sem favorecido",
+            favorecido: (item.is_reembolso ? item.reembolso_colaborador_nome : item.favorecido_nome) || "Sem favorecido",
             descricao: item.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ${item.descricao}` : item.descricao,
             vencimento: item.data_vencimento || item.data_emissao,
             valor: item.status === "pago" ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total) - Number(item.valor_pago),
@@ -1787,7 +1796,7 @@ tfoot{display:table-row-group}
           empresaId={paymentExpense.empresa_id || empresaId}
           unidadeId={paymentExpense.unidade_id || paymentExpense.empresa_id || empresaId}
           descricao={paymentExpense.descricao}
-          favorecidoNome={paymentExpense.favorecido_nome}
+          favorecidoNome={paymentExpense.is_reembolso ? paymentExpense.reembolso_colaborador_nome : paymentExpense.favorecido_nome}
           dataVencimento={paymentExpense.data_vencimento}
           contaBancariaIdPreset={paymentExpense.conta_bancaria_id}
           installment={paymentInstallment}
