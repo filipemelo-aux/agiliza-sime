@@ -388,7 +388,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
               <Input
                 type="number"
                 inputMode="decimal"
-                step="0.01"
+                step="0.5"
                 min="0"
                 max="100"
                 value={percentual}
