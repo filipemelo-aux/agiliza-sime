@@ -771,15 +771,7 @@ export function FinancialPayables() {
         if (currentUser) await createReversalTransactions(expenseId, currentUser.id);
         await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", instId);
         const expense = items.find(i => i.id === expenseId);
-        if (expense) {
-          const newPago = Math.max(0, Number(expense.valor_pago) - Number(foundInst.valor));
-          const newStatus = newPago <= 0 ? "pendente" : "parcial";
-          await supabase.from("expenses").update({
-            valor_pago: newPago,
-            status: newStatus,
-            ...(newPago <= 0 ? { data_pagamento: null } : {}),
-          } as any).eq("id", expenseId);
-        }
+        if (expense) await supabase.rpc("fn_recalculate_expense_payment_state" as any, { _expense_id: expenseId });
       } else {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== "pago") continue;
@@ -815,15 +807,7 @@ export function FinancialPayables() {
       await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
       // Recalculate expense totals
       const expense = items.find(i => i.id === inst.expense_id);
-      if (expense) {
-        const newPago = Math.max(0, Number(expense.valor_pago) - Number(inst.valor));
-        const newStatus = newPago <= 0 ? "pendente" : "parcial";
-        await supabase.from("expenses").update({
-          valor_pago: newPago,
-          status: newStatus,
-          ...(newPago <= 0 ? { data_pagamento: null } : {}),
-        } as any).eq("id", expense.id);
-      }
+      if (expense) await supabase.rpc("fn_recalculate_expense_payment_state" as any, { _expense_id: expense.id });
       toast.success("Parcela estornada com sucesso");
       fetchData();
     } catch (err: any) {
