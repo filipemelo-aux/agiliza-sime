@@ -231,12 +231,11 @@ export function PaymentDischargeDialog({
         : `Pagamento parcial registrado na parcela ${installment!.numeroParcela}/${installment!.totalParcelas}`);
     } else {
       // ---- REGULAR MODE: update expense directly ----
-      const novoValorPago = valorPago + valorPrincipal;
-      const novoStatus = novoValorPago + 0.005 >= valorTotal ? "pago" : "parcial";
+      // Valor pago e situação são recalculados pelo banco a partir dos pagamentos
+      // (somar aqui duplicava o valor quando o saldo exibido já estava atualizado).
+      const novoStatus = valorPago + valorPrincipal + 0.005 >= valorTotal ? "pago" : "parcial";
 
       const { error } = await supabase.from("expenses").update({
-        valor_pago: novoValorPago,
-        status: novoStatus,
         forma_pagamento: formaPagamento,
         data_pagamento: dataPagISO,
       } as any).eq("id", expenseId);
