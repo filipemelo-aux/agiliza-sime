@@ -23,6 +23,7 @@ import NotasFiscaisConsulta from "./pages/NotasFiscaisConsulta";
 import NotasFiscaisDownloadXml from "./pages/NotasFiscaisDownloadXml";
 import FreightContracts from "./pages/FreightContracts";
 import FreightSettings from "./pages/FreightSettings";
+import FreightCiot from "./pages/FreightCiot";
 import FreightMdfe from "./pages/FreightMdfe";
 import FreightFiscalSettings from "./pages/FreightFiscalSettings";
 import AdminCargas from "./pages/AdminCargas";
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="/admin/notas-fiscais/download-xml" element={<NotasFiscaisDownloadXml />} />
             <Route path="/admin/freight/contracts" element={<FreightContracts />} />
             <Route path="/admin/freight/settings" element={<FreightSettings />} />
+            <Route path="/admin/freight/ciot" element={<FreightCiot />} />
             <Route path="/admin/freight/mdfe" element={<FreightMdfe />} />
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
