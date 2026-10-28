@@ -769,8 +769,8 @@ export function FinancialPayables() {
         }
         if (!foundInst || foundInst.status !== "pago") continue;
         if (currentUser) await createReversalTransactions(expenseId, currentUser.id);
+        await supabase.from("expense_payments" as any).delete().eq("installment_id", instId);
         await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", instId);
-        const expense = items.find(i => i.id === expenseId);
       } else {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== "pago") continue;
@@ -803,9 +803,9 @@ export function FinancialPayables() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) await createReversalTransactions(inst.expense_id, currentUser.id);
 
+      // Remover o pagamento da parcela: o banco recalcula valor pago/status da conta
+      await supabase.from("expense_payments" as any).delete().eq("installment_id", inst.id);
       await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
-      // Recalculate expense totals
-      const expense = items.find(i => i.id === inst.expense_id);
       toast.success("Parcela estornada com sucesso");
       fetchData();
     } catch (err: any) {
