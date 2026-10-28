@@ -2439,13 +2439,8 @@ export function BankReconciliation() {
             data_pagamento: dataPagISO,
           } as any).eq("id", confirmMatch.expenseId);
         } else {
-          const { data: expData } = await supabase.from("expenses").select("valor_total, valor_pago").eq("id", confirmMatch.expenseId).single();
-          const novoValorPago = Number(expData?.valor_pago || 0) + valorPag;
-          const valorTotal = Number(expData?.valor_total || 0);
-          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+          // valor_pago/status são recalculados pelo banco a partir dos pagamentos (evita somar em dobro)
           await supabase.from("expenses").update({
-            valor_pago: novoValorPago,
-            status: novoStatus,
             forma_pagamento: "transferencia",
             data_pagamento: dataPagISO,
           } as any).eq("id", confirmMatch.expenseId);
