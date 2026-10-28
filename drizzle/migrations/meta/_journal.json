@@ -134,6 +134,13 @@
       "when": 1793029938745,
       "tag": "0018_protect_reimbursement_links_and_cheques",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793218681844,
+      "tag": "0019_sync_cheque_status_from_payments",
+      "breakpoints": true
     }
   ]
 }
