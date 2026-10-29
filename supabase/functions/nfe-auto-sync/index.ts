@@ -65,9 +65,6 @@ Deno.serve(async (req) => {
           tenant_id: t.id, establishment_id: est.id, chave: k,
           data_emissao: i.data_emissao || null, emitente_nome: i.nome_emitente || null,
           emitente_cnpj: digits(i.documento_emitente) || null,
-          destinatario_cnpj: digits(i.cnpj_destinatario || i.cpf_destinatario) || null,
-          ator: digits(i.cnpj_destinatario) === cnpj ? "destinatario" : "transportadora",
-          transportadora_cnpj: digits(i.cnpj_destinatario) === cnpj ? null : cnpj,
           valor: Number(i.valor_total) || 0, situacao: String(i.situacao || "autorizada").toLowerCase(),
           numero: String(Number(k.slice(25, 34))), serie: String(Number(k.slice(22, 25))), versao: Number(i.versao) || null,
         }));
