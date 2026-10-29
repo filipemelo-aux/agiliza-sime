@@ -52,9 +52,16 @@ export function readNfeXmlInfo(xml: string) {
   };
 }
 
-/** O resumo da SEFAZ traz o CNPJ consultado como destinatário; só o XML define o ator. */
-export function nfeAtorFromXml(info: { destinatario_cnpj: string }, cnpj: string): NfeAtor {
-  return info.destinatario_cnpj && info.destinatario_cnpj === cnpj ? "destinatario" : "transportadora";
+/**
+ * Só é transportadora quando o XML traz a empresa (mesma raiz de CNPJ) no grupo de transporte
+ * e ela não é a destinatária; qualquer outro caso (inclusive XML sem destinatário) é destinatário.
+ */
+export function nfeAtorFromXml(info: { destinatario_cnpj?: string; transportadora_cnpj?: string }, cnpj: string): NfeAtor {
+  const root = cnpj.slice(0, 8);
+  const dest = info.destinatario_cnpj || "";
+  const transp = info.transportadora_cnpj || "";
+  if (dest && dest.slice(0, 8) === root) return "destinatario";
+  return transp.length === 14 && transp.slice(0, 8) === root ? "transportadora" : "destinatario";
 }
 
 /**
