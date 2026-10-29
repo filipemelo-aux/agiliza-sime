@@ -15,6 +15,7 @@ import { toast } from "@/lib/notice";
 import { Switch } from "@/components/ui/switch";
 import { listSystemPages } from "@/components/AdminLayout";
 import { HomologationResult, runHomologationTest, type HmlResult } from "./HomologationResult";
+import { OpenFinancePanel } from "./OpenFinancePanel";
 
 export interface TenantRow {
   id: string; razao_social: string; nome_fantasia: string | null; cnpj: string; ie: string | null; rntrc: string | null;
@@ -330,6 +331,12 @@ export function TenantFormDialog({ open, onOpenChange, tenant, onSaved, onMarkBr
             </div>
             <p className="md:col-span-6 text-[11px] text-muted-foreground">Módulos ou páginas desligados somem do menu e ficam bloqueados para todos os usuários da empresa, inclusive o administrador.</p>
           </Block>
+
+          {tenant && (
+            <Block title="Open Finance (extrato bancário)">
+              <OpenFinancePanel />
+            </Block>
+          )}
 
           {admExists === true && (
             <Block title="Acesso do administrador da empresa">

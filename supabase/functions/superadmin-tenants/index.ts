@@ -84,6 +84,56 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
+    if (body.action === "open_finance_status" || body.action === "open_finance_sync") {
+      const key = (Deno.env.get("OPEN_FINANCE_API_URL") || "").trim();
+      if (!key) return json({ configured: false });
+      const BILLING_URL = "https://app.mcp.ai/billing?tab=payment";
+      const call = async (path: string, args: Record<string, unknown> = {}) => {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
+        try {
+          const r = await fetch(`https://api.mcp.ai/api/openfinance/${path}`, {
+            method: "POST", signal: ctl.signal,
+            headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(args),
+          });
+          const txt = await r.text(); let p: any = null; try { p = JSON.parse(txt); } catch { /* */ }
+          return { status: r.status, data: p?.result ?? p, raw: p };
+        } finally { clearTimeout(t); }
+      };
+      try {
+        if (body.action === "open_finance_sync") {
+          const c = await call("connections/list");
+          const ids = ((c.data?.connections ?? []) as any[]).map((x) => String(x.item_id ?? "")).filter(Boolean);
+          if (ids.length) await call("connections/sync", { items: ids });
+        }
+        const conn = await call("connections/list");
+        const err = conn.raw?.error;
+        if (conn.status >= 400 || (err && typeof err === "object")) {
+          return json({
+            configured: true, active: false, status_code: conn.status,
+            error_code: err?.code ?? null, message: err?.message ?? (typeof err === "string" ? err : "Falha ao consultar o Open Finance"),
+            billing_url: err?.billing_url ?? (conn.status === 402 ? BILLING_URL : null), connections: [], accounts: [],
+          });
+        }
+        const acc = await call("accounts/list");
+        const pick = (r: any) => { for (const k of ["results", "accounts", "data", "items"]) if (Array.isArray(r?.[k])) return r[k]; return Array.isArray(r) ? r : []; };
+        const accounts = pick(acc.data).map((a: any) => ({
+          id: a.account_id ?? a.id, name: a.name ?? a.marketingName ?? null, type: a.type ?? null, subtype: a.subtype ?? null,
+          number: a.number ?? a.account ?? null, agency: a.agency ?? a.branch ?? null, bank: a.bank ?? acc.data?.bank ?? null,
+          owner: a.owner ?? a.holder ?? null, balance: a.balance ?? null,
+        }));
+        const connections = ((conn.data?.connections ?? []) as any[]).map((c) => ({
+          item_id: c.item_id ?? c.id, status: c.status ?? c.execution_status ?? null,
+          institution: c.connector?.name ?? c.institution ?? c.bank ?? c.connector_name ?? null,
+          created_at: c.created_at ?? c.createdAt ?? null, updated_at: c.last_sync_at ?? c.updated_at ?? c.lastUpdatedAt ?? null,
+          consent_expires_at: c.consent_expires_at ?? c.consentExpiresAt ?? c.expires_at ?? null, error: c.error?.message ?? c.error ?? null,
+        }));
+        return json({ configured: true, active: true, billing_url: BILLING_URL, connections, accounts });
+      } catch (e) {
+        return json({ configured: true, active: false, message: String((e as Error)?.message ?? e), connections: [], accounts: [] });
+      }
+    }
+
     if (body.action === "list") {
       const { data: tenants, error } = await admin.from("tenants").select("*").order("razao_social");
       if (error) throw error;
