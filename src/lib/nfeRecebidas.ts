@@ -52,6 +52,11 @@ export function readNfeXmlInfo(xml: string) {
   };
 }
 
+/** O resumo da SEFAZ traz o CNPJ consultado como destinatário; só o XML define o ator. */
+export function nfeAtorFromXml(info: { destinatario_cnpj: string }, cnpj: string): NfeAtor {
+  return info.destinatario_cnpj && info.destinatario_cnpj === cnpj ? "destinatario" : "transportadora";
+}
+
 /**
  * Sincroniza as notas recebidas na SEFAZ (consulta incremental por versão) para cada
  * estabelecimento e baixa o XML das notas novas para definir o ator.
@@ -90,8 +95,6 @@ export async function syncNfesRecebidas(establishments: { id: string; cnpj: stri
         data_emissao: i.data_emissao || null,
         emitente_nome: i.nome_emitente || null,
         emitente_cnpj: digits(i.documento_emitente) || null,
-        destinatario_cnpj: digits(i.cnpj_destinatario || i.cpf_destinatario) || null,
-        ator: digits(i.cnpj_destinatario) === cnpj ? "destinatario" : "transportadora",
         valor: Number(i.valor_total) || 0,
         situacao: String(i.situacao || "autorizada").toLowerCase(),
         numero: String(Number(k.slice(25, 34))),
@@ -124,16 +127,14 @@ export async function fillMissingNfeXml(establishments: { id: string; cnpj: stri
       .select("id, chave")
       .eq("establishment_id", est.id)
       .is("xml", null)
-      .limit(40);
+      .limit(300);
     const pendList = (pend as any[]) || [];
     await Promise.all([0, 1, 2, 3, 4].map(async (w) => { for (let idx = w; idx < pendList.length; idx += 5) { const p = pendList[idx];
       try {
         const xml = await invokeFocus({ action: "nfe_por_chave", chave: p.chave, cnpj });
         if (typeof xml !== "string") continue;
         const info = readNfeXmlInfo(xml);
-        const ator: NfeAtor = info.destinatario_cnpj === cnpj
-          ? "destinatario"
-          : info.transportadora_cnpj === cnpj ? "transportadora" : "destinatario";
+        const ator = nfeAtorFromXml(info, cnpj);
         if (!info.destinatario_cnpj) delete (info as any).destinatario_cnpj;
         await supabase.from("nfes_recebidas" as any).update({ xml, ator, ...info } as any).eq("id", p.id);
       } catch {
@@ -147,7 +148,7 @@ export async function ensureNfeXml(n: NfeRecebida, cnpj: string): Promise<string
   if (n.xml) return n.xml;
   const xml = await invokeFocus({ action: "nfe_por_chave", chave: n.chave, cnpj: digits(cnpj) });
   if (typeof xml !== "string") throw new Error("A SEFAZ ainda não disponibilizou o XML completo desta nota.");
-  await supabase.from("nfes_recebidas" as any).update({ xml, ...readNfeXmlInfo(xml) } as any).eq("id", n.id);
+  await supabase.from("nfes_recebidas" as any).update((() => { const info = readNfeXmlInfo(xml); return { xml, ...info, ator: nfeAtorFromXml(info, digits(cnpj)) }; })() as any).eq("id", n.id);
   return xml;
 }
 
