@@ -1431,7 +1431,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           )}
 
           {/* ═══ 2. Composição do valor ═══ */}
-          {composition === "pecas" && <div>
+          {composition === "pecas" && !rateioAtivo && <div>
             <Label className="text-xs">Veículo de destino *</Label>
             <Select value={veiculoId || ""} onValueChange={(id) => { setVeiculoId(id); setVeiculoPlaca(fleetVehicles.find(v => v.id === id)?.plate || ""); }}>
               <SelectTrigger className="h-9"><SelectValue placeholder="Selecione o veículo" /></SelectTrigger>
@@ -1544,6 +1544,33 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 expenseId={expense?.id || autoSavedId}
                 hasNfse={false}
               />
+              {!rateioAtivo ? (
+                <Button
+                  type="button" variant="outline" size="sm" className="h-7 text-[11px] gap-1"
+                  onClick={() => {
+                    setRateioAtivo(true);
+                    setRateioRows(veiculoId
+                      ? [{ veiculo_id: veiculoId, valor_rateado: Number(valorTotal) || 0, percentual: 100 }]
+                      : [{ veiculo_id: null, valor_rateado: 0, percentual: null }]);
+                  }}
+                >
+                  <Split className="h-3 w-3" /> Ratear entre múltiplos veículos
+                </Button>
+              ) : (
+                <div className="rounded-lg border border-primary/20 bg-background p-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground">O custo é dividido entre os veículos; o primeiro da lista fica como veículo principal (KM e histórico).</p>
+                  <VehicleRateioEditor
+                    rows={rateioRows}
+                    onChange={setRateioRows}
+                    vehicles={fleetVehicles}
+                    valorTotal={Number(valorTotal) || 0}
+                  />
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]"
+                    onClick={() => { setRateioAtivo(false); setRateioRows([]); }}>
+                    Cancelar rateio e usar um único veículo
+                  </Button>
+                </div>
+              )}
               {composition === "servico" && <div>
                 <Label className="text-xs">Nº NFSe / Ordem de Serviço</Label>
                 <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número da NFSe ou OS" className="h-9" />
