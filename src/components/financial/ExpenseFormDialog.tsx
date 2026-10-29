@@ -737,6 +737,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   };
 
   const isMaintenanceType = isManutencao;
+  // Com rateio, a manutenção usa o primeiro veículo do rateio como principal
+  const mainVeiculoId = rateioAtivo ? (rateioRows.find(r => r.veiculo_id)?.veiculo_id || null) : veiculoId;
 
   const maintItemsSum = useMemo(() => sumExpenseItems(itensManutencao), [itensManutencao]);
   const notaItemsSum = useMemo(() => sumExpenseItems(itensNota), [itensNota]);
@@ -819,7 +821,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (nfseUseParcelas && Math.abs(nfseParcelas.reduce((sum, p) => sum + Number(p.valor), 0) - nfseValorTotal) > 0.01) return void toast.error("A soma das parcelas do serviço deve corresponder ao seu valor");
     }
     if (isMaintenanceType) {
-      if (!veiculoId) return void toast.error("Selecione o veículo para manutenção");
+      if (!mainVeiculoId) return void toast.error(rateioAtivo ? "Adicione os veículos do rateio" : "Selecione o veículo para manutenção");
       if (!tipoManutencao) return void toast.error("Selecione o tipo de manutenção");
       if (!hasNfse && !descricaoServico.trim()) return void toast.error("Informe a descrição do serviço");
       if (hasNfse && nfseFornecedorNome.trim() && !nfseFornecedorId) {
@@ -833,7 +835,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const { data: lastKmData } = await supabase
         .from("expenses")
         .select("km_atual")
-        .eq("veiculo_id", veiculoId)
+        .eq("veiculo_id", mainVeiculoId)
         .not("km_atual", "is", null)
         .is("deleted_at", null)
         .neq("id", expense?.id || autoSavedId || "00000000-0000-0000-0000-000000000000")
@@ -882,7 +884,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       : selectedAccount?.tipo_operacional === "combustivel" ? "combustivel"
       : "outros";
 
-    if (rateioAtivo && !isMaintenanceType) {
+    if (rateioAtivo) {
       const rErr = validateRateio(rateioRows, Number(valorTotal) || 0);
       if (rErr) return void toast.error(rErr);
     }
@@ -903,7 +905,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       numero_cheque: formaPagamento === "cheque" ? (numeroCheque.trim() || null) : null,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      veiculo_id: (rateioAtivo && !isMaintenanceType) ? null : (veiculoId || null),
+      veiculo_id: isMaintenanceType ? (mainVeiculoId || null) : (rateioAtivo ? null : (veiculoId || null)),
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
@@ -940,7 +942,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     // Rateio por veículo (múltiplos veículos)
     if (expenseId) {
       try {
-        await saveRateio({ expense_id: expenseId }, rateioAtivo && !isMaintenanceType ? rateioRows : [], user?.id);
+        await saveRateio({ expense_id: expenseId }, rateioAtivo ? rateioRows : [], user?.id);
       } catch (e: any) {
         toast.warning("Despesa salva, mas houve erro ao gravar o rateio: " + (e?.message || ""));
       }
@@ -1048,7 +1050,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
 
     // Auto-create/update maintenance record
-    if (expenseId && isMaintenanceType && veiculoId) {
+    if (expenseId && isMaintenanceType && mainVeiculoId) {
       // Aggregate total: parts (NFe) + services (NFSe)
       const custoTotal = combinedTotal;
       // Use NFSe date as maintenance date when available, otherwise use emission date
@@ -1065,7 +1067,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         : descricaoServico.trim() || partsDesc;
 
       const maintenancePayload: any = {
-        veiculo_id: veiculoId,
+        veiculo_id: mainVeiculoId,
         expense_id: expenseId,
         data_manutencao: dataManutencao,
         odometro: Number(kmAtual) || 0,
@@ -1079,13 +1081,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         created_by: user?.id,
       };
 
-      const { data: existingMaint } = await supabase
+      const rateioMaint = rateioAtivo ? rateioRows.filter(r => r.veiculo_id && Number(r.valor_rateado) > 0) : [];
+      const baseRateio = rateioMaint.reduce((acc, r) => acc + Number(r.valor_rateado), 0);
+      const { data: existingList } = await supabase
         .from("maintenances" as any)
         .select("id")
-        .eq("expense_id", expenseId)
-        .maybeSingle();
+        .eq("expense_id", expenseId);
+      const existingMaint = rateioMaint.length === 0 && (existingList as any[] || []).length === 1 ? (existingList as any[])[0] : null;
 
-      if (existingMaint) {
+      if (rateioMaint.length > 0 || (existingList as any[] || []).length > 1) {
+        // Rateio: um registro de manutenção por veículo, com custo proporcional
+        await supabase.from("maintenances" as any).delete().eq("expense_id", expenseId);
+        const rows = rateioMaint.length > 0
+          ? rateioMaint.map(r => ({ ...maintenancePayload, veiculo_id: r.veiculo_id,
+              odometro: r.veiculo_id === mainVeiculoId ? maintenancePayload.odometro : 0,
+              custo_total: Math.round((custoTotal * Number(r.valor_rateado) / (baseRateio || 1)) * 100) / 100 }))
+          : [maintenancePayload];
+        const { error: mErr } = await supabase.from("maintenances" as any).insert(rows);
+        if (mErr) { console.error("[maintenance rateio]", mErr); toast.warning("Despesa salva, mas falhou ao registrar o histórico de manutenções: " + mErr.message); }
+      } else if (existingMaint) {
         const { error: mErr } = await supabase.from("maintenances" as any).update(maintenancePayload).eq("id", (existingMaint as any).id);
         if (mErr) { console.error("[maintenance update]", mErr); toast.warning("Despesa salva, mas falhou ao atualizar histórico de manutenção: " + mErr.message); }
       } else {
@@ -1112,7 +1126,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         documento_fiscal_numero: nfseNumero.trim() || null,
         origem: "manual",
         observacoes: nfseObservacoes.trim() || (isMaintenanceType ? `Vinculado à manutenção - ${descricaoServico.trim() || descricao.trim()}` : `NFSe ${nfseNumero} - ${descricao.trim()}`),
-        veiculo_id: isMaintenanceType ? (veiculoId || null) : null,
+        veiculo_id: isMaintenanceType ? (mainVeiculoId || null) : null,
         tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
         km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
         fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
