@@ -131,7 +131,7 @@ export default function VehicleMetrics() {
       // Rateio por veículo: despesas/lançamentos de cartão divididos entre múltiplos veículos
       const rateioQ = (supabase.from("despesa_rateio_veiculos") as any)
         .select(`id, veiculo_id, valor_rateado,
-          expense:expenses(id, data_emissao, descricao, favorecido_nome, plano:chart_of_accounts(nome)),
+          expense:expenses(id, data_emissao, descricao, favorecido_nome, tipo_despesa, plano:chart_of_accounts(nome)),
           card:credit_card_invoice_items(id, posted_date, description, invoice_id, plano_contas_id, plano:chart_of_accounts(nome))`);
       if (!isAll) rateioQ.eq("veiculo_id", veiculoId);
 
@@ -140,7 +140,7 @@ export default function VehicleMetrics() {
       const rateioAll = ((rateioRes as any)?.data as any[]) || [];
       const inRange = (d?: string | null) => !!d && d.slice(0, 10) >= dataInicio && d.slice(0, 10) <= dataFim;
       const rateioCard = rateioAll.filter((r) => r.card && inRange(r.card.posted_date));
-      const rateioExp = rateioAll.filter((r) => r.expense && inRange(r.expense.data_emissao));
+      const rateioExp = rateioAll.filter((r) => r.expense && r.expense.tipo_despesa !== "manutencao" && inRange(r.expense.data_emissao));
 
       // Métricas da frota: apenas CT-es vinculados a veículos da frota própria.
       // CT-es de serviço mais antigos podem ter só a placa (sem veiculo_id) — resolve pela placa.
