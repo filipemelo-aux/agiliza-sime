@@ -65,6 +65,13 @@ export default function NotasFiscaisConsulta() {
   }, [inicio, fim, toast]);
 
   useEffect(() => { load(); }, [load]);
+  // Baixa em segundo plano o XML das notas pendentes: é o XML que define o ator (destinatário/transportadora).
+  const estKey = (establishments || []).map((e: any) => e.id).join(",");
+  useEffect(() => {
+    if (!estKey) return;
+    fillMissingNfeXml(establishments).then(() => load()).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estKey]);
   useEffect(() => {
     supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo")
       .then(({ data }) => setChartAccounts((data as any[]) || []));
