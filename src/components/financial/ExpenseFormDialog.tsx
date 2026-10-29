@@ -813,7 +813,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       );
     }
     if (useParcelas && parcelas.length > 0 && parcelasMismatch) return void toast.error("A soma das parcelas não bate com o valor total");
-    if (composition === "pecas" && !veiculoId) return void toast.error("Selecione o veículo de destino das peças");
+    if (composition === "pecas" && !veiculoId && !rateioAtivo) return void toast.error("Selecione o veículo de destino das peças");
     if (composition === "misto") {
       if (linkedServicePaid) return void toast.error("O serviço vinculado possui pagamentos. Edite essa conta separadamente para preservar os pagamentos.");
       if (nfseValorTotal <= 0) return void toast.error("Adicione os serviços executados e seus valores");
@@ -1431,13 +1431,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           )}
 
           {/* ═══ 2. Composição do valor ═══ */}
-          {composition === "pecas" && !rateioAtivo && <div>
+          {composition === "pecas" && (!rateioAtivo ? <div>
             <Label className="text-xs">Veículo de destino *</Label>
             <Select value={veiculoId || ""} onValueChange={(id) => { setVeiculoId(id); setVeiculoPlaca(fleetVehicles.find(v => v.id === id)?.plate || ""); }}>
               <SelectTrigger className="h-9"><SelectValue placeholder="Selecione o veículo" /></SelectTrigger>
               <SelectContent>{fleetVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>)}</SelectContent>
             </Select>
-          </div>}
+          
+            <Button type="button" variant="outline" size="sm" className="h-7 mt-1.5 text-[11px] gap-1"
+              onClick={() => { setRateioAtivo(true); setRateioRows(veiculoId ? [{ veiculo_id: veiculoId, valor_rateado: Number(valorTotal) || 0, percentual: 100 }] : [{ veiculo_id: null, valor_rateado: 0, percentual: null }]); }}>
+              <Split className="h-3 w-3" /> Ratear entre múltiplos veículos
+            </Button>
+          </div> : (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <VehicleRateioEditor rows={rateioRows} onChange={setRateioRows} vehicles={fleetVehicles} valorTotal={Number(valorTotal) || 0} />
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => { setRateioAtivo(false); setRateioRows([]); }}>
+                Cancelar rateio e usar um único veículo
+              </Button>
+            </div>
+          ))}
           {/* Manual item entry (non-maintenance) */}
           {composition !== "servico" && (
             <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
