@@ -138,7 +138,15 @@ export function PersonSearchInput({
           .or(matchParts.join(","))
           .order("full_name")
           .limit(10);
-        setResults(data || []);
+        let rows = (data || []) as any[];
+        // Colaboradores/motoristas guardam o CPF nos documentos pessoais.
+        const missing = rows.filter((r) => !r.cnpj && r.user_id).map((r) => r.user_id);
+        if (missing.length) {
+          const { data: docs } = await supabase.from("driver_documents").select("user_id, cpf").in("user_id", missing);
+          const map = new Map((docs || []).map((d: any) => [d.user_id, d.cpf]));
+          rows = rows.map((r) => (!r.cnpj && map.get(r.user_id) ? { ...r, cnpj: map.get(r.user_id) } : r));
+        }
+        setResults(rows);
         setShowDropdown(true);
       } catch {
         setResults([]);

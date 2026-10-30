@@ -530,14 +530,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("category, cnpj, cpf, razao_social, nome_fantasia, full_name")
+        .select("category, cnpj, user_id, razao_social, nome_fantasia, full_name")
         .eq("id", favorecidoId)
         .maybeSingle();
       if (cancelled || !data) return;
       const p = data as any;
       setFavorecidoCategory(p.category || null);
       setFavorecidoNome((prev) => prev || p.razao_social || p.full_name || p.nome_fantasia || "");
-      if (p.cnpj || p.cpf) setFornecedorCnpj((prev) => prev || maskDocument(p.cnpj || p.cpf));
+      let doc: string | null = p.cnpj || null;
+      // Colaboradores/motoristas guardam o CPF nos documentos pessoais.
+      if (!doc && p.user_id) {
+        const { data: dd } = await supabase.from("driver_documents").select("cpf").eq("user_id", p.user_id).maybeSingle();
+        doc = dd?.cpf || null;
+      }
+      if (cancelled) return;
+      if (doc) setFornecedorCnpj((prev) => prev || maskDocument(doc!));
     })();
     return () => { cancelled = true; };
   }, [favorecidoId]);
