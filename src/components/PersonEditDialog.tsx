@@ -473,7 +473,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
   useEffect(() => {
     if (person) {
       const f = personToForm(person);
-      if (person.category === "motorista") {
+      if ((person.category === "motorista" || person.category === "colaborador") && person.user_id) {
         supabase
           .from("driver_documents")
           .select("cnh_number, cnh_category, cnh_expiry, cpf")
@@ -547,11 +547,10 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
           .select("id")
           .eq("user_id", newUserId)
           .maybeSingle();
-        if (existing) {
-          await supabase.from("driver_documents").update({ cpf: unmaskCPF(form.cpf) || null }).eq("user_id", newUserId);
-        } else {
-          await supabase.from("driver_documents").insert({ user_id: newUserId, cpf: unmaskCPF(form.cpf) || null });
-        }
+        const { error: docErr } = existing
+          ? await supabase.from("driver_documents").update({ cpf: unmaskCPF(form.cpf) || null }).eq("user_id", newUserId)
+          : await supabase.from("driver_documents").insert({ user_id: newUserId, cpf: unmaskCPF(form.cpf) || null });
+        if (docErr) throw docErr;
       }
 
       toast({ title: "Cadastro atualizado!" });
