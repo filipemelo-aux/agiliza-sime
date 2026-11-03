@@ -513,8 +513,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   // ─── Seleção em lote ──────────────────────────────────────
   // Excluir = remover o registro guardado no sistema. Vale para CT-es importados
-  // via XML ou já cancelados; não envolve nenhuma chamada à SEFAZ.
-  const isDeletable = (c: Cte) => !!c.importado_xml || c.status === "cancelado";
+  // via XML, já cancelados ou rascunhos (serviço ou produção) nunca autorizados.
+  const isDeletable = (c: Cte) =>
+    !!c.importado_xml || c.status === "cancelado" || (c.status === "rascunho" && !c.protocolo_autorizacao);
 
   const selectableIds = sorted
     .filter((c) => c.tipo_talao === "servico" || c.status !== "autorizado")
