@@ -933,6 +933,7 @@ export function FinancialPayables() {
       }
 
       if (!matchesBaseFilters(i)) return false;
+      return true;
     }).sort((a, b) => {
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
@@ -960,12 +961,6 @@ export function FinancialPayables() {
       return dateA.localeCompare(dateB);
     });
   }, [items, installmentsMap, matchesBaseFilters, quickFilter, matchesPeriod, matchesQuickFilter, getExpenseDateRef]);
-  console.log("DBG", JSON.stringify({
-    filtered: filtered.length, quickFilter, period: [filterPeriodoInicio, filterPeriodoFim],
-    items: items.length, instMap: Object.keys(installmentsMap).length,
-    base: items.filter(matchesBaseFilters).length,
-    sample: items.slice(0, 3).map(i => [i.status, i.data_vencimento, (installmentsMap[i.id] || []).length]),
-  }));
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
