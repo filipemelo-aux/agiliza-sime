@@ -259,6 +259,8 @@ function TransactionDetails({
 }
 
 
+const elsewhereRunKeyStore = { current: "" };
+
 export function BankReconciliation() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -1830,6 +1832,7 @@ export function BankReconciliation() {
   }, [items, movsInPeriod, ofxRange, reconciledElsewhere]);
 
   // Descobre quais movimentações do período já foram conciliadas em outro extrato
+  const elsewhereRunKey = elsewhereRunKeyStore;
   useEffect(() => {
     let cancelled = false;
     const ids = movsInPeriod.map((m) => m.id);
@@ -1837,10 +1840,14 @@ export function BankReconciliation() {
       setReconciledElsewhere(new Set());
       return;
     }
+    // Ao voltar para a tela com os mesmos dados, reaproveita o resultado já carregado.
+    const runKey = `${reconciliationId}|${ids.length}|${ids[0]}|${ids[ids.length - 1]}`;
+    if (elsewhereRunKey.current === runKey) return;
     (async () => {
       const found = new Set<string>();
-      for (let i = 0; i < ids.length; i += 200) {
-        const chunk = ids.slice(i, i + 200);
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += 200) chunks.push(ids.slice(i, i + 200));
+      await Promise.all(chunks.map(async (chunk) => {
         const { data: direct } = await supabase
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id, reconciliation_id")
@@ -1854,8 +1861,8 @@ export function BankReconciliation() {
           .in("movimentacao_id", chunk)
           .neq("bank_reconciliation_items.reconciliation_id", reconciliationId);
         (links || []).forEach((r: any) => r.movimentacao_id && found.add(r.movimentacao_id));
-      }
-      if (!cancelled) setReconciledElsewhere(found);
+      }));
+      if (!cancelled) { elsewhereRunKey.current = runKey; setReconciledElsewhere(found); }
     })();
     return () => { cancelled = true; };
   }, [movsInPeriod, reconciliationId]);
