@@ -192,9 +192,20 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
           : "",
         observacoes: cte.observacoes || "",
       });
-      setDesconto(deserializeDesconto((cte as any).desconto));
-      setModoValor("tonelada");
-      setValorTotalManual("");
+      const desc = deserializeDesconto((cte as any).desconto);
+      setDesconto(desc);
+      // Restaura exatamente o valor salvo: se peso × R$/t não reproduz o frete bruto
+      // (ex.: salvo por "Valor total" ou com peso zerado), abre em modo "Valor total".
+      const brutoSalvo = +((Number(c.valor_frete) || 0) + calcDescontoTotal(desc)).toFixed(2);
+      const pesoT = (Number(cte.peso_bruto) || 0) / 1000;
+      const calcTon = +(pesoT * (Number(c.valor_tonelada) || 0)).toFixed(2);
+      if (brutoSalvo > 0 && (pesoT <= 0 || Math.abs(calcTon - brutoSalvo) > 0.01)) {
+        setModoValor("total");
+        setValorTotalManual(maskCurrency(String(Math.round(brutoSalvo * 100))));
+      } else {
+        setModoValor("tonelada");
+        setValorTotalManual("");
+      }
     } else {
       setForm({ ...empty, data_emissao: new Date().toISOString().slice(0, 10) });
       setDesconto(emptyDesconto);
@@ -394,6 +405,13 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
         desconto: serializeDesconto(desconto),
         created_by: user?.id ?? null,
       };
+      // Novo CT-e clonado: herda os dados básicos dos documentos do original (busca por documento).
+      if (!cte && cloneFrom) {
+        const cf = cloneFrom as any;
+        payload.chaves_nfe_ref = cf.chaves_nfe_ref ?? [];
+        payload.nfe_detalhes = cf.nfe_detalhes ?? [];
+        payload.outros_documentos = cf.outros_documentos ?? [];
+      }
 
       let savedId: string;
       if (cte) {

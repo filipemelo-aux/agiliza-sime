@@ -399,11 +399,24 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       const { data } = await supabase.from("ctes").select("*").eq("id", src.id).single();
       if (data) full = data;
     } catch { /* usa a linha da listagem */ }
+    // Talão de serviço: mantém os dados básicos dos documentos (chave/número/série)
+    // para que o clone seja encontrado pelo filtro "Documento do CT-e".
+    const keepDocs = target === "servico";
+    const basicDocs = (arr: any) =>
+      Array.isArray(arr)
+        ? arr.map((d: any) => (d && typeof d === "object"
+            ? { chave: d.chave ?? d.chave_acesso ?? null, numero: d.numero ?? d.nDoc ?? null, serie: d.serie ?? null, tipo: d.tipo ?? d.tpDoc ?? null, modelo: d.modelo ?? null }
+            : d))
+        : [];
     const clone: any = {
       ...full,
       id: undefined, numero: null, numero_interno: null, chave_acesso: null, protocolo_autorizacao: null,
       status: "rascunho", motivo_rejeicao: null, data_emissao: null, data_autorizacao: null, data_carregamento: null,
-      peso_bruto: 0, chaves_nfe_ref: [], nfe_detalhes: [], outros_documentos: [], info_quantidade: [],
+      peso_bruto: 0,
+      chaves_nfe_ref: keepDocs && Array.isArray(full.chaves_nfe_ref) ? [...full.chaves_nfe_ref] : [],
+      nfe_detalhes: keepDocs ? basicDocs(full.nfe_detalhes) : [],
+      outros_documentos: keepDocs ? basicDocs(full.outros_documentos) : [],
+      info_quantidade: [],
       chave_cte_subcontratacao: "", pedido_numero: "", averbacao_numero: "", previsao_saida: "", previsao_chegada: "",
       importado_xml: false, tipo_talao: target,
     };
