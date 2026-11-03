@@ -857,72 +857,65 @@ export function FinancialPayables() {
     return true;
   }, [quickFilter]);
 
+  // Filtros comuns à grade, aos contadores e aos totais dos cartões.
+  const matchesBaseFilters = useCallback((i: Expense) => {
+    const q = search.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const matchSearch = !search ||
+      i.descricao.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q) ||
+      matchValueQuery(q, i.valor_total) ||
+      matchValueQuery(q, Number(i.valor_pago || 0)) ||
+      (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
+    const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
+    const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
+    const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
+    const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
+    const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
+    return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchEmpresa;
+  }, [search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterEmpresa, favorecidoMap, chartIdMap, installmentsMap]);
+
   const counts = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0, aVencer = 0;
 
-    // REGRA: período é SEMPRE aplicado primeiro em tudo
-    const baseForCounts = items.filter(i => {
-      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const matchSearch = !search ||
-        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        matchValueQuery(q, i.valor_total) ||
-        matchValueQuery(q, Number(i.valor_pago || 0)) ||
-        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
-      const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
-      const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
-      const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
-      const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // Para despesas COM parcelas, checar se alguma parcela cai no período
-      const installs = installmentsMap[i.id];
-      const hasInst = installs && installs.length > 0;
-      const matchPeriodo = hasInst
-        ? installs.some(inst => matchesPeriod(inst.data_vencimento))
-        : matchesPeriod(getExpenseDateRef(i));
-      const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo && matchEmpresa;
-    });
-
-    baseForCounts.forEach(i => {
+    // Vencidas são contadas mesmo fora do período visível: o cartão "Atrasado"
+    // e o botão "Atrasadas" precisam continuar mostrando a pendência real.
+    items.filter(matchesBaseFilters).forEach(i => {
       const installs = installmentsMap[i.id];
       if (installs && installs.length > 0) {
-        // Contar apenas parcelas que caem no período
         installs.forEach(inst => {
-          const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
-            (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
-          if (!inPeriod) return;
+          if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
+          if (!matchesPeriod(inst.data_vencimento)) return;
           if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
           if (inst.data_vencimento >= today && inst.status !== "pago") aVencer++;
-          if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
           if (inst.status === "pago") pagas++;
         });
-      } else {
-        const expenseDate = getExpenseDateRef(i);
-        const isOverdue = !!expenseDate && expenseDate < today && i.status !== "pago";
-        if (i.status !== "pago") all++;
-        if (expenseDate === today && i.status !== "pago") hoje++;
-        if (expenseDate && expenseDate >= today && expenseDate <= in7days && i.status !== "pago") semana++;
-        if (expenseDate && expenseDate >= today && i.status !== "pago") aVencer++;
-        if (isOverdue) atrasadas++;
-        if (i.status === "pago") pagas++;
+        return;
       }
+      const expenseDate = getExpenseDateRef(i);
+      if (!!expenseDate && expenseDate < today && i.status !== "pago") atrasadas++;
+      if (!matchesPeriod(expenseDate)) return;
+      if (i.status !== "pago") all++;
+      if (expenseDate === today && i.status !== "pago") hoje++;
+      if (expenseDate && expenseDate >= today && expenseDate <= in7days && i.status !== "pago") semana++;
+      if (expenseDate && expenseDate >= today && i.status !== "pago") aVencer++;
+      if (i.status === "pago") pagas++;
     });
 
     return { all, hoje, semana, atrasadas, pagas, aVencer };
-  }, [items, installmentsMap, search, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef, favorecidoMap]);
+  }, [items, installmentsMap, matchesBaseFilters, matchesPeriod, getExpenseDateRef]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
