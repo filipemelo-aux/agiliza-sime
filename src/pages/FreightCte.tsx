@@ -23,6 +23,7 @@ import JSZip from "jszip";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
+import { resolveCloneSource } from "@/lib/cteCloneSource";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -612,11 +613,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   // Clonar vale para 1 ou mais selecionados: com mais de um, copia o último clicado.
   // O seletor de clonagem mostra qual CT-e será copiado, então nada acontece às escondidas.
-  const cloneSource = (() => {
-    const arr = sorted.filter((c) => selectedIds.has(c.id));
-    if (arr.length === 0) return null;
-    return arr.find((c) => c.id === lastPickedId) ?? arr[arr.length - 1];
-  })();
+  const cloneSource = resolveCloneSource(sorted, selectedIds, lastPickedId);
 
   const handleSelectedChange = (next: Set<string>) => {
     const added = Array.from(next).find((id) => !selectedIds.has(id));
