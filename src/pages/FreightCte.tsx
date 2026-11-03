@@ -487,8 +487,8 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       title: "Excluir CT-e do sistema",
       description:
         (isServico
-          ? `O talão de serviço Nº ${cte.numero} será excluído do sistema.`
-          : `O CT-e Nº ${cte.numero} será excluído do sistema.`) +
+          ? `O talão de serviço Nº ${(cte as any).numero_interno ?? cte.numero ?? "—"} será excluído do sistema.`
+          : `O CT-e Nº ${cte.numero ?? "(rascunho)"} será excluído do sistema.`) +
         `\n\nEsta ação não pode ser desfeita.` +
         contractWarning,
       confirmLabel: "Excluir do sistema",
