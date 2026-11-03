@@ -108,6 +108,7 @@ export default function FreightCte() {
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [docSearch, setDocSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "producao" | "servico">("todos");
   const [empresa, setEmpresa] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -317,6 +318,14 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     const emissao = normalizeDateInput(getEmissaoDate(c));
     if (dateFrom && (!emissao || emissao < dateFrom)) return false;
     if (dateTo && (!emissao || emissao > dateTo)) return false;
+
+    const dq = docSearch.trim().toLowerCase();
+    if (dq) {
+      const anyC = c as any;
+      const hay = JSON.stringify([anyC.chaves_nfe_ref, anyC.nfe_detalhes, anyC.outros_documentos, anyC.chave_cte_subcontratacao, anyC.pedido_numero]).toLowerCase();
+      const dqDigits = dq.replace(/\D/g, "");
+      if (!hay.includes(dq) && !(dqDigits && hay.replace(/[^0-9a-z]/g, "").includes(dqDigits))) return false;
+    }
 
     const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return (
@@ -710,6 +719,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input placeholder="Buscar nº, remetente, destinatário, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
               </div>
+            </FilterField>
+            <FilterField label="Documento do CT-e" className="min-w-[200px] flex-1">
+              <Input placeholder="Nº ou chave da NF-e / outros documentos" value={docSearch} onChange={(e) => setDocSearch(e.target.value)} className="h-8 text-xs" />
             </FilterField>
             <FilterField label="Talão">
               <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
