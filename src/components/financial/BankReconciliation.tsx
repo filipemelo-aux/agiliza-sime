@@ -1,5 +1,6 @@
 import { accentLike } from "@/lib/search";
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -263,29 +264,30 @@ export function BankReconciliation() {
   const isMobile = useIsMobile();
   const { matrizId } = useUnifiedCompany();
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [items, setItems] = useState<OfxItem[]>([]);
-  const [fileName, setFileName] = useState("");
+  const [items, setItems] = useMemoryState<OfxItem[]>("br:items", []);
+  const [fileName, setFileName] = useMemoryState("br:fileName", "");
   const [loading, setLoading] = useState(false);
-  const [reconciliationId, setReconciliationId] = useState<string | null>(null);
-  const [chartAccounts, setChartAccounts] = useState<any[]>([]);
-  const [history, setHistory] = useState<ReconciliationSummary[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado">("todos");
-  const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
+  const [reconciliationId, setReconciliationId] = useMemoryState<string | null>("br:recId", null);
+  const [chartAccounts, setChartAccounts] = useMemoryState<any[]>("br:chart", []);
+  const [history, setHistory] = useMemoryState<ReconciliationSummary[]>("br:history", []);
+  const [loadingHistory, setLoadingHistory] = useState(() => !hasMemoryState("br:history"));
+  const [searchText, setSearchText] = useMemoryState("br:search", "");
+  const [statusFilter, setStatusFilter] = useMemoryState<"todos" | "pendente" | "conciliado">("br:status", "todos");
+  const [tipoFilter, setTipoFilter] = useMemoryState<"todos" | "debito" | "credito">("br:tipo", "todos");
   // Movimentações do fluxo no período do OFX (para detectar lançamentos que NÃO existem no extrato)
-  const [movsInPeriod, setMovsInPeriod] = useState<Array<{ id: string; valor: number; data_movimentacao: string; tipo: "entrada" | "saida"; descricao: string | null; origem: string; favorecido?: string | null }>>([]);
-  const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
+  const [movsInPeriod, setMovsInPeriod] = useMemoryState<Array<{ id: string; valor: number; data_movimentacao: string; tipo: "entrada" | "saida"; descricao: string | null; origem: string; favorecido?: string | null }>>("br:movs", []);
+  const [ofxRange, setOfxRange] = useMemoryState<{ min: string; max: string } | null>("br:range", null);
   // Movimentações já conciliadas em OUTRO extrato (não são divergência aqui)
-  const [reconciledElsewhere, setReconciledElsewhere] = useState<Set<string>>(new Set());
+  const [reconciledElsewhere, setReconciledElsewhere] = useMemoryState<Set<string>>("br:elsewhere", () => new Set());
 
   const [showMissing, setShowMissing] = useState(false);
   const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
   // Cadastro (CNPJ -> nome) para identificar favorecidos de transferências enviadas
-  const [docNameMap, setDocNameMap] = useState<Record<string, string>>({});
-  const [profileByDoc, setProfileByDoc] = useState<Record<string, { id: string; nome: string }>>({});
-  const [profileByName, setProfileByName] = useState<Record<string, { id: string; nome: string }>>({});
+  const [docNameMap, setDocNameMap] = useMemoryState<Record<string, string>>("br:docNames", {});
+  const [profileByDoc, setProfileByDoc] = useMemoryState<Record<string, { id: string; nome: string }>>("br:profDoc", {});
+  const [profileByName, setProfileByName] = useMemoryState<Record<string, { id: string; nome: string }>>("br:profName", {});
   useEffect(() => {
+    if (hasMemoryState("br:docNames")) return;
     supabase
       .from("profiles")
       .select("id, cnpj, razao_social, nome_fantasia, full_name")
@@ -353,12 +355,13 @@ export function BankReconciliation() {
 
   // Load chart of accounts (plano de contas é único/unificado entre as empresas)
   useEffect(() => {
+    if (hasMemoryState("br:chart")) return;
     supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
   }, []);
 
   // Load reconciliation history
   const loadHistory = useCallback(async () => {
-    setLoadingHistory(true);
+    if (!hasMemoryState("br:history")) setLoadingHistory(true);
     const { data } = await supabase
       .from("bank_reconciliations")
       .select("id, file_name, bank_name, created_at, period_start, period_end, total_items, reconciled_items")
