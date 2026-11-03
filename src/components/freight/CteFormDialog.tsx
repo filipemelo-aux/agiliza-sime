@@ -805,7 +805,17 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml, cl
         apolice_numero: (cte as any).apolice_numero || "",
         averbacao_numero: (cte as any).averbacao_numero || "",
         gerar_previsao: (cte as any).gerar_previsao ?? true,
-        composicao_frete: { ...defaultForm.composicao_frete, ...((cte as any).composicao_frete || { frete_valor: Number(cte.valor_frete) || 0 }) },
+        composicao_frete: (() => {
+          const base = { ...defaultForm.composicao_frete, ...((cte as any).composicao_frete || { frete_valor: Number(cte.valor_frete) || 0 }) };
+          if (srcCte === cloneFrom && !(cte as any).id) return base; // clone: peso zerado, frete recalculado
+          // Edição: garante que o frete abra exatamente como salvo.
+          const saved = Number(cte.valor_frete) || 0;
+          const adic = (Number(base.outros) || 0) + (Number(base.diaria) || 0) + (Number(base.seguro) || 0) + (Number((cte as any).valor_pedagio) || 0);
+          const peso = Number(cte.peso_bruto) || 0;
+          const fv = base.tarifa_final > 0 ? Math.round(base.tarifa_final * (peso / 1000) * 100) / 100 : Number(base.frete_valor) || 0;
+          if (Math.abs(Math.round((fv + adic) * 100) / 100 - saved) <= 0.01) return base;
+          return { ...base, tarifa_final: 0, frete_valor: Math.round((saved - adic) * 100) / 100 };
+        })(),
         frete_minimo: { ...defaultForm.frete_minimo, ...((cte as any).frete_minimo || {}) },
         data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
       });
