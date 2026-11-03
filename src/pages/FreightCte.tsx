@@ -125,7 +125,6 @@ export default function FreightCte() {
   
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
-  const [cloneSource, setCloneSource] = useState<Cte | null>(null);
   const [cloneChooser, setCloneChooser] = useState<Cte | null>(null);
   const [cloneFrom, setCloneFrom] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
