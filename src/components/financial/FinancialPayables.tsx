@@ -932,30 +932,7 @@ export function FinancialPayables() {
         if (!matchesPeriod(expenseDate) || !matchesQuickFilter(expenseDate, i.status)) return false;
       }
 
-      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const matchSearch = !search ||
-        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        matchValueQuery(q, i.valor_total) ||
-        matchValueQuery(q, Number(i.valor_pago || 0)) ||
-        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
-      const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
-      const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
-      const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
-      const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-
-      const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
-
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchEmpresa;
+      if (!matchesBaseFilters(i)) return false;
     }).sort((a, b) => {
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
@@ -982,7 +959,7 @@ export function FinancialPayables() {
       }
       return dateA.localeCompare(dateB);
     });
-  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef, favorecidoMap]);
+  }, [items, installmentsMap, matchesBaseFilters, quickFilter, matchesPeriod, matchesQuickFilter, getExpenseDateRef]);
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
