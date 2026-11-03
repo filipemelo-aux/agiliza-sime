@@ -10,7 +10,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { installmentPrincipalMap } from "@/lib/payableReportState";
+import { installmentPrincipalMap, payableQuickFilterPeriod } from "@/lib/payableReportState";
 import { startOfMonth, endOfMonth, format, addDays, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
@@ -167,8 +167,10 @@ export function FinancialPayables() {
   };
 
   const stored = getStoredFilters();
-  const defaultStart = "";
-  const defaultEnd = "";
+  const initialSituation: QuickFilter | "all" = initialQuickFilter ?? stored?.quickFilter ?? "a_vencer";
+  const defaultPeriod = payableQuickFilterPeriod(initialSituation);
+  const defaultStart = defaultPeriod.inicio;
+  const defaultEnd = defaultPeriod.fim;
 
   // Clear the state flag so refreshes / CRUD don't reset filters
   const clearedNav = useRef(false);
@@ -188,7 +190,7 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useMemoryState<string>("fp:empresaId", "");
   const [loading, setLoading] = useState(() => !hasMemoryState("fp:items"));
   const [search, setSearch] = useState(stored?.search ?? "");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "a_vencer");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialSituation);
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
   const [filterEmpresa, setFilterEmpresa] = useState<string>(stored?.filterEmpresa ?? "");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
