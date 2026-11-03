@@ -9,25 +9,28 @@ const rows = [
 
 describe("resolveCloneSource", () => {
   it("não clona nada sem seleção", () => {
-    expect(resolveCloneSource(rows, new Set(), null)).toBeNull();
+    expect(resolveCloneSource(rows, new Set())).toBeNull();
   });
 
   it("clona um CT-e de serviço selecionado sozinho", () => {
-    const src = resolveCloneSource(rows, new Set(["s1"]), "s1");
+    const src = resolveCloneSource(rows, new Set(["s1"]));
     expect(src?.id).toBe("s1");
     expect(src?.tipo_talao).toBe("servico");
   });
 
   it("clona um CT-e de produção selecionado sozinho", () => {
-    expect(resolveCloneSource(rows, new Set(["p1"]), "p1")?.id).toBe("p1");
+    expect(resolveCloneSource(rows, new Set(["p1"]))?.id).toBe("p1");
   });
 
-  it("com vários selecionados copia o último clicado", () => {
-    expect(resolveCloneSource(rows, new Set(["p1", "s2"]), "s2")?.id).toBe("s2");
-    expect(resolveCloneSource(rows, new Set(["p1", "s2"]), "p1")?.id).toBe("p1");
+  it("com dois selecionados de talões diferentes não clona nada", () => {
+    expect(resolveCloneSource(rows, new Set(["p1", "s2"]))).toBeNull();
   });
 
-  it("usa a última linha visível quando o clicado já saiu da lista", () => {
-    expect(resolveCloneSource(rows, new Set(["p1", "s1"]), "fora")?.id).toBe("s1");
+  it("com dois selecionados do mesmo talão não clona nada", () => {
+    expect(resolveCloneSource(rows, new Set(["s1", "s2"]))).toBeNull();
+  });
+
+  it("com todos selecionados não clona nada", () => {
+    expect(resolveCloneSource(rows, new Set(["p1", "s1", "s2"]))).toBeNull();
   });
 });
