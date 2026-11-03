@@ -127,6 +127,8 @@ interface Props {
   onSaved: () => void;
   /** XML de NF-e para pré-importar ao abrir um CT-e novo. */
   initialXml?: string | null;
+  /** CT-e de origem para clonar (novo CT-e pré-preenchido; nunca edita a origem). */
+  cloneFrom?: Cte | null;
 }
 
 interface DocCampos { natureza: string; tipo: string; numero: string; serie: string; data_emissao: string; valor: number; peso: number; quantidade: number; especie: string; cubagem: number; marca: string; cfop: string; ncm: string; valor_produtos: number; bc_icms: number; bc_icms_st: number; outros: number }
@@ -604,7 +606,7 @@ function ActorSection({
 
 }
 
-export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: Props) {
+export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml, cloneFrom }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { tenant } = useTenant();
@@ -700,7 +702,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
   }, [open]);
 
   useEffect(() => {
-    if (cte) {
+    const srcCte = cte || (open ? cloneFrom : null) || null;
+    if (srcCte) {
+      const cte = srcCte;
       setForm({
         tp_cte: cte.tp_cte ?? 0,
         tp_serv: cte.tp_serv ?? 0,
@@ -830,7 +834,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       setDesconto(emptyDesconto);
     }
     setNfeImportNotice(null);
-  }, [cte, open]);
+  }, [cte, open, cloneFrom]);
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
@@ -1384,6 +1388,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
+    if (!Number(form.valor_frete)) {
+      toast({ title: "Valor do frete obrigatório", description: "Informe o valor do frete. O peso pode ficar zerado, mas o frete não.", variant: "destructive" });
+      return;
+    }
     if (!form.veiculo_id) {
       toast({ title: "Veículo obrigatório", description: "Selecione a placa do veículo da frota própria. Sem isso o CT-e não entra nos relatórios de receita por veículo.", variant: "destructive" });
       return;
@@ -1575,7 +1583,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml }: 
       if (!temDocumento) pendencias.push("Nenhum documento da carga incluído (NF-e ou outro documento). A SEFAZ exige pelo menos um para autorizar o CT-e.");
       if (!form.produto_predominante?.trim()) pendencias.push("Produto predominante não informado (quadro 3).");
       if (!form.valor_frete || Number(form.valor_frete) <= 0) pendencias.push("Valor do frete não informado.");
-      if (!form.peso_bruto || Number(form.peso_bruto) <= 0) pendencias.push("Peso bruto da carga não informado.");
       if (!form.municipio_origem_nome?.trim() || !form.municipio_destino_nome?.trim()) pendencias.push("Cidade de origem ou de destino da prestação não informada.");
       if (form.tomador_tipo === null || form.tomador_tipo === undefined) pendencias.push("Tomador do serviço não definido.");
       if (pendencias.length > 0) setPendenciasAviso(pendencias);

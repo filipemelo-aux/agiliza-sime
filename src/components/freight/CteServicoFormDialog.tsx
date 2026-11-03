@@ -42,6 +42,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   cte: Cte | null;
   onSaved: () => void;
+  /** CT-e de origem para clonar (novo registro pré-preenchido). */
+  cloneFrom?: Cte | null;
 }
 
 interface FormState {
@@ -88,7 +90,7 @@ const empty: FormState = {
   observacoes: "",
 };
 
-export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
+export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFrom }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { matrizId } = useUnifiedCompany();
@@ -130,15 +132,18 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         if (data) {
           setEstablishments(data as any);
           // Só restaura o emitente se já estiver salvo no CT-e (edição). Em novo CT-e, deixa em branco para evitar erro do usuário.
-          if (cte?.establishment_id) setSelectedEstId(cte.establishment_id);
+          const estId = cte?.establishment_id || cloneFrom?.establishment_id;
+          if (estId) setSelectedEstId(estId);
           else setSelectedEstId("");
         }
       });
-  }, [open, cte?.establishment_id, matrizId]);
+  }, [open, cte?.establishment_id, cloneFrom?.establishment_id, matrizId]);
 
   useEffect(() => {
     if (!open) return;
-    if (cte) {
+    const srcCte = cte || cloneFrom || null;
+    if (srcCte) {
+      const cte = srcCte;
       const c = cte as any;
       setForm({
         tomador_id: cte.tomador_id ?? null,
@@ -196,7 +201,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       setModoValor("tonelada");
       setValorTotalManual("");
     }
-  }, [open, cte]);
+  }, [open, cte, cloneFrom]);
 
   const pesoTon = (Number(form.peso_bruto_kg) || 0) / 1000;
   const valorTonInput = Number(unmaskCurrency(form.valor_tonelada)) || 0;
@@ -239,7 +244,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
     if (valorBruto <= 0) {
       toast({
         title: "Valor inválido",
-        description: modoValor === "total" ? "Informe o valor total do frete." : "Informe peso e valor por tonelada.",
+        description: modoValor === "total" ? "Informe o valor total do frete." : "Informe peso e valor por tonelada, ou use \"Valor total\" para salvar com peso zerado.",
         variant: "destructive",
       });
       return;
@@ -735,7 +740,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Peso (kg) *</Label>
+                  <Label className="text-xs">Peso (kg)</Label>
                   <Input
                     type="number"
                     inputMode="numeric"
