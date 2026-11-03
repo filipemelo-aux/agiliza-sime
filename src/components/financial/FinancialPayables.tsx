@@ -1276,11 +1276,37 @@ export function FinancialPayables() {
     }
   };
 
+  // Totais dos cartões: consideram toda dívida em aberto, mesmo fora do período
+  // visível, para que "Atrasado" nunca deixe de mostrar uma pendência vencida.
   const { totalPendente, totalAtrasado, totalRegistros } = useMemo(() => {
-    const sum = (overdue: boolean) => flatRows.filter(r => !r.isPago && r.isOverdue === overdue)
-      .reduce((total, row) => total + Math.round(row.saldo * 100), 0) / 100;
-    return { totalPendente: sum(false), totalAtrasado: sum(true), totalRegistros: flatRows.length };
-  }, [flatRows]);
+    const today = format(new Date(), "yyyy-MM-dd");
+    let aPagar = 0;
+    let atrasado = 0;
+
+    items.filter(matchesBaseFilters).forEach(i => {
+      const installs = installmentsMap[i.id];
+      if (installs && installs.length > 0) {
+        installs.forEach(inst => {
+          if (inst.status === "pago" || inst.status === "cancelado") return;
+          const saldo = Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0);
+          if (saldo <= 0) return;
+          if (inst.data_vencimento < today) atrasado += saldo; else aPagar += saldo;
+        });
+        return;
+      }
+      if (i.status === "pago" || i.status === "cancelado") return;
+      const saldo = Math.max(Number(i.valor_total) - Number(i.valor_pago || 0), 0);
+      if (saldo <= 0) return;
+      const due = i.data_vencimento || i.data_emissao || "";
+      if (due && due < today) atrasado += saldo; else aPagar += saldo;
+    });
+
+    return {
+      totalPendente: Math.round(aPagar * 100) / 100,
+      totalAtrasado: Math.round(atrasado * 100) / 100,
+      totalRegistros: flatRows.length,
+    };
+  }, [items, installmentsMap, instPaidMap, matchesBaseFilters, flatRows]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
