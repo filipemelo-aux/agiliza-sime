@@ -18,7 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, Send, FileDown, FileCode2, Ban, FilePenLine, RefreshCw, type LucideIcon } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, Copy, Trash2, Pencil, AlertTriangle, Eye, Printer, Loader2, Handshake, Send, FileDown, FileCode2, Ban, FilePenLine, RefreshCw, type LucideIcon } from "lucide-react";
 import JSZip from "jszip";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
@@ -125,6 +125,8 @@ export default function FreightCte() {
   
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
+  const [cloneChooser, setCloneChooser] = useState<Cte | null>(null);
+  const [cloneFrom, setCloneFrom] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
   const { isConsultor } = useAuth();
@@ -384,6 +386,31 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     } else {
       setFormOpen(true);
     }
+  };
+
+  // Clonar: copia envolvidos, placa, carga e rota para um novo CT-e do talão escolhido.
+  // Peso, documentos, número, chave e status nunca são copiados.
+  const handleClone = async (target: "producao" | "servico") => {
+    const src = cloneChooser;
+    setCloneChooser(null);
+    if (!src) return;
+    let full: any = src;
+    try {
+      const { data } = await supabase.from("ctes").select("*").eq("id", src.id).single();
+      if (data) full = data;
+    } catch { /* usa a linha da listagem */ }
+    const clone: any = {
+      ...full,
+      id: undefined, numero: null, numero_interno: null, chave_acesso: null, protocolo_autorizacao: null,
+      status: "rascunho", motivo_rejeicao: null, data_emissao: null, data_autorizacao: null, data_carregamento: null,
+      peso_bruto: 0, chaves_nfe_ref: [], nfe_detalhes: [], outros_documentos: [], info_quantidade: [],
+      chave_cte_subcontratacao: "", pedido_numero: "", averbacao_numero: "", previsao_saida: "", previsao_chegada: "",
+      importado_xml: false, tipo_talao: target,
+    };
+    Object.keys(clone).forEach((k) => { if (/xml/i.test(k) && k !== "importado_xml") clone[k] = null; });
+    setEditingCte(null);
+    setCloneFrom(clone as Cte);
+    if (target === "servico") setServicoOpen(true); else setFormOpen(true);
   };
 
   // Remove contrato de frete vinculado + despesa pendente antes de excluir o CT-e.
@@ -745,6 +772,11 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => singleCte && handleEdit(singleCte),
             },
             {
+              key: "clone", label: "Clonar", icon: Copy, mode: "single", variant: "outline",
+              disabled: !singleCte || isConsultor,
+              onClick: () => singleCte && setCloneChooser(singleCte),
+            },
+            {
               key: "print", label: "Imprimir lista", icon: Printer, mode: "single+batch", variant: "outline",
               disabled: printing || selectedIds.size === 0,
               onClick: handlePrintSelected,
@@ -864,17 +896,38 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!cloneChooser} onOpenChange={(o) => !o && setCloneChooser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Clonar CT-e</DialogTitle>
+            <DialogDescription>Escolha o talão do novo CT-e. Envolvidos, placa, carga e rota são copiados; o peso vem zerado e tudo pode ser editado.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 mt-2">
+            <button type="button" onClick={() => handleClone("producao")} className="text-left border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition-colors flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><FileCheck2 className="h-5 w-5 text-primary" /></div>
+              <div><div className="font-semibold">Talão de Produção</div><p className="text-xs text-muted-foreground mt-0.5">CT-e fiscal, transmitido à SEFAZ.</p></div>
+            </button>
+            <button type="button" onClick={() => handleClone("servico")} className="text-left border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition-colors flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><FileCog className="h-5 w-5 text-primary" /></div>
+              <div><div className="font-semibold">Talão de Serviço</div><p className="text-xs text-muted-foreground mt-0.5">Registro interno, sem envio à SEFAZ.</p></div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <CteFormDialog
         open={formOpen}
-        onOpenChange={(o) => { setFormOpen(o); if (!o) setEditingCte(null); }}
+        onOpenChange={(o) => { setFormOpen(o); if (!o) { setEditingCte(null); setCloneFrom(null); } }}
         cte={editingCte}
+        cloneFrom={cloneFrom}
         onSaved={fetchCtes}
       />
 
       <CteServicoFormDialog
         open={servicoOpen}
-        onOpenChange={(o) => { setServicoOpen(o); if (!o) setEditingCte(null); }}
+        onOpenChange={(o) => { setServicoOpen(o); if (!o) { setEditingCte(null); setCloneFrom(null); } }}
         cte={editingCte}
+        cloneFrom={cloneFrom}
         onSaved={fetchCtes}
       />
 
