@@ -10,7 +10,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { installmentPrincipalMap } from "@/lib/payableReportState";
+import { installmentPrincipalMap, payableQuickFilterPeriod } from "@/lib/payableReportState";
 import { startOfMonth, endOfMonth, format, addDays, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
@@ -167,8 +167,10 @@ export function FinancialPayables() {
   };
 
   const stored = getStoredFilters();
-  const defaultStart = "";
-  const defaultEnd = "";
+  const initialSituation: QuickFilter | "all" = initialQuickFilter ?? stored?.quickFilter ?? "a_vencer";
+  const defaultPeriod = payableQuickFilterPeriod(initialSituation);
+  const defaultStart = defaultPeriod.inicio;
+  const defaultEnd = defaultPeriod.fim;
 
   // Clear the state flag so refreshes / CRUD don't reset filters
   const clearedNav = useRef(false);
@@ -188,7 +190,7 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useMemoryState<string>("fp:empresaId", "");
   const [loading, setLoading] = useState(() => !hasMemoryState("fp:items"));
   const [search, setSearch] = useState(stored?.search ?? "");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "a_vencer");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialSituation);
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
   const [filterEmpresa, setFilterEmpresa] = useState<string>(stored?.filterEmpresa ?? "");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
@@ -855,72 +857,65 @@ export function FinancialPayables() {
     return true;
   }, [quickFilter]);
 
+  // Filtros comuns à grade, aos contadores e aos totais dos cartões.
+  const matchesBaseFilters = useCallback((i: Expense) => {
+    const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const matchSearch = !search ||
+      i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      matchValueQuery(q, i.valor_total) ||
+      matchValueQuery(q, Number(i.valor_pago || 0)) ||
+      (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
+    const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
+    const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
+    const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
+    const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
+    const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
+    return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchEmpresa;
+  }, [search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterEmpresa, favorecidoMap, chartIdMap, installmentsMap]);
+
   const counts = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0, aVencer = 0;
 
-    // REGRA: período é SEMPRE aplicado primeiro em tudo
-    const baseForCounts = items.filter(i => {
-      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const matchSearch = !search ||
-        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        matchValueQuery(q, i.valor_total) ||
-        matchValueQuery(q, Number(i.valor_pago || 0)) ||
-        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
-      const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
-      const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
-      const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
-      const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // Para despesas COM parcelas, checar se alguma parcela cai no período
-      const installs = installmentsMap[i.id];
-      const hasInst = installs && installs.length > 0;
-      const matchPeriodo = hasInst
-        ? installs.some(inst => matchesPeriod(inst.data_vencimento))
-        : matchesPeriod(getExpenseDateRef(i));
-      const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo && matchEmpresa;
-    });
-
-    baseForCounts.forEach(i => {
+    // Vencidas são contadas mesmo fora do período visível: o cartão "Atrasado"
+    // e o botão "Atrasadas" precisam continuar mostrando a pendência real.
+    items.filter(matchesBaseFilters).forEach(i => {
       const installs = installmentsMap[i.id];
       if (installs && installs.length > 0) {
-        // Contar apenas parcelas que caem no período
         installs.forEach(inst => {
-          const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
-            (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
-          if (!inPeriod) return;
+          if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
+          if (!matchesPeriod(inst.data_vencimento)) return;
           if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
           if (inst.data_vencimento >= today && inst.status !== "pago") aVencer++;
-          if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
           if (inst.status === "pago") pagas++;
         });
-      } else {
-        const expenseDate = getExpenseDateRef(i);
-        const isOverdue = !!expenseDate && expenseDate < today && i.status !== "pago";
-        if (i.status !== "pago") all++;
-        if (expenseDate === today && i.status !== "pago") hoje++;
-        if (expenseDate && expenseDate >= today && expenseDate <= in7days && i.status !== "pago") semana++;
-        if (expenseDate && expenseDate >= today && i.status !== "pago") aVencer++;
-        if (isOverdue) atrasadas++;
-        if (i.status === "pago") pagas++;
+        return;
       }
+      const expenseDate = getExpenseDateRef(i);
+      if (!!expenseDate && expenseDate < today && i.status !== "pago") atrasadas++;
+      if (!matchesPeriod(expenseDate)) return;
+      if (i.status !== "pago") all++;
+      if (expenseDate === today && i.status !== "pago") hoje++;
+      if (expenseDate && expenseDate >= today && expenseDate <= in7days && i.status !== "pago") semana++;
+      if (expenseDate && expenseDate >= today && i.status !== "pago") aVencer++;
+      if (i.status === "pago") pagas++;
     });
 
     return { all, hoje, semana, atrasadas, pagas, aVencer };
-  }, [items, installmentsMap, search, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef, favorecidoMap]);
+  }, [items, installmentsMap, matchesBaseFilters, matchesPeriod, getExpenseDateRef]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -937,30 +932,8 @@ export function FinancialPayables() {
         if (!matchesPeriod(expenseDate) || !matchesQuickFilter(expenseDate, i.status)) return false;
       }
 
-      const q = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const matchSearch = !search ||
-        i.descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_nome || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.veiculo_placa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.chave_nfe || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.numero_multa || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.observacoes || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.fornecedor_cnpj || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        (i.forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
-        matchValueQuery(q, i.valor_total) ||
-        matchValueQuery(q, Number(i.valor_pago || 0)) ||
-        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
-      const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
-      const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
-      const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
-      const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-
-      const matchEmpresa = !filterEmpresa || (i as any).empresa_id === filterEmpresa;
-
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchEmpresa;
+      if (!matchesBaseFilters(i)) return false;
+      return true;
     }).sort((a, b) => {
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
@@ -987,7 +960,7 @@ export function FinancialPayables() {
       }
       return dateA.localeCompare(dateB);
     });
-  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterEmpresa, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef, favorecidoMap]);
+  }, [items, installmentsMap, matchesBaseFilters, quickFilter, matchesPeriod, matchesQuickFilter, getExpenseDateRef]);
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
@@ -1304,11 +1277,37 @@ export function FinancialPayables() {
     }
   };
 
+  // Totais dos cartões: consideram toda dívida em aberto, mesmo fora do período
+  // visível, para que "Atrasado" nunca deixe de mostrar uma pendência vencida.
   const { totalPendente, totalAtrasado, totalRegistros } = useMemo(() => {
-    const sum = (overdue: boolean) => flatRows.filter(r => !r.isPago && r.isOverdue === overdue)
-      .reduce((total, row) => total + Math.round(row.saldo * 100), 0) / 100;
-    return { totalPendente: sum(false), totalAtrasado: sum(true), totalRegistros: flatRows.length };
-  }, [flatRows]);
+    const today = format(new Date(), "yyyy-MM-dd");
+    let aPagar = 0;
+    let atrasado = 0;
+
+    items.filter(matchesBaseFilters).forEach(i => {
+      const installs = installmentsMap[i.id];
+      if (installs && installs.length > 0) {
+        installs.forEach(inst => {
+          if (inst.status === "pago" || inst.status === "cancelado") return;
+          const saldo = Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0);
+          if (saldo <= 0) return;
+          if (inst.data_vencimento < today) atrasado += saldo; else aPagar += saldo;
+        });
+        return;
+      }
+      if (i.status === "pago" || i.status === "cancelado") return;
+      const saldo = Math.max(Number(i.valor_total) - Number(i.valor_pago || 0), 0);
+      if (saldo <= 0) return;
+      const due = i.data_vencimento || i.data_emissao || "";
+      if (due && due < today) atrasado += saldo; else aPagar += saldo;
+    });
+
+    return {
+      totalPendente: Math.round(aPagar * 100) / 100,
+      totalAtrasado: Math.round(atrasado * 100) / 100,
+      totalRegistros: flatRows.length,
+    };
+  }, [items, installmentsMap, instPaidMap, matchesBaseFilters, flatRows]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
@@ -1536,20 +1535,9 @@ tfoot{display:table-row-group}
                 size="sm"
                 className={cn("h-7 px-2.5 text-[11px] gap-1 rounded-full font-medium transition-all", isActive && "shadow-sm")}
                 onClick={() => {
-                  if (f.key === "all") {
-                    setFilterPeriodoInicio("");
-                    setFilterPeriodoFim("");
-                  } else if (f.key === "a_vencer") {
-                    setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
-                    setFilterPeriodoFim("");
-                  } else if (f.key === "semana") {
-                    const todayDate = new Date();
-                    setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
-                    setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
-                  } else if (f.key === "atrasadas") {
-                    setFilterPeriodoInicio("");
-                    setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
-                  }
+                  const period = payableQuickFilterPeriod(f.key);
+                  setFilterPeriodoInicio(period.inicio);
+                  setFilterPeriodoFim(period.fim);
                   setQuickFilter(f.key);
                   setSelectedIds(new Set());
                 }}
@@ -1582,21 +1570,22 @@ tfoot{display:table-row-group}
             />
           </FilterField>
 
-          {(quickFilter !== "all" || filterPlanoContas !== "all" || filterEmpresa !== "" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
+          {(quickFilter !== "a_vencer" || filterPeriodoInicio !== defaultStart || filterPeriodoFim !== defaultEnd || filterPlanoContas !== "all" || filterEmpresa !== "" || search !== "" || filterNivel !== "all" || filterVeiculo !== "all" || filterCentroCusto !== "all") && (
             <Button
               variant="ghost"
               size="sm"
               className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive rounded-full"
               onClick={() => {
-                setQuickFilter("all");
+                const period = payableQuickFilterPeriod("a_vencer");
+                setQuickFilter("a_vencer");
                 setFilterPlanoContas("all");
                 setFilterEmpresa("");
                 setFilterNivel("all");
                 setFilterCentroCusto("all");
                 setFilterVeiculo("all");
                 setSearch("");
-                setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
-                setFilterPeriodoFim("");
+                setFilterPeriodoInicio(period.inicio);
+                setFilterPeriodoFim(period.fim);
                 setSelectedIds(new Set());
               }}
             >

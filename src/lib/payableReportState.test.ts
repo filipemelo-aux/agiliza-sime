@@ -1,5 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { installmentPrincipalMap, matchesPayableReportFilter, payableReportState, paymentPrincipal } from "./payableReportState";
+import { installmentPrincipalMap, matchesPayableReportFilter, payableQuickFilterPeriod, payableReportState, paymentPrincipal } from "./payableReportState";
+
+describe("janela de vencimento por situação", () => {
+  it("limita A vencer ao último dia do mês corrente", () => {
+    expect(payableQuickFilterPeriod("a_vencer", new Date(2026, 10, 3))).toEqual({
+      inicio: "2026-11-03",
+      fim: "2026-11-30",
+    });
+  });
+  it("mantém Atrasadas sem data inicial para não esconder pendências antigas", () => {
+    expect(payableQuickFilterPeriod("atrasadas", new Date(2026, 10, 3))).toEqual({
+      inicio: "",
+      fim: "2026-11-02",
+    });
+  });
+  it("não limita a semana ao mês e abre Todas sem período", () => {
+    expect(payableQuickFilterPeriod("semana", new Date(2026, 10, 30))).toEqual({
+      inicio: "2026-11-30",
+      fim: "2026-12-07",
+    });
+    expect(payableQuickFilterPeriod("all", new Date(2026, 10, 3))).toEqual({ inicio: "", fim: "" });
+  });
+});
 
 describe("separação das contas no relatório bancário", () => {
   it("preserva estorno negativo no cálculo do principal", () => {

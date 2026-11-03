@@ -1,5 +1,23 @@
+import { addDays, endOfMonth, format } from "date-fns";
+
 export type PayableReportStatus = "atrasado" | "pendente" | "parcial" | "pago";
 export type PayableReportFilter = "todos" | "atrasado" | "aberto" | "pago";
+
+/**
+ * Default due-date window for each situation button.
+ * "A vencer" is capped at the last day of the current month so long financing
+ * schedules don't flood the grid; overdue stays reachable through "Atrasadas".
+ */
+export function payableQuickFilterPeriod(
+  quickFilter: "all" | "a_vencer" | "semana" | "atrasadas",
+  today: Date = new Date(),
+) {
+  const start = format(today, "yyyy-MM-dd");
+  if (quickFilter === "a_vencer") return { inicio: start, fim: format(endOfMonth(today), "yyyy-MM-dd") };
+  if (quickFilter === "semana") return { inicio: start, fim: format(addDays(today, 7), "yyyy-MM-dd") };
+  if (quickFilter === "atrasadas") return { inicio: "", fim: format(addDays(today, -1), "yyyy-MM-dd") };
+  return { inicio: "", fim: "" };
+}
 
 /** Interest is cash paid, not amortization of the original debt. */
 export function paymentPrincipal(valor: unknown, juros: unknown, desconto: unknown = 0) {

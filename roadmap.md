@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Contas a Pagar abre com "A vencer" limitado ao mês corrente (03/11 a 30/11, 24 contas conferidas na tela), sem parcelas de 2027/2028; cartão Atrasado (R$ 877.563,98) e botão Atrasadas (113 contas, de 05/03 a 02/11) seguem mostrando a pendência real fora do período; 11 testes aprovados.
 - [x] Clonar CT-e só com exatamente um selecionado (Produção e Serviço): com dois ou mais o botão fica apagado; seis testes aprovados e tela conferida (1 ativo, 2 apagado, voltar a 1 ativo, 0 apagado).
 
 - [x] Integrar reembolsos em Nova Despesa, Contas a Pagar e folha: fornecedor/classificação preservados, saldo pendente reservado, crédito separado nos recibos e fora da base tributável; UI gravou R$ 150 e prévia somou R$ 1.535,62 + R$ 150 = R$ 1.685,62; 19 testes aprovados, incluindo pagamento avulso, bloqueio de duplicidade, salário + reembolso com saída única e estorno; registros temporários removidos.
