@@ -17,3 +17,12 @@ describe("complete payable reads", () => {
       .rejects.toThrow("Connection failed");
   });
 });
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+import { fetchAllRows as far } from "./fetchAllRows";
+d2("fetchAllRows paralelo", () => {
+  i2("mantém todas as 2500 linhas na ordem", async () => {
+    const all = Array.from({ length: 2500 }, (_, i) => i);
+    const { data } = await far(async (from, to) => ({ data: all.slice(from, to + 1), error: null }));
+    e2(data).toEqual(all);
+  });
+});
