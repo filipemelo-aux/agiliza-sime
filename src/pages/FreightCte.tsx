@@ -144,7 +144,6 @@ export default function FreightCte() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Última linha clicada: define qual CT-e é clonado quando há mais de um selecionado.
-  const [lastPickedId, setLastPickedId] = useState<string | null>(null);
   useEffect(() => {
     if (!pendingCteSefaz || loading) return;
     if (ctes.some((c) => c.id === pendingCteSefaz)) { setSelectedIds(new Set([pendingCteSefaz])); setSefazOpen(true); }
@@ -611,16 +610,10 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     return arr.length === 1 ? arr[0] : null;
   })();
 
-  // Clonar vale para 1 ou mais selecionados: com mais de um, copia o último clicado.
-  // O seletor de clonagem mostra qual CT-e será copiado, então nada acontece às escondidas.
-  const cloneSource = resolveCloneSource(sorted, selectedIds, lastPickedId);
+  // Clonar exige exatamente um CT-e selecionado, nos dois talões.
+  const cloneSource = resolveCloneSource(sorted, selectedIds);
 
-  const handleSelectedChange = (next: Set<string>) => {
-    const added = Array.from(next).find((id) => !selectedIds.has(id));
-    if (added) setLastPickedId(added);
-    if (next.size === 0) setLastPickedId(null);
-    setSelectedIds(next);
-  };
+  const handleSelectedChange = (next: Set<string>) => setSelectedIds(next);
 
   const canTransmit = !!singleCte
     && singleCte.tipo_talao !== "servico"
@@ -800,7 +793,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => singleCte && handleEdit(singleCte),
             },
             {
-              key: "clone", label: "Clonar", icon: Copy, mode: "single+batch", variant: "outline",
+              key: "clone", label: "Clonar", icon: Copy, mode: "single", variant: "outline",
               disabled: !cloneSource || isConsultor,
               onClick: () => cloneSource && setCloneChooser(cloneSource),
             },
@@ -932,7 +925,6 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               {cloneChooser
                 ? `Copiando o CT-e ${(cloneChooser as any).tipo_talao === "servico" ? (cloneChooser as any).numero_interno ?? "—" : (cloneChooser as any).numero ?? "—"} (${(cloneChooser as any).tipo_talao === "servico" ? "Talão de Serviço" : "Talão de Produção"}) — ${getClienteTomador(cloneChooser) || cloneChooser.remetente_nome || "—"}. `
                 : ""}
-              {selectedIds.size > 1 ? "Com mais de um selecionado, será copiado o último clicado. " : ""}
               Escolha o talão do novo CT-e. Envolvidos, placa, carga e rota são copiados; o peso vem zerado e tudo pode ser editado.
             </DialogDescription>
           </DialogHeader>
