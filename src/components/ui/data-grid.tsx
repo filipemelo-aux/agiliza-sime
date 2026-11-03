@@ -227,10 +227,7 @@ export function DataGrid<T>({
                       rowClassName?.(row)
                     )}
                   >
-                    <td
-                      className="relative w-8 min-w-[32px] max-w-[32px] px-1 py-1 text-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <td className="relative w-8 min-w-[32px] max-w-[32px] px-1 py-1 text-center">
                       <span
                         aria-hidden
                         className={cn(
@@ -240,7 +237,10 @@ export function DataGrid<T>({
                         )}
                       />
                       {selectable && (
-                        <div className="flex items-center justify-center">
+                        <div
+                          className="flex items-center justify-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Checkbox checked={isSel} onCheckedChange={() => toggleRow(id)} />
                         </div>
                       )}

@@ -142,6 +142,8 @@ export default function FreightCte() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Última linha clicada: define qual CT-e é clonado quando há mais de um selecionado.
+  const [lastPickedId, setLastPickedId] = useState<string | null>(null);
   useEffect(() => {
     if (!pendingCteSefaz || loading) return;
     if (ctes.some((c) => c.id === pendingCteSefaz)) { setSelectedIds(new Set([pendingCteSefaz])); setSefazOpen(true); }
@@ -608,6 +610,21 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
     return arr.length === 1 ? arr[0] : null;
   })();
 
+  // Clonar vale para 1 ou mais selecionados: com mais de um, copia o último clicado.
+  // O seletor de clonagem mostra qual CT-e será copiado, então nada acontece às escondidas.
+  const cloneSource = (() => {
+    const arr = sorted.filter((c) => selectedIds.has(c.id));
+    if (arr.length === 0) return null;
+    return arr.find((c) => c.id === lastPickedId) ?? arr[arr.length - 1];
+  })();
+
+  const handleSelectedChange = (next: Set<string>) => {
+    const added = Array.from(next).find((id) => !selectedIds.has(id));
+    if (added) setLastPickedId(added);
+    if (next.size === 0) setLastPickedId(null);
+    setSelectedIds(next);
+  };
+
   const canTransmit = !!singleCte
     && singleCte.tipo_talao !== "servico"
     && !singleCte.importado_xml
@@ -786,9 +803,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
               onClick: () => singleCte && handleEdit(singleCte),
             },
             {
-              key: "clone", label: "Clonar", icon: Copy, mode: "single", variant: "outline",
-              disabled: !singleCte || isConsultor,
-              onClick: () => singleCte && setCloneChooser(singleCte),
+              key: "clone", label: "Clonar", icon: Copy, mode: "single+batch", variant: "outline",
+              disabled: !cloneSource || isConsultor,
+              onClick: () => cloneSource && setCloneChooser(cloneSource),
             },
             {
               key: "print", label: "Imprimir lista", icon: Printer, mode: "single+batch", variant: "outline",
@@ -856,7 +873,7 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
             rowId={(c) => c.id}
             selected={selectedIds}
             rowClassName={(c) => rowToneClass(c.status === "autorizado" ? "resolved" : ["cancelado", "rejeitado", "denegado"].includes(c.status) ? "overdue" : "pending")}
-            onSelectedChange={setSelectedIds}
+            onSelectedChange={handleSelectedChange}
             loading={loading}
             minWidth={760}
             tableLayout="fixed"
@@ -914,7 +931,13 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Clonar CT-e</DialogTitle>
-            <DialogDescription>Escolha o talão do novo CT-e. Envolvidos, placa, carga e rota são copiados; o peso vem zerado e tudo pode ser editado.</DialogDescription>
+            <DialogDescription>
+              {cloneChooser
+                ? `Copiando o CT-e ${(cloneChooser as any).tipo_talao === "servico" ? (cloneChooser as any).numero_interno ?? "—" : (cloneChooser as any).numero ?? "—"} (${(cloneChooser as any).tipo_talao === "servico" ? "Talão de Serviço" : "Talão de Produção"}) — ${getClienteTomador(cloneChooser) || cloneChooser.remetente_nome || "—"}. `
+                : ""}
+              {selectedIds.size > 1 ? "Com mais de um selecionado, será copiado o último clicado. " : ""}
+              Escolha o talão do novo CT-e. Envolvidos, placa, carga e rota são copiados; o peso vem zerado e tudo pode ser editado.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 mt-2">
             <button type="button" onClick={() => handleClone("producao")} className="text-left border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition-colors flex items-start gap-3">
