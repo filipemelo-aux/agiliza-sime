@@ -1,3 +1,4 @@
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,13 +62,13 @@ export function FinancialCashFlow() {
   const { user, loading: authLoading, supportTenantId } = useAuth();
   const isMobile = useIsMobile();
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [movimentacoes, setMovimentacoes] = useMemoryState<MovimentacaoEnriquecida[]>("fcf:movimentacoes", []);
+  const [loading, setLoading] = useState(() => !hasMemoryState("fcf:movimentacoes"));
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
-  const [chartAccounts, setChartAccounts] = useState<any[]>([]);
+  const [chartAccounts, setChartAccounts] = useMemoryState<any[]>("fcf:chartAccounts", []);
   const [editPlanoMov, setEditPlanoMov] = useState<MovimentacaoEnriquecida | null>(null);
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
-  const [filters, setFilters] = useState<CashFlowFilterValues>({
+  const [filterEmpresa, setFilterEmpresa] = useMemoryState<string>("fcf:filterEmpresa", "");
+  const [filters, setFilters] = useMemoryState<CashFlowFilterValues>("fcf:filters", {
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
     tipo: "todos",
@@ -85,7 +86,7 @@ export function FinancialCashFlow() {
 
   const loadMovimentacoes = useCallback(async () => {
     if (authLoading || !user) return;
-    setLoading(true);
+    if (!hasMemoryState("fcf:movimentacoes")) setLoading(true);
     try {
     let query = supabase
       .from("movimentacoes_bancarias")

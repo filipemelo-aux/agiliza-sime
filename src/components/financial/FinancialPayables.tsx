@@ -1,3 +1,4 @@
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { printHeaderMarker } from "@/lib/printHeader";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { PageTitle } from "@/components/PageTitle";
@@ -179,13 +180,13 @@ export function FinancialPayables() {
     }
   }, [fromNav, initialQuickFilter, initialOpenExpenseId]);
 
-  const [items, setItems] = useState<Expense[]>([]);
-  const [groupedCounts, setGroupedCounts] = useState<Record<string, number>>({});
+  const [items, setItems] = useMemoryState<Expense[]>("fp:items", []);
+  const [groupedCounts, setGroupedCounts] = useMemoryState<Record<string, number>>("fp:groupedCounts", {});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [empresaId, setEmpresaId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [chartAccounts, setChartAccounts] = useMemoryState<ChartAccount[]>("fp:chartAccounts", []);
+  const [vehicles, setVehicles] = useMemoryState<Vehicle[]>("fp:vehicles", []);
+  const [empresaId, setEmpresaId] = useMemoryState<string>("fp:empresaId", "");
+  const [loading, setLoading] = useState(() => !hasMemoryState("fp:items"));
   const [search, setSearch] = useState(stored?.search ?? "");
   const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "a_vencer");
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
@@ -206,8 +207,8 @@ export function FinancialPayables() {
   const [batchPayOpen, setBatchPayOpen] = useState(false);
   const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
   const [batchConsolidated, setBatchConsolidated] = useState(false);
-  const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
-  const [instPaidMap, setInstPaidMap] = useState<Record<string, number>>({});
+  const [installmentsMap, setInstallmentsMap] = useMemoryState<Record<string, Installment[]>>("fp:installmentsMap", {});
+  const [instPaidMap, setInstPaidMap] = useMemoryState<Record<string, number>>("fp:instPaidMap", {});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editInstValor, setEditInstValor] = useState("");
@@ -221,8 +222,8 @@ export function FinancialPayables() {
       .eq("expense_id", detailExpense.id).order("data_pagamento")
       .then(({ data }) => setDetailPayments((data as any[]) || []));
   }, [detailOpen, detailExpense]);
-  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
-  const [favorecidoMap, setFavorecidoMap] = useState<Record<string, { razao: string; fantasia: string }>>({});
+  const [profilesMap, setProfilesMap] = useMemoryState<Record<string, string>>("fp:profilesMap", {});
+  const [favorecidoMap, setFavorecidoMap] = useMemoryState<Record<string, { razao: string; fantasia: string }>>("fp:favorecidoMap", {});
 
   // Persist filters to sessionStorage
   useEffect(() => {
@@ -277,7 +278,7 @@ export function FinancialPayables() {
 
   const fetchData = async () => {
     if (authLoading || !user) return;
-    setLoading(true);
+    if (!hasMemoryState("fp:items")) setLoading(true);
     try {
     // Tudo em uma única rodada paralela (antes eram várias etapas em sequência).
     // Nomes de criadores/favorecidos vêm de uma só leitura de pessoas, evitando

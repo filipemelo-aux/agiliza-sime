@@ -1,3 +1,4 @@
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { useState, useEffect, useMemo } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -143,14 +144,14 @@ export function FinancialPaid() {
   const { user, loading: authLoading, supportTenantId } = useAuth();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [groupedSelectedId, setGroupedSelectedId] = useState<string | null>(null);
-  const [items, setItems] = useState<PaidItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useMemoryState<PaidItem[]>("fpd:items", []);
+  const [loading, setLoading] = useState(() => !hasMemoryState("fpd:items"));
   const [reversing, setReversing] = useState(false);
-  const [search, setSearch] = useState("");
-  const [periodoInicio, setPeriodoInicio] = useState("");
-  const [periodoFim, setPeriodoFim] = useState("");
-  const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy">("todos");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
+  const [search, setSearch] = useMemoryState("fpd:search", "");
+  const [periodoInicio, setPeriodoInicio] = useMemoryState("fpd:periodoInicio", "");
+  const [periodoFim, setPeriodoFim] = useMemoryState("fpd:periodoFim", "");
+  const [origemFilter, setOrigemFilter] = useMemoryState<"todos" | "expense_payment" | "legacy">("fpd:origemFilter", "todos");
+  const [filterEmpresa, setFilterEmpresa] = useMemoryState<string>("fpd:filterEmpresa", "");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Detail dialog
@@ -165,8 +166,8 @@ export function FinancialPaid() {
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editExpense, setEditExpense] = useState<ExpenseDetail | null>(null);
-  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
-  const [empresaId, setEmpresaId] = useState("");
+  const [chartAccounts, setChartAccounts] = useMemoryState<ChartAccount[]>("fpd:chartAccounts", []);
+  const [empresaId, setEmpresaId] = useMemoryState("fpd:empresaId", "");
 
   useEffect(() => {
     if (!authLoading && user) { fetchData(); fetchMeta(); }
@@ -183,7 +184,7 @@ export function FinancialPaid() {
 
   const fetchData = async () => {
     if (authLoading || !user) return;
-    setLoading(true);
+    if (!hasMemoryState("fpd:items")) setLoading(true);
     try {
     const [{ data: expensePayments }, { data: paidLegacy }] = await Promise.all([
       fetchAllRows<any>((from, to) => supabase

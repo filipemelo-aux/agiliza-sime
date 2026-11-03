@@ -1,3 +1,4 @@
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,8 +56,8 @@ const ORIGEM_ICON: Record<string, typeof Truck> = {
 export function RevenueForecasts() {
   const isMobile = useIsMobile();
   const { ConfirmDialog, confirm } = useConfirmDialog();
-  const [previsoes, setPrevisoes] = useState<Previsao[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [previsoes, setPrevisoes] = useMemoryState<Previsao[]>("rf:previsoes", []);
+  const [loading, setLoading] = useState(() => !hasMemoryState("rf:previsoes"));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "unico" | "parcelado">("avista");
@@ -67,13 +68,13 @@ export function RevenueForecasts() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
-  const [cteMap, setCteMap] = useState<Record<string, number>>({});
-  const [filterOrigem, setFilterOrigem] = useState<string>("todas");
-  const [filterDoc, setFilterDoc] = useState<string>("");
-  const [filterBusca, setFilterBusca] = useState<string>("");
-  const [filterDataInicio, setFilterDataInicio] = useState<string>("");
-  const [filterDataFim, setFilterDataFim] = useState<string>("");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
+  const [cteMap, setCteMap] = useMemoryState<Record<string, number>>("rf:cteMap", {});
+  const [filterOrigem, setFilterOrigem] = useMemoryState<string>("rf:filterOrigem", "todas");
+  const [filterDoc, setFilterDoc] = useMemoryState<string>("rf:filterDoc", "");
+  const [filterBusca, setFilterBusca] = useMemoryState<string>("rf:filterBusca", "");
+  const [filterDataInicio, setFilterDataInicio] = useMemoryState<string>("rf:filterDataInicio", "");
+  const [filterDataFim, setFilterDataFim] = useMemoryState<string>("rf:filterDataFim", "");
+  const [filterEmpresa, setFilterEmpresa] = useMemoryState<string>("rf:filterEmpresa", "");
   // Individual invoice dialog: per-previsao due dates
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
@@ -103,7 +104,7 @@ export function RevenueForecasts() {
   ];
 
   const fetchPrevisoes = async () => {
-    setLoading(true);
+    if (!hasMemoryState("rf:previsoes")) setLoading(true);
     const { data, error } = await supabase
       .from("previsoes_recebimento")
       .select("*, profiles:cliente_id(full_name)")
@@ -280,7 +281,7 @@ export function RevenueForecasts() {
     [sort.key, sorted, pendentesGroups, faturadasGroups]
   );
 
-  const [expandedLotes, setExpandedLotes] = useState<Set<string>>(new Set());
+  const [expandedLotes, setExpandedLotes] = useMemoryState<Set<string>>("rf:expandedLotes", new Set());
   const toggleExpanded = (id: string) => {
     setExpandedLotes((prev) => {
       const next = new Set(prev);

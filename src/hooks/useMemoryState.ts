@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
 
 /**
@@ -5,6 +6,11 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from "react
  * Ao voltar para a tela, os dados aparecem na hora, sem novo carregamento.
  */
 const store = new Map<string, unknown>();
+
+// Ao sair/trocar de usuário, descarta tudo para não mostrar dados de outra sessão.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") store.clear();
+});
 
 export function hasMemoryState(key: string) {
   return store.has(key);
