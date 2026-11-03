@@ -1,3 +1,4 @@
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { Button } from "@/components/ui/button";
@@ -57,19 +58,19 @@ interface CheckLinkInfo {
 }
 
 export function FinancialChecks({ reportMode = false }: { reportMode?: boolean }) {
-  const [rows, setRows] = useState<CheckRow[]>([]);
-  const [links, setLinks] = useState<Record<string, CheckLinkInfo>>({});
+  const [rows, setRows] = useMemoryState<CheckRow[]>("fc:rows", []);
+  const [links, setLinks] = useMemoryState<Record<string, CheckLinkInfo>>("fc:links", {});
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("todos");
-  const [type, setType] = useState("todos");
-  const [empresa, setEmpresa] = useState("");
+  const [search, setSearch] = useMemoryState("fc:search", "");
+  const [status, setStatus] = useMemoryState("fc:status", "todos");
+  const [type, setType] = useMemoryState("fc:type", "todos");
+  const [empresa, setEmpresa] = useMemoryState("fc:empresa", "");
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!hasMemoryState("fc:rows")) setLoading(true);
     const { data, error } = await supabase.from("cheques" as any).select("*").order("data_emissao", { ascending: false }).order("created_at", { ascending: false }).limit(5000);
     if (error) toast.error("Não foi possível carregar os cheques", { description: error.message });
     const list = ((data as unknown) as CheckRow[]) || [];

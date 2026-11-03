@@ -1,3 +1,4 @@
+import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
@@ -181,8 +182,8 @@ export function FinancialInvoicing() {
   const isMobile = useIsMobile();
   const { unifiedLabel, unifiedCnpjLines, establishments } = useUnifiedCompany();
   const { ConfirmDialog, confirm } = useConfirmDialog();
-  const [faturas, setFaturas] = useState<Fatura[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [faturas, setFaturas] = useMemoryState<Fatura[]>("fi:faturas", []);
+  const [loading, setLoading] = useState(() => !hasMemoryState("fi:faturas"));
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
@@ -222,15 +223,15 @@ export function FinancialInvoicing() {
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
   const [receiveContaId, setReceiveContaId] = useState<string>("");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("");
-  const [filterCliente, setFilterCliente] = useState<string>("");
-  const [filterCondicao, setFilterCondicao] = useState<string>("todas");
-  const [filterStatusFatura, setFilterStatusFatura] = useState<string>("todos");
-  const [filterVencInicio, setFilterVencInicio] = useState<string>("");
-  const [filterVencFim, setFilterVencFim] = useState<string>("");
-  const [filterEmissaoInicio, setFilterEmissaoInicio] = useState<string>("");
-  const [filterEmissaoFim, setFilterEmissaoFim] = useState<string>("");
-  const [filterNumero, setFilterNumero] = useState<string>("");
+  const [filterEmpresa, setFilterEmpresa] = useMemoryState<string>("fi:filterEmpresa", "");
+  const [filterCliente, setFilterCliente] = useMemoryState<string>("fi:filterCliente", "");
+  const [filterCondicao, setFilterCondicao] = useMemoryState<string>("fi:filterCondicao", "todas");
+  const [filterStatusFatura, setFilterStatusFatura] = useMemoryState<string>("fi:filterStatusFatura", "todos");
+  const [filterVencInicio, setFilterVencInicio] = useMemoryState<string>("fi:filterVencInicio", "");
+  const [filterVencFim, setFilterVencFim] = useMemoryState<string>("fi:filterVencFim", "");
+  const [filterEmissaoInicio, setFilterEmissaoInicio] = useMemoryState<string>("fi:filterEmissaoInicio", "");
+  const [filterEmissaoFim, setFilterEmissaoFim] = useMemoryState<string>("fi:filterEmissaoFim", "");
+  const [filterNumero, setFilterNumero] = useMemoryState<string>("fi:filterNumero", "");
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
@@ -276,7 +277,7 @@ export function FinancialInvoicing() {
   }, []);
 
   const fetchFaturas = async () => {
-    setLoading(true);
+    if (!hasMemoryState("fi:faturas")) setLoading(true);
     const { data, error } = await supabase
       .from("faturas_recebimento")
       .select("*, profiles:cliente_id(full_name)")
