@@ -446,8 +446,8 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
   };
 
   const handleDelete = async (cte: Cte) => {
-    if (!cte.importado_xml && cte.status !== "cancelado") {
-      toast({ title: "Exclusão não permitida", description: "Somente CT-es importados via XML ou cancelados na SEFAZ podem ser excluídos. Para CT-es emitidos no sistema, use a opção Cancelar no menu SEFAZ.", variant: "destructive" });
+    if (!isDeletable(cte)) {
+      toast({ title: "Exclusão não permitida", description: "Somente rascunhos, CT-es importados via XML ou cancelados na SEFAZ podem ser excluídos. Para CT-es autorizados, use a opção Cancelar no menu SEFAZ.", variant: "destructive" });
       return;
     }
     const isServico = cte.tipo_talao === "servico";
@@ -487,8 +487,8 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
       title: "Excluir CT-e do sistema",
       description:
         (isServico
-          ? `O talão de serviço Nº ${cte.numero} será excluído do sistema.`
-          : `O CT-e Nº ${cte.numero} será excluído do sistema.`) +
+          ? `O talão de serviço Nº ${(cte as any).numero_interno ?? cte.numero ?? "—"} será excluído do sistema.`
+          : `O CT-e Nº ${cte.numero ?? "(rascunho)"} será excluído do sistema.`) +
         `\n\nEsta ação não pode ser desfeita.` +
         contractWarning,
       confirmLabel: "Excluir do sistema",
@@ -513,8 +513,9 @@ th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head>
 
   // ─── Seleção em lote ──────────────────────────────────────
   // Excluir = remover o registro guardado no sistema. Vale para CT-es importados
-  // via XML ou já cancelados; não envolve nenhuma chamada à SEFAZ.
-  const isDeletable = (c: Cte) => !!c.importado_xml || c.status === "cancelado";
+  // via XML, já cancelados ou rascunhos (serviço ou produção) nunca autorizados.
+  const isDeletable = (c: Cte) =>
+    !!c.importado_xml || c.status === "cancelado" || (c.status === "rascunho" && !c.protocolo_autorizacao);
 
   const selectableIds = sorted
     .filter((c) => c.tipo_talao === "servico" || c.status !== "autorizado")
