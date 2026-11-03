@@ -1573,21 +1573,22 @@ tfoot{display:table-row-group}
             />
           </FilterField>
 
-          {(quickFilter !== "all" || filterPlanoContas !== "all" || filterEmpresa !== "" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
+          {(quickFilter !== "a_vencer" || filterPeriodoInicio !== defaultStart || filterPeriodoFim !== defaultEnd || filterPlanoContas !== "all" || filterEmpresa !== "" || search !== "" || filterNivel !== "all" || filterVeiculo !== "all" || filterCentroCusto !== "all") && (
             <Button
               variant="ghost"
               size="sm"
               className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive rounded-full"
               onClick={() => {
-                setQuickFilter("all");
+                const period = payableQuickFilterPeriod("a_vencer");
+                setQuickFilter("a_vencer");
                 setFilterPlanoContas("all");
                 setFilterEmpresa("");
                 setFilterNivel("all");
                 setFilterCentroCusto("all");
                 setFilterVeiculo("all");
                 setSearch("");
-                setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
-                setFilterPeriodoFim("");
+                setFilterPeriodoInicio(period.inicio);
+                setFilterPeriodoFim(period.fim);
                 setSelectedIds(new Set());
               }}
             >
