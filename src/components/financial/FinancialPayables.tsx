@@ -1538,20 +1538,9 @@ tfoot{display:table-row-group}
                 size="sm"
                 className={cn("h-7 px-2.5 text-[11px] gap-1 rounded-full font-medium transition-all", isActive && "shadow-sm")}
                 onClick={() => {
-                  if (f.key === "all") {
-                    setFilterPeriodoInicio("");
-                    setFilterPeriodoFim("");
-                  } else if (f.key === "a_vencer") {
-                    setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
-                    setFilterPeriodoFim("");
-                  } else if (f.key === "semana") {
-                    const todayDate = new Date();
-                    setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
-                    setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
-                  } else if (f.key === "atrasadas") {
-                    setFilterPeriodoInicio("");
-                    setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
-                  }
+                  const period = payableQuickFilterPeriod(f.key);
+                  setFilterPeriodoInicio(period.inicio);
+                  setFilterPeriodoFim(period.fim);
                   setQuickFilter(f.key);
                   setSelectedIds(new Set());
                 }}
