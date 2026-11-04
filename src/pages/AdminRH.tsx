@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -373,7 +373,68 @@ function RHWorkspace(props: any) {
   }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio]);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
-  const peopleColumns: DataGridColumn<ColaboradorRH>[] = [
+  const isMotoristas = section === "motoristas";
+  // Resumo do acerto por motorista na quinzena escolhida (movimentações ou snapshot do acerto gerado)
+  const [resumoByColab, setResumoByColab] = useState<Map<string, ResumoAcerto>>(new Map());
+  const [acertoByColab, setAcertoByColab] = useState<Map<string, AcertoGerado>>(new Map());
+  const [resumoLoading, setResumoLoading] = useState(false);
+  const [acertoBusy, setAcertoBusy] = useState(false);
+  const [resumoTick, setResumoTick] = useState(0);
+  const motoristaIdsKey = colaboradores.filter((c: ColaboradorRH) => c.tipo === "motorista").map((c: ColaboradorRH) => c.id).join(",");
+  useEffect(() => {
+    if (!isMotoristas || !acertoPeriod || movFor) return;
+    const motoristas = colaboradores.filter((c: ColaboradorRH) => c.tipo === "motorista");
+    if (!motoristas.length) return;
+    let cancelled = false;
+    setResumoLoading(true);
+    (async () => {
+      try {
+        const acertos = await fetchAcertosDoPeriodo(motoristas.map((c: ColaboradorRH) => c.id), acertoPeriod.inicio);
+        const resumos = new Map<string, ResumoAcerto>();
+        const livres = motoristas.filter((c: ColaboradorRH) => !acertos.has(c.id));
+        for (let i = 0; i < livres.length; i += 4) {
+          const lote = livres.slice(i, i + 4);
+          const res = await Promise.all(lote.map((c: ColaboradorRH) => loadMovimentosMotorista(c.id, acertoPeriod, adiantExpenses)));
+          lote.forEach((c: ColaboradorRH, k: number) => resumos.set(c.id, resumirMovimentos(res[k])));
+        }
+        acertos.forEach((a, id) => resumos.set(id, a.resumo));
+        if (!cancelled) { setAcertoByColab(acertos); setResumoByColab(resumos); }
+      } catch (e: any) {
+        if (!cancelled) toast.error("Erro ao carregar os acertos: " + (e?.message || e));
+      } finally {
+        if (!cancelled) setResumoLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isMotoristas, motoristaIdsKey, acertoPeriod?.inicio, adiantExpenses, movFor, resumoTick]);
+
+  const money = (key: string, header: string, get: (r: ResumoAcerto) => number, tone: string): DataGridColumn<ColaboradorRH> => ({
+    key, header, width: "120px", align: "right",
+    sortValue: (c) => { const r = resumoByColab.get(c.id); return r ? get(r) : 0; },
+    cell: (c) => { const r = resumoByColab.get(c.id); const v = r ? get(r) : 0; return <span className={cn("font-mono whitespace-nowrap", v ? tone : "text-muted-foreground")}>{formatBRL(v)}</span>; },
+  });
+  const motoristaColumns: DataGridColumn<ColaboradorRH>[] = [
+    ...colabColumns.filter((col) => col.key === "nome"),
+    money("comissao", "Comissões", (r) => r.comissoes, "text-success"),
+    money("reemb", "Reembolsos", (r) => r.reembolsos, "text-success"),
+    money("adiant", "Adiant. / Vales", (r) => r.vales, "text-warning"),
+    money("desc", "Descontos", (r) => r.descontos, "text-destructive"),
+    {
+      key: "saldo", header: "Saldo", width: "120px", align: "right",
+      sortValue: (c) => resumoByColab.get(c.id)?.saldo ?? 0,
+      cell: (c) => { const v = resumoByColab.get(c.id)?.saldo ?? 0; return <span className={cn("font-mono font-semibold whitespace-nowrap", v < 0 ? "text-destructive" : "text-foreground")}>{formatBRL(v)}</span>; },
+    },
+    {
+      key: "acerto", header: "Acerto", width: "130px", align: "center",
+      sortValue: (c) => acertoByColab.get(c.id)?.status || "",
+      cell: (c) => {
+        const a = acertoByColab.get(c.id);
+        if (!a) return <Badge variant="outline" className="text-[10px]">Em edição</Badge>;
+        return <Badge variant="secondary" className="text-[10px]">{a.status === "confirmada" ? "Na folha (confirmada)" : "Gerado · na folha"}</Badge>;
+      },
+    },
+  ];
+  const peopleColumns: DataGridColumn<ColaboradorRH>[] = isMotoristas ? motoristaColumns : [
     ...colabColumns.filter((col) => ["nome", "admissao", "salario", "adiant", "saldo"].includes(col.key)),
     {
       key: "reemb",
@@ -385,7 +446,57 @@ function RHWorkspace(props: any) {
     },
     ...colabColumns.filter((col) => col.key === "status"),
   ];
-  const peopleActions: ToolbarAction[] = [
+
+  const selAcerto = selectedPeople[0] ? acertoByColab.get(selectedPeople[0].id) : undefined;
+  const gerarAcerto = async () => {
+    const c = selectedPeople[0];
+    if (!c || !acertoPeriod) return;
+    if (!matrizId || !user?.id) { toast.error("Empresa ou usuário não identificado."); return; }
+    const r = resumoByColab.get(c.id);
+    const ok = await confirmAcerto({
+      title: "Gerar acerto?",
+      description: `O acerto de ${c.full_name} (${labelQuinzena(acertoPeriod)}) com saldo de ${formatBRL(r?.saldo || 0)} vai para a Folha de Pagamento e as movimentações ficam bloqueadas até você usar “Editar acerto”.`,
+      confirmLabel: "Gerar acerto",
+    });
+    if (!ok) return;
+    setAcertoBusy(true);
+    try {
+      await gerarAcertoMotorista({ colaborador: c, periodo: acertoPeriod, adiantExpenses, empresaId: matrizId, userId: user.id });
+      toast.success("Acerto gerado e enviado para a Folha de Pagamento.");
+      setResumoTick((t) => t + 1);
+    } catch (e: any) {
+      toast.error("Não foi possível gerar o acerto: " + (e?.message || e));
+    } finally {
+      setAcertoBusy(false);
+    }
+  };
+  const editarAcerto = async () => {
+    const c = selectedPeople[0];
+    if (!c || !selAcerto) return;
+    const ok = await confirmAcerto({
+      title: "Editar acerto?",
+      description: `O acerto de ${c.full_name} sai da Folha de Pagamento${selAcerto.status === "confirmada" ? " (a despesa gerada no Contas a Pagar é removida)" : ""} e as movimentações voltam a ser editáveis.`,
+      confirmLabel: "Editar acerto",
+    });
+    if (!ok) return;
+    setAcertoBusy(true);
+    try {
+      await editarAcertoMotorista(selAcerto);
+      toast.success("Acerto retirado da folha. As movimentações estão liberadas.");
+      setResumoTick((t) => t + 1);
+    } catch (e: any) {
+      toast.error("Não foi possível editar o acerto: " + (e?.message || e));
+    } finally {
+      setAcertoBusy(false);
+    }
+  };
+
+  const peopleActions: ToolbarAction[] = isMotoristas ? [
+    { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
+    { key: "gerar", label: "Gerar acerto", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
+    { key: "editar", label: "Editar acerto", icon: Pencil, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
+    { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedPeople[0] && handleDesligar(selectedPeople[0]) },
+  ] : [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedPeople[0] && setHistoryFor(selectedPeople[0]) },
     { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedPeople[0] && handleDesligar(selectedPeople[0]) },
