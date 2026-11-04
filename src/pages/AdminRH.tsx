@@ -491,7 +491,7 @@ function RHWorkspace(props: any) {
             ) : (
             <ColaboradorMovimentacaoDialog
               colaborador={movFor}
-              perfil={section === "motoristas" ? "motorista" : "administrativo"}
+              perfil="administrativo"
               adiantExpenses={adiantExpenses}
               periodo={acertoPeriod}
               onClose={() => { setMovFor(null); reload(); }}
