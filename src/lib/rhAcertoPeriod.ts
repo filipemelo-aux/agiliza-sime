@@ -25,6 +25,38 @@ export function getAcertoPeriod(today: Date = new Date()): AcertoPeriod {
   return { inicio: `${ym}-01`, fim: `${ym}-15`, month: ym };
 }
 
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+/** Monta a quinzena (1 = dias 01–15, 2 = dia 16 ao último dia) de um mês. */
+export function buildQuinzena(year: number, monthIndex: number, half: 1 | 2): AcertoPeriod {
+  const d = new Date(year, monthIndex, 1);
+  const ym = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  if (half === 1) return { inicio: `${ym}-01`, fim: `${ym}-15`, month: ym };
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return { inicio: `${ym}-16`, fim: `${ym}-${pad(last)}`, month: ym };
+}
+
+/** Lista de quinzenas fechadas ao redor da atual (mais recentes primeiro). */
+export function listQuinzenas(today: Date = new Date(), before = 12, after = 2): AcertoPeriod[] {
+  const base = getAcertoPeriod(today);
+  const [y, m] = base.month.split("-").map(Number);
+  const baseIdx = (m - 1) * 2 + (base.inicio.endsWith("-16") ? 1 : 0);
+  const out: AcertoPeriod[] = [];
+  for (let i = after; i >= -before; i--) {
+    const idx = baseIdx + i;
+    const monthIndex = Math.floor(idx / 2);
+    out.push(buildQuinzena(y, monthIndex, (((idx % 2) + 2) % 2 === 0 ? 1 : 2)));
+  }
+  return out;
+}
+
+export const labelQuinzena = (p: AcertoPeriod) => {
+  const [y, m] = p.month.split("-").map(Number);
+  const half = p.inicio.endsWith("-01") ? "1ª" : "2ª";
+  const f = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
+  return `${half} quinzena ${MESES[m - 1]}/${y} (${f(p.inicio)} a ${f(p.fim)})`;
+};
+
 export const inAcertoPeriod = (d: string | null | undefined, p: AcertoPeriod) => {
   if (!d) return false;
   const s = d.slice(0, 10);
