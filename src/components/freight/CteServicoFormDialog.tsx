@@ -18,10 +18,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { Loader2, Users, Truck, Package, DollarSign, FileSignature, Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { maskCurrency, unmaskCurrency, maskName, maskPlate, maskPlateInput, unmaskPlate } from "@/lib/masks";
+import { maskCurrency, unmaskCurrency, maskName, maskPlateInput, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
-import { lookupDriverByPlate, lookupVehicleByDriver } from "@/lib/vehicleDriverLookup";
+import { lookupDriverByPlate } from "@/lib/vehicleDriverLookup";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
@@ -676,20 +676,15 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
                 categories={["motorista"]}
                 placeholder="Buscar motorista..."
                 selectedName={form.motorista_nome}
-                onSelect={async (p) => {
+                onSelect={(p) =>
                   setForm((f) => ({
                     ...f,
                     motorista_id: p.id,
                     motorista_nome: p.full_name,
-                  }));
-                  // Auto-preenche placa do veículo vinculado ao motorista
-                  try {
-                    const v = await lookupVehicleByDriver(p.user_id, p.id);
-                    if (v) setForm((f) => ({ ...f, placa_veiculo: maskPlate(v.plate) }));
-                  } catch {}
-                }}
+                  }))
+                }
                 onClear={() =>
-                  setForm((f) => ({ ...f, motorista_id: null, motorista_nome: "", placa_veiculo: "" }))
+                  setForm((f) => ({ ...f, motorista_id: null, motorista_nome: "" }))
                 }
               />
               <div>
