@@ -152,3 +152,15 @@ export async function fetchReembolsosPendentesNoPeriodo(colabIds: string[], inic
     .gte("data_competencia", inicio).lte("data_competencia", fim).order("id").range(from, to));
   return (data || []).filter(e => Number(e.valor_total) > Number(e.valor_pago || 0));
 }
+
+/** Reembolsos ainda não quitados nem reservados em folha, sem limite de período. */
+export async function fetchReembolsosPendentes(colabIds: string[]): Promise<ReembolsoExpense[]> {
+  if (!colabIds.length) return [];
+  const { data, error } = await fetchAllRows((from, to) => supabase.from("expenses")
+    .select("id, descricao, valor_total, valor_pago, data_competencia, data_emissao, reembolso_colaborador_id, reembolso_colaborador_nome")
+    .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds)
+    .is("deleted_at", null).is("reembolso_folha_item_id", null)
+    .neq("status", "pago").order("id").range(from, to));
+  if (error) throw error;
+  return (data || []).filter((e: any) => Number(e.valor_total) > Number(e.valor_pago || 0)) as ReembolsoExpense[];
+}

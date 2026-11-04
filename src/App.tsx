@@ -96,14 +96,16 @@ const App = () => (
             <Route path="/admin/cargas" element={<AdminCargas />} />
             <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/freight/reports" element={<AdminTransportReports />} />
-            <Route path="/admin/rh" element={<Navigate to="/admin/rh/colaboradores" replace />} />
-            <Route path="/admin/rh/colaboradores" element={<AdminRH section="colaboradores" />} />
-            <Route path="/admin/rh/movimentacoes" element={<AdminRH section="movimentacoes" />} />
+            <Route path="/admin/rh" element={<Navigate to="/admin/rh/motoristas" replace />} />
+            <Route path="/admin/rh/motoristas" element={<AdminRH section="motoristas" />} />
+            <Route path="/admin/rh/administrativo" element={<AdminRH section="administrativo" />} />
+            <Route path="/admin/rh/colaboradores" element={<Navigate to="/admin/rh/motoristas" replace />} />
+            <Route path="/admin/rh/movimentacoes" element={<Navigate to="/admin/rh/motoristas" replace />} />
             <Route path="/admin/rh/folha" element={<AdminRH section="folha_pagamento" />} />
             <Route path="/admin/rh/lancamentos" element={<Navigate to="/admin/rh/folha" replace />} />
-            <Route path="/admin/rh/adiantamentos" element={<Navigate to="/admin/rh/movimentacoes" replace />} />
-            <Route path="/admin/rh/comissoes" element={<Navigate to="/admin/rh/movimentacoes" replace />} />
-            <Route path="/admin/rh/descontos" element={<Navigate to="/admin/rh/movimentacoes" replace />} />
+            <Route path="/admin/rh/adiantamentos" element={<Navigate to="/admin/rh/motoristas" replace />} />
+            <Route path="/admin/rh/comissoes" element={<Navigate to="/admin/rh/motoristas" replace />} />
+            <Route path="/admin/rh/descontos" element={<Navigate to="/admin/rh/motoristas" replace />} />
             <Route path="/admin/rh/configuracoes" element={<AdminRH section="config" />} />
             <Route path="/admin/contabilidade/fechamento" element={<ContabilidadeFechamento />} />
             <Route path="/admin/quotations" element={<AdminQuotations />} />
