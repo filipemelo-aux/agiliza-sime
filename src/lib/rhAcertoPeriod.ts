@@ -4,6 +4,8 @@
  * Acesso entre os dias 16 e 31 → 01 a 15 do mês corrente.
  * (Regra pedida para 01–05 e 16–20; os demais dias seguem a mesma quinzena fechada.)
  */
+import { normalizeDateInput } from "@/lib/date";
+
 export interface AcertoPeriod {
   inicio: string; // YYYY-MM-DD
   fim: string; // YYYY-MM-DD
@@ -59,8 +61,8 @@ export const labelQuinzena = (p: AcertoPeriod) => {
 
 export const inAcertoPeriod = (d: string | null | undefined, p: AcertoPeriod) => {
   if (!d) return false;
-  const s = d.slice(0, 10);
-  return s >= p.inicio && s <= p.fim;
+  const s = normalizeDateInput(d);
+  return !!s && s >= p.inicio && s <= p.fim;
 };
 
 export const formatAcertoPeriod = (p: AcertoPeriod) => {

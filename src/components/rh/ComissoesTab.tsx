@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { inAcertoPeriod, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
-import { formatDateBR } from "@/lib/date";
+import { formatDateBR, normalizeDateInput, getLocalDateISO } from "@/lib/date";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -204,7 +204,7 @@ export function ComissoesTab({ colaboradores, periodo, onAdicionar }: ComissoesT
           valor_base: cte.valor_frete,
           percentual: pctNum,
           valor_calculado: calcularComissao(cte.valor_frete, pctNum),
-          data_referencia: cte.data_emissao || new Date().toISOString().slice(0, 10),
+          data_referencia: normalizeDateInput(cte.data_emissao) || getLocalDateISO(),
           observacoes: `CT-e ${cte.numero ?? "—"}/${cte.serie}`,
         });
         criadas.push(criada);
