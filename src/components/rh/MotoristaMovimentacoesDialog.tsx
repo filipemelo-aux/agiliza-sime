@@ -204,7 +204,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                   </Button>
                 )}
                 {(lancar === "comissao" || lancar === "desconto") && (
-                  <Button variant="outline" onClick={() => setCriarNovo((v) => !v)}>
+                  <Button variant="outline" onClick={() => { if (criarNovo) load(); setCriarNovo((v) => !v); }}>
                     {lancar === "comissao" ? "Calcular comissões de CT-es" : "Lançar novo desconto"}
                   </Button>
                 )}
