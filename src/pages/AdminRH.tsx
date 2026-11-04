@@ -19,7 +19,7 @@ import { toast } from "@/lib/notice";
 import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { MonthPicker } from "@/components/MonthPicker";
-import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod } from "@/lib/rhAcertoPeriod";
+import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -71,7 +71,8 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista">("all");
   const isPeopleSection = forcedSection === "motoristas" || forcedSection === "administrativo";
-  const acertoPeriod = useMemo(() => getAcertoPeriod(), []);
+  const quinzenas = useMemo(() => listQuinzenas(), []);
+  const [acertoPeriod, setAcertoPeriod] = useState(() => getAcertoPeriod());
   const [monthState, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -159,7 +160,17 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
             </div>
-            <span className="text-xs text-muted-foreground">Período do acerto: <span className="font-semibold text-foreground">{formatAcertoPeriod(acertoPeriod)}</span></span>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Período do acerto</Label>
+              <Select value={acertoPeriod.inicio} onValueChange={(v) => { const q = quinzenas.find((x) => x.inicio === v); if (q) setAcertoPeriod(q); }}>
+                <SelectTrigger className="h-8 text-xs w-[330px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {quinzenas.map((q) => (
+                    <SelectItem key={q.inicio} value={q.inicio} className="text-xs">{labelQuinzena(q)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         ) : (
           <SearchFilterCard>
@@ -358,7 +369,7 @@ function RHWorkspace(props: any) {
         setReembByColab(m);
       })
       .catch(() => setReembByColab(new Map()));
-  }, [isPeople, colabIdsKey, movFor]);
+  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio]);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
   const peopleColumns: DataGridColumn<ColaboradorRH>[] = [
