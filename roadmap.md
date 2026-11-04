@@ -1,4 +1,5 @@
 # Roadmap
+- [x] RH Motoristas: comissões abrem diretamente com Adicionar à movimentação; filtro converte horário UTC para data local e permanece após recargas. CT-e 8806 (15/10 23:59, salvo 16/10 02:59 UTC) excluído da segunda quinzena; seis testes aprovados no fuso brasileiro; adição de R$ 197,10 e remoção conferidas na tela, lançamento temporário limpo.
 - [x] CT-e: automação só no sentido placa -> motorista (Produção e Serviço). Digitar a placa preenche motorista, conjunto, RNTRC e proprietário; escolher outro motorista não altera a placa. Conferido na tela: FKC-0A50 puxou Eduardo e seguiu FKC-0A50 após trocar para Wilton; SXY-0B53 puxou Wilton e seguiu SXY-0B53 após trocar para Eduardo.
 
 - [x] Contas a Pagar abre com "A vencer" limitado ao mês corrente (03/11 a 30/11, 24 contas conferidas na tela), sem parcelas de 2027/2028; cartão Atrasado (R$ 877.563,98) e botão Atrasadas (113 contas, de 05/03 a 02/11) seguem mostrando a pendência real fora do período; 11 testes aprovados.
