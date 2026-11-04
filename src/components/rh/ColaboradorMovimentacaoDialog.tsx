@@ -6,6 +6,7 @@ import { HandCoins, Percent, Receipt, UserMinus, Wallet } from "lucide-react";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { toast } from "@/lib/notice";
+import { inAcertoPeriod, formatAcertoPeriod, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import { fetchReembolsosPendentes, type ColaboradorRH, type Expense, type ReembolsoExpense } from "@/services/rh";
 
 const formatBRL = (n: number) =>
@@ -19,11 +20,12 @@ interface Props {
   colaborador: ColaboradorRH | null;
   perfil: "motorista" | "administrativo";
   adiantExpenses: Expense[];
+  periodo: AcertoPeriod;
   onClose: () => void;
 }
 
 /** Janela única de movimentação para o colaborador escolhido na grade. */
-export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpenses, onClose }: Props) {
+export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpenses, periodo, onClose }: Props) {
   const [aba, setAba] = useState<Aba>(perfil === "motorista" ? "comissoes" : "vencimentos");
   const [reembolsos, setReembolsos] = useState<ReembolsoExpense[]>([]);
   const [loadingReemb, setLoadingReemb] = useState(false);
@@ -33,15 +35,15 @@ export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpen
     if (!colaborador) return;
     setLoadingReemb(true);
     fetchReembolsosPendentes([colaborador.id])
-      .then(setReembolsos)
+      .then((rows) => setReembolsos(rows.filter((e) => inAcertoPeriod(e.data_competencia || e.data_emissao, periodo))))
       .catch((e) => toast.error("Erro ao carregar reembolsos: " + e.message))
       .finally(() => setLoadingReemb(false));
   }, [colaborador?.id, perfil]);
 
   const lista = useMemo(() => (colaborador ? [colaborador] : []), [colaborador]);
   const vales = useMemo(
-    () => adiantExpenses.filter((e: any) => e.favorecido_id === colaborador?.id),
-    [adiantExpenses, colaborador?.id]
+    () => adiantExpenses.filter((e: any) => e.favorecido_id === colaborador?.id && inAcertoPeriod(e.data_pagamento || e.data_emissao, periodo)),
+    [adiantExpenses, colaborador?.id, periodo]
   );
   const totalReemb = reembolsos.reduce((s, e) => s + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0), 0);
   const totalVales = vales.reduce((s, e: any) => s + Number(e.valor_total || 0), 0);
@@ -63,7 +65,7 @@ export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpen
           <DialogDescription>
             {perfil === "motorista" ? "Motorista" : (colaborador?.cargo || "Administrativo / Operacional")}
             {colaborador?.salario != null ? ` · Salário base ${formatBRL(Number(colaborador.salario))}` : ""}
-            {` · Reembolsos pendentes ${formatBRL(totalReemb)}`}
+            {` · Período ${formatAcertoPeriod(periodo)} · Reembolsos ${formatBRL(totalReemb)}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -88,7 +90,7 @@ export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpen
           })}
         </div>
 
-        {aba === "comissoes" && perfil === "motorista" && <ComissoesTab colaboradores={lista} />}
+        {aba === "comissoes" && perfil === "motorista" && <ComissoesTab colaboradores={lista} periodo={periodo} />}
 
         {aba === "vencimentos" && (
           <Card>
@@ -96,7 +98,7 @@ export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpen
               <div className="flex justify-between"><span className="text-muted-foreground">Salário base</span><span className="font-mono">{colaborador?.salario != null ? formatBRL(Number(colaborador.salario)) : "Não informado"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Regime</span><span className="uppercase">{colaborador?.regime || "clt"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">+ Reembolsos pendentes</span><span className="font-mono text-success">{formatBRL(totalReemb)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">− Vales do mês</span><span className="font-mono text-warning">{formatBRL(totalVales)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">− Vales do período</span><span className="font-mono text-warning">{formatBRL(totalVales)}</span></div>
               <p className="text-[11px] text-muted-foreground pt-2 border-t">
                 O salário base entra automaticamente na folha de pagamento. Horas extras, faltas e outros ajustes são lançados em Descontos; reembolsos entram como crédito.
               </p>
@@ -136,10 +138,10 @@ export function ColaboradorMovimentacaoDialog({ colaborador, perfil, adiantExpen
           <div className="space-y-3">
             <Card>
               <CardContent className="p-0">
-                <div className="px-3 py-2 text-xs font-medium border-b">Adiantamentos pagos no mês (Contas a Pagar)</div>
+                <div className="px-3 py-2 text-xs font-medium border-b">Adiantamentos do período (Contas a Pagar)</div>
                 <table className="w-full text-xs">
                   <tbody>
-                    {vales.length === 0 && <tr><td className="p-3 text-center text-muted-foreground">Nenhum adiantamento pago neste mês.</td></tr>}
+                    {vales.length === 0 && <tr><td className="p-3 text-center text-muted-foreground">Nenhum adiantamento neste período.</td></tr>}
                     {vales.map((e: any) => (
                       <tr key={e.id} className="border-t border-border/60">
                         <td className="p-2">{e.descricao}</td>

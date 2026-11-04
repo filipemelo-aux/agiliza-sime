@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PeriodFilter } from "@/components/PeriodFilter";
+import { inAcertoPeriod, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -48,7 +49,7 @@ const formatBRL = (n: number) =>
  *
  * Tipo "Por Embarque": desabilitado ("Em manutenção").
  */
-export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
+export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { periodo?: AcertoPeriod }) {
   const [tab, setTab] = useState<"gerar" | "historico">("gerar");
   const [tipo, setTipo] = useState<TipoComissao>("motorista");
   const [operacao, setOperacao] = useState<OperacaoMotorista>("frete");
@@ -101,7 +102,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       try {
         const data = await fetchCtesElegiveisComissao(colaboradorId);
         if (!cancelled) {
-          setCtes(data);
+          setCtes(periodo ? data.filter((c: any) => inAcertoPeriod(c.data_emissao, periodo)) : data);
           setSelecionados(new Set());
         }
       } catch (err: any) {
@@ -113,7 +114,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     return () => {
       cancelled = true;
     };
-  }, [tipo, operacao, colaboradorId]);
+  }, [tipo, operacao, colaboradorId, periodo?.inicio, periodo?.fim]);
 
   // Carrega agregados de colheita (Motorista + Colheita + colaborador)
   useEffect(() => {
