@@ -24,6 +24,7 @@ export interface MovMotorista {
   /** pode ser excluída aqui (comissão/desconto ainda fora de folha) */
   removivel: boolean;
   origemId: string;
+  origemTipo: "comissao" | "expense" | "desconto";
 }
 export interface PeriodoAcerto { inicio: string; fim: string; month: string }
 
@@ -51,27 +52,73 @@ function toMovs(f: Fontes): MovMotorista[] {
     ...f.comissoes.map((c) => ({
       id: `c-${c.id}`, origemId: c.id, natureza: "comissao" as MovNatureza, data: c.data_referencia,
       descricao: `${c.origem === "cte" ? "Viagem (CT-e)" : "Colheita"}${c.percentual != null ? ` · ${String(c.percentual).replace(".", ",")}% de ${formatBRL(Number(c.valor_base))}` : ""}${c.observacoes ? ` · ${c.observacoes}` : ""}`,
-      entrada: Number(c.valor_calculado || 0), saida: 0, removivel: c.status === "pendente",
+      entrada: Number(c.valor_calculado || 0), saida: 0, removivel: c.status === "pendente", origemTipo: "comissao" as const,
     })),
     ...f.reembolsos.map((e) => ({
       id: `r-${e.id}`, origemId: e.id, natureza: "reembolso" as MovNatureza, data: String(e.data_competencia || e.data_emissao).slice(0, 10),
-      descricao: e.descricao, entrada: Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0), saida: 0, removivel: false,
+      descricao: e.descricao, entrada: Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0), saida: 0, removivel: false, origemTipo: "expense" as const,
     })),
     ...f.vales.map((e: any) => ({
       id: `v-${e.id}`, origemId: e.id, natureza: "vale" as MovNatureza, data: String(e.data_pagamento || e.data_emissao).slice(0, 10),
-      descricao: e.descricao || "Adiantamento", entrada: 0, saida: Number(e.valor_total || 0), removivel: false,
+      descricao: e.descricao || "Adiantamento", entrada: 0, saida: Number(e.valor_total || 0), removivel: false, origemTipo: "expense" as const,
     })),
     ...f.descontos.map((d) => ({
       id: `d-${d.id}`, origemId: d.id, natureza: (d.tipo === "vale" || d.tipo === "adiantamento" ? "vale" : "desconto") as MovNatureza,
       data: d.data_referencia, descricao: `${DESC_LABEL[d.tipo] || d.tipo}${d.descricao ? ` · ${d.descricao}` : ""}`,
-      entrada: 0, saida: Number(d.valor || 0), removivel: true,
+      entrada: 0, saida: Number(d.valor || 0), removivel: true, origemTipo: "desconto" as const,
     })),
   ];
   return list.sort((a, b) => a.data.localeCompare(b.data));
 }
 
+interface Vinculo { colaborador_id: string; periodo_inicio: string; origem_tipo: string; origem_id: string }
+const vkey = (t: string, id: string) => `${t}:${id}`;
+
+async function fetchVinculos(origemIds: string[]): Promise<Vinculo[]> {
+  if (!origemIds.length) return [];
+  const out: Vinculo[] = [];
+  for (let i = 0; i < origemIds.length; i += 200) {
+    const { data, error } = await (supabase.from("acerto_movimentos" as any) as any)
+      .select("colaborador_id, periodo_inicio, origem_tipo, origem_id").in("origem_id", origemIds.slice(i, i + 200));
+    if (error) throw error;
+    out.push(...(data || []));
+  }
+  return out;
+}
+
+/** Todas as candidatas da quinzena, separadas em incluídas no acerto e disponíveis para adicionar. */
+export async function loadMovimentosEDisponiveis(colabId: string, p: PeriodoAcerto, adiantExpenses: Expense[]) {
+  const todas = toMovs(await carregarFontes(colabId, p, adiantExpenses));
+  const vinc = await fetchVinculos(todas.map((m) => m.origemId));
+  const meus = new Set(vinc.filter((v) => v.colaborador_id === colabId && v.periodo_inicio === p.inicio).map((v) => vkey(v.origem_tipo, v.origem_id)));
+  const usados = new Set(vinc.map((v) => vkey(v.origem_tipo, v.origem_id)));
+  return {
+    incluidas: todas.filter((m) => meus.has(vkey(m.origemTipo, m.origemId))),
+    disponiveis: todas.filter((m) => !usados.has(vkey(m.origemTipo, m.origemId))),
+  };
+}
+
+/** Movimentações adicionadas ao acerto da quinzena (começa em branco). */
 export async function loadMovimentosMotorista(colabId: string, p: PeriodoAcerto, adiantExpenses: Expense[]): Promise<MovMotorista[]> {
-  return toMovs(await carregarFontes(colabId, p, adiantExpenses));
+  return (await loadMovimentosEDisponiveis(colabId, p, adiantExpenses)).incluidas;
+}
+
+/** Adiciona lançamentos ao acerto; não altera Contas a Pagar nem os lançamentos de origem. */
+export async function adicionarAoAcerto(colabId: string, p: PeriodoAcerto, movs: MovMotorista[]) {
+  if (!movs.length) return;
+  const { error } = await (supabase.from("acerto_movimentos" as any) as any).insert(movs.map((m) => ({
+    colaborador_id: colabId, periodo_inicio: p.inicio, natureza: m.natureza, origem_tipo: m.origemTipo, origem_id: m.origemId,
+  })));
+  if (error) throw error;
+}
+
+/** Remove do acerto apenas o vínculo; a despesa/comissão/desconto continua existindo. */
+export async function removerDoAcerto(colabId: string, p: PeriodoAcerto, movs: MovMotorista[]) {
+  for (const m of movs) {
+    const { error } = await (supabase.from("acerto_movimentos" as any) as any).delete()
+      .eq("colaborador_id", colabId).eq("periodo_inicio", p.inicio).eq("origem_tipo", m.origemTipo).eq("origem_id", m.origemId);
+    if (error) throw error;
+  }
 }
 
 export interface ResumoAcerto { comissoes: number; reembolsos: number; vales: number; descontos: number; saldo: number }
@@ -109,7 +156,15 @@ export async function gerarAcertoMotorista(input: {
   const { colaborador, periodo, adiantExpenses } = input;
   const existentes = await fetchAcertosDoPeriodo([colaborador.id], periodo.inicio);
   if (existentes.has(colaborador.id)) throw new Error("O acerto desta quinzena já foi gerado.");
-  const f = await carregarFontes(colaborador.id, periodo, adiantExpenses);
+  const f0 = await carregarFontes(colaborador.id, periodo, adiantExpenses);
+  const { incluidas } = await loadMovimentosEDisponiveis(colaborador.id, periodo, adiantExpenses);
+  const inc = new Set(incluidas.map((m) => vkey(m.origemTipo, m.origemId)));
+  const f: Fontes = {
+    comissoes: f0.comissoes.filter((c) => inc.has(vkey("comissao", c.id))),
+    reembolsos: f0.reembolsos.filter((e) => inc.has(vkey("expense", e.id))),
+    vales: f0.vales.filter((e: any) => inc.has(vkey("expense", e.id))),
+    descontos: f0.descontos.filter((d) => inc.has(vkey("desconto", d.id))),
+  };
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
   const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena");
   const [row] = computePayrollRowsFromPeriodo({
