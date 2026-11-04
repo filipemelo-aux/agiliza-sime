@@ -19,6 +19,7 @@ import { toast } from "@/lib/notice";
 import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { MonthPicker } from "@/components/MonthPicker";
+import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -69,10 +70,13 @@ type RHSectionProp = "motoristas" | "administrativo" | "colaboradores" | "movime
 export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista">("all");
-  const [month, setMonth] = useState(() => {
+  const isPeopleSection = forcedSection === "motoristas" || forcedSection === "administrativo";
+  const acertoPeriod = useMemo(() => getAcertoPeriod(), []);
+  const [monthState, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  const month = isPeopleSection ? acertoPeriod.month : monthState;
   const { confirm: confirmDesligar, ConfirmDialog: DesligarDialog } = useConfirmDialog();
 
   // Observer-based data layer (colaboradores + expenses + realtime listener)
@@ -149,19 +153,21 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     <AdminLayout>
       <div className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle className="!mb-0">{{ motoristas: "Motoristas", administrativo: "Administrativo / Operacional", colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
-        <SearchFilterCard>
-          {(forcedSection === "motoristas" || forcedSection === "administrativo") && (
-            <FilterField label="Busca" className="flex-1 min-w-[220px]">
-              <div className="relative w-full">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
-              </div>
+        {isPeopleSection ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+            </div>
+            <span className="text-xs text-muted-foreground">Período do acerto: <span className="font-semibold text-foreground">{formatAcertoPeriod(acertoPeriod)}</span></span>
+          </div>
+        ) : (
+          <SearchFilterCard>
+            <FilterField label="Mês" className="ml-auto">
+              <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
             </FilterField>
-          )}
-          <FilterField label="Mês" className="ml-auto">
-            <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
-          </FilterField>
-        </SearchFilterCard>
+          </SearchFilterCard>
+        )}
 
         <RHWorkspace
           colaboradores={colaboradores}
@@ -187,6 +193,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           enrichName={enrichName}
           saveSettings={saveSettings}
           forcedSection={forcedSection}
+          acertoPeriod={acertoPeriod}
         />
       </div>
 
@@ -229,7 +236,7 @@ function RHWorkspace(props: any) {
     filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
     month, expenses, settings, patch, setSalaryOverride, reload,
     accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
-    forcedSection,
+    forcedSection, acertoPeriod,
   } = props;
 
   const [internalSection, setInternalSection] = useState<RHSection>("colaboradores");
@@ -344,6 +351,7 @@ function RHWorkspace(props: any) {
       .then((rows) => {
         const m = new Map<string, number>();
         rows.forEach((e) => {
+          if (acertoPeriod && !inAcertoPeriod(e.data_competencia || e.data_emissao, acertoPeriod)) return;
           const id = e.reembolso_colaborador_id || "";
           m.set(id, (m.get(id) || 0) + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0));
         });
@@ -465,6 +473,7 @@ function RHWorkspace(props: any) {
               colaborador={movFor}
               perfil={section === "motoristas" ? "motorista" : "administrativo"}
               adiantExpenses={adiantExpenses}
+              periodo={acertoPeriod}
               onClose={() => { setMovFor(null); reload(); }}
             />
           </div>
