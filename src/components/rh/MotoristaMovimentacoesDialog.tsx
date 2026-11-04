@@ -117,7 +117,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
         : "Esta comissão já foi enviada para a folha e não pode ser excluída aqui.");
       return;
     }
-    const ok = await confirm({ title: "Excluir movimentação", description: `Excluir ${NAT_LABEL[r.natureza].toLowerCase()} de ${formatBRL(r.entrada || r.saida)}?`, confirmText: "Excluir", variant: "destructive" } as any);
+    const ok = await confirm({ title: "Excluir movimentação", description: `Excluir ${NAT_LABEL[r.natureza].toLowerCase()} de ${formatBRL(r.entrada || r.saida)}?`, confirmLabel: "Excluir" } as any);
     if (!ok) return;
     try {
       if (r.natureza === "comissao") await deleteComissao(r.origemId);

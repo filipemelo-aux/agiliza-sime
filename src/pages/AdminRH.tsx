@@ -30,6 +30,7 @@ import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
 import { JanelaSalarioConfigCard } from "@/components/rh/JanelaSalarioConfigCard";
 import { ColaboradorMovimentacaoDialog } from "@/components/rh/ColaboradorMovimentacaoDialog";
+import { MotoristaMovimentacoesDialog } from "@/components/rh/MotoristaMovimentacoesDialog";
 import {
   buildMetricsByColab,
   computeDueDate,
@@ -480,6 +481,14 @@ function RHWorkspace(props: any) {
               footer={<div className="text-[11px] text-muted-foreground">{peopleRows.length} colaborador(es)</div>}
             />
             <StatusLegend className="px-1" items={[{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+            {section === "motoristas" ? (
+              <MotoristaMovimentacoesDialog
+                colaborador={movFor}
+                adiantExpenses={adiantExpenses}
+                periodo={acertoPeriod}
+                onClose={() => { setMovFor(null); reload(); }}
+              />
+            ) : (
             <ColaboradorMovimentacaoDialog
               colaborador={movFor}
               perfil={section === "motoristas" ? "motorista" : "administrativo"}
@@ -487,6 +496,7 @@ function RHWorkspace(props: any) {
               periodo={acertoPeriod}
               onClose={() => { setMovFor(null); reload(); }}
             />
+            )}
           </div>
         )}
 
