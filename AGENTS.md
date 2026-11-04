@@ -28,3 +28,4 @@
 
 - Employee reimbursements retain supplier and cost category on the original expense; payroll snapshots reserve their remaining balances, salary payables exclude reimbursements, and the authenticated payroll-item RPC atomically settles originals with one cash movement per employee to avoid double expense/payment.
 - RH is split by audience (Motoristas / Administrativo-Operacional) over one is_colaborador_rh population filtered by profile category; per-person movements reuse the shared commission/discount tabs scoped to one collaborator, so payroll generation stays single-sourced.
+- RH Motoristas: the closed-quinzena selector on the grid is the only period source; the movements dialog is an entry/exit ledger (credits: commissions, reimbursements; debits: vales, discounts) reusing existing tables, so payroll inputs stay single-sourced.
