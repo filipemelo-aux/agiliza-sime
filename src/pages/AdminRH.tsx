@@ -150,6 +150,14 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
       <div className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle className="!mb-0">{{ motoristas: "Motoristas", administrativo: "Administrativo / Operacional", colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
         <SearchFilterCard>
+          {(forcedSection === "motoristas" || forcedSection === "administrativo") && (
+            <FilterField label="Busca" className="flex-1 min-w-[220px]">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+              </div>
+            </FilterField>
+          )}
           <FilterField label="Mês" className="ml-auto">
             <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
           </FilterField>
@@ -437,19 +445,6 @@ function RHWorkspace(props: any) {
 
         {isPeople && (
           <div className="space-y-3">
-            <SearchFilterCard>
-              <FilterField label="Busca" className="w-full md:w-64 basis-full md:basis-auto md:ml-auto shrink-0 order-last">
-                <div className="relative w-full">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome, cargo ou departamento..."
-                    value={search}
-                    onChange={(e: any) => setSearch(e.target.value)}
-                    className="pl-8 h-8 text-xs"
-                  />
-                </div>
-              </FilterField>
-            </SearchFilterCard>
             <GlobalToolbar actions={peopleActions} selectedCount={selectedColabs.size} />
             <DataGrid
               rows={peopleRows}
