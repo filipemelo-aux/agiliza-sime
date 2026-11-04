@@ -45,6 +45,13 @@ import {
   type ColaboradorRH,
   type Comissao,
   type Expense,
+  fetchAcertosDoPeriodo,
+  loadMovimentosMotorista,
+  resumirMovimentos,
+  gerarAcertoMotorista,
+  editarAcertoMotorista,
+  type ResumoAcerto,
+  type AcertoGerado,
 } from "@/services/rh";
 
 /** Caminho das contas pai: "Despesas › Administrativas" */
@@ -259,6 +266,7 @@ function RHWorkspace(props: any) {
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
   const { user } = useAuth();
+  const { confirm: confirmAcerto, ConfirmDialog: AcertoConfirmDialog } = useConfirmDialog();
 
 
   const [selectedColabs, setSelectedColabs] = useState<Set<string>>(new Set());
@@ -583,20 +591,26 @@ function RHWorkspace(props: any) {
               rowId={(c: ColaboradorRH) => c.id}
               selected={selectedColabs}
               onSelectedChange={setSelectedColabs}
-              loading={loading}
+              loading={loading || (isMotoristas && resumoLoading && resumoByColab.size === 0)}
               minWidth={900}
-              rowClassName={(c: ColaboradorRH) => rowToneClass((reembByColab.get(c.id) || 0) > 0 ? "pending" : c.ativo ? "resolved" : "neutral")}
+              rowClassName={(c: ColaboradorRH) => isMotoristas
+                ? rowToneClass(acertoByColab.has(c.id) ? "resolved" : (resumoByColab.get(c.id)?.saldo || 0) !== 0 ? "pending" : "neutral")
+                : rowToneClass((reembByColab.get(c.id) || 0) > 0 ? "pending" : c.ativo ? "resolved" : "neutral")}
               emptyMessage={section === "motoristas"
                 ? "Nenhum motorista marcado como colaborador (RH)."
                 : "Nenhum colaborador administrativo / operacional marcado como colaborador (RH)."}
               footer={<div className="text-[11px] text-muted-foreground">{peopleRows.length} colaborador(es)</div>}
             />
-            <StatusLegend className="px-1" items={[{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+            <StatusLegend className="px-1" items={isMotoristas
+              ? [{ tone: "pending", label: "Com movimentações em aberto" }, { tone: "resolved", label: "Acerto gerado" }, { tone: "neutral", label: "Sem movimentações" }]
+              : [{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+            {AcertoConfirmDialog}
             {section === "motoristas" ? (
               <MotoristaMovimentacoesDialog
                 colaborador={movFor}
                 adiantExpenses={adiantExpenses}
                 periodo={acertoPeriod}
+                bloqueado={!!(movFor && acertoByColab.has(movFor.id))}
                 onClose={() => { setMovFor(null); reload(); }}
               />
             ) : (
