@@ -67,6 +67,8 @@ interface DataGridProps<T> {
   onSelectedChange: (next: Set<string>) => void;
   /** ids não selecionáveis */
   isSelectable?: (row: T) => boolean;
+  /** quando true, só uma linha fica selecionada por vez (sem "selecionar todos") */
+  singleSelection?: boolean;
   loading?: boolean;
   emptyMessage?: string;
   minWidth?: number;
@@ -84,6 +86,7 @@ export function DataGrid<T>({
   selected,
   onSelectedChange,
   isSelectable,
+  singleSelection,
   loading,
   emptyMessage = "Nenhum registro encontrado",
   minWidth = 900,
@@ -127,6 +130,10 @@ export function DataGrid<T>({
   };
 
   const toggleRow = (id: string) => {
+    if (singleSelection) {
+      onSelectedChange(selected.has(id) ? new Set() : new Set([id]));
+      return;
+    }
     const next = new Set(selected);
     next.has(id) ? next.delete(id) : next.add(id);
     onSelectedChange(next);
@@ -160,11 +167,13 @@ export function DataGrid<T>({
             <tr className="border-b border-border">
                 <th className="w-8 min-w-[32px] max-w-[32px] bg-muted px-1 py-1.5 text-center">
                   <div className="flex items-center justify-center">
+                  {!singleSelection && (
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={toggleAll}
                     aria-label="Selecionar todos"
                   />
+                  )}
                   </div>
                 </th>
               {columns.map((col, ci) => (

@@ -86,7 +86,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const month = isPeopleSection ? acertoPeriod.month : monthState;
-  const { confirm: confirmDesligar, ConfirmDialog: DesligarDialog } = useConfirmDialog();
 
   // Observer-based data layer (colaboradores + expenses + realtime listener)
   const { loading, colaboradores, accounts, expenses, realtimeActive, reload } = useRHData(month);
@@ -94,25 +93,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
   const { settings, patch, setSalaryOverride } = useRHSettings();
 
   const [historyFor, setHistoryFor] = useState<ColaboradorRH | null>(null);
-
-  const handleDesligar = async (c: ColaboradorRH) => {
-    const ok = await confirmDesligar({
-      title: "Desligar colaborador?",
-      description: `${c.full_name} será removido(a) da listagem de RH (folha, adiantamentos, relatórios). O cadastro permanece intacto e a flag "É colaborador (RH)" será desmarcada. Você pode religar a qualquer momento no cadastro da pessoa.`,
-      confirmLabel: "Desligar",
-    });
-    if (!ok) return;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ is_colaborador_rh: false })
-      .eq("id", c.id);
-    if (error) {
-      toast.error("Erro ao desligar: " + error.message);
-      return;
-    }
-    toast.success(`${c.full_name} desligado(a) do RH`);
-    reload();
-  };
 
   const colabById = useMemo(() => {
     const m = new Map<string, ColaboradorRH>();
@@ -199,7 +179,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           filteredColabs={filteredColabs}
           metricsByColab={metricsByColab}
           setHistoryFor={setHistoryFor}
-          handleDesligar={handleDesligar}
           month={month}
           expenses={expenses}
           settings={settings}
@@ -222,7 +201,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
         folhaAccountId={settings.folhaAccountId}
         adiantamentoAccountId={settings.adiantamentoAccountId}
       />
-      {DesligarDialog}
     </AdminLayout>
   );
 }
@@ -252,7 +230,7 @@ function RHWorkspace(props: any) {
   const {
     colaboradores, totalAtivos,
     loading, search, setSearch, tipoFilter, setTipoFilter,
-    filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
+    filteredColabs, metricsByColab, setHistoryFor,
     month, expenses, settings, patch, setSalaryOverride, reload,
     accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
     forcedSection, acertoPeriod,
@@ -350,7 +328,6 @@ function RHWorkspace(props: any) {
 
   const colabActions: ToolbarAction[] = [
     { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedColabRows[0] && setHistoryFor(selectedColabRows[0]) },
-    { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedColabRows[0] && handleDesligar(selectedColabRows[0]) },
   ];
 
   const isPeople = section === "motoristas" || section === "administrativo";
@@ -503,11 +480,9 @@ function RHWorkspace(props: any) {
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar acerto", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Editar acerto", icon: Pencil, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
-    { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedPeople[0] && handleDesligar(selectedPeople[0]) },
   ] : [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedPeople[0] && setHistoryFor(selectedPeople[0]) },
-    { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedPeople[0] && handleDesligar(selectedPeople[0]) },
   ];
 
   const allItems: NavItem[] = [
@@ -591,6 +566,7 @@ function RHWorkspace(props: any) {
               rowId={(c: ColaboradorRH) => c.id}
               selected={selectedColabs}
               onSelectedChange={setSelectedColabs}
+              singleSelection={isMotoristas}
               loading={loading || (isMotoristas && resumoLoading && resumoByColab.size === 0)}
               minWidth={900}
               rowClassName={(c: ColaboradorRH) => isMotoristas
