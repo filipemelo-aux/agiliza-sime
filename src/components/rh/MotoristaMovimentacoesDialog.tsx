@@ -9,35 +9,24 @@ import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { inAcertoPeriod, labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
+import { labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import {
   deleteComissao,
   deleteDescontoFolha,
-  fetchComissoes,
-  fetchDescontosPendentesNoPeriodo,
-  fetchReembolsosPendentes,
+  loadMovimentosMotorista,
   type ColaboradorRH,
   type Expense,
+  type MovMotorista,
+  type MovNatureza,
 } from "@/services/rh";
 
 const formatBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 const formatDate = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—");
 
-type Natureza = "comissao" | "reembolso" | "vale" | "desconto";
-interface Mov {
-  id: string;
-  natureza: Natureza;
-  data: string;
-  descricao: string;
-  entrada: number;
-  saida: number;
-  /** pode ser excluída aqui (comissão/desconto ainda fora de folha) */
-  removivel: boolean;
-  origemId: string;
-}
+type Natureza = MovNatureza;
+type Mov = MovMotorista;
 
 const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
-const DESC_LABEL: Record<string, string> = { inss: "INSS", irrf: "IRRF", faltas: "Faltas", multas: "Multas", combustivel: "Combustível", vale: "Vale", adiantamento: "Adiantamento", outros: "Outros" };
 
 type Lancar = null | "comissao" | "reembolso" | "vale" | "desconto";
 
@@ -45,11 +34,13 @@ interface Props {
   colaborador: ColaboradorRH | null;
   adiantExpenses: Expense[];
   periodo: AcertoPeriod;
+  /** acerto gerado: movimentações somente leitura */
+  bloqueado?: boolean;
   onClose: () => void;
 }
 
 /** Extrato de entradas (créditos) e saídas (débitos) do motorista na quinzena escolhida na grade. */
-export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, onClose }: Props) {
+export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, bloqueado = false, onClose }: Props) {
   const [rows, setRows] = useState<Mov[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -60,36 +51,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
     if (!colaborador) return;
     setLoading(true);
     try {
-      const [com, desc, reemb] = await Promise.all([
-        fetchComissoes({ colaboradorId: colaborador.id, dataInicio: periodo.inicio, dataFim: periodo.fim }),
-        fetchDescontosPendentesNoPeriodo([colaborador.id], periodo.inicio, periodo.fim),
-        fetchReembolsosPendentes([colaborador.id]),
-      ]);
-      const list: Mov[] = [
-        ...com.map((c) => ({
-          id: `c-${c.id}`, origemId: c.id, natureza: "comissao" as Natureza, data: c.data_referencia,
-          descricao: `${c.origem === "cte" ? "Viagem (CT-e)" : "Colheita"}${c.percentual != null ? ` · ${String(c.percentual).replace(".", ",")}% de ${formatBRL(Number(c.valor_base))}` : ""}${c.observacoes ? ` · ${c.observacoes}` : ""}${c.status === "enviado_folha" ? " · já na folha" : ""}`,
-          entrada: Number(c.valor_calculado || 0), saida: 0, removivel: c.status === "pendente",
-        })),
-        ...reemb
-          .filter((e) => inAcertoPeriod(e.data_competencia || e.data_emissao, periodo))
-          .map((e) => ({
-            id: `r-${e.id}`, origemId: e.id, natureza: "reembolso" as Natureza, data: (e.data_competencia || e.data_emissao).slice(0, 10),
-            descricao: e.descricao, entrada: Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0), saida: 0, removivel: false,
-          })),
-        ...adiantExpenses
-          .filter((e: any) => e.favorecido_id === colaborador.id && inAcertoPeriod(e.data_pagamento || e.data_emissao, periodo))
-          .map((e: any) => ({
-            id: `v-${e.id}`, origemId: e.id, natureza: "vale" as Natureza, data: String(e.data_pagamento || e.data_emissao).slice(0, 10),
-            descricao: e.descricao || "Adiantamento", entrada: 0, saida: Number(e.valor_total || 0), removivel: false,
-          })),
-        ...desc.map((d) => ({
-          id: `d-${d.id}`, origemId: d.id, natureza: (d.tipo === "vale" || d.tipo === "adiantamento" ? "vale" : "desconto") as Natureza,
-          data: d.data_referencia, descricao: `${DESC_LABEL[d.tipo] || d.tipo}${d.descricao ? ` · ${d.descricao}` : ""}`,
-          entrada: 0, saida: Number(d.valor || 0), removivel: true,
-        })),
-      ];
-      list.sort((a, b) => a.data.localeCompare(b.data));
+      const list = await loadMovimentosMotorista(colaborador.id, periodo, adiantExpenses);
       setRows(list);
     } catch (e: any) {
       toast.error("Erro ao carregar movimentações: " + e.message);
@@ -109,33 +71,37 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const valesCP = rows.filter((r) => r.natureza === "vale" && r.id.startsWith("v-"));
 
   const excluir = async () => {
-    const r = sel[0];
-    if (!r) return;
-    if (!r.removivel) {
-      toast.error(r.natureza === "reembolso" || r.natureza === "vale"
-        ? "Este lançamento vem do Contas a Pagar. Para alterar, edite a despesa lá."
-        : "Esta comissão já foi enviada para a folha e não pode ser excluída aqui.");
+    if (!sel.length || bloqueado) return;
+    const bloqueadas = sel.filter((r) => !r.removivel);
+    if (bloqueadas.length) {
+      toast.error(bloqueadas.some((r) => r.natureza === "reembolso" || (r.natureza === "vale" && r.id.startsWith("v-")))
+        ? "Reembolsos e vales do Contas a Pagar não são excluídos aqui. Para alterar, edite a despesa lá. Desmarque-os e tente de novo."
+        : "Há comissão já enviada para a folha na seleção; ela não pode ser excluída aqui.");
       return;
     }
-    const ok = await confirm({ title: "Excluir movimentação", description: `Excluir ${NAT_LABEL[r.natureza].toLowerCase()} de ${formatBRL(r.entrada || r.saida)}?`, confirmLabel: "Excluir" } as any);
+    const total = sel.reduce((s, r) => s + r.entrada + r.saida, 0);
+    const ok = await confirm({ title: "Excluir movimentações", description: sel.length === 1 ? `Excluir ${NAT_LABEL[sel[0].natureza].toLowerCase()} de ${formatBRL(total)}?` : `Excluir ${sel.length} movimentações (${formatBRL(total)})?`, confirmLabel: "Excluir" } as any);
     if (!ok) return;
     try {
-      if (r.natureza === "comissao") await deleteComissao(r.origemId);
-      else await deleteDescontoFolha(r.origemId);
-      toast.success("Movimentação excluída");
+      for (const r of sel) {
+        if (r.natureza === "comissao") await deleteComissao(r.origemId);
+        else await deleteDescontoFolha(r.origemId);
+      }
+      toast.success(sel.length === 1 ? "Movimentação excluída" : `${sel.length} movimentações excluídas`);
       setSelected(new Set());
       load();
     } catch (e: any) {
       toast.error("Erro ao excluir: " + e.message);
+      load();
     }
   };
 
   const actions: ToolbarAction[] = [
-    { key: "in-com", label: "Entrada: Comissão", icon: Percent, mode: "always", variant: "default", onClick: () => setLancar("comissao") },
-    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "always", onClick: () => setLancar("reembolso") },
-    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "always", onClick: () => setLancar("vale") },
-    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "always", onClick: () => setLancar("desconto") },
-    { key: "del", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: excluir },
+    { key: "in-com", label: "Entrada: Comissão", icon: Percent, mode: "create", variant: "default", disabled: bloqueado, onClick: () => setLancar("comissao") },
+    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "create", disabled: bloqueado, onClick: () => setLancar("reembolso") },
+    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "create", disabled: bloqueado, onClick: () => setLancar("vale") },
+    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "create", disabled: bloqueado, onClick: () => setLancar("desconto") },
+    { key: "del", label: "Excluir", icon: Trash2, mode: "batch", variant: "destructive", disabled: bloqueado, onClick: excluir },
   ];
 
   const columns: DataGridColumn<Mov>[] = [
@@ -170,13 +136,18 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
             <DialogDescription>{labelQuinzena(periodo)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {bloqueado && (
+              <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
+                Acerto desta quinzena já gerado e enviado para a Folha de Pagamento. Para alterar, use “Editar acerto” na lista de motoristas.
+              </div>
+            )}
             <GlobalToolbar actions={actions} selectedCount={selected.size} />
             <DataGrid
               rows={rows}
               columns={columns}
               rowId={(r) => r.id}
               selected={selected}
-              onSelectedChange={(s) => setSelected(new Set([...s].slice(-1)))}
+              onSelectedChange={setSelected}
               loading={loading}
               minWidth={760}
               rowClassName={(r) => rowToneClass(r.entrada > 0 ? "resolved" : "pending")}
