@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { X, ArrowLeftRight, LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards, Building2 } from "lucide-react";
+import { X, ArrowLeftRight, LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight, WalletCards, Building2, Truck, Briefcase } from "lucide-react";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { useTenant } from "@/hooks/useTenant";
 import { Button } from "@/components/ui/button";
@@ -101,9 +101,9 @@ export const allMenuItems = [
     title: "Recursos Humanos",
     icon: UserCog,
     children: [
-      { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
+      { title: "Motoristas", url: "/admin/rh/motoristas", icon: Truck },
+      { title: "Administrativo / Operacional", url: "/admin/rh/administrativo", icon: Briefcase },
       { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
-      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
       { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
     ],
   },

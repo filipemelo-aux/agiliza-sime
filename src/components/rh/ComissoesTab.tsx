@@ -76,6 +76,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     return colaboradores.filter((c) => c.ativo);
   }, [colaboradores, tipo]);
 
+  // Quando aberto para um único colaborador (janela de movimentação), já seleciona
+  useEffect(() => {
+    if (elegiveis.length === 1 && colaboradores.length === 1) setColaboradorId(elegiveis[0].id);
+  }, [elegiveis, colaboradores.length]);
+
   // Reset seleção se colaborador atual deixar de ser elegível
   useEffect(() => {
     if (colaboradorId && !elegiveis.some((c) => c.id === colaboradorId)) {

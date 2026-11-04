@@ -28,6 +28,7 @@ import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
 import { JanelaSalarioConfigCard } from "@/components/rh/JanelaSalarioConfigCard";
+import { ColaboradorMovimentacaoDialog } from "@/components/rh/ColaboradorMovimentacaoDialog";
 import {
   buildMetricsByColab,
   computeDueDate,
@@ -36,6 +37,7 @@ import {
   fetchComissoesPendentesForMonth,
   fetchDescontosPendentesForMonth,
   fetchExpensesByColaborador,
+  fetchReembolsosPendentes,
   filterByAccount,
   resolveBaseSalary,
   type ColaboradorRH,
@@ -62,7 +64,7 @@ const formatBRL = (n: number) =>
 
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-type RHSectionProp = "colaboradores" | "movimentacoes" | "folha_pagamento" | "config";
+type RHSectionProp = "motoristas" | "administrativo" | "colaboradores" | "movimentacoes" | "folha_pagamento" | "config";
 
 export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
@@ -146,8 +148,16 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
   return (
     <AdminLayout>
       <div className="px-4 py-3 md:px-6 space-y-3">
-        <PageTitle className="!mb-0">{{ colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
+        <PageTitle className="!mb-0">{{ motoristas: "Motoristas", administrativo: "Administrativo / Operacional", colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
         <SearchFilterCard>
+          {(forcedSection === "motoristas" || forcedSection === "administrativo") && (
+            <FilterField label="Busca" className="flex-1 min-w-[220px]">
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+              </div>
+            </FilterField>
+          )}
           <FilterField label="Mês" className="ml-auto">
             <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
           </FilterField>
@@ -195,6 +205,8 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 // RH Workspace — SaaS-style sidebar navigation (Stripe/Linear)
 // ============================================================
 type RHSection =
+  | "motoristas"
+  | "administrativo"
   | "colaboradores"
   | "movimentacoes"
   | "folha_pagamento"
@@ -314,7 +326,54 @@ function RHWorkspace(props: any) {
     { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedColabRows[0] && handleDesligar(selectedColabRows[0]) },
   ];
 
+  const isPeople = section === "motoristas" || section === "administrativo";
+  const peopleRows: ColaboradorRH[] = isPeople
+    ? colaboradores.filter((c: ColaboradorRH) => (section === "motoristas" ? c.tipo === "motorista" : c.tipo !== "motorista"))
+        .filter((c: ColaboradorRH) => {
+          const q = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          if (!q) return true;
+          return [c.full_name, c.cargo, c.departamento].some((v) => (v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q));
+        })
+    : [];
+  const [reembByColab, setReembByColab] = useState<Map<string, number>>(new Map());
+  const [movFor, setMovFor] = useState<ColaboradorRH | null>(null);
+  const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
+  useEffect(() => {
+    if (!isPeople || !colaboradores.length) return;
+    fetchReembolsosPendentes(colaboradores.map((c: ColaboradorRH) => c.id))
+      .then((rows) => {
+        const m = new Map<string, number>();
+        rows.forEach((e) => {
+          const id = e.reembolso_colaborador_id || "";
+          m.set(id, (m.get(id) || 0) + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0));
+        });
+        setReembByColab(m);
+      })
+      .catch(() => setReembByColab(new Map()));
+  }, [isPeople, colabIdsKey, movFor]);
+  useEffect(() => { setSelectedColabs(new Set()); }, [section]);
+  const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
+  const peopleColumns: DataGridColumn<ColaboradorRH>[] = [
+    ...colabColumns.filter((col) => ["nome", "admissao", "salario", "adiant", "saldo"].includes(col.key)),
+    {
+      key: "reemb",
+      header: "Reembolsos",
+      width: "120px",
+      align: "right",
+      sortValue: (c) => reembByColab.get(c.id) || 0,
+      cell: (c) => <span className="font-mono text-success whitespace-nowrap">{formatBRL(reembByColab.get(c.id) || 0)}</span>,
+    },
+    ...colabColumns.filter((col) => col.key === "status"),
+  ];
+  const peopleActions: ToolbarAction[] = [
+    { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
+    { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedPeople[0] && setHistoryFor(selectedPeople[0]) },
+    { key: "desligar", label: "Desligar", icon: UserMinus, mode: "single", variant: "destructive", onClick: () => selectedPeople[0] && handleDesligar(selectedPeople[0]) },
+  ];
+
   const allItems: NavItem[] = [
+    { id: "motoristas", label: "Motoristas", icon: Users, description: "Comissões de viagem, reembolsos, vales e descontos" },
+    { id: "administrativo", label: "Administrativo / Operacional", icon: Briefcase, description: "Vencimentos, reembolsos, vales e descontos" },
     { id: "movimentacoes", label: "Movimentações", icon: HandCoins, description: "Adiantamentos, comissões e descontos" },
     { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Em aberto, prévia e histórico" },
     { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
@@ -381,6 +440,33 @@ function RHWorkspace(props: any) {
             {activeItem.description && (
               <span className="text-[11px] text-muted-foreground">· {activeItem.description}</span>
             )}
+          </div>
+        )}
+
+        {isPeople && (
+          <div className="space-y-3">
+            <GlobalToolbar actions={peopleActions} selectedCount={selectedColabs.size} />
+            <DataGrid
+              rows={peopleRows}
+              columns={peopleColumns}
+              rowId={(c: ColaboradorRH) => c.id}
+              selected={selectedColabs}
+              onSelectedChange={setSelectedColabs}
+              loading={loading}
+              minWidth={900}
+              rowClassName={(c: ColaboradorRH) => rowToneClass((reembByColab.get(c.id) || 0) > 0 ? "pending" : c.ativo ? "resolved" : "neutral")}
+              emptyMessage={section === "motoristas"
+                ? "Nenhum motorista marcado como colaborador (RH)."
+                : "Nenhum colaborador administrativo / operacional marcado como colaborador (RH)."}
+              footer={<div className="text-[11px] text-muted-foreground">{peopleRows.length} colaborador(es)</div>}
+            />
+            <StatusLegend className="px-1" items={[{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+            <ColaboradorMovimentacaoDialog
+              colaborador={movFor}
+              perfil={section === "motoristas" ? "motorista" : "administrativo"}
+              adiantExpenses={adiantExpenses}
+              onClose={() => { setMovFor(null); reload(); }}
+            />
           </div>
         )}
 

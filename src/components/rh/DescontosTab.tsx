@@ -116,6 +116,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const ativos = useMemo(() => colaboradores.filter((c) => c.ativo), [colaboradores]);
+  useEffect(() => {
+    if (ativos.length === 1 && colaboradores.length === 1) setColabId(ativos[0].id);
+  }, [ativos, colaboradores.length]);
   const colabName = (id: string) =>
     ativos.find((c) => c.id === id)?.full_name || colaboradores.find((c) => c.id === id)?.full_name || "—";
 
