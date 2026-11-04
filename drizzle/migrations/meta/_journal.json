@@ -148,6 +148,13 @@
       "when": 1793809577326,
       "tag": "0020_perf_list_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793830500879,
+      "tag": "0021_acerto_movimentos",
+      "breakpoints": true
     }
   ]
 }

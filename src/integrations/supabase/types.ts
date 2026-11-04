@@ -93,6 +93,39 @@ export type Database = {
           },
         ]
       }
+      acerto_movimentos: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          id: string
+          natureza: string
+          origem_id: string
+          origem_tipo: string
+          periodo_inicio: string
+          tenant_id: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          id?: string
+          natureza: string
+          origem_id: string
+          origem_tipo: string
+          periodo_inicio: string
+          tenant_id?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          id?: string
+          natureza?: string
+          origem_id?: string
+          origem_tipo?: string
+          periodo_inicio?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       bank_reconciliation_item_links: {
         Row: {
           created_at: string
