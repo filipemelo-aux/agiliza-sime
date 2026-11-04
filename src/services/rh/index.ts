@@ -9,3 +9,4 @@ export * from "./descontosFolhaService";
 export * from "./folhasPagamentoService";
 
 export * from "./tributosFolhaService";
+export * from "./acertoMotoristaService";
