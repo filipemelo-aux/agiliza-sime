@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { maskPhone, maskCNPJ, maskDocument } from "@/lib/masks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText, KeyRound } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText, KeyRound, UserMinus } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { toast as noticeToast } from "@/lib/notice";
 import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
@@ -82,6 +84,7 @@ export default function AdminPeople() {
   const [deletePerson, setDeletePerson] = useState<PersonProfile | null>(null);
   const [resetPerson, setResetPerson] = useState<PersonProfile | null>(null);
   const [resetting, setResetting] = useState(false);
+  const { confirm: confirmDesligar, ConfirmDialog: DesligarDialog } = useConfirmDialog();
 
   const [viewPerson, setViewPerson] = useState<PersonProfile | null>(null);
   const [viewPersonDocs, setViewPersonDocs] = useState<{ cpf: string | null; cnh_number: string | null; cnh_category: string | null; cnh_expiry: string | null } | null>(null);
@@ -154,6 +157,27 @@ export default function AdminPeople() {
     } catch (error: any) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
+  };
+
+  const handleDesligar = async (person: PersonProfile) => {
+    if (!person?.is_colaborador_rh) return;
+    const ok = await confirmDesligar({
+      title: "Desligar colaborador?",
+      description: `${person.full_name} será removido(a) da listagem de RH (folha, adiantamentos, relatórios). O cadastro permanece intacto e a flag "É colaborador (RH)" será desmarcada. Você pode religar a qualquer momento editando a pessoa.`,
+      confirmLabel: "Desligar",
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_colaborador_rh: false })
+      .eq("id", person.id);
+    if (error) {
+      noticeToast.error("Erro ao desligar: " + error.message);
+      return;
+    }
+    setDrivers((prev) => prev.map((d) => (d.id === person.id ? { ...d, is_colaborador_rh: false } : d)));
+    setSelected(new Set());
+    noticeToast.success(`${person.full_name} desligado(a) do RH`);
   };
 
   const handleResetPassword = async () => {
@@ -320,6 +344,15 @@ export default function AdminPeople() {
       onClick: () => selectedRows[0] && setResetPerson(selectedRows[0]),
       hidden: !isAdmin,
       disabled: !selectedRows[0]?.user_id || selectedRows[0]?.category !== "colaborador",
+    },
+    {
+      key: "desligar",
+      label: "Desligar",
+      icon: UserMinus,
+      mode: "single",
+      variant: "destructive",
+      disabled: !selectedRows[0]?.is_colaborador_rh,
+      onClick: () => selectedRows[0] && handleDesligar(selectedRows[0]),
     },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => selectedRows[0] && setDeletePerson(selectedRows[0]) },
   ];
@@ -537,6 +570,7 @@ export default function AdminPeople() {
           )}
         </DialogContent>
       </Dialog>
+      {DesligarDialog}
     </AdminLayout>
   );
 }
