@@ -566,6 +566,7 @@ function RHWorkspace(props: any) {
               rowId={(c: ColaboradorRH) => c.id}
               selected={selectedColabs}
               onSelectedChange={setSelectedColabs}
+              singleSelection={isMotoristas}
               loading={loading || (isMotoristas && resumoLoading && resumoByColab.size === 0)}
               minWidth={900}
               rowClassName={(c: ColaboradorRH) => isMotoristas
