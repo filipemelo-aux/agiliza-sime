@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { inAcertoPeriod, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
+import { formatDateBR } from "@/lib/date";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,6 +28,7 @@ import {
   type AgregadoColheitaRow,
   type ColaboradorRH,
   type CteElegivel,
+  type Comissao,
 } from "@/services/rh";
 
 type TipoComissao = "motorista" | "embarque";
@@ -34,6 +36,7 @@ type OperacaoMotorista = "frete" | "colheita";
 
 interface ComissoesTabProps {
   colaboradores: ColaboradorRH[];
+  onAdicionar?: (comissoes: Comissao[]) => Promise<void>;
 }
 
 const formatBRL = (n: number) =>
@@ -49,7 +52,7 @@ const formatBRL = (n: number) =>
  *
  * Tipo "Por Embarque": desabilitado ("Em manutenção").
  */
-export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { periodo?: AcertoPeriod }) {
+export function ComissoesTab({ colaboradores, periodo, onAdicionar }: ComissoesTabProps & { periodo?: AcertoPeriod }) {
   const [tab, setTab] = useState<"gerar" | "historico">("gerar");
   const [tipo, setTipo] = useState<TipoComissao>("motorista");
   const [operacao, setOperacao] = useState<OperacaoMotorista>("frete");
@@ -129,11 +132,11 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
       try {
         const data = await fetchAgregadosColheitaPorMotorista(
           colaboradorId,
-          colheitaInicio || null,
-          colheitaFim || null
+          periodo?.inicio || colheitaInicio || null,
+          periodo?.fim || colheitaFim || null
         );
         if (!cancelled) {
-          setAgregados(data);
+          setAgregados(periodo ? data.filter((a) => inAcertoPeriod(a.endDate || a.startDate, periodo)) : data);
           setAgregadosSelecionados(new Set());
         }
       } catch (err: any) {
@@ -145,7 +148,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
     return () => {
       cancelled = true;
     };
-  }, [tipo, operacao, colaboradorId, colheitaInicio, colheitaFim]);
+  }, [tipo, operacao, colaboradorId, colheitaInicio, colheitaFim, periodo?.inicio, periodo?.fim]);
 
   const pctNum = Math.max(0, Math.min(100, Number(percentual.replace(",", ".")) || 0));
   const ctesElegiveis = ctes.filter((c) => !c.jaComissionado);
@@ -181,18 +184,19 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
       return;
     }
     const ok = await confirm({
-      title: "Gerar comissões",
+      title: onAdicionar ? "Adicionar comissões à movimentação" : "Gerar comissões",
       description: `Serão geradas ${ctesSelecionados.length} comissão(ões) com percentual de ${pctNum}%.\n\nBase total: ${formatBRL(
         totalBase
       )}\nTotal de comissões: ${formatBRL(totalComissao)}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
-      confirmLabel: "Gerar",
+      confirmLabel: onAdicionar ? "Adicionar" : "Gerar",
     });
     if (!ok) return;
     setSalvando(true);
     try {
       let okCount = 0;
+      const criadas: Comissao[] = [];
       for (const cte of ctesSelecionados) {
-        await createComissao({
+        const criada = await createComissao({
           colaborador_id: colaboradorId,
           tipo: "motorista",
           origem: "cte",
@@ -203,12 +207,14 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
           data_referencia: cte.data_emissao || new Date().toISOString().slice(0, 10),
           observacoes: `CT-e ${cte.numero ?? "—"}/${cte.serie}`,
         });
+        criadas.push(criada);
         okCount++;
       }
-      toast.success(`${okCount} comissão(ões) gerada(s) — pendentes para folha`);
+      if (onAdicionar) await onAdicionar(criadas);
+      else toast.success(`${okCount} comissão(ões) gerada(s) — pendentes para folha`);
       // Recarrega lista (CT-es processados ficam marcados como já comissionados)
       const data = await fetchCtesElegiveisComissao(colaboradorId);
-      setCtes(data);
+      setCtes(periodo ? data.filter((c) => inAcertoPeriod(c.data_emissao, periodo)) : data);
       setSelecionados(new Set());
     } catch (err: any) {
       toast.error("Erro ao gerar comissões: " + err.message);
@@ -258,8 +264,9 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
     setSalvando(true);
     try {
       let okCount = 0;
+      const criadas: Comissao[] = [];
       for (const a of agregadosSel) {
-        await createComissao({
+        const criada = await createComissao({
           colaborador_id: colaboradorId,
           tipo: "motorista",
           origem: "colheita",
@@ -270,15 +277,17 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
           data_referencia: a.endDate || a.startDate,
           observacoes: `${a.farmName} · ${a.diasTrabalhados} dia(s) × ${formatBRL(a.valorDiaria)}`,
         });
+        criadas.push(criada);
         okCount++;
       }
-      toast.success(`${okCount} comissão(ões) de colheita gerada(s) — pendentes para folha`);
+      if (onAdicionar) await onAdicionar(criadas);
+      else toast.success(`${okCount} comissão(ões) de colheita gerada(s) — pendentes para folha`);
       const data = await fetchAgregadosColheitaPorMotorista(
         colaboradorId,
-        colheitaInicio || null,
-        colheitaFim || null
+        periodo?.inicio || colheitaInicio || null,
+        periodo?.fim || colheitaFim || null
       );
-      setAgregados(data);
+      setAgregados(periodo ? data.filter((a) => inAcertoPeriod(a.endDate || a.startDate, periodo)) : data);
       setAgregadosSelecionados(new Set());
     } catch (err: any) {
       toast.error("Erro ao gerar comissões: " + err.message);
@@ -290,14 +299,14 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
   return (
     <div className="space-y-4">
       <Tabs value={tab} onValueChange={(v) => setTab(v as "gerar" | "historico")}>
-        <TabsList>
+        {!onAdicionar && <TabsList>
           <TabsTrigger value="gerar" className="text-xs gap-1.5">
             <Plus className="h-3.5 w-3.5" /> Gerar
           </TabsTrigger>
           <TabsTrigger value="historico" className="text-xs gap-1.5">
             <History className="h-3.5 w-3.5" /> Histórico
           </TabsTrigger>
-        </TabsList>
+        </TabsList>}
 
         <TabsContent value="historico" className="mt-4">
           <HistoricoComissoesTab colaboradores={colaboradores} />
@@ -433,7 +442,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-[520px] overflow-auto pr-1">
-                {ctes.map((c) => {
+                {(onAdicionar ? ctesElegiveis : ctes).map((c) => {
                   const checked = selecionados.has(c.id);
                   const comissaoCalc = calcularComissao(c.valor_frete, pctNum);
                   const isDone = c.jaComissionado;
@@ -475,7 +484,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
                           </p>
                           {c.data_emissao && (
                             <p className="text-[10px] text-muted-foreground">
-                              {new Date(c.data_emissao).toLocaleDateString("pt-BR")}
+                              {formatDateBR(c.data_emissao)}
                             </p>
                           )}
                           <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
@@ -523,7 +532,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
                   ) : (
                     <Save className="h-3.5 w-3.5" />
                   )}
-                  Gerar comissões
+                  {onAdicionar ? "Adicionar à movimentação" : "Gerar comissões"}
                 </Button>
               </div>
             )}
@@ -534,7 +543,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
         {tipo === "motorista" && operacao === "colheita" && colaboradorId && (
           <>
             {/* Filtros de período (sem percentual — comissão = valor da diária) */}
-            <div className="grid grid-cols-1 sm:grid-cols-[2fr_2fr] gap-3 items-end max-w-4xl">
+            {!periodo && <div className="grid grid-cols-1 sm:grid-cols-[2fr_2fr] gap-3 items-end max-w-4xl">
               <div className="space-y-1.5">
                 <Label className="text-xs">Período</Label>
                 <PeriodFilter
@@ -548,7 +557,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
                 <span className="font-medium"> dias × diária</span>. A comissão é o próprio valor
                 apurado — não se aplica percentual.
               </p>
-            </div>
+            </div>}
 
             {/* Lista de colheitas */}
             <div className="space-y-2">
@@ -608,9 +617,9 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
                             </div>
                             <p className="text-[10px] text-muted-foreground truncate">
                               {a.vehiclePlate ? `${a.vehiclePlate} · ` : ""}
-                              {new Date(a.startDate).toLocaleDateString("pt-BR")}
+                              {formatDateBR(a.startDate)}
                               {a.endDate
-                                ? ` → ${new Date(a.endDate).toLocaleDateString("pt-BR")}`
+                                ? ` → ${formatDateBR(a.endDate)}`
                                 : " → atual"}
                             </p>
                             <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
@@ -662,7 +671,7 @@ export function ComissoesTab({ colaboradores, periodo }: ComissoesTabProps & { p
                     ) : (
                       <Save className="h-3.5 w-3.5" />
                     )}
-                    Gerar comissões
+                    {onAdicionar ? "Adicionar à movimentação" : "Gerar comissões"}
                   </Button>
                 </div>
               )}

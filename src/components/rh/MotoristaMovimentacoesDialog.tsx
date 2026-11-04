@@ -20,6 +20,7 @@ import {
   type Expense,
   type MovMotorista,
   type MovNatureza,
+  type Comissao,
 } from "@/services/rh";
 
 const formatBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -90,6 +91,19 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
     } catch (e: any) {
       toast.error("Erro ao adicionar: " + e.message);
     }
+  };
+
+  const adicionarComissoes = async (comissoes: Comissao[]) => {
+    if (!colaborador || bloqueado) return;
+    await adicionarAoAcerto(colaborador.id, periodo, comissoes.map((c) => ({
+      id: `c-${c.id}`, origemId: c.id, origemTipo: "comissao" as const,
+      natureza: "comissao" as const, data: c.data_referencia,
+      descricao: c.observacoes || "Comissão de viagem", entrada: Number(c.valor_calculado),
+      saida: 0, removivel: true,
+    })));
+    toast.success("Comissões adicionadas à movimentação");
+    setLancar(null);
+    await load();
   };
 
   const excluir = async () => {
@@ -183,7 +197,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
             <DialogDescription>{colaborador?.full_name} · {labelQuinzena(periodo)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-xs">
-            <div className="border rounded-md divide-y max-h-[50vh] overflow-y-auto">
+            {(lancar !== "comissao" || dispLancar.length > 0) && <div className="border rounded-md divide-y max-h-[50vh] overflow-y-auto">
               {dispLancar.length === 0 && (
                 <div className="p-3 text-center text-muted-foreground">Nenhum lançamento disponível nesta quinzena.</div>
               )}
@@ -195,7 +209,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                   <span className={`font-mono ${r.entrada ? "text-success" : "text-destructive"}`}>{formatBRL(r.entrada || r.saida)}</span>
                 </label>
               ))}
-            </div>
+            </div>}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2">
                 {dispLancar.length > 0 && (
@@ -203,13 +217,13 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                     {pick.size === dispLancar.length ? "Desmarcar todos" : "Marcar todos"}
                   </Button>
                 )}
-                {(lancar === "comissao" || lancar === "desconto") && (
+                {lancar === "desconto" && (
                   <Button variant="outline" onClick={() => { if (criarNovo) load(); setCriarNovo((v) => !v); }}>
-                    {lancar === "comissao" ? "Calcular comissões de CT-es" : "Lançar novo desconto"}
+                    Lançar novo desconto
                   </Button>
                 )}
               </div>
-              <Button disabled={!pick.size} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>
+              {(lancar !== "comissao" || dispLancar.length > 0) && <Button disabled={!pick.size} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>}
             </div>
             {(lancar === "reembolso" || lancar === "vale") && (
               <p className="text-muted-foreground">
@@ -218,7 +232,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                   : "Vales e adiantamentos nascem no Contas a Pagar, no plano de adiantamento, com este motorista como favorecido."}
               </p>
             )}
-            {criarNovo && lancar === "comissao" && <div className="border-t pt-2"><ComissoesTab colaboradores={lista} periodo={periodo} /></div>}
+            {lancar === "comissao" && <ComissoesTab colaboradores={lista} periodo={periodo} onAdicionar={adicionarComissoes} />}
             {criarNovo && lancar === "desconto" && <div className="border-t pt-2"><DescontosTab colaboradores={lista} /></div>}
           </div>
         </DialogContent>
