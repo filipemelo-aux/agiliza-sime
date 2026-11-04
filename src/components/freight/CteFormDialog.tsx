@@ -47,7 +47,7 @@ import { maskCNPJ, unmaskCNPJ, maskDocument, maskCurrency, unmaskCurrency, maskN
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
-import { lookupDriverByPlate, lookupVehicleByDriver, eixosPorTipo, resolveProfileId } from "@/lib/vehicleDriverLookup";
+import { lookupDriverByPlate, eixosPorTipo, resolveProfileId } from "@/lib/vehicleDriverLookup";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
