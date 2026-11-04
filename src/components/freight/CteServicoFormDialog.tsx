@@ -676,20 +676,15 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
                 categories={["motorista"]}
                 placeholder="Buscar motorista..."
                 selectedName={form.motorista_nome}
-                onSelect={async (p) => {
+                onSelect={(p) =>
                   setForm((f) => ({
                     ...f,
                     motorista_id: p.id,
                     motorista_nome: p.full_name,
-                  }));
-                  // Auto-preenche placa do veículo vinculado ao motorista
-                  try {
-                    const v = await lookupVehicleByDriver(p.user_id, p.id);
-                    if (v) setForm((f) => ({ ...f, placa_veiculo: maskPlate(v.plate) }));
-                  } catch {}
-                }}
+                  }))
+                }
                 onClear={() =>
-                  setForm((f) => ({ ...f, motorista_id: null, motorista_nome: "", placa_veiculo: "" }))
+                  setForm((f) => ({ ...f, motorista_id: null, motorista_nome: "" }))
                 }
               />
               <div>

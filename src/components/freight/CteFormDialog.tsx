@@ -2269,21 +2269,16 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml, cl
             title="6. Motorista e Veículo"
             summary={form.placa_veiculo ? [motoristaNome, [form.placa_veiculo, form.reboque1_placa, form.reboque2_placa].filter(Boolean).join(" + ")].filter(Boolean).join(" · ") : "veículo não definido"}
           >
-            <SubBlock title="Motorista e veículo" hint="O motorista preenche a placa e o proprietário; a placa preenche motorista e proprietário.">
+            <SubBlock title="Motorista e veículo" hint="A placa preenche motorista, conjunto e proprietário. Depois é só trocar o motorista se for outro — a placa não muda.">
               <div className="space-y-1">
                 <Label className="text-[10px]">Buscar motorista</Label>
                 <PersonSearchInput
                   categories={["motorista"]}
                   placeholder="Buscar motorista cadastrado..."
                   selectedName={motoristaNome}
-                  onSelect={async (person) => {
+                  onSelect={(person) => {
                     set("motorista_id", person.id);
                     setMotoristaNome(person.full_name);
-                    // Auto-fill vehicle if driver is linked to one
-                    try {
-                      const v = await lookupVehicleByDriver(person.user_id, person.id);
-                      if (v) applyVehicle(v);
-                    } catch {}
                   }}
                   onClear={() => {
                     set("motorista_id", null);
