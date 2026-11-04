@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -11,9 +13,9 @@ import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import {
-  deleteComissao,
-  deleteDescontoFolha,
-  loadMovimentosMotorista,
+  adicionarAoAcerto,
+  loadMovimentosEDisponiveis,
+  removerDoAcerto,
   type ColaboradorRH,
   type Expense,
   type MovMotorista,
@@ -47,12 +49,17 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const [lancar, setLancar] = useState<Lancar>(null);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
+  const [disp, setDisp] = useState<Mov[]>([]);
+  const [pick, setPick] = useState<Set<string>>(new Set());
+  const [criarNovo, setCriarNovo] = useState(false);
+
   const load = useCallback(async () => {
     if (!colaborador) return;
     setLoading(true);
     try {
-      const list = await loadMovimentosMotorista(colaborador.id, periodo, adiantExpenses);
-      setRows(list);
+      const r = await loadMovimentosEDisponiveis(colaborador.id, periodo, adiantExpenses);
+      setRows(r.incluidas);
+      setDisp(r.disponiveis);
     } catch (e: any) {
       toast.error("Erro ao carregar movimentações: " + e.message);
     } finally {
@@ -67,41 +74,45 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const saldo = totalEntrada - totalSaida;
   const sel = rows.filter((r) => selected.has(r.id));
   const lista = useMemo(() => (colaborador ? [colaborador] : []), [colaborador]);
-  const reembolsosPend = rows.filter((r) => r.natureza === "reembolso");
-  const valesCP = rows.filter((r) => r.natureza === "vale" && r.id.startsWith("v-"));
+  const dispLancar = lancar ? disp.filter((d) => d.natureza === lancar) : [];
+
+  const abrir = (l: Exclude<Lancar, null>) => { setPick(new Set()); setCriarNovo(false); setLancar(l); };
+
+  const adicionar = async () => {
+    if (!colaborador) return;
+    const itens = dispLancar.filter((d) => pick.has(d.id));
+    if (!itens.length) return;
+    try {
+      await adicionarAoAcerto(colaborador.id, periodo, itens);
+      toast.success(itens.length === 1 ? "Adicionado à movimentação" : `${itens.length} lançamentos adicionados`);
+      setLancar(null);
+      load();
+    } catch (e: any) {
+      toast.error("Erro ao adicionar: " + e.message);
+    }
+  };
 
   const excluir = async () => {
-    if (!sel.length || bloqueado) return;
-    const bloqueadas = sel.filter((r) => !r.removivel);
-    if (bloqueadas.length) {
-      toast.error(bloqueadas.some((r) => r.natureza === "reembolso" || (r.natureza === "vale" && r.id.startsWith("v-")))
-        ? "Reembolsos e vales do Contas a Pagar não são excluídos aqui. Para alterar, edite a despesa lá. Desmarque-os e tente de novo."
-        : "Há comissão já enviada para a folha na seleção; ela não pode ser excluída aqui.");
-      return;
-    }
-    const total = sel.reduce((s, r) => s + r.entrada + r.saida, 0);
-    const ok = await confirm({ title: "Excluir movimentações", description: sel.length === 1 ? `Excluir ${NAT_LABEL[sel[0].natureza].toLowerCase()} de ${formatBRL(total)}?` : `Excluir ${sel.length} movimentações (${formatBRL(total)})?`, confirmLabel: "Excluir" } as any);
+    if (!sel.length || bloqueado || !colaborador) return;
+    const ok = await confirm({ title: "Remover da movimentação", description: `Remover ${sel.length === 1 ? "este lançamento" : `${sel.length} lançamentos`} do acerto da quinzena? O lançamento original (Contas a Pagar, comissão ou desconto) não é apagado e volta a ficar disponível.`, confirmLabel: "Remover" } as any);
     if (!ok) return;
     try {
-      for (const r of sel) {
-        if (r.natureza === "comissao") await deleteComissao(r.origemId);
-        else await deleteDescontoFolha(r.origemId);
-      }
-      toast.success(sel.length === 1 ? "Movimentação excluída" : `${sel.length} movimentações excluídas`);
+      await removerDoAcerto(colaborador.id, periodo, sel);
+      toast.success("Removido da movimentação");
       setSelected(new Set());
       load();
     } catch (e: any) {
-      toast.error("Erro ao excluir: " + e.message);
+      toast.error("Erro ao remover: " + e.message);
       load();
     }
   };
 
   const actions: ToolbarAction[] = [
-    { key: "in-com", label: "Entrada: Comissão", icon: Percent, mode: "create", variant: "default", disabled: bloqueado, onClick: () => setLancar("comissao") },
-    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "create", disabled: bloqueado, onClick: () => setLancar("reembolso") },
-    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "create", disabled: bloqueado, onClick: () => setLancar("vale") },
-    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "create", disabled: bloqueado, onClick: () => setLancar("desconto") },
-    { key: "del", label: "Excluir", icon: Trash2, mode: "batch", variant: "destructive", disabled: bloqueado, onClick: excluir },
+    { key: "in-com", label: "Entrada: Comissão", icon: Percent, mode: "create", variant: "default", disabled: bloqueado, onClick: () => abrir("comissao") },
+    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "create", disabled: bloqueado, onClick: () => abrir("reembolso") },
+    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "create", disabled: bloqueado, onClick: () => abrir("vale") },
+    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "create", disabled: bloqueado, onClick: () => abrir("desconto") },
+    { key: "del", label: "Remover", icon: Trash2, mode: "batch", variant: "destructive", disabled: bloqueado, onClick: excluir },
   ];
 
   const columns: DataGridColumn<Mov>[] = [
@@ -151,7 +162,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
               loading={loading}
               minWidth={760}
               rowClassName={(r) => rowToneClass(r.entrada > 0 ? "resolved" : "pending")}
-              emptyMessage="Nenhuma movimentação nesta quinzena. Use os botões de entrada e saída acima."
+              emptyMessage="Movimentação em branco. Use os botões de entrada e saída para adicionar lançamentos."
               footer={
                 <div className="flex flex-wrap items-center justify-end gap-4 text-xs">
                   <span>Entradas: <span className="font-mono font-semibold text-success">{formatBRL(totalEntrada)}</span></span>
@@ -165,35 +176,51 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!lancar} onOpenChange={(o) => { if (!o) { setLancar(null); load(); } }}>
+      <Dialog open={!!lancar} onOpenChange={(o) => { if (!o) { setLancar(null); load(); } else load(); }}>
         <DialogContent className="max-w-5xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>{lancar ? lancarTitle[lancar] : ""}</DialogTitle>
             <DialogDescription>{colaborador?.full_name} · {labelQuinzena(periodo)}</DialogDescription>
           </DialogHeader>
-          {lancar === "comissao" && <ComissoesTab colaboradores={lista} periodo={periodo} />}
-          {lancar === "desconto" && <DescontosTab colaboradores={lista} />}
-          {(lancar === "reembolso" || lancar === "vale") && (
-            <div className="space-y-2 text-xs">
+          <div className="space-y-2 text-xs">
+            <div className="border rounded-md divide-y max-h-[50vh] overflow-y-auto">
+              {dispLancar.length === 0 && (
+                <div className="p-3 text-center text-muted-foreground">Nenhum lançamento disponível nesta quinzena.</div>
+              )}
+              {dispLancar.map((r) => (
+                <label key={r.id} className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/50">
+                  <Checkbox checked={pick.has(r.id)} onCheckedChange={(v) => setPick((prev) => { const n = new Set(prev); v ? n.add(r.id) : n.delete(r.id); return n; })} />
+                  <span className="w-20">{formatDate(r.data)}</span>
+                  <span className="flex-1 truncate" title={r.descricao}>{r.descricao}</span>
+                  <span className={`font-mono ${r.entrada ? "text-success" : "text-destructive"}`}>{formatBRL(r.entrada || r.saida)}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex gap-2">
+                {dispLancar.length > 0 && (
+                  <Button variant="outline" onClick={() => setPick(pick.size === dispLancar.length ? new Set() : new Set(dispLancar.map((d) => d.id)))}>
+                    {pick.size === dispLancar.length ? "Desmarcar todos" : "Marcar todos"}
+                  </Button>
+                )}
+                {(lancar === "comissao" || lancar === "desconto") && (
+                  <Button variant="outline" onClick={() => setCriarNovo((v) => !v)}>
+                    {lancar === "comissao" ? "Calcular comissões de CT-es" : "Lançar novo desconto"}
+                  </Button>
+                )}
+              </div>
+              <Button disabled={!pick.size} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>
+            </div>
+            {(lancar === "reembolso" || lancar === "vale") && (
               <p className="text-muted-foreground">
                 {lancar === "reembolso"
-                  ? "Reembolsos nascem no Contas a Pagar: ao lançar a despesa, marque “Pago pelo colaborador (Reembolso)” e escolha este motorista. Eles entram aqui como crédito e são quitados junto com o pagamento da folha."
-                  : "Vales e adiantamentos são uma saída real de caixa e nascem no Contas a Pagar, no plano de adiantamento, com este motorista como favorecido. Eles entram aqui como débito."}
+                  ? "Reembolsos nascem no Contas a Pagar com “Pago pelo colaborador (Reembolso)” marcado para este motorista."
+                  : "Vales e adiantamentos nascem no Contas a Pagar, no plano de adiantamento, com este motorista como favorecido."}
               </p>
-              <div className="border rounded-md divide-y">
-                {(lancar === "reembolso" ? reembolsosPend : valesCP).length === 0 && (
-                  <div className="p-3 text-center text-muted-foreground">Nenhum lançamento nesta quinzena.</div>
-                )}
-                {(lancar === "reembolso" ? reembolsosPend : valesCP).map((r) => (
-                  <div key={r.id} className="flex items-center gap-3 p-2">
-                    <span className="w-20">{formatDate(r.data)}</span>
-                    <span className="flex-1 truncate">{r.descricao}</span>
-                    <span className={`font-mono ${r.entrada ? "text-success" : "text-destructive"}`}>{formatBRL(r.entrada || r.saida)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+            {criarNovo && lancar === "comissao" && <div className="border-t pt-2"><ComissoesTab colaboradores={lista} periodo={periodo} /></div>}
+            {criarNovo && lancar === "desconto" && <div className="border-t pt-2"><DescontosTab colaboradores={lista} /></div>}
+          </div>
         </DialogContent>
       </Dialog>
       {ConfirmDialog}
