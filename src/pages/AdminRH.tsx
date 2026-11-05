@@ -505,7 +505,6 @@ function RHWorkspace(props: any) {
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
   ] : [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
-    { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedPeople[0] && setHistoryFor(selectedPeople[0]) },
   ];
 
   const allItems: NavItem[] = [
