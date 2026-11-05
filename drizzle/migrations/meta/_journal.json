@@ -176,6 +176,13 @@
       "when": 1793883236493,
       "tag": "0024_competencia_follow_emissao_restore",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793905034535,
+      "tag": "0025_driver_advance_fortnight_installments",
+      "breakpoints": true
     }
   ]
 }
