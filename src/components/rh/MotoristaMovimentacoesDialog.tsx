@@ -191,24 +191,21 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   return (
     <>
-      <Dialog open={!!colaborador && !initialLancar} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={!!colaborador} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-6xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>Movimentações — {colaborador?.full_name}</DialogTitle>
-            <DialogDescription>
-              {periodoLabel}
-              {!isMotorista && colaborador?.salario != null && ` · Salário base ${formatBRL(Number(colaborador.salario))} (entra automaticamente na folha)`}
-            </DialogDescription>
+            <DialogDescription>{periodoLabel}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {bloqueado && (
               <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
-                Acerto desta quinzena já gerado e enviado para a Folha de Pagamento. Para alterar, use “Editar acerto” na lista de motoristas.
+                Acerto {isMotorista ? "desta quinzena" : "deste mês"} já gerado e enviado para a Folha de Pagamento. Para alterar, use “Liberar acerto” na lista.
               </div>
             )}
             <GlobalToolbar actions={actions} selectedCount={selected.size} />
             <DataGrid
-              rows={rows}
+              rows={rowsExibidas}
               columns={columns}
               rowId={(r) => r.id}
               selected={selected}
