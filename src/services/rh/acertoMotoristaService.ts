@@ -43,7 +43,10 @@ async function carregarFontes(colabId: string, p: PeriodoAcerto, adiantExpenses:
     fetchDescontosPendentesNoPeriodo([colabId], p.inicio, p.fim),
     fetchReembolsosPendentesNoPeriodo([colabId], p.inicio, p.fim),
   ]);
-  const vales = adiantExpenses.filter((e: any) => e.favorecido_id === colabId && inPeriod(e.data_pagamento || e.data_emissao, p));
+  const reembIds = new Set(reembolsos.map((e) => e.id));
+  // Despesa marcada como reembolso nunca é vale (evita contar o mesmo valor como entrada e saída).
+  const vales = adiantExpenses.filter((e: any) => e.favorecido_id === colabId && !reembIds.has(e.id) && !e.reembolso_colaborador_id && !e.is_reembolso
+    && inPeriod(e.data_pagamento || e.data_emissao, p));
   return { comissoes, descontos, reembolsos, vales };
 }
 
@@ -79,7 +82,7 @@ async function fetchVinculos(origemIds: string[]): Promise<Vinculo[]> {
   const out: Vinculo[] = [];
   for (let i = 0; i < origemIds.length; i += 200) {
     const { data, error } = await (supabase.from("acerto_movimentos" as any) as any)
-      .select("colaborador_id, periodo_inicio, origem_tipo, origem_id").in("origem_id", origemIds.slice(i, i + 200));
+      .select("colaborador_id, periodo_inicio, natureza, origem_tipo, origem_id").in("origem_id", origemIds.slice(i, i + 200));
     if (error) throw error;
     out.push(...(data || []));
   }
@@ -90,10 +93,18 @@ async function fetchVinculos(origemIds: string[]): Promise<Vinculo[]> {
 export async function loadMovimentosEDisponiveis(colabId: string, p: PeriodoAcerto, adiantExpenses: Expense[]) {
   const todas = toMovs(await carregarFontes(colabId, p, adiantExpenses));
   const vinc = await fetchVinculos(todas.map((m) => m.origemId));
-  const meus = new Set(vinc.filter((v) => v.colaborador_id === colabId && v.periodo_inicio === p.inicio).map((v) => vkey(v.origem_tipo, v.origem_id)));
+  const meusV = vinc.filter((v) => v.colaborador_id === colabId && v.periodo_inicio === p.inicio) as (Vinculo & { natureza?: string })[];
+  const meus = new Set(meusV.map((v) => vkey(v.origem_tipo, v.origem_id)));
+  const natMeus = new Map(meusV.map((v) => [vkey(v.origem_tipo, v.origem_id), v.natureza]));
   const usados = new Set(vinc.map((v) => vkey(v.origem_tipo, v.origem_id)));
   return {
-    incluidas: todas.filter((m) => meus.has(vkey(m.origemTipo, m.origemId))),
+    incluidas: todas.filter((m) => {
+      const k = vkey(m.origemTipo, m.origemId);
+      if (!meus.has(k)) return false;
+      const n = natMeus.get(k);
+      // vínculo guarda a natureza adicionada: reembolso não reaparece como vale
+      return !n || m.origemTipo !== "expense" || n === m.natureza;
+    }),
     disponiveis: todas.filter((m) => !usados.has(vkey(m.origemTipo, m.origemId))),
   };
 }
@@ -162,13 +173,14 @@ export async function gerarAcertoMotorista(input: {
   const f: Fontes = {
     comissoes: f0.comissoes.filter((c) => inc.has(vkey("comissao", c.id))),
     reembolsos: f0.reembolsos.filter((e) => inc.has(vkey("expense", e.id))),
-    vales: f0.vales.filter((e: any) => inc.has(vkey("expense", e.id))),
+    vales: f0.vales.filter((e: any) => incluidas.some((m) => m.natureza === "vale" && m.origemTipo === "expense" && m.origemId === e.id)),
     descontos: f0.descontos.filter((d) => inc.has(vkey("desconto", d.id))),
   };
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
   const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena");
   const [row] = computePayrollRowsFromPeriodo({
-    colaboradores: [{ ...colaborador, ativo: true }], periodo: pf,
+    // Acerto do motorista = só as movimentações; o salário do cadastro não entra.
+    colaboradores: [{ ...colaborador, ativo: true, salario: 0 }], periodo: pf,
     adiantamentos: f.vales, comissoes, descontos: f.descontos, reembolsos: f.reembolsos,
   });
   if (!row) throw new Error("Nenhuma movimentação para gerar o acerto nesta quinzena.");
