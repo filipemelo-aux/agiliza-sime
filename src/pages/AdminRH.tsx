@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -362,6 +362,9 @@ function RHWorkspace(props: any) {
     : [];
   const [reembByColab, setReembByColab] = useState<Map<string, number>>(new Map());
   const [movFor, setMovFor] = useState<ColaboradorRH | null>(null);
+  const [movLancar, setMovLancar] = useState<null | "comissao" | "reembolso" | "vale" | "desconto">(null);
+  const abrirMov = (lancar: typeof movLancar = null) => { const c = selectedPeople[0]; if (!c) return; setMovLancar(lancar); setMovFor(c); };
+  const fecharMov = () => { setMovFor(null); setMovLancar(null); reload(); };
   const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
   useEffect(() => {
     if (!isPeople || !colaboradores.length) return;
@@ -503,7 +506,10 @@ function RHWorkspace(props: any) {
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
   ] : [
-    { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
+    { key: "mov", label: "Movimentações", icon: HandCoins, mode: "single", onClick: () => abrirMov(null) },
+    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "single", onClick: () => abrirMov("reembolso") },
+    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "single", onClick: () => abrirMov("vale") },
+    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "single", variant: "default", onClick: () => abrirMov("desconto") },
   ];
 
   const allItems: NavItem[] = [
@@ -617,7 +623,8 @@ function RHWorkspace(props: any) {
               perfil="administrativo"
               adiantExpenses={adiantExpenses}
               periodo={adminPeriod}
-              onClose={() => { setMovFor(null); reload(); }}
+              initialLancar={movLancar}
+              onClose={fecharMov}
             />
             )}
           </div>

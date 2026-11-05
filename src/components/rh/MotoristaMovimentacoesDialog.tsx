@@ -43,17 +43,22 @@ interface Props {
   perfil?: "motorista" | "administrativo";
   /** acerto gerado: movimentações somente leitura */
   bloqueado?: boolean;
+  /** abre direto no seletor de lançamento (usado pela toolbar da página) */
+  initialLancar?: Lancar;
   onClose: () => void;
 }
 
 /** Extrato de entradas (créditos) e saídas (débitos) do colaborador no período escolhido na grade. */
-export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, onClose }: Props) {
+export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, initialLancar = null, onClose }: Props) {
   const isMotorista = perfil === "motorista";
   const periodoLabel = isMotorista ? labelQuinzena(periodo) : `Mês de referência: ${formatAcertoPeriod(periodo)}`;
   const [rows, setRows] = useState<Mov[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [lancar, setLancar] = useState<Lancar>(null);
+  const [lancar, setLancar] = useState<Lancar>(initialLancar);
+  useEffect(() => { setLancar(initialLancar); }, [colaborador?.id, initialLancar]);
+  // Aberto pela toolbar da página: fechar o seletor encerra a janela toda
+  const fecharLancar = () => { if (initialLancar) onClose(); else setLancar(null); };
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [disp, setDisp] = useState<Mov[]>([]);
@@ -96,7 +101,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
       for (const m of parcelados) await parcelarValeAoAcerto(colaborador.id, periodo, m.origemId, parcelas[m.id]);
       await adicionarAoAcerto(colaborador.id, periodo, itens.filter((m) => !parcelados.includes(m)));
       toast.success(itens.length === 1 ? "Adicionado à movimentação" : `${itens.length} lançamentos adicionados`);
-      setLancar(null);
+      fecharLancar();
       load();
     } catch (e: any) {
       toast.error("Erro ao adicionar: " + e.message);
@@ -114,7 +119,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
       saida: 0, removivel: true,
     })));
     toast.success("Comissões adicionadas à movimentação");
-    setLancar(null);
+    fecharLancar();
     await load();
   };
 
@@ -122,7 +127,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
     if (!colaborador || bloqueado) return;
     await adicionarAoAcerto(colaborador.id, periodo, movimentos);
     toast.success("Descontos adicionados à movimentação");
-    setLancar(null);
+    fecharLancar();
     await load();
   };
 
@@ -174,7 +179,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   return (
     <>
-      <Dialog open={!!colaborador} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={!!colaborador && !initialLancar} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-6xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>Movimentações — {colaborador?.full_name}</DialogTitle>
@@ -214,7 +219,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!lancar} onOpenChange={(o) => { if (!o) { setLancar(null); load(); } else load(); }}>
+      <Dialog open={!!lancar && !!colaborador} onOpenChange={(o) => { if (!o) { fecharLancar(); load(); } else load(); }}>
         <DialogContent className="max-w-5xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>{lancar ? lancarTitle[lancar] : ""}</DialogTitle>
