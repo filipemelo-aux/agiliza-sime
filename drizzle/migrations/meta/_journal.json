@@ -155,6 +155,13 @@
       "when": 1793830500879,
       "tag": "0021_acerto_movimentos",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793882712284,
+      "tag": "0022_competencia_follows_emissao",
+      "breakpoints": true
     }
   ]
 }
