@@ -31,7 +31,10 @@ const formatDate = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7
 type Natureza = MovNatureza;
 type Mov = MovMotorista;
 
-const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
+
+/** Linha sintética do salário base (administrativo): sempre listada, nunca removível nem gravada no acerto. */
+const SALARIO_ROW_ID = "salario-base";
 
 type Lancar = null | "comissao" | "reembolso" | "vale" | "desconto";
 
@@ -43,22 +46,18 @@ interface Props {
   perfil?: "motorista" | "administrativo";
   /** acerto gerado: movimentações somente leitura */
   bloqueado?: boolean;
-  /** abre direto no seletor de lançamento (usado pela toolbar da página) */
-  initialLancar?: Lancar;
   onClose: () => void;
 }
 
 /** Extrato de entradas (créditos) e saídas (débitos) do colaborador no período escolhido na grade. */
-export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, initialLancar = null, onClose }: Props) {
+export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, onClose }: Props) {
   const isMotorista = perfil === "motorista";
   const periodoLabel = isMotorista ? labelQuinzena(periodo) : `Mês de referência: ${formatAcertoPeriod(periodo)}`;
   const [rows, setRows] = useState<Mov[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [lancar, setLancar] = useState<Lancar>(initialLancar);
-  useEffect(() => { setLancar(initialLancar); }, [colaborador?.id, initialLancar]);
-  // Aberto pela toolbar da página: fechar o seletor encerra a janela toda
-  const fecharLancar = () => { if (initialLancar) onClose(); else setLancar(null); };
+  const [lancar, setLancar] = useState<Lancar>(null);
+  const fecharLancar = () => setLancar(null);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [disp, setDisp] = useState<Mov[]>([]);
