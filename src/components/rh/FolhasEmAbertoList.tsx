@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -186,7 +187,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           funcao: p.cargo || null, departamento: p.departamento || null, admissao: p.data_admissao || null, regime: "clt",
         };
       });
-      imprimirRecibosPagamento({
+      await imprimirRecibosPagamento({
         mes_referencia: primeiraFolha.mes_referencia, data_inicio: primeiraFolha.data_inicio,
         data_fim: primeiraFolha.data_fim, data_vencimento: primeiraFolha.data_vencimento,
         total_base: recibos.reduce((s, i) => s + i.salario_base, 0),
@@ -194,7 +195,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
         total_adiantamentos: recibos.reduce((s, i) => s + i.adiantamentos, 0),
         total_descontos: recibos.reduce((s, i) => s + i.descontos, 0),
         total_liquido: recibos.reduce((s, i) => s + i.liquido, 0),
-      }, recibos);
+      }, recibos, { downloadDireto: true });
     } catch (e: any) {
       toast.error("Falha ao gerar recibos: " + e.message);
     } finally {
@@ -404,6 +405,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   return (
     <>
+      <ProcessingOverlay open={acting === "acerto-pdf" || acting === "recibos"} label={acting === "recibos" ? "Gerando folha de pagamento para download..." : "Gerando fechamento do motorista para download..."} />
       <div className="space-y-3">
         <GlobalToolbar actions={actions} selectedCount={selecionados.size} />
         <DataGrid
@@ -561,8 +563,9 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
     try { await baixarAcertoPdfLinha(alvo, movs); } catch (e: any) { toast.error("Falha ao gerar o PDF: " + e.message); } finally { setBaixando(false); }
   };
   return (
-    <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!alvo} onOpenChange={(o) => !o && !baixando && onClose()}>
       <DialogContent className="max-w-5xl">
+        <ProcessingOverlay open={baixando} label="Gerando fechamento do motorista para download..." />
         <DialogHeader>
           <DialogTitle>Fechamento — {alvo?.item.colaborador_nome}</DialogTitle>
           <DialogDescription>Período {fmtData(alvo?.folha.data_inicio)} a {fmtData(alvo?.folha.data_fim)}</DialogDescription>
