@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet, Sparkles, FileText, Truck } from "lucide-react";
+import { Loader2, Trash2, FileText, BadgeDollarSign, Eye, Printer } from "lucide-react";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -84,6 +84,7 @@ type PagamentoAlvo = { grupos: { folha: FolhaPagamento; itens: FolhaItem[] }[]; 
 export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged, colaboradores, adiantExpenses, onGerarFolha, gerarFolhaDisabled }: Props) {
   const tipoPorColab = useMemo(() => new Map(colaboradores.map((c) => [c.id, c.tipo])), [colaboradores]);
   const [fechamento, setFechamento] = useState<Linha | null>(null);
+  const [visualizarFolha, setVisualizarFolha] = useState<Linha | null>(null);
   const [folhas, setFolhas] = useState<FolhaPagamento[]>([]);
   const [situacoes, setSituacoes] = useState<Record<string, Situacao>>({});
   const [itemPago, setItemPago] = useState<Record<string, boolean>>({});
@@ -319,14 +320,17 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   const handleDeleteItem = async (folha: FolhaPagamento, item: FolhaItem) => {
     const ok = await confirm({
-      title: `Excluir folha de ${item.colaborador_nome}?`,
-      description: "Somente este colaborador será removido da folha. Os lançamentos vinculados voltarão a ficar disponíveis para uma nova geração.",
+      title: `Excluir ${tipoPorColab.get(item.colaborador_id) === "motorista" ? "acerto" : "folha"} de ${item.colaborador_nome}?`,
+      description: tipoPorColab.get(item.colaborador_id) === "motorista"
+        ? "O acerto sai da folha e volta a ficar editável na tela Motoristas. A conta gerada no Contas a Pagar, se houver, é removida."
+        : "O colaborador sai da folha e volta a ficar editável em Administrativo / Operacional. A conta gerada no Contas a Pagar, se houver, é removida.",
       confirmLabel: "Excluir",
       variant: "destructive",
     });
     if (!ok) return;
     setActing(item.id);
     try {
+      if (folha.status === "confirmada") await reabrirFolhaConfirmada(folha.id);
       await excluirItemFolhaEmAberto(folha.id, item.id);
       toast.success(`Folha de ${item.colaborador_nome} excluída.`);
       await load();
@@ -366,15 +370,13 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   };
 
   const actions: ToolbarAction[] = [
-    { key: "gerar-folha", label: "Gerar folha de pagamento", icon: Sparkles, mode: "always", variant: "default", onClick: onGerarFolha, disabled: gerarFolhaDisabled },
-    { key: "fechamento", label: "Ver fechamento", icon: FileText, mode: "single", onClick: () => one && setFechamento(one), disabled: !one?.motorista },
-    { key: "pagar-folha", label: "Efetuar pagamento da folha", icon: Wallet, mode: "batch", onClick: () => abrirPagamentoSelecionados(false), disabled: !folhaAccountId || !pagaveis(false) },
-    { key: "pagar-acerto", label: "Efetuar pagamento do acerto", icon: Truck, mode: "batch", onClick: () => abrirPagamentoSelecionados(true), disabled: !folhaAccountId || !pagaveis(true) },
-    { key: "editar", label: "Editar valores", icon: Pencil, mode: "single", onClick: () => one && abrirEdicao(one.folha, one.item), disabled: !one || one.folha.status !== "em_aberto" || one.motorista },
-    { key: "recibo", label: sel.length > 1 ? `Gerar recibos (${sel.length})` : "Gerar recibo", icon: Download, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" },
-    { key: "reabrir", label: "Reabrir folha", icon: RotateCcw, mode: "single", onClick: () => one && handleReopen(one.folha), disabled: !one || one.folha.status !== "confirmada" || one.sit !== "confirmada" },
-    { key: "excluir", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => one && handleDeleteItem(one.folha, one.item), disabled: !one || one.folha.status !== "em_aberto" },
-    { key: "recarregar", label: "Recarregar", icon: RefreshCw, mode: "always", onClick: load },
+    { key: "pagar", label: "Efetuar pagamento", icon: BadgeDollarSign, mode: "batch", className: "text-success", iconClassName: "text-success",
+      onClick: () => abrirPagamentoSelecionados(sel[0]?.motorista ?? false),
+      disabled: !folhaAccountId || !(pagaveis(true) || pagaveis(false)) },
+    { key: "visualizar", label: "Visualizar", icon: Eye, mode: "single", onClick: () => one && (one.motorista ? setFechamento(one) : setVisualizarFolha(one)), disabled: !one },
+    { key: "imprimir-acerto", label: "Imprimir acerto", icon: Printer, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" || sel.length === 0 || !sel.every((l) => l.motorista) },
+    { key: "imprimir-folha", label: "Imprimir folha de pagamento", icon: FileText, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" || sel.length === 0 || sel.some((l) => l.motorista) },
+    { key: "excluir", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => one && handleDeleteItem(one.folha, one.item), disabled: !one || one.pago || one.sit === "cancelada" },
   ];
 
   const money = (v: number, cls = "") => <span className={cn("tabular-nums", cls)}>{formatBRL(v)}</span>;
@@ -421,6 +423,34 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
       {/* Fechamento do motorista */}
       <FechamentoMotoristaDialog alvo={fechamento} onClose={() => setFechamento(null)} adiantExpenses={adiantExpenses} />
+
+      {/* Visualizar folha administrativa */}
+      <Dialog open={!!visualizarFolha} onOpenChange={(o) => !o && setVisualizarFolha(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Folha — {visualizarFolha?.item.colaborador_nome}</DialogTitle>
+            <DialogDescription>Período {fmtData(visualizarFolha?.folha.data_inicio)} a {fmtData(visualizarFolha?.folha.data_fim)} · Vencimento {fmtData(visualizarFolha?.folha.data_vencimento)}</DialogDescription>
+          </DialogHeader>
+          {visualizarFolha && (
+            <div className="space-y-1 text-sm">
+              {([
+                ["Salário base", Number(visualizarFolha.item.salario_base), false],
+                ["Comissões", Number(visualizarFolha.item.comissoes), false],
+                ["Reembolsos", Number(visualizarFolha.item.reembolsos || 0), false],
+                ["Adiantamentos / Vales", Number(visualizarFolha.item.adiantamentos), true],
+                ["Descontos", Number(visualizarFolha.item.descontos), true],
+              ] as const).map(([l, v, neg]) => (
+                <div key={l} className="flex justify-between border-b border-border py-1">
+                  <span>{l}</span><span className={cn("tabular-nums", neg && "text-destructive")}>{formatBRL(v)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between pt-2 font-semibold text-primary">
+                <span>Líquido</span><span className="tabular-nums">{formatBRL(Number(visualizarFolha.item.liquido))}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edição individual */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
