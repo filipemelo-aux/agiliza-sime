@@ -89,7 +89,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
           })} />
           <span className="min-w-0 flex-1 break-words">{d.descricao}</span><span className="shrink-0 font-mono text-destructive">{brl(d.valor)}</span>
         </label>)}
-        {!opcoes.length && <p className="p-3 text-xs text-muted-foreground">{calculo.motivoIsencao || "Nenhum desconto disponível nesta quinzena."}</p>}
+        {!opcoes.length && <p className="p-3 text-xs text-muted-foreground">{calculo.motivoIsencao || "Nenhum desconto disponível neste período."}</p>}
       </div>}
     <div className="flex flex-wrap items-center justify-end gap-3 text-xs">
       <span>Total selecionado: <strong>{brl(escolhidos.reduce((s, d) => s + d.valor, 0))}</strong></span>
