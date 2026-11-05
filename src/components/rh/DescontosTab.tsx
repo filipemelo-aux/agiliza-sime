@@ -26,12 +26,14 @@ import {
   createDescontosFolhaBatch,
   deleteDescontoFolha,
   fetchDescontosPendentesForMonth,
+  fetchDescontosPendentesNoPeriodo,
   calcularDescontosLegais,
   type ColaboradorRH,
   type DescontoFolha,
   type DescontoFolhaTipo,
   type DescontoLegalCalculado,
 } from "@/services/rh";
+import type { AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import { MonthPicker } from "@/components/MonthPicker";
 
 const formatBRL = (n: number) =>
@@ -72,6 +74,9 @@ type LinhaAuto = DescontoLegalCalculado & {
 
 interface DescontosTabProps {
   colaboradores: ColaboradorRH[];
+  periodo?: AcertoPeriod;
+  apenasFolha?: boolean;
+  onChanged?: () => void | Promise<void>;
 }
 
 const MESES_LONGOS = [
@@ -91,14 +96,14 @@ const competenciaDoPagamento = (payMonth: string) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
-export function DescontosTab({ colaboradores }: DescontosTabProps) {
+export function DescontosTab({ colaboradores, periodo, apenasFolha = false, onChanged }: DescontosTabProps) {
   // Mês em que a folha será PAGA (o usuário seleciona o pagamento)
   const [payMonth, setPayMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   // Mês trabalhado (competência) — é onde os descontos são gravados
-  const month = competenciaDoPagamento(payMonth);
+  const month = periodo?.month ?? competenciaDoPagamento(payMonth);
 
   const [items, setItems] = useState<DescontoFolha[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,7 +131,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
     setLoading(true);
     try {
       const ids = ativos.map((c) => c.id);
-      const data = await fetchDescontosPendentesForMonth(ids, month);
+      const data = periodo
+        ? await fetchDescontosPendentesNoPeriodo(ids, periodo.inicio, periodo.fim)
+        : await fetchDescontosPendentesForMonth(ids, month);
       setItems(data);
     } catch (e: any) {
       toast.error("Erro ao carregar descontos: " + e.message);
@@ -140,7 +147,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
     else setItems([]);
     setAuto(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month, ativos.length]);
+  }, [month, periodo?.inicio, periodo?.fim, ativos]);
 
   const handleAdd = async () => {
     if (!colabId) return toast.error("Selecione um colaborador");
@@ -244,7 +251,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
     const selecionadas = (auto || []).filter((l) => l.incluir);
     if (selecionadas.length === 0) return toast.error("Nenhum colaborador selecionado");
     const [y, m] = month.split("-").map(Number);
-    const dataRef = `${y}-${String(m).padStart(2, "0")}-01`;
+    const dataRef = periodo?.inicio ?? `${y}-${String(m).padStart(2, "0")}-01`;
 
     const rows: {
       colaborador_id: string;
@@ -281,7 +288,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
 
     const ok = await confirm({
       title: "Lançar descontos automáticos?",
-      description: `${rows.length} lançamento(s) serão criados para ${selecionadas.length} colaborador(es) na competência ${labelMes(month)} (mês trabalhado), para pagamento em ${labelMes(payMonth)}.`,
+      description: periodo
+        ? `${rows.length} desconto(s) de folha serão gerados para o motorista na quinzena selecionada.`
+        : `${rows.length} lançamento(s) serão criados para ${selecionadas.length} colaborador(es) na competência ${labelMes(month)} (mês trabalhado), para pagamento em ${labelMes(payMonth)}.`,
       confirmLabel: "Lançar",
     });
     if (!ok) return;
@@ -292,6 +301,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
       toast.success(`${rows.length} desconto(s) lançado(s)`);
       setAuto(null);
       await load();
+      await onChanged?.();
     } catch (e: any) {
       toast.error("Erro ao lançar: " + e.message);
     } finally {
@@ -311,20 +321,20 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
     );
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-4">
+    <div>
+      <div className="p-4 space-y-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <MinusCircle className="h-4 w-4 text-rose-600" />
             <h3 className="text-sm font-semibold">Descontos pendentes</h3>
           </div>
-          <div className="flex items-center gap-2">
+          {!periodo && <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Mês do pagamento</Label>
             <MonthPicker value={payMonth} onChange={setPayMonth} className="w-[160px]" />
             <Badge variant="outline" className="text-[11px] font-normal">
               competência: {labelMes(month)} (mês trabalhado)
             </Badge>
-          </div>
+          </div>}
 
         </div>
 
@@ -441,6 +451,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
                         <Input
                           className="h-7 text-xs text-right tabular-nums"
                           value={l.jaLancadoInss ? "—" : l.inssEdit}
+                          readOnly={apenasFolha}
                           disabled={!!l.motivoIsencao || l.jaLancadoInss}
                           onChange={(e) =>
                             patchLinha(l.colaborador_id, { inssEdit: e.target.value })
@@ -451,6 +462,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
                         <Input
                           className="h-7 text-xs text-right tabular-nums"
                           value={l.jaLancadoIrrf ? "—" : l.irrfEdit}
+                          readOnly={apenasFolha}
                           disabled={!!l.motivoIsencao || l.jaLancadoIrrf}
                           onChange={(e) =>
                             patchLinha(l.colaborador_id, { irrfEdit: e.target.value })
@@ -467,14 +479,14 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             </div>
           )}
 
-          <p className="text-[11px] text-muted-foreground">
+          {!apenasFolha && <p className="text-[11px] text-muted-foreground">
             Os valores são calculados pelas tabelas oficiais vigentes e ficam editáveis para casos
             com variação (afastamento, múltiplos vínculos, pensão alimentícia). Colaboradores PJ,
             freelancer ou sem salário cadastrado ficam de fora automaticamente.
-          </p>
+          </p>}
         </div>
 
-        <p className="text-[11px] text-muted-foreground">
+        {!apenasFolha && <><p className="text-[11px] text-muted-foreground">
           <b>Adiantamentos e vales não são lançados aqui.</b> Como representam saída real de caixa,
           devem ser registrados no <b>Contas a Pagar</b> com o plano de contas de adiantamento — o
           wizard da folha já os identifica e abate do líquido, com opção de parcelar o desconto.
@@ -520,9 +532,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
               Add
             </Button>
           </div>
-        </div>
+        </div></>}
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        {!apenasFolha && <><div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{items.length} desconto(s) pendente(s)</span>
           <span className="font-semibold text-foreground">Total: {formatBRL(total)}</span>
         </div>
@@ -574,9 +586,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
 
         <p className="text-[11px] text-muted-foreground">
           Descontos pendentes serão automaticamente abatidos do líquido na geração da folha do mês correspondente.
-        </p>
-      </CardContent>
+        </p></>}
+      </div>
       {ConfirmDialog}
-    </Card>
+    </div>
   );
 }
