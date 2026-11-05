@@ -478,7 +478,7 @@ function RHWorkspace(props: any) {
 
   const peopleActions: ToolbarAction[] = isMotoristas ? [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
-    { key: "gerar", label: "Gerar acerto", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
+    { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Editar acerto", icon: Pencil, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
   ] : [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
@@ -717,19 +717,6 @@ function RHWorkspace(props: any) {
 
         {section === "folha_pagamento" && (
           <div className="space-y-3">
-            <GlobalToolbar
-              actions={[{
-                key: "generate-payroll",
-                label: "Gerar folha de pagamento",
-                icon: Sparkles,
-                mode: "always",
-                variant: "default",
-                onClick: () => setWizardOpen(true),
-                disabled: !settings.folhaAccountId,
-              }]}
-              selectedCount={0}
-            />
-
             {matrizId && user?.id && (
               <FolhasEmAbertoList
                 month={month}
@@ -737,6 +724,10 @@ function RHWorkspace(props: any) {
                 userId={user.id}
                 folhaAccountId={settings.folhaAccountId}
                 onChanged={reload}
+                colaboradores={colaboradores}
+                adiantExpenses={adiantExpenses}
+                onGerarFolha={() => setWizardOpen(true)}
+                gerarFolhaDisabled={!settings.folhaAccountId}
               />
             )}
 
@@ -744,7 +735,7 @@ function RHWorkspace(props: any) {
               <GerarFolhaWizard
                 open={wizardOpen}
                 onClose={() => setWizardOpen(false)}
-                colaboradores={colaboradores}
+                colaboradores={colaboradores.filter((c: ColaboradorRH) => c.tipo !== "motorista")}
                 month={month}
                 folhaAccountId={settings.folhaAccountId}
                 adiantamentoAccountId={settings.adiantamentoAccountId}

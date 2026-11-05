@@ -19,7 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet } from "lucide-react";
+import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet, Sparkles, FileText, Truck } from "lucide-react";
+import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import { loadMovimentosEDisponiveis, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
+import type { ColaboradorRH, Expense } from "@/services/rh";
 import { toast } from "@/lib/notice";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -35,7 +40,6 @@ import {
 } from "@/services/rh";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { imprimirRecibosPagamento, type HoleriteItem } from "@/lib/folhaPagamentoPrint";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { getLocalDateISO } from "@/lib/date";
 
@@ -66,11 +70,20 @@ interface Props {
   userId: string;
   folhaAccountId?: string;
   onChanged: () => void;
+  colaboradores: ColaboradorRH[];
+  adiantExpenses: Expense[];
+  onGerarFolha: () => void;
+  gerarFolhaDisabled?: boolean;
 }
 
-type PagamentoAlvo = { folha: FolhaPagamento; itens: FolhaItem[]; label: string };
+type Linha = { folha: FolhaPagamento; item: FolhaItem; motorista: boolean; sit: Situacao; pago: boolean };
+const fmtData = (d?: string | null) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
-export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged }: Props) {
+type PagamentoAlvo = { grupos: { folha: FolhaPagamento; itens: FolhaItem[] }[]; label: string };
+
+export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged, colaboradores, adiantExpenses, onGerarFolha, gerarFolhaDisabled }: Props) {
+  const tipoPorColab = useMemo(() => new Map(colaboradores.map((c) => [c.id, c.tipo])), [colaboradores]);
+  const [fechamento, setFechamento] = useState<Linha | null>(null);
   const [folhas, setFolhas] = useState<FolhaPagamento[]>([]);
   const [situacoes, setSituacoes] = useState<Record<string, Situacao>>({});
   const [itemPago, setItemPago] = useState<Record<string, boolean>>({});
@@ -221,32 +234,36 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
-  const abrirPagamento = (folha: FolhaPagamento, itens: FolhaItem[], label: string) => {
+  const abrirPagamento = (grupos: { folha: FolhaPagamento; itens: FolhaItem[] }[], label: string) => {
     if (!folhaAccountId) {
       toast.error("Configure a conta de Folha em Configurações do RH.");
       return;
     }
-    if (itens.length === 0) {
+    if (grupos.every((g) => g.itens.length === 0)) {
       toast.error("Nada a pagar.");
       return;
     }
-    setPagData(folha.data_vencimento || getLocalDateISO());
+    setPagData(grupos[0].folha.data_vencimento || getLocalDateISO());
     setPagForma("pix");
-    setPagamento({ folha, itens, label });
+    setPagamento({ grupos, label });
   };
 
   const confirmarPagamento = async () => {
     if (!pagamento || !folhaAccountId) return;
-    setActing(pagamento.folha.id);
+    setActing("pagamento");
     try {
-      const r = await efetuarPagamentoFolha({
-        folhaId: pagamento.folha.id,
-        user_id: userId,
-        folhaAccountId,
-        data_pagamento: pagData,
-        forma_pagamento: pagForma,
-        itemIds: pagamento.itens.map((i) => i.id),
-      });
+      const r = { pagos: 0, erros: [] as string[] };
+      for (const g of pagamento.grupos) {
+        const x = await efetuarPagamentoFolha({
+          folhaId: g.folha.id,
+          user_id: userId,
+          folhaAccountId,
+          data_pagamento: pagData,
+          forma_pagamento: pagForma,
+          itemIds: g.itens.map((i) => i.id),
+        });
+        r.pagos += x.pagos; r.erros.push(...x.erros);
+      }
       if (r.erros.length > 0) toast.warning(`${r.pagos} pago(s), ${r.erros.length} falha(s): ${r.erros[0]}`);
       else toast.success(`${r.pagos} pagamento(s) registrado(s) no Contas a Pagar e no Fluxo de Caixa.`);
       setPagamento(null);
@@ -445,7 +462,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           <DialogHeader>
             <DialogTitle>Efetuar pagamento</DialogTitle>
             <DialogDescription>
-              {pagamento?.label} — total {formatBRL((pagamento?.itens || []).reduce((s, i) => s + Number(i.liquido || 0), 0))}.
+              {pagamento?.label} — total {formatBRL((pagamento?.grupos || []).flatMap((g) => g.itens).reduce((s, i) => s + Number(i.liquido || 0), 0))}.
               A baixa é registrada no Contas a Pagar e no Fluxo de Caixa.
             </DialogDescription>
           </DialogHeader>
@@ -464,8 +481,8 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
               </Select>
             </div>
           </div>
-          <Button className="w-full" disabled={acting === pagamento?.folha.id} onClick={confirmarPagamento}>
-            {acting === pagamento?.folha.id ? "Processando..." : "Efetuar pagamento"}
+          <Button className="w-full" disabled={acting === "pagamento"} onClick={confirmarPagamento}>
+            {acting === "pagamento" ? "Processando..." : "Efetuar pagamento"}
           </Button>
         </DialogContent>
       </Dialog>
@@ -475,3 +492,56 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   );
 }
 
+
+const NAT_LABEL: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+
+function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Linha | null; onClose: () => void; adiantExpenses: Expense[] }) {
+  const [movs, setMovs] = useState<MovMotorista[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!alvo) return;
+    const f = alvo.folha;
+    setLoading(true);
+    setMovs([]);
+    loadMovimentosEDisponiveis(alvo.item.colaborador_id, { inicio: f.data_inicio, fim: f.data_fim, month: String(f.data_inicio).slice(0, 7) }, adiantExpenses)
+      .then((r) => setMovs(r.incluidas))
+      .catch((e) => toast.error("Erro ao carregar o fechamento: " + e.message))
+      .finally(() => setLoading(false));
+  }, [alvo, adiantExpenses]);
+  const r = resumirMovimentos(movs);
+  return (
+    <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Fechamento — {alvo?.item.colaborador_nome}</DialogTitle>
+          <DialogDescription>Período {fmtData(alvo?.folha.data_inicio)} a {fmtData(alvo?.folha.data_fim)}</DialogDescription>
+        </DialogHeader>
+        <DataGrid
+          rows={movs}
+          rowId={(m) => m.id}
+          selected={new Set()}
+          onSelectedChange={() => {}}
+          isSelectable={() => false}
+          loading={loading}
+          minWidth={620}
+          maxHeight="50vh"
+          emptyMessage="Nenhuma movimentação neste acerto."
+          columns={[
+            { key: "data", header: "Data", cell: (m) => fmtData(m.data), sortValue: (m) => m.data },
+            { key: "tipo", header: "Tipo", cell: (m) => NAT_LABEL[m.natureza] },
+            { key: "desc", header: "Descrição", cell: (m) => <span className="truncate">{m.descricao}</span> },
+            { key: "ent", header: "Entrada", align: "right", cell: (m) => (m.entrada ? <span className="tabular-nums">{formatBRL(m.entrada)}</span> : "") },
+            { key: "sai", header: "Saída", align: "right", cell: (m) => (m.saida ? <span className="tabular-nums text-destructive">{formatBRL(m.saida)}</span> : "") },
+          ]}
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+          <div>Comissões<br /><b className="tabular-nums">{formatBRL(r.comissoes)}</b></div>
+          <div>Reembolsos<br /><b className="tabular-nums">{formatBRL(r.reembolsos)}</b></div>
+          <div>Adiant. / Vales<br /><b className="tabular-nums text-destructive">{formatBRL(r.vales)}</b></div>
+          <div>Descontos<br /><b className="tabular-nums text-destructive">{formatBRL(r.descontos)}</b></div>
+          <div>Saldo a receber<br /><b className="tabular-nums text-primary">{formatBRL(Number(alvo?.item.liquido ?? r.saldo))}</b></div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
