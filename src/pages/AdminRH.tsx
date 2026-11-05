@@ -20,7 +20,7 @@ import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import { MonthPicker } from "@/components/MonthPicker";
-import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena } from "@/lib/rhAcertoPeriod";
+import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena, buildMesCompleto, previousMonth } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
@@ -96,7 +96,10 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-  const month = isPeopleSection ? acertoPeriod.month : monthState;
+  // Administrativo/Operacional trabalha com o mês anterior completo (não a quinzena do acerto)
+  const [adminMonth, setAdminMonth] = useState(() => previousMonth());
+  const adminPeriod = useMemo(() => buildMesCompleto(adminMonth), [adminMonth]);
+  const month = forcedSection === "motoristas" ? acertoPeriod.month : forcedSection === "administrativo" ? adminMonth : monthState;
 
   // Observer-based data layer (colaboradores + expenses + realtime listener)
   const { loading, colaboradores, accounts, expenses, realtimeActive, reload } = useRHData(month);
