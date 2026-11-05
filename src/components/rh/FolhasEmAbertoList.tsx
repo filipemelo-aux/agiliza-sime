@@ -369,12 +369,18 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
       : (sel.length === 1 ? `Folha de ${sel[0].item.colaborador_nome}` : `Folha — ${sel.length} colaborador(es)`));
   };
 
+  const imprimirAcerto = async () => {
+    if (!one) return;
+    setActing("acerto-pdf");
+    try { await baixarAcertoPdfLinha(one); } catch (e: any) { toast.error("Falha ao gerar o PDF: " + e.message); } finally { setActing(null); }
+  };
+
   const actions: ToolbarAction[] = [
     { key: "pagar", label: "Efetuar pagamento", icon: BadgeDollarSign, mode: "batch", className: "text-success", iconClassName: "text-success",
       onClick: () => abrirPagamentoSelecionados(sel[0]?.motorista ?? false),
       disabled: !folhaAccountId || !(pagaveis(true) || pagaveis(false)) },
     { key: "visualizar", label: "Visualizar", icon: Eye, mode: "single", onClick: () => one && (one.motorista ? setFechamento(one) : setVisualizarFolha(one)), disabled: !one },
-    { key: "imprimir-acerto", label: "Imprimir acerto", icon: Printer, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" || sel.length === 0 || !sel.every((l) => l.motorista) },
+    { key: "imprimir-acerto", label: "Imprimir acerto", icon: Printer, mode: "single", onClick: imprimirAcerto, disabled: acting === "acerto-pdf" || !one?.motorista },
     { key: "imprimir-folha", label: "Imprimir folha de pagamento", icon: FileText, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" || sel.length === 0 || sel.some((l) => l.motorista) },
     { key: "excluir", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => one && handleDeleteItem(one.folha, one.item), disabled: !one || one.pago || one.sit === "cancelada" },
   ];
@@ -523,6 +529,14 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 }
 
 
+async function baixarAcertoPdfLinha(l: Linha, movs?: MovMotorista[]) {
+  const lista = movs ?? await loadMovimentosDoAcerto(l.item.colaborador_id, l.folha.data_inicio);
+  await baixarAcertoMotoristaPdf({
+    nome: l.item.colaborador_nome, inicio: l.folha.data_inicio, fim: l.folha.data_fim, vencimento: l.folha.data_vencimento,
+    movs: lista, resumo: resumirMovimentos(lista), liquido: Number(l.item.liquido),
+  });
+}
+
 const NAT_LABEL: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
 
 function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Linha | null; onClose: () => void; adiantExpenses: Expense[] }) {
@@ -533,12 +547,18 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
     const f = alvo.folha;
     setLoading(true);
     setMovs([]);
-    loadMovimentosEDisponiveis(alvo.item.colaborador_id, { inicio: f.data_inicio, fim: f.data_fim, month: String(f.data_inicio).slice(0, 7) }, adiantExpenses)
-      .then((r) => setMovs(r.incluidas))
+    loadMovimentosDoAcerto(alvo.item.colaborador_id, f.data_inicio)
+      .then(setMovs)
       .catch((e) => toast.error("Erro ao carregar o fechamento: " + e.message))
       .finally(() => setLoading(false));
   }, [alvo, adiantExpenses]);
   const r = resumirMovimentos(movs);
+  const [baixando, setBaixando] = useState(false);
+  const imprimir = async () => {
+    if (!alvo) return;
+    setBaixando(true);
+    try { await baixarAcertoPdfLinha(alvo, movs); } catch (e: any) { toast.error("Falha ao gerar o PDF: " + e.message); } finally { setBaixando(false); }
+  };
   return (
     <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl">
@@ -570,6 +590,11 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
           <div>Adiant. / Vales<br /><b className="tabular-nums text-destructive">{formatBRL(r.vales)}</b></div>
           <div>Descontos<br /><b className="tabular-nums text-destructive">{formatBRL(r.descontos)}</b></div>
           <div>Saldo a receber<br /><b className="tabular-nums text-primary">{formatBRL(Number(alvo?.item.liquido ?? r.saldo))}</b></div>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={imprimir} disabled={baixando || loading}>
+            {baixando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />} Imprimir acerto
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
