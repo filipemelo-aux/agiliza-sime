@@ -22,7 +22,7 @@ export async function baixarResumoFolhaPdf(mes: string, linhas: ResumoFolhaLinha
       <p>Folhas administrativas / operacionais e acertos de motoristas · ${linhas.length} fechamento(s) · Página ${paginas.length + 1}/${Math.ceil(linhas.length / 12)}</p>
       <table><colgroup><col style="width:22%"><col style="width:15%"><col style="width:9%">${Array.from({ length: 6 }, () => '<col style="width:9%">').join("")}</colgroup>
       <thead><tr><th>Colaborador / Tipo</th><th>Período / Vencimento</th><th>Situação</th><th class="r">Base</th><th class="r">Comissões</th><th class="r">Reembolsos</th><th class="r">Adiant. / Vales</th><th class="r">Descontos</th><th class="r">Líquido</th></tr></thead>
-      <tbody>${lote.map((l) => `<tr><td><b>${esc(l.nome)}</b><small>${esc(l.tipo)}</small></td><td>${dt(l.inicio)} a ${dt(l.fim)}<small>Venc.: ${dt(l.vencimento)}</small></td><td>${esc(l.situacao)}</td>${valores(l)}</tr>`).join("")}</tbody>
+      <tbody>${lote.map((l) => `<tr><td><b>${esc(l.nome)}</b><small>${esc(l.tipo)}</small>${l.chavePix ? `<small>Chave Pix: ${esc(l.chavePix)}</small>` : ""}</td><td>${dt(l.inicio)} a ${dt(l.fim)}<small>Venc.: ${dt(l.vencimento)}</small></td><td>${esc(l.situacao)}</td>${valores(l)}</tr>`).join("")}</tbody>
       ${ultima ? `<tfoot><tr><td colspan="3">Total geral — ${linhas.length} fechamento(s)</td>${valores(totais)}</tr></tfoot>` : ""}</table>
       ${ultima ? `<div class="saldo">Total líquido dos fechamentos: R$ ${brl(totais.liquido)}</div>` : ""}
       ${printBrandFooterHtml()}

@@ -27,6 +27,7 @@ import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { loadMovimentosDoAcerto, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
 import { baixarAcertoMotoristaPdf } from "@/lib/rh/acertoMotoristaPdf";
 import { baixarResumoFolhaPdf } from "@/lib/rh/resumoFolhaPdf";
+import { chavePixResumoFolha } from "@/lib/rh/resumoFolha";
 import type { ColaboradorRH, Expense } from "@/services/rh";
 import { toast } from "@/lib/notice";
 import { supabase } from "@/integrations/supabase/client";
@@ -381,8 +382,16 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const imprimirResumo = async () => {
     setActing("resumo-pdf");
     try {
+      const ids = Array.from(new Set(linhas.filter((l) => !l.pago && l.sit !== "cancelada" && l.sit !== "paga").map((l) => l.item.colaborador_id)));
+      const pixPorColaborador = new Map<string, string | null>();
+      if (ids.length) {
+        const { data, error } = await supabase.from("profiles").select("id, pix_key").in("id", ids);
+        if (error) throw error;
+        for (const perfil of data || []) pixPorColaborador.set(perfil.id, perfil.pix_key);
+      }
       await baixarResumoFolhaPdf(month, linhas.map((l) => ({
         nome: l.item.colaborador_nome, tipo: l.motorista ? "Acerto motorista" : "Folha administrativa / operacional",
+        chavePix: chavePixResumoFolha(pixPorColaborador.get(l.item.colaborador_id), l.pago, l.sit),
         inicio: l.folha.data_inicio || "", fim: l.folha.data_fim || "", vencimento: l.folha.data_vencimento || "",
         situacao: l.pago ? "Pago" : SITUACAO_UI[l.sit].label,
         base: Number(l.item.salario_base || 0), comissoes: Number(l.item.comissoes || 0),

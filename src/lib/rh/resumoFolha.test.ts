@@ -1,9 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { totalizarResumoFolha, type ResumoFolhaLinha } from "./resumoFolha";
+import { chavePixResumoFolha, totalizarResumoFolha, type ResumoFolhaLinha } from "./resumoFolha";
 
 const linha = (valores: Partial<ResumoFolhaLinha>): ResumoFolhaLinha => ({ nome: "", tipo: "", inicio: "", fim: "", vencimento: "", situacao: "", base: 0, comissoes: 0, reembolsos: 0, adiantamentos: 0, descontos: 0, liquido: 0, ...valores });
 
 describe("Resumo consolidado dos fechamentos", () => {
+  it("inclui a chave Pix cadastral de colaboradores com folha a pagar", () => {
+    for (const situacao of ["em_aberto", "confirmada", "parcial"]) {
+      expect(chavePixResumoFolha(" colaborador@example.com ", false, situacao)).toBe("colaborador@example.com");
+    }
+  });
+  it("não inclui chave Pix de itens pagos ou folhas canceladas", () => {
+    expect(chavePixResumoFolha("colaborador@example.com", true, "parcial")).toBeUndefined();
+    expect(chavePixResumoFolha("colaborador@example.com", false, "paga")).toBeUndefined();
+    expect(chavePixResumoFolha("colaborador@example.com", false, "cancelada")).toBeUndefined();
+  });
+  it("não inventa chave Pix quando o cadastro não possui uma", () => {
+    expect(chavePixResumoFolha(null, false, "em_aberto")).toBeUndefined();
+    expect(chavePixResumoFolha("  ", false, "em_aberto")).toBeUndefined();
+  });
   it("inclui o reembolso do Jailan uma vez e preserva o saldo fechado sem salário cadastral", () => {
     expect(totalizarResumoFolha([
       linha({ nome: "Jailan", comissoes: 2174.36, reembolsos: 60, adiantamentos: 590, liquido: 1644.36 }),
