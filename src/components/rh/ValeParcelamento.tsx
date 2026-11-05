@@ -2,9 +2,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parcelasVale } from "@/lib/rh/valeParcelas";
 import { labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
+import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 interface Props { id: string; valor: number; quantidade: number; periodo: AcertoPeriod; disabled?: boolean; onChange: (n: number) => void }
 export function ValeParcelamento({ id, valor, quantidade, periodo, disabled, onChange }: Props) {
-  const parcelas = parcelasVale(valor, quantidade, periodo);
+  const { config } = useRHPeriodConfig();
+  const parcelas = parcelasVale(valor, quantidade, periodo, config);
   const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
   return <div className="space-y-2 border-t bg-muted/20 p-2">
     <div className="flex items-center gap-2"><Label htmlFor={`parcelas-${id}`} className="text-xs">Parcelas do desconto</Label>

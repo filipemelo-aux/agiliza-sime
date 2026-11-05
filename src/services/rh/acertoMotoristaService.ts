@@ -202,7 +202,10 @@ export async function gerarAcertoMotorista(input: {
     descontos: f0.descontos.filter((d) => inc.has(vkey("desconto", d.id))),
   };
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
-  const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena");
+  const { data: config, error: configError } = await (supabase.rpc as any)("get_rh_period_config");
+  if (configError) throw configError;
+  const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena", config);
+  if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("As configurações do acerto mudaram. Atualize a tela e selecione o período novamente.");
   const [row] = computePayrollRowsFromPeriodo({
     // Acerto do motorista = só as movimentações; o salário do cadastro não entra.
     colaboradores: [{ ...colaborador, ativo: true, salario: 0 }], periodo: pf,
