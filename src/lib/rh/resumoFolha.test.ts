@@ -21,7 +21,7 @@ describe("Resumo consolidado dos fechamentos", () => {
   it("limpa a chave Pix de espaços, traços e pontos e identifica o tipo", () => {
     expect(formatarChavePix("123.456.789-01")).toEqual({ valor: "12345678901", tipo: "CPF" });
     expect(formatarChavePix("(63) 99984-1234")).toEqual({ valor: "63999841234", tipo: "Celular" });
-    expect(formatarChavePix("63 98412-341")).toEqual({ valor: "6398412341", tipo: "CPF" });
+    expect(formatarChavePix("63 9841-2341")).toEqual({ valor: "6398412341", tipo: "Telefone" });
     expect(formatarChavePix("12.345.678/0001-90")).toEqual({ valor: "12345678000190", tipo: "CNPJ" });
     expect(formatarChavePix(" filipe@exemplo.com ")).toEqual({ valor: "filipe@exemplo.com", tipo: "E-mail" });
   });
