@@ -81,10 +81,22 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   useEffect(() => { setSelected(new Set()); load(); }, [load]);
 
-  const totalEntrada = rows.reduce((s, r) => s + r.entrada, 0);
-  const totalSaida = rows.reduce((s, r) => s + r.saida, 0);
+  // Administrativo: o salário base do cadastro já abre listado como entrada (linha sintética, não removível)
+  const rowsExibidas = useMemo<Mov[]>(() => {
+    if (isMotorista || !colaborador?.salario) return rows;
+    const salarioRow: Mov = {
+      id: SALARIO_ROW_ID, origemId: SALARIO_ROW_ID, origemTipo: "expense",
+      natureza: "salario", data: periodo.inicio,
+      descricao: "Salário base do mês (cadastro do colaborador)",
+      entrada: Number(colaborador.salario), saida: 0, removivel: false,
+    };
+    return [salarioRow, ...rows];
+  }, [isMotorista, colaborador?.salario, rows, periodo.inicio]);
+
+  const totalEntrada = rowsExibidas.reduce((s, r) => s + r.entrada, 0);
+  const totalSaida = rowsExibidas.reduce((s, r) => s + r.saida, 0);
   const saldo = totalEntrada - totalSaida;
-  const sel = rows.filter((r) => selected.has(r.id));
+  const sel = rowsExibidas.filter((r) => selected.has(r.id) && r.id !== SALARIO_ROW_ID);
   const lista = useMemo(() => (colaborador ? [colaborador] : []), [colaborador]);
   const dispLancar = lancar ? disp.filter((d) => d.natureza === lancar) : [];
 
@@ -132,6 +144,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   const excluir = async () => {
     if (!sel.length || bloqueado || !colaborador) return;
+    // sel já exclui a linha sintética do salário base
     const ok = await confirm({ title: "Remover da movimentação", description: `Remover ${sel.length === 1 ? "este lançamento" : `${sel.length} lançamentos`} do acerto do período? O lançamento original (Contas a Pagar, comissão ou desconto) não é apagado e volta a ficar disponível.`, confirmLabel: "Remover" } as any);
     if (!ok) return;
     try {
