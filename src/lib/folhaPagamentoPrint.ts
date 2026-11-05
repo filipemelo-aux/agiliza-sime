@@ -15,6 +15,7 @@
  */
 import { calcularINSS, calcularIRRF } from "@/services/rh/tributosFolhaService";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
+import { downloadHtmlAsPdf as downloadDirectPdf } from "@/lib/htmlToPdf";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
@@ -363,7 +364,7 @@ ${itens
 }
 
 /** Gera somente os recibos dos colaboradores selecionados, sem o resumo geral. */
-export function imprimirRecibosPagamento(folha: HoleriteFolha, itens: HoleriteItem[]) {
+export async function imprimirRecibosPagamento(folha: HoleriteFolha, itens: HoleriteItem[], opts?: { downloadDireto?: boolean }) {
   const html = `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
 <title>Recibos ${esc(formatCompetencia(folha.mes_referencia))}</title>
@@ -414,5 +415,12 @@ ${itens.map((i) => `<div class="pagina">${reciboHtml(folha, i, "1ª via — Empr
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   URL.revokeObjectURL(url);
-  void downloadHtmlAsPdf(html, titleFromHtml(html, "Folha de Pagamento"));
+  if (opts?.downloadDireto) {
+    const pdfHtml = html.replace(/<script>[\s\S]*?<\/script>/g, "")
+      .replaceAll('class="pagina"', 'class="pagina doc-page"')
+      .replace("</style>", ".doc-page{width:190mm;margin:0}</style>");
+    await downloadDirectPdf(pdfHtml, `${titleFromHtml(html, "Folha de Pagamento")}.pdf`, { marginMm: 10 });
+  } else {
+    await downloadHtmlAsPdf(html, titleFromHtml(html, "Folha de Pagamento"));
+  }
 }
