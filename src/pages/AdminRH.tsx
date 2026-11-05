@@ -409,9 +409,12 @@ function RHWorkspace(props: any) {
     sortValue: (c) => { const r = resumoByColab.get(c.id); return r ? get(r) : 0; },
     cell: (c) => { const r = resumoByColab.get(c.id); const v = r ? get(r) : 0; return <span className={cn("font-mono whitespace-nowrap", v ? tone : "text-muted-foreground")}>{formatBRL(v)}</span>; },
   });
-  const motoristaColumns: DataGridColumn<ColaboradorRH>[] = [
+  // Grade de acerto: motoristas veem Comissões; administrativo vê o Salário base do cadastro
+  const peopleColumns: DataGridColumn<ColaboradorRH>[] = [
     ...colabColumns.filter((col) => col.key === "nome"),
-    money("comissao", "Comissões", (r) => r.comissoes, "text-success"),
+    ...(isMotoristas
+      ? [money("comissao", "Comissões", (r) => r.comissoes, "text-success")]
+      : [money("salario", "Salário base", (r) => r.salario, "text-foreground")]),
     money("reemb", "Reembolsos", (r) => r.reembolsos, "text-success"),
     money("adiant", "Adiant. / Vales", (r) => r.vales, "text-warning"),
     money("desc", "Descontos", (r) => r.descontos, "text-destructive"),
@@ -430,34 +433,23 @@ function RHWorkspace(props: any) {
       },
     },
   ];
-  const peopleColumns: DataGridColumn<ColaboradorRH>[] = isMotoristas ? motoristaColumns : [
-    ...colabColumns.filter((col) => ["nome", "admissao", "salario", "adiant", "saldo"].includes(col.key)),
-    {
-      key: "reemb",
-      header: "Reembolsos",
-      width: "120px",
-      align: "right",
-      sortValue: (c) => reembByColab.get(c.id) || 0,
-      cell: (c) => <span className="font-mono text-success whitespace-nowrap">{formatBRL(reembByColab.get(c.id) || 0)}</span>,
-    },
-    ...colabColumns.filter((col) => col.key === "status"),
-  ];
 
   const selAcerto = selectedPeople[0] ? acertoByColab.get(selectedPeople[0].id) : undefined;
   const gerarAcerto = async () => {
     const c = selectedPeople[0];
-    if (!c || !acertoPeriod) return;
+    if (!c || !periodoAtivo) return;
     if (!matrizId || !user?.id) { toast.error("Empresa ou usuário não identificado."); return; }
     const r = resumoByColab.get(c.id);
+    const periodoLabel = isMotoristas ? labelQuinzena(periodoAtivo) : `mês de ${formatAcertoPeriod(periodoAtivo)}`;
     const ok = await confirmAcerto({
       title: "Gerar acerto?",
-      description: `O acerto de ${c.full_name} (${labelQuinzena(acertoPeriod)}) com saldo de ${formatBRL(r?.saldo || 0)} vai para a Folha de Pagamento e as movimentações ficam bloqueadas até você usar “Editar acerto”.`,
+      description: `O acerto de ${c.full_name} (${periodoLabel}) com saldo de ${formatBRL(r?.saldo || 0)} vai para a Folha de Pagamento e as movimentações ficam bloqueadas até você usar “Liberar acerto”.`,
       confirmLabel: "Gerar acerto",
     });
     if (!ok) return;
     setAcertoBusy(true);
     try {
-      await gerarAcertoMotorista({ colaborador: c, periodo: acertoPeriod, adiantExpenses, empresaId: matrizId, userId: user.id });
+      await gerarAcertoMotorista({ colaborador: c, periodo: periodoAtivo, adiantExpenses, empresaId: matrizId, userId: user.id });
       toast.success("Acerto gerado e enviado para a Folha de Pagamento.");
       setResumoTick((t) => t + 1);
     } catch (e: any) {
@@ -487,14 +479,10 @@ function RHWorkspace(props: any) {
     }
   };
 
-  const peopleActions: ToolbarAction[] = isMotoristas ? [
+  const peopleActions: ToolbarAction[] = [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
-  ] : [
-    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "single", onClick: () => abrirMov("reembolso") },
-    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "single", onClick: () => abrirMov("vale") },
-    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "single", variant: "default", onClick: () => abrirMov("desconto") },
   ];
 
   const allItems: NavItem[] = [
