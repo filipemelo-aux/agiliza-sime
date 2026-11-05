@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2 } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -460,9 +460,9 @@ function RHWorkspace(props: any) {
     const c = selectedPeople[0];
     if (!c || !selAcerto) return;
     const ok = await confirmAcerto({
-      title: "Editar acerto?",
+      title: "Liberar acerto?",
       description: `O acerto de ${c.full_name} sai da Folha de Pagamento${selAcerto.status === "confirmada" ? " (a despesa gerada no Contas a Pagar é removida)" : ""} e as movimentações voltam a ser editáveis.`,
-      confirmLabel: "Editar acerto",
+      confirmLabel: "Liberar acerto",
     });
     if (!ok) return;
     setAcertoBusy(true);
@@ -480,7 +480,7 @@ function RHWorkspace(props: any) {
   const peopleActions: ToolbarAction[] = isMotoristas ? [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
-    { key: "editar", label: "Editar acerto", icon: Pencil, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
+    { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
   ] : [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "history", label: "Histórico", icon: History, mode: "single", onClick: () => selectedPeople[0] && setHistoryFor(selectedPeople[0]) },

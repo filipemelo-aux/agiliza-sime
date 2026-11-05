@@ -148,11 +148,11 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const columns: DataGridColumn<Mov>[] = [
     { key: "data", header: "Data", width: "95px", sortValue: (r) => r.data, cell: (r) => <span className="whitespace-nowrap">{formatDate(r.data)}</span> },
     {
-      key: "tipo", header: "Tipo", width: "170px", sortValue: (r) => r.natureza,
+      key: "tipo", header: "Tipo", width: "210px", sortValue: (r) => r.natureza,
       cell: (r) => (
-        <span className="inline-flex items-center gap-1.5">
-          {r.entrada > 0 ? <ArrowUpCircle className="h-3.5 w-3.5 text-success" /> : <ArrowDownCircle className="h-3.5 w-3.5 text-destructive" />}
-          <Badge variant="outline" className="text-[10px]">{NAT_LABEL[r.natureza]}</Badge>
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          {r.entrada > 0 ? <ArrowUpCircle className="h-3.5 w-3.5 text-success shrink-0" /> : <ArrowDownCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+          <Badge variant="outline" className="text-[10px] whitespace-nowrap">{NAT_LABEL[r.natureza]}</Badge>
         </span>
       ),
     },
