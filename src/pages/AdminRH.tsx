@@ -362,6 +362,9 @@ function RHWorkspace(props: any) {
     : [];
   const [reembByColab, setReembByColab] = useState<Map<string, number>>(new Map());
   const [movFor, setMovFor] = useState<ColaboradorRH | null>(null);
+  const [movLancar, setMovLancar] = useState<null | "comissao" | "reembolso" | "vale" | "desconto">(null);
+  const abrirMov = (lancar: typeof movLancar = null) => { const c = selectedPeople[0]; if (!c) return; setMovLancar(lancar); setMovFor(c); };
+  const fecharMov = () => { setMovFor(null); setMovLancar(null); reload(); };
   const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
   useEffect(() => {
     if (!isPeople || !colaboradores.length) return;
