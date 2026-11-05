@@ -128,7 +128,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   const excluir = async () => {
     if (!sel.length || bloqueado || !colaborador) return;
-    const ok = await confirm({ title: "Remover da movimentação", description: `Remover ${sel.length === 1 ? "este lançamento" : `${sel.length} lançamentos`} do acerto da quinzena? O lançamento original (Contas a Pagar, comissão ou desconto) não é apagado e volta a ficar disponível.`, confirmLabel: "Remover" } as any);
+    const ok = await confirm({ title: "Remover da movimentação", description: `Remover ${sel.length === 1 ? "este lançamento" : `${sel.length} lançamentos`} do acerto do período? O lançamento original (Contas a Pagar, comissão ou desconto) não é apagado e volta a ficar disponível.`, confirmLabel: "Remover" } as any);
     if (!ok) return;
     try {
       await removerDoAcerto(colaborador.id, periodo, sel);
