@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Corrigir erro ao pagar a folha de Antonio Jefferson e validar sem duplicar a baixa.
 - [x] Incluir chave Pix cadastral no resumo da folha para colaboradores com pagamento em aberto; cinco testes aprovados e download real de novembro conferido com quatro chaves, cinco fechamentos e totais preservados, sem cortes.
 - [x] Alinhar Configurações RH e acertos: períodos e prazos compartilhados, 1–15 até dia 20 e 16–fim até dia 5; edição e releitura reais do prazo conferidas e restauradas ao padrão, filtro das duas quinzenas conferido. Limite preservado quando há vínculos existentes; 13 testes aprovados.
 - [x] Parcelar vales ao adicionar: prévia por quinzena, criação atômica, primeira parcela no acerto atual e demais disponíveis nas próximas quinzenas; remover preserva o plano e disponibiliza a primeira parcela sem liberar o total original. Oito testes aprovados; validação real indisponível porque a sessão retornou zero motoristas RH.
