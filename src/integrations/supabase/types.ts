@@ -6193,6 +6193,14 @@ export type Database = {
         }
         Returns: Json
       }
+      remover_vale_parcelado_acerto: {
+        Args: {
+          _colaborador_id: string
+          _expense_id: string
+          _periodo_inicio: string
+        }
+        Returns: undefined
+      }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }
         Returns: number

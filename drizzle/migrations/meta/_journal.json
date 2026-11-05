@@ -183,6 +183,13 @@
       "when": 1793905034535,
       "tag": "0025_driver_advance_fortnight_installments",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793905118084,
+      "tag": "0026_preserve_driver_advance_installment_plan_on_unlink",
+      "breakpoints": true
     }
   ]
 }
