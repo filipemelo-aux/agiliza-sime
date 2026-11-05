@@ -204,6 +204,13 @@
       "when": 1793908885267,
       "tag": "0028_align_rh_settlement_period_config",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793920145801,
+      "tag": "0029_fix_commission_payroll_confirmation",
+      "breakpoints": true
     }
   ]
 }
