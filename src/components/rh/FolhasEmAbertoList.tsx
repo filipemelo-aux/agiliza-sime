@@ -19,7 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet } from "lucide-react";
+import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet, Sparkles, FileText, Truck } from "lucide-react";
+import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
+import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import { loadMovimentosEDisponiveis, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
+import type { ColaboradorRH, Expense } from "@/services/rh";
 import { toast } from "@/lib/notice";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -35,7 +40,6 @@ import {
 } from "@/services/rh";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { imprimirRecibosPagamento, type HoleriteItem } from "@/lib/folhaPagamentoPrint";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { getLocalDateISO } from "@/lib/date";
 
@@ -66,11 +70,20 @@ interface Props {
   userId: string;
   folhaAccountId?: string;
   onChanged: () => void;
+  colaboradores: ColaboradorRH[];
+  adiantExpenses: Expense[];
+  onGerarFolha: () => void;
+  gerarFolhaDisabled?: boolean;
 }
 
-type PagamentoAlvo = { folha: FolhaPagamento; itens: FolhaItem[]; label: string };
+type Linha = { folha: FolhaPagamento; item: FolhaItem; motorista: boolean; sit: Situacao; pago: boolean };
+const fmtData = (d?: string | null) => (d ? new Date(`${String(d).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—");
 
-export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged }: Props) {
+type PagamentoAlvo = { grupos: { folha: FolhaPagamento; itens: FolhaItem[] }[]; label: string };
+
+export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged, colaboradores, adiantExpenses, onGerarFolha, gerarFolhaDisabled }: Props) {
+  const tipoPorColab = useMemo(() => new Map(colaboradores.map((c) => [c.id, c.tipo])), [colaboradores]);
+  const [fechamento, setFechamento] = useState<Linha | null>(null);
   const [folhas, setFolhas] = useState<FolhaPagamento[]>([]);
   const [situacoes, setSituacoes] = useState<Record<string, Situacao>>({});
   const [itemPago, setItemPago] = useState<Record<string, boolean>>({});
@@ -221,32 +234,36 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
-  const abrirPagamento = (folha: FolhaPagamento, itens: FolhaItem[], label: string) => {
+  const abrirPagamento = (grupos: { folha: FolhaPagamento; itens: FolhaItem[] }[], label: string) => {
     if (!folhaAccountId) {
       toast.error("Configure a conta de Folha em Configurações do RH.");
       return;
     }
-    if (itens.length === 0) {
+    if (grupos.every((g) => g.itens.length === 0)) {
       toast.error("Nada a pagar.");
       return;
     }
-    setPagData(folha.data_vencimento || getLocalDateISO());
+    setPagData(grupos[0].folha.data_vencimento || getLocalDateISO());
     setPagForma("pix");
-    setPagamento({ folha, itens, label });
+    setPagamento({ grupos, label });
   };
 
   const confirmarPagamento = async () => {
     if (!pagamento || !folhaAccountId) return;
-    setActing(pagamento.folha.id);
+    setActing("pagamento");
     try {
-      const r = await efetuarPagamentoFolha({
-        folhaId: pagamento.folha.id,
-        user_id: userId,
-        folhaAccountId,
-        data_pagamento: pagData,
-        forma_pagamento: pagForma,
-        itemIds: pagamento.itens.map((i) => i.id),
-      });
+      const r = { pagos: 0, erros: [] as string[] };
+      for (const g of pagamento.grupos) {
+        const x = await efetuarPagamentoFolha({
+          folhaId: g.folha.id,
+          user_id: userId,
+          folhaAccountId,
+          data_pagamento: pagData,
+          forma_pagamento: pagForma,
+          itemIds: g.itens.map((i) => i.id),
+        });
+        r.pagos += x.pagos; r.erros.push(...x.erros);
+      }
       if (r.erros.length > 0) toast.warning(`${r.pagos} pago(s), ${r.erros.length} falha(s): ${r.erros[0]}`);
       else toast.success(`${r.pagos} pagamento(s) registrado(s) no Contas a Pagar e no Fluxo de Caixa.`);
       setPagamento(null);
@@ -321,179 +338,89 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
-  if (loading) {
-    return (
-      <Card><CardContent className="p-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Carregando folhas do mês...
-      </CardContent></Card>
-    );
-  }
-
   const editLiquido = Math.max(
     0,
     (Number(editForm.salario_base) || 0) + (Number(editForm.comissoes) || 0) -
     (Number(editForm.adiantamentos) || 0) - (Number(editForm.descontos) || 0)
   );
 
+  const linhas: Linha[] = itensVisiveis.map(({ folha, item }) => ({
+    folha, item, motorista: tipoPorColab.get(item.colaborador_id) === "motorista",
+    sit: situacoes[folha.id] || "em_aberto", pago: !!itemPago[item.id],
+  }));
+  const sel = linhas.filter((l) => selecionados.has(l.item.id));
+  const one = sel.length === 1 ? sel[0] : null;
+  const pagaveis = (motorista: boolean) =>
+    sel.length > 0 && sel.every((l) => l.motorista === motorista && !l.pago && l.sit !== "cancelada");
+
+  const abrirPagamentoSelecionados = (motorista: boolean) => {
+    const grupos = new Map<string, { folha: FolhaPagamento; itens: FolhaItem[] }>();
+    sel.forEach((l) => {
+      const g = grupos.get(l.folha.id) || { folha: l.folha, itens: [] };
+      g.itens.push(l.item);
+      grupos.set(l.folha.id, g);
+    });
+    abrirPagamento(Array.from(grupos.values()), motorista
+      ? (sel.length === 1 ? `Acerto de ${sel[0].item.colaborador_nome}` : `${sel.length} acertos de motoristas`)
+      : (sel.length === 1 ? `Folha de ${sel[0].item.colaborador_nome}` : `Folha — ${sel.length} colaborador(es)`));
+  };
+
+  const actions: ToolbarAction[] = [
+    { key: "gerar-folha", label: "Gerar folha de pagamento", icon: Sparkles, mode: "always", variant: "default", onClick: onGerarFolha, disabled: gerarFolhaDisabled },
+    { key: "fechamento", label: "Ver fechamento", icon: FileText, mode: "single", onClick: () => one && setFechamento(one), disabled: !one?.motorista },
+    { key: "pagar-folha", label: "Efetuar pagamento da folha", icon: Wallet, mode: "batch", onClick: () => abrirPagamentoSelecionados(false), disabled: !folhaAccountId || !pagaveis(false) },
+    { key: "pagar-acerto", label: "Efetuar pagamento do acerto", icon: Truck, mode: "batch", onClick: () => abrirPagamentoSelecionados(true), disabled: !folhaAccountId || !pagaveis(true) },
+    { key: "editar", label: "Editar valores", icon: Pencil, mode: "single", onClick: () => one && abrirEdicao(one.folha, one.item), disabled: !one || one.folha.status !== "em_aberto" || one.motorista },
+    { key: "recibo", label: sel.length > 1 ? `Gerar recibos (${sel.length})` : "Gerar recibo", icon: Download, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" },
+    { key: "reabrir", label: "Reabrir folha", icon: RotateCcw, mode: "single", onClick: () => one && handleReopen(one.folha), disabled: !one || one.folha.status !== "confirmada" || one.sit !== "confirmada" },
+    { key: "excluir", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => one && handleDeleteItem(one.folha, one.item), disabled: !one || one.folha.status !== "em_aberto" },
+    { key: "recarregar", label: "Recarregar", icon: RefreshCw, mode: "always", onClick: load },
+  ];
+
+  const money = (v: number, cls = "") => <span className={cn("tabular-nums", cls)}>{formatBRL(v)}</span>;
+  const columns: DataGridColumn<Linha>[] = [
+    { key: "nome", header: "Colaborador", cell: (l) => <span className="font-medium">{l.item.colaborador_nome}</span>, sortValue: (l) => l.item.colaborador_nome },
+    { key: "tipo", header: "Tipo", cell: (l) => l.motorista ? "Acerto motorista" : "Folha adm./oper.", sortValue: (l) => (l.motorista ? 1 : 0) },
+    { key: "periodo", header: "Período", cell: (l) => `${fmtData(l.folha.data_inicio)} a ${fmtData(l.folha.data_fim)}`, sortValue: (l) => l.folha.data_inicio },
+    { key: "venc", header: "Vencimento", cell: (l) => fmtData(l.folha.data_vencimento), sortValue: (l) => l.folha.data_vencimento },
+    { key: "base", header: "Base", align: "right", cell: (l) => money(Number(l.item.salario_base)), sortValue: (l) => Number(l.item.salario_base) },
+    { key: "com", header: "Comissões", align: "right", cell: (l) => money(Number(l.item.comissoes)), sortValue: (l) => Number(l.item.comissoes) },
+    { key: "reemb", header: "Reembolsos", align: "right", cell: (l) => money(Number(l.item.reembolsos || 0)), sortValue: (l) => Number(l.item.reembolsos || 0) },
+    { key: "adiant", header: "Adiant. / Vales", align: "right", cell: (l) => money(Number(l.item.adiantamentos), "text-destructive"), sortValue: (l) => Number(l.item.adiantamentos) },
+    { key: "desc", header: "Descontos", align: "right", cell: (l) => money(Number(l.item.descontos), "text-destructive"), sortValue: (l) => Number(l.item.descontos) },
+    { key: "liq", header: "Líquido", align: "right", cell: (l) => money(Number(l.item.liquido), "font-semibold"), sortValue: (l) => Number(l.item.liquido) },
+    { key: "sit", header: "Situação", cell: (l) => l.pago ? "Pago" : SITUACAO_UI[l.sit].label, sortValue: (l) => (l.pago ? "Pago" : SITUACAO_UI[l.sit].label) },
+  ];
+  const tot = (f: (i: FolhaItem) => number) => linhas.reduce((s, l) => s + f(l.item), 0);
+
   return (
     <>
       <div className="space-y-3">
-        {itensVisiveis.length > 0 && (
-          <div className="flex items-center justify-between gap-3 border-y py-2">
-            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-              <Checkbox
-                checked={selecionados.size === itensVisiveis.length}
-                onCheckedChange={() => setSelecionados(
-                  selecionados.size === itensVisiveis.length ? new Set() : new Set(itensVisiveis.map(({ item }) => item.id))
-                )}
-              />
-              Selecionar todas ({itensVisiveis.length})
-            </label>
-            <Button size="sm" className="h-8 gap-1.5" disabled={selecionados.size === 0 || acting === "recibos"} onClick={handleSelectedReceipts}>
-              {acting === "recibos" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              {selecionados.size > 1 ? `Gerar recibos (${selecionados.size})` : "Gerar recibo"}
-            </Button>
-          </div>
-        )}
-
-        {folhas.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Nenhuma folha encontrada neste mês. Use <span className="font-medium">Gerar folha de pagamento</span> para iniciar.
-              </p>
-              <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
-                <RefreshCw className="h-3.5 w-3.5" /> Recarregar
-              </Button>
-            </CardContent>
-          </Card>
-        ) : folhas.map((f) => {
-          const sit = situacoes[f.id] || "em_aberto";
-          const ui = SITUACAO_UI[sit];
-          const itens = itensPorFolha[f.id] || [];
-          const pendentes = itens.filter((i) => !itemPago[i.id]);
-          return (
-          <Card key={f.id} className="overflow-hidden">
-            {/* Cabeçalho */}
-            <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Checkbox
-                  checked={itens.length > 0 && itens.every((i) => selecionados.has(i.id))}
-                  onCheckedChange={() => {
-                    const ids = itens.map((i) => i.id);
-                    setSelecionados((atual) => {
-                      const proximo = new Set(atual);
-                      ids.every((id) => proximo.has(id)) ? ids.forEach((id) => proximo.delete(id)) : ids.forEach((id) => proximo.add(id));
-                      return proximo;
-                    });
-                  }}
-                />
-                <p className="text-sm font-semibold">Folha {f.mes_referencia}</p>
-                <Badge variant="outline" className={cn("text-[10px]", ui.cls)}>{ui.label}</Badge>
-                <span className="text-[11px] text-muted-foreground">
-                  Vence {new Date(`${f.data_vencimento}T12:00:00`).toLocaleDateString("pt-BR")}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {sit !== "paga" && sit !== "cancelada" && pendentes.length > 0 && (
-                  <Button
-                    size="sm"
-                    className="h-8 gap-1"
-                    disabled={acting === f.id || !folhaAccountId}
-                    onClick={() => abrirPagamento(f, pendentes, `Folha ${f.mes_referencia} — ${pendentes.length} colaborador(es)`)}
-                  >
-                    {acting === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
-                    Efetuar pagamento
-                  </Button>
-                )}
-                {f.status === "em_aberto" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-                    disabled={acting === f.id}
-                    onClick={() => handleDelete(f)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-                {f.status === "confirmada" && sit === "confirmada" && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1" disabled={acting === f.id} onClick={() => handleReopen(f)}>
-                    <RotateCcw className="h-3.5 w-3.5" /> Reabrir
-                  </Button>
-                )}
-              </div>
+        <GlobalToolbar actions={actions} selectedCount={selecionados.size} />
+        <DataGrid
+          rows={linhas}
+          columns={columns}
+          rowId={(l) => l.item.id}
+          selected={selecionados}
+          onSelectedChange={setSelecionados}
+          loading={loading}
+          minWidth={1100}
+          rowClassName={(l) => rowToneClass(l.pago ? "resolved" : l.sit === "cancelada" ? "neutral" : "pending")}
+          emptyMessage="Nenhuma folha ou acerto neste mês. Gere a folha dos administrativos aqui; o acerto dos motoristas é gerado na tela Motoristas."
+          footer={linhas.length > 0 ? (
+            <div className="flex flex-wrap justify-end gap-4 text-xs">
+              <span>Comissões: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.comissoes)))}</b></span>
+              <span>Reembolsos: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.reembolsos || 0)))}</b></span>
+              <span>Descontos: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.adiantamentos) + Number(i.descontos)))}</b></span>
+              <span>Líquido: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.liquido)))}</b></span>
             </div>
-
-            {/* Blocos visuais separados: Base • Descontos • Comissões • Total */}
-            <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Bloco tom="neutral" titulo="Base" principal={formatBRL(Number(f.total_base))} />
-              <Bloco
-                tom="negativo"
-                titulo="Descontos"
-                principal={formatBRL(Number(f.total_adiantamentos) + Number(f.total_descontos))}
-                detalhes={[
-                  { label: "Adiantamentos", value: formatBRL(Number(f.total_adiantamentos)) },
-                  { label: "Outros descontos", value: formatBRL(Number(f.total_descontos)) },
-                ]}
-              />
-              <Bloco tom="positivo" titulo="Reembolsos" principal={formatBRL(itens.reduce((sum, i) => sum + Number(i.reembolsos || 0), 0))} />
-              <Bloco tom="positivo" titulo="Comissões" principal={formatBRL(Number(f.total_comissoes))} />
-              <Bloco tom="destaque" titulo="Total líquido" principal={formatBRL(Number(f.total_liquido))} />
-            </CardContent>
-
-            <div className="border-t divide-y">
-              {itens.map((item) => (
-                <div key={item.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/30">
-                  <Checkbox checked={selecionados.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
-                  <span className="min-w-0 flex-1 text-sm font-medium truncate">{item.colaborador_nome}</span>
-                  {itemPago[item.id] && (
-                    <Badge variant="outline" className="h-5 text-[9px] text-emerald-700 border-emerald-300 bg-emerald-50">Pago</Badge>
-                  )}
-                  {Number(item.reembolsos) > 0 && <span className="text-xs text-primary">Reembolso: {formatBRL(Number(item.reembolsos))}</span>}
-                  <span className="text-xs text-muted-foreground tabular-nums">{formatBRL(Number(item.liquido))}</span>
-                  {f.status === "em_aberto" && (
-                    <Button
-                      variant="ghost" size="icon" className="h-7 w-7"
-                      onClick={() => abrirEdicao(f, item)}
-                      title={`Editar valores de ${item.colaborador_nome}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  {!itemPago[item.id] && sit !== "cancelada" && (
-                    <Button
-                      variant="ghost" size="icon" className="h-7 w-7 text-primary"
-                      disabled={!folhaAccountId}
-                      onClick={() => abrirPagamento(f, [item], item.colaborador_nome)}
-                      title={`Efetuar pagamento de ${item.colaborador_nome}`}
-                    >
-                      <Wallet className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost" size="icon" className="h-7 w-7"
-                    disabled={acting === `recibo-${item.id}`}
-                    onClick={() => gerarRecibos([{ folha: f, item }], `recibo-${item.id}`)}
-                    title="Gerar recibo"
-                  >
-                    {acting === `recibo-${item.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  </Button>
-                  {f.status === "em_aberto" && (
-                    <Button
-                      variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                      disabled={acting === item.id} onClick={() => handleDeleteItem(f, item)}
-                      title={`Excluir folha de ${item.colaborador_nome}`}
-                    >
-                      {acting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-        );})}
+          ) : undefined}
+        />
+        <StatusLegend items={[{ tone: "pending", label: "A pagar" }, { tone: "resolved", label: "Pago" }]} />
       </div>
+
+      {/* Fechamento do motorista */}
+      <FechamentoMotoristaDialog alvo={fechamento} onClose={() => setFechamento(null)} adiantExpenses={adiantExpenses} />
 
       {/* Edição individual */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
@@ -535,7 +462,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           <DialogHeader>
             <DialogTitle>Efetuar pagamento</DialogTitle>
             <DialogDescription>
-              {pagamento?.label} — total {formatBRL((pagamento?.itens || []).reduce((s, i) => s + Number(i.liquido || 0), 0))}.
+              {pagamento?.label} — total {formatBRL((pagamento?.grupos || []).flatMap((g) => g.itens).reduce((s, i) => s + Number(i.liquido || 0), 0))}.
               A baixa é registrada no Contas a Pagar e no Fluxo de Caixa.
             </DialogDescription>
           </DialogHeader>
@@ -554,8 +481,8 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
               </Select>
             </div>
           </div>
-          <Button className="w-full" disabled={acting === pagamento?.folha.id} onClick={confirmarPagamento}>
-            {acting === pagamento?.folha.id ? "Processando..." : "Efetuar pagamento"}
+          <Button className="w-full" disabled={acting === "pagamento"} onClick={confirmarPagamento}>
+            {acting === "pagamento" ? "Processando..." : "Efetuar pagamento"}
           </Button>
         </DialogContent>
       </Dialog>
@@ -565,40 +492,56 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   );
 }
 
-type Tom = "neutral" | "negativo" | "positivo" | "destaque";
 
-function Bloco({
-  tom,
-  titulo,
-  principal,
-  detalhes,
-}: {
-  tom: Tom;
-  titulo: string;
-  principal: string;
-  detalhes?: { label: string; value: string }[];
-}) {
-  const styles: Record<Tom, { wrap: string; title: string; value: string }> = {
-    neutral: { wrap: "border-border bg-background", title: "text-muted-foreground", value: "text-foreground" },
-    negativo: { wrap: "border-rose-200 bg-rose-50/60", title: "text-rose-700", value: "text-rose-700" },
-    positivo: { wrap: "border-emerald-200 bg-emerald-50/60", title: "text-emerald-700", value: "text-emerald-700" },
-    destaque: { wrap: "border-primary/40 bg-primary/5 ring-1 ring-primary/20", title: "text-primary", value: "text-primary font-bold" },
-  };
-  const s = styles[tom];
+const NAT_LABEL: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+
+function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Linha | null; onClose: () => void; adiantExpenses: Expense[] }) {
+  const [movs, setMovs] = useState<MovMotorista[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!alvo) return;
+    const f = alvo.folha;
+    setLoading(true);
+    setMovs([]);
+    loadMovimentosEDisponiveis(alvo.item.colaborador_id, { inicio: f.data_inicio, fim: f.data_fim, month: String(f.data_inicio).slice(0, 7) }, adiantExpenses)
+      .then((r) => setMovs(r.incluidas))
+      .catch((e) => toast.error("Erro ao carregar o fechamento: " + e.message))
+      .finally(() => setLoading(false));
+  }, [alvo, adiantExpenses]);
+  const r = resumirMovimentos(movs);
   return (
-    <div className={`rounded-md border p-2.5 ${s.wrap}`}>
-      <div className={`text-[9px] uppercase tracking-wide font-semibold ${s.title}`}>{titulo}</div>
-      <div className={`text-sm tabular-nums mt-0.5 ${s.value}`}>{principal}</div>
-      {detalhes && detalhes.length > 0 && (
-        <div className="mt-1.5 space-y-0.5">
-          {detalhes.map((d) => (
-            <div key={d.label} className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span className="truncate">{d.label}</span>
-              <span className="tabular-nums">{d.value}</span>
-            </div>
-          ))}
+    <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Fechamento — {alvo?.item.colaborador_nome}</DialogTitle>
+          <DialogDescription>Período {fmtData(alvo?.folha.data_inicio)} a {fmtData(alvo?.folha.data_fim)}</DialogDescription>
+        </DialogHeader>
+        <DataGrid
+          rows={movs}
+          rowId={(m) => m.id}
+          selected={new Set()}
+          onSelectedChange={() => {}}
+          isSelectable={() => false}
+          loading={loading}
+          minWidth={620}
+          maxHeight="50vh"
+          emptyMessage="Nenhuma movimentação neste acerto."
+          columns={[
+            { key: "data", header: "Data", cell: (m) => fmtData(m.data), sortValue: (m) => m.data },
+            { key: "tipo", header: "Tipo", cell: (m) => NAT_LABEL[m.natureza] },
+            { key: "desc", header: "Descrição", cell: (m) => <span className="truncate">{m.descricao}</span> },
+            { key: "ent", header: "Entrada", align: "right", cell: (m) => (m.entrada ? <span className="tabular-nums">{formatBRL(m.entrada)}</span> : "") },
+            { key: "sai", header: "Saída", align: "right", cell: (m) => (m.saida ? <span className="tabular-nums text-destructive">{formatBRL(m.saida)}</span> : "") },
+          ]}
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+          <div>Comissões<br /><b className="tabular-nums">{formatBRL(r.comissoes)}</b></div>
+          <div>Reembolsos<br /><b className="tabular-nums">{formatBRL(r.reembolsos)}</b></div>
+          <div>Adiant. / Vales<br /><b className="tabular-nums text-destructive">{formatBRL(r.vales)}</b></div>
+          <div>Descontos<br /><b className="tabular-nums text-destructive">{formatBRL(r.descontos)}</b></div>
+          <div>Saldo a receber<br /><b className="tabular-nums text-primary">{formatBRL(Number(alvo?.item.liquido ?? r.saldo))}</b></div>
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
