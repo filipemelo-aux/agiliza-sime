@@ -4,7 +4,7 @@ import { printBrandFooterHtml } from "@/lib/printBrand";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 import type { MovMotorista, ResumoAcerto } from "@/services/rh/acertoMotoristaService";
 
-const NAT: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+const NAT: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
 const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 const dt = (d?: string | null) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "—");
 const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));

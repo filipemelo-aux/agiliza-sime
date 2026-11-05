@@ -559,7 +559,7 @@ async function baixarAcertoPdfLinha(l: Linha, movs?: MovMotorista[]) {
   });
 }
 
-const NAT_LABEL: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+const NAT_LABEL: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
 
 function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Linha | null; onClose: () => void; adiantExpenses: Expense[] }) {
   const [movs, setMovs] = useState<MovMotorista[]>([]);
