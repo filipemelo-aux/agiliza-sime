@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Receipt } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -20,7 +20,7 @@ import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import { MonthPicker } from "@/components/MonthPicker";
-import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena, buildMesCompleto, previousMonth } from "@/lib/rhAcertoPeriod";
+import { getAcertoPeriod, formatAcertoPeriod, listQuinzenas, labelQuinzena, buildMesCompleto, previousMonth } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
@@ -40,7 +40,6 @@ import {
   fetchComissoesPendentesForMonth,
   fetchDescontosPendentesForMonth,
   fetchExpensesByColaborador,
-  fetchReembolsosPendentes,
   filterByAccount,
   resolveBaseSalary,
   type ColaboradorRH,
