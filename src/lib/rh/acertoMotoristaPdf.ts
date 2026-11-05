@@ -30,7 +30,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
     .resumo td{padding:4px 6px;border-bottom:1px solid #e5e7eb}
     .saldo td{font-size:13px;font-weight:bold;color:#2B4C7E;border-top:2px solid #2B4C7E}
     .ass{margin-top:28px;display:flex;flex-direction:column;align-items:center}
-    .ass p{font-size:9.5px;color:#374151;text-align:justify;line-height:1.45;margin:0 0 42px;width:100%}
+    .ass p{font-size:9.5px;color:#374151;text-align:left;line-height:1.45;margin:0 0 42px;width:92%;box-sizing:border-box;padding-right:12px;align-self:flex-start}
     .ass .linha{width:60%;border-top:1px solid #111;text-align:center;padding-top:4px;font-size:10.5px}
     .ass .linha small{display:block;font-size:9px;color:#6b7280}
   </style></head><body><div class="doc-page">

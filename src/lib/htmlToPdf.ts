@@ -17,6 +17,47 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { preparePdfImages, snapshotPdfImages } from "@/lib/pdfImages";
 
+type TextLine = { text: string; x: number; y: number; w: number; h: number };
+
+/** Coleta linhas de texto (em px relativos ao elemento) para a camada de texto selecionável. */
+function collectTextLines(el: HTMLElement): TextLine[] {
+  const doc = el.ownerDocument;
+  const base = el.getBoundingClientRect();
+  const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const lines: TextLine[] = [];
+  const range = doc.createRange();
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const txt = node.textContent || "";
+    const parent = (node as Text).parentElement;
+    if (!txt.trim() || !parent) continue;
+    const cs = doc.defaultView?.getComputedStyle(parent);
+    if (cs && (cs.visibility === "hidden" || cs.display === "none")) continue;
+    const re = /\S+/g;
+    let m: RegExpExecArray | null;
+    let cur: TextLine | null = null;
+    while ((m = re.exec(txt))) {
+      range.setStart(node, m.index);
+      range.setEnd(node, m.index + m[0].length);
+      const r = range.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const x = r.left - base.left, y = r.top - base.top;
+      if (cur && Math.abs(cur.y - y) < r.height / 2 && x >= cur.x + cur.w - 1) {
+        cur.text += " " + m[0];
+        cur.w = x + r.width - cur.x;
+      } else {
+        if (cur) lines.push(cur);
+        cur = { text: m[0], x, y, w: r.width, h: r.height };
+      }
+    }
+    if (cur) lines.push(cur);
+  }
+  range.detach?.();
+  return lines;
+}
+
+const toWinAnsi = (s: string) => s.replace(/[\u2212\u2013\u2014]/g, "-").replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\u2026/g, "...").replace(/[^\x20-\xFF]/g, "");
+
 /** Renderiza um HTML completo (A4) num iframe oculto e devolve o jsPDF (uma página por .doc-page). */
 export async function buildHtmlPdf(
   html: string,
@@ -52,6 +93,8 @@ export async function buildHtmlPdf(
       pdf.addImage(dataUrl, "JPEG", (pageW - wMm) / 2, margin, wMm, hMm);
     };
     for (const el of targets) {
+      const textLines = collectTextLines(el);
+      const firstPageIndex = pdf.getNumberOfPages() - (first ? 1 : 0);
       const paintImages = snapshotPdfImages(el);
       const canvas = await html2canvas(el, {
         scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794,
@@ -70,6 +113,8 @@ export async function buildHtmlPdf(
       const elWidthMm = Math.min((el as HTMLElement).offsetWidth * 25.4 / 96, opts?.contentWidthMm ?? usableW);
       const pxPerMm = canvas.width / elWidthMm;
       const naturalHeight = canvas.height / pxPerMm;
+      const cssToMm = elWidthMm / Math.max(1, el.getBoundingClientRect().width);
+      const left = (pageW - elWidthMm) / 2;
       if (naturalHeight <= usableH) {
         putImage(canvas.toDataURL("image/jpeg", 0.94), elWidthMm, naturalHeight);
       } else {
@@ -97,6 +142,27 @@ export async function buildHtmlPdf(
           putImage(slice.toDataURL("image/jpeg", 0.94), elWidthMm, elWidthMm * slice.height / canvas.width);
         }
       }
+      // Camada de texto invisível sobre a imagem: torna o PDF selecionável/pesquisável sem alterar o visual.
+      const lastPage = pdf.getNumberOfPages();
+      pdf.setFont("helvetica", "normal");
+      for (const ln of textLines) {
+        const text = toWinAnsi(ln.text);
+        if (!text.trim()) continue;
+        const yMm = ln.y * cssToMm;
+        const pageOffset = naturalHeight <= usableH ? 0 : Math.floor(yMm / usableH);
+        const page = firstPageIndex + 1 + pageOffset;
+        if (page > lastPage) continue;
+        pdf.setPage(page);
+        const hMm = ln.h * cssToMm;
+        const fontPt = Math.max(1, (hMm * 0.82) / 0.3528);
+        pdf.setFontSize(fontPt);
+        const natural = pdf.getTextWidth(text);
+        const targetW = ln.w * cssToMm;
+        const opts: Record<string, unknown> = { baseline: "top", renderingMode: "invisible" };
+        if (natural > 0 && text.length > 1) opts.charSpace = (targetW - natural) / (text.length - 1);
+        pdf.text(text, left + ln.x * cssToMm, margin + (yMm - pageOffset * usableH) + hMm * 0.1, opts);
+      }
+      pdf.setPage(lastPage);
     }
     return pdf;
   } finally {
