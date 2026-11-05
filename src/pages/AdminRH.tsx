@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Receipt } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -20,7 +20,7 @@ import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import { MonthPicker } from "@/components/MonthPicker";
-import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena, buildMesCompleto, previousMonth } from "@/lib/rhAcertoPeriod";
+import { getAcertoPeriod, formatAcertoPeriod, listQuinzenas, labelQuinzena, buildMesCompleto, previousMonth } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
@@ -40,7 +40,6 @@ import {
   fetchComissoesPendentesForMonth,
   fetchDescontosPendentesForMonth,
   fetchExpensesByColaborador,
-  fetchReembolsosPendentes,
   filterByAccount,
   resolveBaseSalary,
   type ColaboradorRH,
@@ -360,52 +359,38 @@ function RHWorkspace(props: any) {
           return [c.full_name, c.cargo, c.departamento].some((v) => (v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q));
         })
     : [];
-  const [reembByColab, setReembByColab] = useState<Map<string, number>>(new Map());
   const [movFor, setMovFor] = useState<ColaboradorRH | null>(null);
-  const [movLancar, setMovLancar] = useState<null | "comissao" | "reembolso" | "vale" | "desconto">(null);
-  const abrirMov = (lancar: typeof movLancar = null) => { const c = selectedPeople[0]; if (!c) return; setMovLancar(lancar); setMovFor(c); };
-  const fecharMov = () => { setMovFor(null); setMovLancar(null); reload(); };
-  const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
-  useEffect(() => {
-    if (!isPeople || !colaboradores.length) return;
-    const periodoRef = section === "administrativo" ? adminPeriod : acertoPeriod;
-    fetchReembolsosPendentes(colaboradores.map((c: ColaboradorRH) => c.id))
-      .then((rows) => {
-        const m = new Map<string, number>();
-        rows.forEach((e) => {
-          if (periodoRef && !inAcertoPeriod(e.data_competencia || e.data_emissao, periodoRef)) return;
-          const id = e.reembolso_colaborador_id || "";
-          m.set(id, (m.get(id) || 0) + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0));
-        });
-        setReembByColab(m);
-      })
-      .catch(() => setReembByColab(new Map()));
-  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio, adminPeriod?.inicio, section]);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
   const isMotoristas = section === "motoristas";
-  // Resumo do acerto por motorista na quinzena escolhida (movimentações ou snapshot do acerto gerado)
+  // Período ativo do acerto: quinzena (motoristas) ou mês de referência completo (administrativo)
+  const periodoAtivo = isMotoristas ? acertoPeriod : adminPeriod;
+  // Resumo do acerto por colaborador no período escolhido (movimentações ou snapshot do acerto gerado)
   const [resumoByColab, setResumoByColab] = useState<Map<string, ResumoAcerto>>(new Map());
   const [acertoByColab, setAcertoByColab] = useState<Map<string, AcertoGerado>>(new Map());
   const [resumoLoading, setResumoLoading] = useState(false);
   const [acertoBusy, setAcertoBusy] = useState(false);
   const [resumoTick, setResumoTick] = useState(0);
-  const motoristaIdsKey = colaboradores.filter((c: ColaboradorRH) => c.tipo === "motorista").map((c: ColaboradorRH) => c.id).join(",");
+  const peopleIdsKey = peopleRows.map((c: ColaboradorRH) => c.id).join(",");
   useEffect(() => {
-    if (!isMotoristas || !acertoPeriod || movFor) return;
-    const motoristas = colaboradores.filter((c: ColaboradorRH) => c.tipo === "motorista");
-    if (!motoristas.length) return;
+    if (!isPeople || !periodoAtivo || movFor) return;
+    if (!peopleRows.length) { setAcertoByColab(new Map()); setResumoByColab(new Map()); return; }
     let cancelled = false;
     setResumoLoading(true);
     (async () => {
       try {
-        const acertos = await fetchAcertosDoPeriodo(motoristas.map((c: ColaboradorRH) => c.id), acertoPeriod.inicio);
+        const acertos = await fetchAcertosDoPeriodo(peopleRows.map((c: ColaboradorRH) => c.id), periodoAtivo.inicio);
         const resumos = new Map<string, ResumoAcerto>();
-        const livres = motoristas.filter((c: ColaboradorRH) => !acertos.has(c.id));
+        const livres = peopleRows.filter((c: ColaboradorRH) => !acertos.has(c.id));
         for (let i = 0; i < livres.length; i += 4) {
           const lote = livres.slice(i, i + 4);
-          const res = await Promise.all(lote.map((c: ColaboradorRH) => loadMovimentosMotorista(c.id, acertoPeriod, adiantExpenses)));
-          lote.forEach((c: ColaboradorRH, k: number) => resumos.set(c.id, resumirMovimentos(res[k])));
+          const res = await Promise.all(lote.map((c: ColaboradorRH) => loadMovimentosMotorista(c.id, periodoAtivo, adiantExpenses)));
+          lote.forEach((c: ColaboradorRH, k: number) => {
+            const r = resumirMovimentos(res[k]);
+            // Administrativo: o salário base do cadastro entra integralmente no acerto do mês
+            if (!isMotoristas) { r.salario = Number(c.salario || 0); r.saldo += r.salario; }
+            resumos.set(c.id, r);
+          });
         }
         acertos.forEach((a, id) => resumos.set(id, a.resumo));
         if (!cancelled) { setAcertoByColab(acertos); setResumoByColab(resumos); }
@@ -416,16 +401,19 @@ function RHWorkspace(props: any) {
       }
     })();
     return () => { cancelled = true; };
-  }, [isMotoristas, motoristaIdsKey, acertoPeriod?.inicio, adiantExpenses, movFor, resumoTick]);
+  }, [isPeople, isMotoristas, peopleIdsKey, periodoAtivo?.inicio, adiantExpenses, movFor, resumoTick]);
 
   const money = (key: string, header: string, get: (r: ResumoAcerto) => number, tone: string): DataGridColumn<ColaboradorRH> => ({
     key, header, width: "120px", align: "right",
     sortValue: (c) => { const r = resumoByColab.get(c.id); return r ? get(r) : 0; },
     cell: (c) => { const r = resumoByColab.get(c.id); const v = r ? get(r) : 0; return <span className={cn("font-mono whitespace-nowrap", v ? tone : "text-muted-foreground")}>{formatBRL(v)}</span>; },
   });
-  const motoristaColumns: DataGridColumn<ColaboradorRH>[] = [
+  // Grade de acerto: motoristas veem Comissões; administrativo vê o Salário base do cadastro
+  const peopleColumns: DataGridColumn<ColaboradorRH>[] = [
     ...colabColumns.filter((col) => col.key === "nome"),
-    money("comissao", "Comissões", (r) => r.comissoes, "text-success"),
+    ...(isMotoristas
+      ? [money("comissao", "Comissões", (r) => r.comissoes, "text-success")]
+      : [money("salario", "Salário base", (r) => r.salario, "text-foreground")]),
     money("reemb", "Reembolsos", (r) => r.reembolsos, "text-success"),
     money("adiant", "Adiant. / Vales", (r) => r.vales, "text-warning"),
     money("desc", "Descontos", (r) => r.descontos, "text-destructive"),
@@ -444,34 +432,23 @@ function RHWorkspace(props: any) {
       },
     },
   ];
-  const peopleColumns: DataGridColumn<ColaboradorRH>[] = isMotoristas ? motoristaColumns : [
-    ...colabColumns.filter((col) => ["nome", "admissao", "salario", "adiant", "saldo"].includes(col.key)),
-    {
-      key: "reemb",
-      header: "Reembolsos",
-      width: "120px",
-      align: "right",
-      sortValue: (c) => reembByColab.get(c.id) || 0,
-      cell: (c) => <span className="font-mono text-success whitespace-nowrap">{formatBRL(reembByColab.get(c.id) || 0)}</span>,
-    },
-    ...colabColumns.filter((col) => col.key === "status"),
-  ];
 
   const selAcerto = selectedPeople[0] ? acertoByColab.get(selectedPeople[0].id) : undefined;
   const gerarAcerto = async () => {
     const c = selectedPeople[0];
-    if (!c || !acertoPeriod) return;
+    if (!c || !periodoAtivo) return;
     if (!matrizId || !user?.id) { toast.error("Empresa ou usuário não identificado."); return; }
     const r = resumoByColab.get(c.id);
+    const periodoLabel = isMotoristas ? labelQuinzena(periodoAtivo) : `mês de ${formatAcertoPeriod(periodoAtivo)}`;
     const ok = await confirmAcerto({
       title: "Gerar acerto?",
-      description: `O acerto de ${c.full_name} (${labelQuinzena(acertoPeriod)}) com saldo de ${formatBRL(r?.saldo || 0)} vai para a Folha de Pagamento e as movimentações ficam bloqueadas até você usar “Editar acerto”.`,
+      description: `O acerto de ${c.full_name} (${periodoLabel}) com saldo de ${formatBRL(r?.saldo || 0)} vai para a Folha de Pagamento e as movimentações ficam bloqueadas até você usar “Liberar acerto”.`,
       confirmLabel: "Gerar acerto",
     });
     if (!ok) return;
     setAcertoBusy(true);
     try {
-      await gerarAcertoMotorista({ colaborador: c, periodo: acertoPeriod, adiantExpenses, empresaId: matrizId, userId: user.id });
+      await gerarAcertoMotorista({ colaborador: c, periodo: periodoAtivo, adiantExpenses, empresaId: matrizId, userId: user.id });
       toast.success("Acerto gerado e enviado para a Folha de Pagamento.");
       setResumoTick((t) => t + 1);
     } catch (e: any) {
@@ -501,14 +478,10 @@ function RHWorkspace(props: any) {
     }
   };
 
-  const peopleActions: ToolbarAction[] = isMotoristas ? [
+  const peopleActions: ToolbarAction[] = [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
-  ] : [
-    { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "single", onClick: () => abrirMov("reembolso") },
-    { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "single", onClick: () => abrirMov("vale") },
-    { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "single", variant: "default", onClick: () => abrirMov("desconto") },
   ];
 
   const allItems: NavItem[] = [
@@ -592,40 +565,26 @@ function RHWorkspace(props: any) {
               rowId={(c: ColaboradorRH) => c.id}
               selected={selectedColabs}
               onSelectedChange={setSelectedColabs}
-              singleSelection={isMotoristas}
-              loading={loading || (isMotoristas && resumoLoading && resumoByColab.size === 0)}
+              singleSelection
+              loading={loading || (resumoLoading && resumoByColab.size === 0)}
               minWidth={900}
-              rowClassName={(c: ColaboradorRH) => isMotoristas
-                ? rowToneClass(acertoByColab.has(c.id) ? "resolved" : (resumoByColab.get(c.id)?.saldo || 0) !== 0 ? "pending" : "neutral")
-                : rowToneClass((reembByColab.get(c.id) || 0) > 0 ? "pending" : c.ativo ? "resolved" : "neutral")}
+              rowClassName={(c: ColaboradorRH) => rowToneClass(acertoByColab.has(c.id) ? "resolved" : (resumoByColab.get(c.id)?.saldo || 0) !== 0 ? "pending" : "neutral")}
               emptyMessage={section === "motoristas"
                 ? "Nenhum motorista marcado como colaborador (RH)."
                 : "Nenhum colaborador administrativo / operacional marcado como colaborador (RH)."}
               footer={<div className="text-[11px] text-muted-foreground">{peopleRows.length} colaborador(es)</div>}
             />
-            <StatusLegend className="px-1" items={isMotoristas
-              ? [{ tone: "pending", label: "Com movimentações em aberto" }, { tone: "resolved", label: "Acerto gerado" }, { tone: "neutral", label: "Sem movimentações" }]
-              : [{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+            <StatusLegend className="px-1" items={[{ tone: "pending", label: "Com movimentações em aberto" }, { tone: "resolved", label: "Acerto gerado" }, { tone: "neutral", label: "Sem movimentações" }]} />
             {AcertoConfirmDialog}
-            <ProcessingOverlay open={isMotoristas && resumoLoading} label="Carregando movimentações do período..." />
-            {section === "motoristas" ? (
-              <MotoristaMovimentacoesDialog
-                colaborador={movFor}
-                adiantExpenses={adiantExpenses}
-                periodo={acertoPeriod}
-                bloqueado={!!(movFor && acertoByColab.has(movFor.id))}
-                onClose={() => { setMovFor(null); reload(); }}
-              />
-            ) : (
+            <ProcessingOverlay open={isPeople && resumoLoading} label="Carregando movimentações do período..." />
             <MotoristaMovimentacoesDialog
               colaborador={movFor}
-              perfil="administrativo"
+              perfil={isMotoristas ? "motorista" : "administrativo"}
               adiantExpenses={adiantExpenses}
-              periodo={adminPeriod}
-              initialLancar={movLancar}
-              onClose={fecharMov}
+              periodo={periodoAtivo}
+              bloqueado={!!(movFor && acertoByColab.has(movFor.id))}
+              onClose={() => { setMovFor(null); reload(); }}
             />
-            )}
           </div>
         )}
 

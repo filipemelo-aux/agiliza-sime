@@ -4,7 +4,7 @@ import { printBrandFooterHtml } from "@/lib/printBrand";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 import type { MovMotorista, ResumoAcerto } from "@/services/rh/acertoMotoristaService";
 
-const NAT: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+const NAT: Record<MovMotorista["natureza"], string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
 const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 const dt = (d?: string | null) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "—");
 const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -65,6 +65,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Entradas: <span class="mono pos">${brl(totE)}</span>&nbsp;&nbsp;·&nbsp;&nbsp;Saídas: <span class="mono neg">${brl(totS)}</span></td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
   <div class="legenda"><span><span class="sw in"></span>Entrada (crédito)</span><span><span class="sw out"></span>Saída (débito)</span></div>
   <table class="resumo">
+    ${o.resumo.salario > 0 ? `<tr><td>(+) Salário base</td><td class="r">${brl(o.resumo.salario)}</td></tr>` : ""}
     <tr><td>(+) Comissões</td><td class="r">${brl(o.resumo.comissoes)}</td></tr>
     <tr><td>(+) Reembolsos</td><td class="r">${brl(o.resumo.reembolsos)}</td></tr>
     <tr><td>(−) Adiantamentos / Vales</td><td class="r neg">${brl(o.resumo.vales)}</td></tr>

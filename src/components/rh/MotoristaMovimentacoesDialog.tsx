@@ -18,6 +18,8 @@ import {
   parcelarValeAoAcerto,
   loadMovimentosEDisponiveis,
   removerDoAcerto,
+  comSalarioBase,
+  SALARIO_ROW_ID,
   type ColaboradorRH,
   type Expense,
   type MovMotorista,
@@ -31,7 +33,7 @@ const formatDate = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7
 type Natureza = MovNatureza;
 type Mov = MovMotorista;
 
-const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto" };
+const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
 
 type Lancar = null | "comissao" | "reembolso" | "vale" | "desconto";
 
@@ -43,22 +45,18 @@ interface Props {
   perfil?: "motorista" | "administrativo";
   /** acerto gerado: movimentações somente leitura */
   bloqueado?: boolean;
-  /** abre direto no seletor de lançamento (usado pela toolbar da página) */
-  initialLancar?: Lancar;
   onClose: () => void;
 }
 
 /** Extrato de entradas (créditos) e saídas (débitos) do colaborador no período escolhido na grade. */
-export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, initialLancar = null, onClose }: Props) {
+export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, onClose }: Props) {
   const isMotorista = perfil === "motorista";
   const periodoLabel = isMotorista ? labelQuinzena(periodo) : `Mês de referência: ${formatAcertoPeriod(periodo)}`;
   const [rows, setRows] = useState<Mov[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [lancar, setLancar] = useState<Lancar>(initialLancar);
-  useEffect(() => { setLancar(initialLancar); }, [colaborador?.id, initialLancar]);
-  // Aberto pela toolbar da página: fechar o seletor encerra a janela toda
-  const fecharLancar = () => { if (initialLancar) onClose(); else setLancar(null); };
+  const [lancar, setLancar] = useState<Lancar>(null);
+  const fecharLancar = () => setLancar(null);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [disp, setDisp] = useState<Mov[]>([]);
@@ -82,10 +80,16 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   useEffect(() => { setSelected(new Set()); load(); }, [load]);
 
-  const totalEntrada = rows.reduce((s, r) => s + r.entrada, 0);
-  const totalSaida = rows.reduce((s, r) => s + r.saida, 0);
+  // Administrativo: o salário base do cadastro já abre listado como entrada (linha sintética, não removível)
+  const rowsExibidas = useMemo<Mov[]>(
+    () => (isMotorista ? rows : comSalarioBase(rows, Number(colaborador?.salario || 0), periodo.inicio)),
+    [isMotorista, colaborador?.salario, rows, periodo.inicio]
+  );
+
+  const totalEntrada = rowsExibidas.reduce((s, r) => s + r.entrada, 0);
+  const totalSaida = rowsExibidas.reduce((s, r) => s + r.saida, 0);
   const saldo = totalEntrada - totalSaida;
-  const sel = rows.filter((r) => selected.has(r.id));
+  const sel = rowsExibidas.filter((r) => selected.has(r.id) && r.id !== SALARIO_ROW_ID);
   const lista = useMemo(() => (colaborador ? [colaborador] : []), [colaborador]);
   const dispLancar = lancar ? disp.filter((d) => d.natureza === lancar) : [];
 
@@ -133,6 +137,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   const excluir = async () => {
     if (!sel.length || bloqueado || !colaborador) return;
+    // sel já exclui a linha sintética do salário base
     const ok = await confirm({ title: "Remover da movimentação", description: `Remover ${sel.length === 1 ? "este lançamento" : `${sel.length} lançamentos`} do acerto do período? O lançamento original (Contas a Pagar, comissão ou desconto) não é apagado e volta a ficar disponível.`, confirmLabel: "Remover" } as any);
     if (!ok) return;
     try {
@@ -179,24 +184,21 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   return (
     <>
-      <Dialog open={!!colaborador && !initialLancar} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={!!colaborador} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-6xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>Movimentações — {colaborador?.full_name}</DialogTitle>
-            <DialogDescription>
-              {periodoLabel}
-              {!isMotorista && colaborador?.salario != null && ` · Salário base ${formatBRL(Number(colaborador.salario))} (entra automaticamente na folha)`}
-            </DialogDescription>
+            <DialogDescription>{periodoLabel}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {bloqueado && (
               <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
-                Acerto desta quinzena já gerado e enviado para a Folha de Pagamento. Para alterar, use “Editar acerto” na lista de motoristas.
+                Acerto {isMotorista ? "desta quinzena" : "deste mês"} já gerado e enviado para a Folha de Pagamento. Para alterar, use “Liberar acerto” na lista.
               </div>
             )}
             <GlobalToolbar actions={actions} selectedCount={selected.size} />
             <DataGrid
-              rows={rows}
+              rows={rowsExibidas}
               columns={columns}
               rowId={(r) => r.id}
               selected={selected}

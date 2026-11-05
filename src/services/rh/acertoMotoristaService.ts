@@ -9,11 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchComissoes } from "./comissoesService";
 import { fetchDescontosPendentesNoPeriodo } from "./descontosFolhaService";
 import { fetchReembolsosPendentesNoPeriodo, type ReembolsoExpense } from "./rhFinancialService";
-import { buildPeriodoQuinzenal, computePayrollRowsFromPeriodo, periodoToMesReferencia } from "./rhViewModel";
+import { buildPeriodoMensal, buildPeriodoQuinzenal, computePayrollRowsFromPeriodo, periodoToMesReferencia } from "./rhViewModel";
 import { criarFolhaEmAberto, buscarFolhaComItens, excluirItemFolhaEmAberto, reabrirFolhaConfirmada } from "./folhasPagamentoService";
 import type { ColaboradorRH, Comissao, DescontoFolha, Expense } from "./index";
 
-export type MovNatureza = "comissao" | "reembolso" | "vale" | "desconto";
+/** "salario" só existe como linha sintética de exibição (acerto administrativo); nunca é gravada em acerto_movimentos. */
+export type MovNatureza = "comissao" | "reembolso" | "vale" | "desconto" | "salario";
 export interface MovMotorista {
   id: string;
   natureza: MovNatureza;
@@ -154,11 +155,29 @@ export async function removerDoAcerto(colabId: string, p: PeriodoAcerto, movs: M
   }
 }
 
-export interface ResumoAcerto { comissoes: number; reembolsos: number; vales: number; descontos: number; saldo: number }
+export const SALARIO_ROW_ID = "salario-base";
+
+/** Linha sintética do salário base (acerto administrativo): só exibição, nunca gravada em acerto_movimentos. */
+export function movSalarioBase(salario: number, dataInicio: string): MovMotorista {
+  return {
+    id: SALARIO_ROW_ID, origemId: SALARIO_ROW_ID, origemTipo: "expense",
+    natureza: "salario", data: dataInicio,
+    descricao: "Salário base do mês (cadastro do colaborador)",
+    entrada: salario, saida: 0, removivel: false,
+  };
+}
+
+/** Prefixa o extrato com o salário base quando ele faz parte do acerto (administrativo). */
+export function comSalarioBase(movs: MovMotorista[], salarioBase: number, dataInicio: string): MovMotorista[] {
+  return salarioBase > 0 ? [movSalarioBase(salarioBase, dataInicio), ...movs] : movs;
+}
+
+export interface ResumoAcerto { salario: number; comissoes: number; reembolsos: number; vales: number; descontos: number; saldo: number }
 export function resumirMovimentos(movs: MovMotorista[]): ResumoAcerto {
   const sum = (n: MovNatureza, k: "entrada" | "saida") => movs.filter((m) => m.natureza === n).reduce((s, m) => s + m[k], 0);
+  const salario = sum("salario", "entrada");
   const r = { comissoes: sum("comissao", "entrada"), reembolsos: sum("reembolso", "entrada"), vales: sum("vale", "saida"), descontos: sum("desconto", "saida") };
-  return { ...r, saldo: r.comissoes + r.reembolsos - r.vales - r.descontos };
+  return { salario, ...r, saldo: salario + r.comissoes + r.reembolsos - r.vales - r.descontos };
 }
 
 export interface AcertoGerado { folhaId: string; itemId: string; status: string; resumo: ResumoAcerto }
@@ -176,6 +195,7 @@ export async function fetchAcertosDoPeriodo(colabIds: string[], inicio: string):
   (data || []).forEach((i: any) => m.set(i.colaborador_id, {
     folhaId: i.folha_id, itemId: i.id, status: i.folhas_pagamento?.status,
     resumo: {
+      salario: Number(i.salario_base || 0),
       comissoes: Number(i.comissoes || 0), reembolsos: Number(i.reembolsos || 0), vales: Number(i.adiantamentos || 0),
       descontos: Number(i.descontos || 0), saldo: Number(i.liquido || 0),
     },
@@ -202,21 +222,29 @@ export async function gerarAcertoMotorista(input: {
     descontos: f0.descontos.filter((d) => inc.has(vkey("desconto", d.id))),
   };
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
-  const { data: config, error: configError } = await (supabase.rpc as any)("get_rh_period_config");
-  if (configError) throw configError;
-  const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena", config);
-  if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("As configurações do acerto mudaram. Atualize a tela e selecione o período novamente.");
+  const isMotorista = colaborador.tipo === "motorista";
+  let pf;
+  if (isMotorista) {
+    const { data: config, error: configError } = await (supabase.rpc as any)("get_rh_period_config");
+    if (configError) throw configError;
+    pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena", config);
+    if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("As configurações do acerto mudaram. Atualize a tela e selecione o período novamente.");
+  } else {
+    // Administrativo/Operacional: mês de referência completo, pagamento no 5º dia útil do mês seguinte.
+    pf = buildPeriodoMensal(periodo.month);
+    if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("O período selecionado não corresponde ao mês de referência. Atualize a tela e tente novamente.");
+  }
   const [row] = computePayrollRowsFromPeriodo({
-    // Acerto do motorista = só as movimentações; o salário do cadastro não entra.
-    colaboradores: [{ ...colaborador, ativo: true, salario: 0 }], periodo: pf,
+    // Motorista: só as movimentações (salário do cadastro não entra). Administrativo: salário base integral do mês.
+    colaboradores: [{ ...colaborador, ativo: true, salario: isMotorista ? 0 : Number(colaborador.salario || 0) }], periodo: pf,
     adiantamentos: f.vales, comissoes, descontos: f.descontos, reembolsos: f.reembolsos,
   });
-  if (!row) throw new Error("Nenhuma movimentação para gerar o acerto nesta quinzena.");
+  if (!row) throw new Error("Nenhuma movimentação para gerar o acerto neste período.");
   await criarFolhaEmAberto({
     empresa_id: input.empresaId, created_by: input.userId,
     mes_referencia: periodoToMesReferencia(pf), data_inicio: pf.data_inicio, data_fim: pf.data_fim,
     tipo_periodo: pf.tipo, data_emissao: pf.data_fim, data_vencimento: pf.data_pagamento,
-    observacoes: `Acerto de motorista — ${colaborador.full_name}`,
+    observacoes: `${isMotorista ? "Acerto de motorista" : "Acerto administrativo"} — ${colaborador.full_name}`,
     itens: [{
       colaborador_id: colaborador.id, colaborador_nome: colaborador.full_name,
       salario_base: row.salario_base, adiantamentos: row.adiantamentos, descontos: row.descontos,
