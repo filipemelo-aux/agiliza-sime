@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { chavePixResumoFolha, totalizarResumoFolha, type ResumoFolhaLinha } from "./resumoFolha";
+import { chavePixResumoFolha, formatarChavePix, totalizarResumoFolha, type ResumoFolhaLinha } from "./resumoFolha";
 
 const linha = (valores: Partial<ResumoFolhaLinha>): ResumoFolhaLinha => ({ nome: "", tipo: "", inicio: "", fim: "", vencimento: "", situacao: "", base: 0, comissoes: 0, reembolsos: 0, adiantamentos: 0, descontos: 0, liquido: 0, ...valores });
 
 describe("Resumo consolidado dos fechamentos", () => {
   it("inclui a chave Pix cadastral de colaboradores com folha a pagar", () => {
     for (const situacao of ["em_aberto", "confirmada", "parcial"]) {
-      expect(chavePixResumoFolha(" colaborador@example.com ", false, situacao)).toBe("colaborador@example.com");
+      expect(chavePixResumoFolha(" colaborador@example.com ", false, situacao)).toEqual({ valor: "colaborador@example.com", tipo: "E-mail" });
     }
   });
   it("não inclui chave Pix de itens pagos ou folhas canceladas", () => {
@@ -17,6 +17,13 @@ describe("Resumo consolidado dos fechamentos", () => {
   it("não inventa chave Pix quando o cadastro não possui uma", () => {
     expect(chavePixResumoFolha(null, false, "em_aberto")).toBeUndefined();
     expect(chavePixResumoFolha("  ", false, "em_aberto")).toBeUndefined();
+  });
+  it("limpa a chave Pix de espaços, traços e pontos e identifica o tipo", () => {
+    expect(formatarChavePix("123.456.789-01")).toEqual({ valor: "12345678901", tipo: "CPF" });
+    expect(formatarChavePix("(63) 99984-1234")).toEqual({ valor: "63999841234", tipo: "Celular" });
+    expect(formatarChavePix("63 9841-2341")).toEqual({ valor: "6398412341", tipo: "Telefone" });
+    expect(formatarChavePix("12.345.678/0001-90")).toEqual({ valor: "12345678000190", tipo: "CNPJ" });
+    expect(formatarChavePix(" filipe@exemplo.com ")).toEqual({ valor: "filipe@exemplo.com", tipo: "E-mail" });
   });
   it("inclui o reembolso do Jailan uma vez e preserva o saldo fechado sem salário cadastral", () => {
     expect(totalizarResumoFolha([
