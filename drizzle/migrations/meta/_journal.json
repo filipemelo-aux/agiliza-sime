@@ -162,6 +162,13 @@
       "when": 1793882712284,
       "tag": "0022_competencia_follows_emissao",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793882969469,
+      "tag": "0023_competencia_always_emissao",
+      "breakpoints": true
     }
   ]
 }
