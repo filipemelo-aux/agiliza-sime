@@ -20,12 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, FileText, BadgeDollarSign, Eye, Printer } from "lucide-react";
+import { Loader2, Trash2, FileText, BadgeDollarSign, Eye, Printer, ClipboardList } from "lucide-react";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { loadMovimentosDoAcerto, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
 import { baixarAcertoMotoristaPdf } from "@/lib/rh/acertoMotoristaPdf";
+import { baixarResumoFolhaPdf } from "@/lib/rh/resumoFolhaPdf";
 import type { ColaboradorRH, Expense } from "@/services/rh";
 import { toast } from "@/lib/notice";
 import { supabase } from "@/integrations/supabase/client";
@@ -377,7 +378,24 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     try { await baixarAcertoPdfLinha(one); } catch (e: any) { toast.error("Falha ao gerar o PDF: " + e.message); } finally { setActing(null); }
   };
 
+  const imprimirResumo = async () => {
+    setActing("resumo-pdf");
+    try {
+      await baixarResumoFolhaPdf(month, linhas.map((l) => ({
+        nome: l.item.colaborador_nome, tipo: l.motorista ? "Acerto motorista" : "Folha administrativa / operacional",
+        inicio: l.folha.data_inicio || "", fim: l.folha.data_fim || "", vencimento: l.folha.data_vencimento || "",
+        situacao: l.pago ? "Pago" : SITUACAO_UI[l.sit].label,
+        base: Number(l.item.salario_base || 0), comissoes: Number(l.item.comissoes || 0),
+        reembolsos: Number(l.item.reembolsos || 0), adiantamentos: Number(l.item.adiantamentos || 0),
+        descontos: Number(l.item.descontos || 0), liquido: Number(l.item.liquido || 0),
+      })));
+    } catch (e: unknown) {
+      toast.error("Falha ao gerar resumo: " + (e instanceof Error ? e.message : String(e)));
+    } finally { setActing(null); }
+  };
+
   const actions: ToolbarAction[] = [
+    { key: "resumo-folha", label: "Resumo da folha", icon: ClipboardList, mode: "always", onClick: imprimirResumo, disabled: loading || !!acting || linhas.length === 0 },
     { key: "pagar", label: "Efetuar pagamento", icon: BadgeDollarSign, mode: "batch", className: "text-success", iconClassName: "text-success",
       onClick: () => abrirPagamentoSelecionados(sel[0]?.motorista ?? false),
       disabled: !folhaAccountId || !(pagaveis(true) || pagaveis(false)) },
@@ -405,7 +423,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   return (
     <>
-      <ProcessingOverlay open={acting === "acerto-pdf" || acting === "recibos"} label={acting === "recibos" ? "Gerando folha de pagamento para download..." : "Gerando fechamento do motorista para download..."} />
+      <ProcessingOverlay open={acting === "acerto-pdf" || acting === "recibos" || acting === "resumo-pdf"} label={acting === "resumo-pdf" ? "Gerando resumo da folha para download..." : acting === "recibos" ? "Gerando folha de pagamento para download..." : "Gerando fechamento do motorista para download..."} />
       <div className="space-y-3">
         <GlobalToolbar actions={actions} selectedCount={selecionados.size} />
         <DataGrid
