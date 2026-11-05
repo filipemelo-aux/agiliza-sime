@@ -255,7 +255,7 @@ function RHWorkspace(props: any) {
     filteredColabs, metricsByColab, setHistoryFor,
     month, expenses, settings, patch, setSalaryOverride, reload,
     accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
-    forcedSection, acertoPeriod,
+    forcedSection, acertoPeriod, adminPeriod,
   } = props;
 
   const [internalSection, setInternalSection] = useState<RHSection>("colaboradores");
@@ -366,18 +366,19 @@ function RHWorkspace(props: any) {
   const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
   useEffect(() => {
     if (!isPeople || !colaboradores.length) return;
+    const periodoRef = section === "administrativo" ? adminPeriod : acertoPeriod;
     fetchReembolsosPendentes(colaboradores.map((c: ColaboradorRH) => c.id))
       .then((rows) => {
         const m = new Map<string, number>();
         rows.forEach((e) => {
-          if (acertoPeriod && !inAcertoPeriod(e.data_competencia || e.data_emissao, acertoPeriod)) return;
+          if (periodoRef && !inAcertoPeriod(e.data_competencia || e.data_emissao, periodoRef)) return;
           const id = e.reembolso_colaborador_id || "";
           m.set(id, (m.get(id) || 0) + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0));
         });
         setReembByColab(m);
       })
       .catch(() => setReembByColab(new Map()));
-  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio]);
+  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio, adminPeriod?.inicio, section]);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
   const isMotoristas = section === "motoristas";
@@ -617,7 +618,7 @@ function RHWorkspace(props: any) {
               colaborador={movFor}
               perfil="administrativo"
               adiantExpenses={adiantExpenses}
-              periodo={acertoPeriod}
+              periodo={adminPeriod}
               onClose={() => { setMovFor(null); reload(); }}
             />
             )}
