@@ -169,6 +169,13 @@
       "when": 1793882969469,
       "tag": "0023_competencia_always_emissao",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793883236493,
+      "tag": "0024_competencia_follow_emissao_restore",
+      "breakpoints": true
     }
   ]
 }
