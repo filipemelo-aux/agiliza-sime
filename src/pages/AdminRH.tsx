@@ -566,40 +566,26 @@ function RHWorkspace(props: any) {
               rowId={(c: ColaboradorRH) => c.id}
               selected={selectedColabs}
               onSelectedChange={setSelectedColabs}
-              singleSelection={isMotoristas}
-              loading={loading || (isMotoristas && resumoLoading && resumoByColab.size === 0)}
+              singleSelection
+              loading={loading || (resumoLoading && resumoByColab.size === 0)}
               minWidth={900}
-              rowClassName={(c: ColaboradorRH) => isMotoristas
-                ? rowToneClass(acertoByColab.has(c.id) ? "resolved" : (resumoByColab.get(c.id)?.saldo || 0) !== 0 ? "pending" : "neutral")
-                : rowToneClass((reembByColab.get(c.id) || 0) > 0 ? "pending" : c.ativo ? "resolved" : "neutral")}
+              rowClassName={(c: ColaboradorRH) => rowToneClass(acertoByColab.has(c.id) ? "resolved" : (resumoByColab.get(c.id)?.saldo || 0) !== 0 ? "pending" : "neutral")}
               emptyMessage={section === "motoristas"
                 ? "Nenhum motorista marcado como colaborador (RH)."
                 : "Nenhum colaborador administrativo / operacional marcado como colaborador (RH)."}
               footer={<div className="text-[11px] text-muted-foreground">{peopleRows.length} colaborador(es)</div>}
             />
-            <StatusLegend className="px-1" items={isMotoristas
-              ? [{ tone: "pending", label: "Com movimentações em aberto" }, { tone: "resolved", label: "Acerto gerado" }, { tone: "neutral", label: "Sem movimentações" }]
-              : [{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
+            <StatusLegend className="px-1" items={[{ tone: "pending", label: "Com movimentações em aberto" }, { tone: "resolved", label: "Acerto gerado" }, { tone: "neutral", label: "Sem movimentações" }]} />
             {AcertoConfirmDialog}
-            <ProcessingOverlay open={isMotoristas && resumoLoading} label="Carregando movimentações do período..." />
-            {section === "motoristas" ? (
-              <MotoristaMovimentacoesDialog
-                colaborador={movFor}
-                adiantExpenses={adiantExpenses}
-                periodo={acertoPeriod}
-                bloqueado={!!(movFor && acertoByColab.has(movFor.id))}
-                onClose={() => { setMovFor(null); reload(); }}
-              />
-            ) : (
+            <ProcessingOverlay open={isPeople && resumoLoading} label="Carregando movimentações do período..." />
             <MotoristaMovimentacoesDialog
               colaborador={movFor}
-              perfil="administrativo"
+              perfil={isMotoristas ? "motorista" : "administrativo"}
               adiantExpenses={adiantExpenses}
-              periodo={adminPeriod}
-              initialLancar={movLancar}
-              onClose={fecharMov}
+              periodo={periodoAtivo}
+              bloqueado={!!(movFor && acertoByColab.has(movFor.id))}
+              onClose={() => { setMovFor(null); reload(); }}
             />
-            )}
           </div>
         )}
 
