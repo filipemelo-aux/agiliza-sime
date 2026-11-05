@@ -415,20 +415,20 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   ];
 
   const money = (v: number, cls = "") => <span className={cn("tabular-nums", cls)}>{formatBRL(v)}</span>;
+  const tot = (f: (i: FolhaItem) => number) => linhas.reduce((s, l) => s + f(l.item), 0);
   const columns: DataGridColumn<Linha>[] = [
     { key: "nome", header: "Colaborador", cell: (l) => <span className="font-medium">{l.item.colaborador_nome}</span>, sortValue: (l) => l.item.colaborador_nome },
     { key: "tipo", header: "Tipo", cell: (l) => l.motorista ? "Acerto motorista" : "Folha adm./oper.", sortValue: (l) => (l.motorista ? 1 : 0) },
     { key: "periodo", header: "Período", cell: (l) => `${fmtData(l.folha.data_inicio)} a ${fmtData(l.folha.data_fim)}`, sortValue: (l) => l.folha.data_inicio },
     { key: "venc", header: "Vencimento", cell: (l) => fmtData(l.folha.data_vencimento), sortValue: (l) => l.folha.data_vencimento },
     { key: "base", header: "Base", align: "right", cell: (l) => money(Number(l.item.salario_base)), sortValue: (l) => Number(l.item.salario_base) },
-    { key: "com", header: "Comissões", align: "right", cell: (l) => money(Number(l.item.comissoes)), sortValue: (l) => Number(l.item.comissoes) },
-    { key: "reemb", header: "Reembolsos", align: "right", cell: (l) => money(Number(l.item.reembolsos || 0)), sortValue: (l) => Number(l.item.reembolsos || 0) },
-    { key: "adiant", header: "Adiant. / Vales", align: "right", cell: (l) => money(Number(l.item.adiantamentos), "text-destructive"), sortValue: (l) => Number(l.item.adiantamentos) },
-    { key: "desc", header: "Descontos", align: "right", cell: (l) => money(Number(l.item.descontos), "text-destructive"), sortValue: (l) => Number(l.item.descontos) },
-    { key: "liq", header: "Líquido", align: "right", cell: (l) => money(Number(l.item.liquido), "font-semibold"), sortValue: (l) => Number(l.item.liquido) },
+    { key: "com", header: "Comissões", align: "right", cell: (l) => money(Number(l.item.comissoes)), sortValue: (l) => Number(l.item.comissoes), footer: linhas.length ? money(tot((i) => Number(i.comissoes))) : undefined },
+    { key: "reemb", header: "Reembolsos", align: "right", cell: (l) => money(Number(l.item.reembolsos || 0)), sortValue: (l) => Number(l.item.reembolsos || 0), footer: linhas.length ? money(tot((i) => Number(i.reembolsos || 0))) : undefined },
+    { key: "adiant", header: "Adiant. / Vales", align: "right", cell: (l) => money(Number(l.item.adiantamentos), "text-destructive"), sortValue: (l) => Number(l.item.adiantamentos), footer: linhas.length ? money(tot((i) => Number(i.adiantamentos)), "text-destructive") : undefined },
+    { key: "desc", header: "Descontos", align: "right", cell: (l) => money(Number(l.item.descontos), "text-destructive"), sortValue: (l) => Number(l.item.descontos), footer: linhas.length ? money(tot((i) => Number(i.descontos)), "text-destructive") : undefined },
+    { key: "liq", header: "Líquido", align: "right", cell: (l) => money(Number(l.item.liquido), "font-semibold"), sortValue: (l) => Number(l.item.liquido), footer: linhas.length ? money(tot((i) => Number(i.liquido))) : undefined },
     { key: "sit", header: "Situação", cell: (l) => l.pago ? "Pago" : SITUACAO_UI[l.sit].label, sortValue: (l) => (l.pago ? "Pago" : SITUACAO_UI[l.sit].label) },
   ];
-  const tot = (f: (i: FolhaItem) => number) => linhas.reduce((s, l) => s + f(l.item), 0);
 
   return (
     <>
@@ -445,14 +445,6 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           minWidth={1100}
           rowClassName={(l) => rowToneClass(l.pago ? "resolved" : l.sit === "cancelada" ? "neutral" : "pending")}
           emptyMessage="Nenhuma folha ou acerto neste mês. Gere a folha dos administrativos aqui; o acerto dos motoristas é gerado na tela Motoristas."
-          footer={linhas.length > 0 ? (
-            <div className="flex flex-wrap justify-end gap-4 text-xs">
-              <span>Comissões: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.comissoes)))}</b></span>
-              <span>Reembolsos: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.reembolsos || 0)))}</b></span>
-              <span>Descontos: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.adiantamentos) + Number(i.descontos)))}</b></span>
-              <span>Líquido: <b className="tabular-nums">{formatBRL(tot((i) => Number(i.liquido)))}</b></span>
-            </div>
-          ) : undefined}
         />
         <StatusLegend items={[{ tone: "pending", label: "A pagar" }, { tone: "resolved", label: "Pago" }]} />
       </div>
