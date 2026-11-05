@@ -12,7 +12,7 @@ it.skipIf(!process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON)("reserva, paga e e
   };
   const db = createClient(value("VITE_SUPABASE_URL"), value("VITE_SUPABASE_PUBLISHABLE_KEY"), { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${session.access_token}` } } });
   const ok = <T,>(r: { data: T; error: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r.data; };
-  let expenseId: string | undefined, salaryId: string | undefined, folhaId: string | undefined;
+  let expenseId: string | undefined, salaryId: string | undefined, folhaId: string | undefined, commissionId: string | undefined;
   try {
     const ref = ok(await db.from("expenses").select("empresa_id,tenant_id,plano_contas_id").is("deleted_at", null).limit(1).single());
     const employee = ok(await db.from("profiles").select("id,full_name").in("category", ["motorista", "colaborador"]).limit(1).single());
@@ -21,6 +21,12 @@ it.skipIf(!process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON)("reserva, paga e e
     ok(await db.from("expense_payments").insert({ expense_id: e.id, valor: 50, forma_pagamento: "pix", data_pagamento: "2026-10-11T12:00:00-03:00", created_by: session.user.id }));
     const f = ok(await db.from("folhas_pagamento").insert({ empresa_id: ref.empresa_id, mes_referencia: "2026-10", data_inicio: "2026-10-01", data_fim: "2026-10-31", data_emissao: "2026-10-31", data_vencimento: "2026-11-05", status: "em_aberto", created_by: session.user.id, total_liquido: 100 }).select("id").single());
     folhaId = f.id;
+    const commission = ok(await db.from("comissoes").insert({ colaborador_id: employee.id, tipo: "motorista", origem: "cte", referencia_id: crypto.randomUUID(), valor_base: 100, percentual: 10, valor_calculado: 10, data_referencia: "2026-10-31", created_by: session.user.id }).select("id").single());
+    commissionId = commission.id;
+    ok(await db.from("comissoes").update({ status: "enviado_folha", folha_pagamento_id: f.id }).eq("id", commission.id));
+    expect(ok(await db.from("comissoes").select("status,folha_pagamento_id").eq("id", commission.id).single())).toEqual({ status: "enviado_folha", folha_pagamento_id: f.id });
+    const relink = await db.from("comissoes").update({ folha_pagamento_id: crypto.randomUUID() }).eq("id", commission.id);
+    expect(relink.error?.code).toBe("23505");
     const salary = ok(await db.from("expenses").insert({ ...ref, descricao: "TESTE TEMPORÁRIO — salário sem repetir reembolso", valor_total: 2000, data_emissao: "2026-10-31", data_vencimento: "2026-11-05", centro_custo: "operacional", created_by: session.user.id, favorecido_id: employee.id }).select("id").single());
     salaryId = salary.id;
     const item = ok(await db.from("folhas_pagamento_itens").insert({ folha_id: f.id, expense_id: salary.id, colaborador_id: employee.id, colaborador_nome: employee.full_name, salario_base: 2000, liquido: 2100, reembolsos: 100, reembolso_expense_ids: [e.id] }).select("id").single());
@@ -44,6 +50,7 @@ it.skipIf(!process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON)("reserva, paga e e
     expect(ok(await db.from("expenses").select("valor_pago").eq("id", e.id).single()).valor_pago).toBe(50);
     expect(ok(await db.from("movimentacoes_bancarias").select("id").eq("origem_id", payrollPay.lote_id))).toHaveLength(0);
   } finally {
+    if (commissionId) ok(await db.from("comissoes").delete().eq("id", commissionId));
     if (expenseId) ok(await db.from("expense_payments").delete().eq("expense_id", expenseId));
     if (salaryId) ok(await db.from("expense_payments").delete().eq("expense_id", salaryId));
     if (folhaId) { ok(await db.from("folhas_pagamento").update({ status: "em_aberto" }).eq("id", folhaId)); ok(await db.from("folhas_pagamento_itens").delete().eq("folha_id", folhaId)); ok(await db.from("folhas_pagamento").delete().eq("id", folhaId)); }
