@@ -9,11 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchComissoes } from "./comissoesService";
 import { fetchDescontosPendentesNoPeriodo } from "./descontosFolhaService";
 import { fetchReembolsosPendentesNoPeriodo, type ReembolsoExpense } from "./rhFinancialService";
-import { buildPeriodoQuinzenal, computePayrollRowsFromPeriodo, periodoToMesReferencia } from "./rhViewModel";
+import { buildPeriodoMensal, buildPeriodoQuinzenal, computePayrollRowsFromPeriodo, periodoToMesReferencia } from "./rhViewModel";
 import { criarFolhaEmAberto, buscarFolhaComItens, excluirItemFolhaEmAberto, reabrirFolhaConfirmada } from "./folhasPagamentoService";
 import type { ColaboradorRH, Comissao, DescontoFolha, Expense } from "./index";
 
-export type MovNatureza = "comissao" | "reembolso" | "vale" | "desconto";
+/** "salario" só existe como linha sintética de exibição (acerto administrativo); nunca é gravada em acerto_movimentos. */
+export type MovNatureza = "comissao" | "reembolso" | "vale" | "desconto" | "salario";
 export interface MovMotorista {
   id: string;
   natureza: MovNatureza;
@@ -154,11 +155,12 @@ export async function removerDoAcerto(colabId: string, p: PeriodoAcerto, movs: M
   }
 }
 
-export interface ResumoAcerto { comissoes: number; reembolsos: number; vales: number; descontos: number; saldo: number }
+export interface ResumoAcerto { salario: number; comissoes: number; reembolsos: number; vales: number; descontos: number; saldo: number }
 export function resumirMovimentos(movs: MovMotorista[]): ResumoAcerto {
   const sum = (n: MovNatureza, k: "entrada" | "saida") => movs.filter((m) => m.natureza === n).reduce((s, m) => s + m[k], 0);
+  const salario = sum("salario", "entrada");
   const r = { comissoes: sum("comissao", "entrada"), reembolsos: sum("reembolso", "entrada"), vales: sum("vale", "saida"), descontos: sum("desconto", "saida") };
-  return { ...r, saldo: r.comissoes + r.reembolsos - r.vales - r.descontos };
+  return { salario, ...r, saldo: salario + r.comissoes + r.reembolsos - r.vales - r.descontos };
 }
 
 export interface AcertoGerado { folhaId: string; itemId: string; status: string; resumo: ResumoAcerto }
@@ -176,6 +178,7 @@ export async function fetchAcertosDoPeriodo(colabIds: string[], inicio: string):
   (data || []).forEach((i: any) => m.set(i.colaborador_id, {
     folhaId: i.folha_id, itemId: i.id, status: i.folhas_pagamento?.status,
     resumo: {
+      salario: Number(i.salario_base || 0),
       comissoes: Number(i.comissoes || 0), reembolsos: Number(i.reembolsos || 0), vales: Number(i.adiantamentos || 0),
       descontos: Number(i.descontos || 0), saldo: Number(i.liquido || 0),
     },
