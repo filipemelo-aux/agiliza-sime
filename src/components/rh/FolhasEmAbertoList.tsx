@@ -24,7 +24,7 @@ import { Loader2, Trash2, FileText, BadgeDollarSign, Eye, Printer, ClipboardList
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { loadMovimentosDoAcerto, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
+import { loadMovimentosDoAcerto, resumirMovimentos, comSalarioBase, type MovMotorista } from "@/services/rh/acertoMotoristaService";
 import { baixarAcertoMotoristaPdf } from "@/lib/rh/acertoMotoristaPdf";
 import { baixarResumoFolhaPdf } from "@/lib/rh/resumoFolhaPdf";
 import { chavePixResumoFolha } from "@/lib/rh/resumoFolha";
@@ -552,7 +552,8 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
 
 async function baixarAcertoPdfLinha(l: Linha, movs?: MovMotorista[]) {
-  const lista = movs ?? await loadMovimentosDoAcerto(l.item.colaborador_id, l.folha.data_inicio);
+  const base = movs ?? await loadMovimentosDoAcerto(l.item.colaborador_id, l.folha.data_inicio);
+  const lista = comSalarioBase(base, Number(l.item.salario_base || 0), l.folha.data_inicio);
   await baixarAcertoMotoristaPdf({
     nome: l.item.colaborador_nome, inicio: l.folha.data_inicio, fim: l.folha.data_fim, vencimento: l.folha.data_vencimento,
     movs: lista, resumo: resumirMovimentos(lista), liquido: Number(l.item.liquido),
@@ -574,7 +575,9 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
       .catch((e) => toast.error("Erro ao carregar o fechamento: " + e.message))
       .finally(() => setLoading(false));
   }, [alvo, adiantExpenses]);
-  const r = resumirMovimentos(movs);
+  // Acerto administrativo: o salário base aparece como primeira entrada do extrato
+  const movsExibidos = comSalarioBase(movs, Number(alvo?.item.salario_base || 0), alvo?.folha.data_inicio || "");
+  const r = resumirMovimentos(movsExibidos);
   const [baixando, setBaixando] = useState(false);
   const imprimir = async () => {
     if (!alvo) return;
