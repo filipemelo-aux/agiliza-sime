@@ -197,6 +197,13 @@
       "when": 1793906976872,
       "tag": "0027_release_reimbursements_on_payroll_item_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793908885267,
+      "tag": "0028_align_rh_settlement_period_config",
+      "breakpoints": true
     }
   ]
 }
