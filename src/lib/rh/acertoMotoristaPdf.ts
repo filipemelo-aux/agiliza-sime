@@ -16,7 +16,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   const totE = o.movs.reduce((s, m) => s + m.entrada, 0), totS = o.movs.reduce((s, m) => s + m.saida, 0);
   let html = `<!doctype html><html><head><meta charset="utf-8"><title>Acerto ${esc(o.nome)}</title><style>
     body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:0}
-    .doc-page{width:198mm;padding:0}
+    .doc-page{width:186mm;padding:0}
     h2{font-size:13px;margin:10px 0 4px;color:#2B4C7E}
     .info{display:flex;gap:24px;margin:6px 0 10px}
     table.mov{width:100%;border-collapse:collapse}

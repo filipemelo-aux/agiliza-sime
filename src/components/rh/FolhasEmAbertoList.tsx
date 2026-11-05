@@ -562,7 +562,7 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
   };
   return (
     <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Fechamento — {alvo?.item.colaborador_nome}</DialogTitle>
           <DialogDescription>Período {fmtData(alvo?.folha.data_inicio)} a {fmtData(alvo?.folha.data_fim)}</DialogDescription>
@@ -580,7 +580,7 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
           columns={[
             { key: "data", header: "Data", cell: (m) => fmtData(m.data), sortValue: (m) => m.data },
             { key: "tipo", header: "Tipo", cell: (m) => NAT_LABEL[m.natureza] },
-            { key: "desc", header: "Descrição", cell: (m) => <span className="truncate">{m.descricao}</span> },
+            { key: "desc", header: "Descrição", cell: (m) => <span className="whitespace-normal break-words">{m.descricao}</span> },
             { key: "ent", header: "Entrada", align: "right", cell: (m) => (m.entrada ? <span className="tabular-nums">{formatBRL(m.entrada)}</span> : "") },
             { key: "sai", header: "Saída", align: "right", cell: (m) => (m.saida ? <span className="tabular-nums text-destructive">{formatBRL(m.saida)}</span> : "") },
           ]}
