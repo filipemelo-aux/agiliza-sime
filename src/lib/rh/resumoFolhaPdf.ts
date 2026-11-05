@@ -30,6 +30,8 @@ export async function baixarResumoFolhaPdf(mes: string, linhas: ResumoFolhaLinha
   }
   let html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo da Folha ${esc(competencia)}</title><style>
     *{box-sizing:border-box}body{font:10px Arial,Helvetica,sans-serif;color:#111;margin:0}.doc-page{width:277mm;padding:0}
+    .doc-page>table:first-of-type>tbody>tr>td:last-child{padding-right:8px!important}
+    .doc-page>table:first-of-type>tbody>tr>td:last-child>div:nth-child(2){font-family:Arial,Helvetica,sans-serif!important;font-size:11px!important;line-height:1.5;white-space:nowrap}
     p{margin:10px 0}table{width:100%;border-collapse:collapse;table-layout:fixed}th{text-align:left;background:#edf0f4;font-size:9px;padding:6px 4px}
     td{padding:6px 4px;border-bottom:1px solid #ddd;vertical-align:top;overflow-wrap:anywhere}small{display:block;font-size:9px;margin-top:3px}
     .r{text-align:right;white-space:nowrap}tfoot td{font-weight:bold;border-top:2px solid #333}.saldo{text-align:right;font-size:13px;font-weight:bold;margin:14px 0}
