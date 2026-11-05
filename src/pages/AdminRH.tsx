@@ -31,7 +31,6 @@ import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
 import { JanelaSalarioConfigCard } from "@/components/rh/JanelaSalarioConfigCard";
-import { ColaboradorMovimentacaoDialog } from "@/components/rh/ColaboradorMovimentacaoDialog";
 import { MotoristaMovimentacoesDialog } from "@/components/rh/MotoristaMovimentacoesDialog";
 import {
   buildMetricsByColab,
@@ -613,7 +612,7 @@ function RHWorkspace(props: any) {
                 onClose={() => { setMovFor(null); reload(); }}
               />
             ) : (
-            <ColaboradorMovimentacaoDialog
+            <MotoristaMovimentacoesDialog
               colaborador={movFor}
               perfil="administrativo"
               adiantExpenses={adiantExpenses}
