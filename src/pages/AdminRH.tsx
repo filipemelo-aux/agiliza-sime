@@ -21,6 +21,7 @@ import { useRHSettings } from "@/hooks/useRHSettings";
 import { MonthPicker } from "@/components/MonthPicker";
 import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
@@ -581,6 +582,7 @@ function RHWorkspace(props: any) {
               ? [{ tone: "pending", label: "Com movimentações em aberto" }, { tone: "resolved", label: "Acerto gerado" }, { tone: "neutral", label: "Sem movimentações" }]
               : [{ tone: "pending", label: "Com reembolso pendente" }, { tone: "resolved", label: "Ativo" }, { tone: "neutral", label: "Inativo" }]} />
             {AcertoConfirmDialog}
+            <ProcessingOverlay open={isMotoristas && resumoLoading} label="Carregando movimentações do período..." />
             {section === "motoristas" ? (
               <MotoristaMovimentacoesDialog
                 colaborador={movFor}
