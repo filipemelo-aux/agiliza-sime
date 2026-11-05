@@ -9,11 +9,13 @@ import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { ArrowDownCircle, ArrowUpCircle, HandCoins, Percent, Receipt, Trash2, UserMinus } from "lucide-react";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosMotoristaPicker } from "@/components/rh/DescontosMotoristaPicker";
+import { ValeParcelamento } from "@/components/rh/ValeParcelamento";
 import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import {
   adicionarAoAcerto,
+  parcelarValeAoAcerto,
   loadMovimentosEDisponiveis,
   removerDoAcerto,
   type ColaboradorRH,
@@ -52,6 +54,8 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   const [disp, setDisp] = useState<Mov[]>([]);
   const [pick, setPick] = useState<Set<string>>(new Set());
+  const [parcelas, setParcelas] = useState<Record<string, number>>({});
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     if (!colaborador) return;
@@ -76,20 +80,25 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const lista = useMemo(() => (colaborador ? [colaborador] : []), [colaborador]);
   const dispLancar = lancar ? disp.filter((d) => d.natureza === lancar) : [];
 
-  const abrir = (l: Exclude<Lancar, null>) => { setPick(new Set()); setLancar(l); };
+  const abrir = (l: Exclude<Lancar, null>) => { setPick(new Set()); setParcelas({}); setLancar(l); };
 
   const adicionar = async () => {
-    if (!colaborador) return;
+    if (!colaborador || bloqueado || adding) return;
     const itens = dispLancar.filter((d) => pick.has(d.id));
     if (!itens.length) return;
+    setAdding(true);
     try {
-      await adicionarAoAcerto(colaborador.id, periodo, itens);
+      const parcelados = itens.filter((m) => m.natureza === "vale" && m.origemTipo === "expense" && (parcelas[m.id] || 1) > 1);
+      for (const m of parcelados) await parcelarValeAoAcerto(colaborador.id, periodo, m.origemId, parcelas[m.id]);
+      await adicionarAoAcerto(colaborador.id, periodo, itens.filter((m) => !parcelados.includes(m)));
       toast.success(itens.length === 1 ? "Adicionado à movimentação" : `${itens.length} lançamentos adicionados`);
       setLancar(null);
       load();
     } catch (e: any) {
       toast.error("Erro ao adicionar: " + e.message);
-    }
+      await load();
+      setPick(new Set());
+    } finally { setAdding(false); }
   };
 
   const adicionarComissoes = async (comissoes: Comissao[]) => {
@@ -209,12 +218,14 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                 <div className="p-3 text-center text-muted-foreground">Nenhum lançamento disponível nesta quinzena.</div>
               )}
               {dispLancar.map((r) => (
-                <label key={r.id} className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/50">
-                  <Checkbox checked={pick.has(r.id)} onCheckedChange={(v) => setPick((prev) => { const n = new Set(prev); v ? n.add(r.id) : n.delete(r.id); return n; })} />
+                <div key={r.id}><label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/50">
+                  <Checkbox disabled={adding} checked={pick.has(r.id)} onCheckedChange={(v) => setPick((prev) => { const n = new Set(prev); v ? n.add(r.id) : n.delete(r.id); return n; })} />
                   <span className="w-20">{formatDate(r.data)}</span>
                   <span className="flex-1 truncate" title={r.descricao}>{r.descricao}</span>
                   <span className={`font-mono ${r.entrada ? "text-success" : "text-destructive"}`}>{formatBRL(r.entrada || r.saida)}</span>
                 </label>
+                {lancar === "vale" && r.origemTipo === "expense" && pick.has(r.id) && r.saida > 0 && <ValeParcelamento id={r.id} valor={r.saida} periodo={periodo} quantidade={parcelas[r.id] || 1} disabled={adding}
+                  onChange={(n) => setParcelas((prev) => ({ ...prev, [r.id]: n }))} />}</div>
               ))}
             </div>}
             {lancar !== "desconto" && <div className="flex flex-wrap items-center justify-between gap-2">
@@ -225,7 +236,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                   </Button>
                 )}
               </div>
-              {(lancar !== "comissao" || dispLancar.length > 0) && <Button disabled={!pick.size} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>}
+              {(lancar !== "comissao" || dispLancar.length > 0) && <Button disabled={!pick.size || adding} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>}
             </div>}
             {(lancar === "reembolso" || lancar === "vale") && (
               <p className="text-muted-foreground">

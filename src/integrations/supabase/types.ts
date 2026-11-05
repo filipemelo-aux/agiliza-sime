@@ -101,8 +101,10 @@ export type Database = {
           natureza: string
           origem_id: string
           origem_tipo: string
+          parcelas_total: number | null
           periodo_inicio: string
           tenant_id: string
+          valor_desconto: number | null
         }
         Insert: {
           colaborador_id: string
@@ -111,8 +113,10 @@ export type Database = {
           natureza: string
           origem_id: string
           origem_tipo: string
+          parcelas_total?: number | null
           periodo_inicio: string
           tenant_id?: string
+          valor_desconto?: number | null
         }
         Update: {
           colaborador_id?: string
@@ -121,8 +125,10 @@ export type Database = {
           natureza?: string
           origem_id?: string
           origem_tipo?: string
+          parcelas_total?: number | null
           periodo_inicio?: string
           tenant_id?: string
+          valor_desconto?: number | null
         }
         Relationships: []
       }
@@ -1754,6 +1760,7 @@ export type Database = {
       }
       descontos_folha: {
         Row: {
+          adiantamento_origem_id: string | null
           colaborador_id: string
           created_at: string
           created_by: string
@@ -1761,12 +1768,15 @@ export type Database = {
           descricao: string | null
           folha_pagamento_id: string | null
           id: string
+          parcela_numero: number | null
+          parcelas_total: number | null
           tenant_id: string
           tipo: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at: string
           valor: number
         }
         Insert: {
+          adiantamento_origem_id?: string | null
           colaborador_id: string
           created_at?: string
           created_by: string
@@ -1774,12 +1784,15 @@ export type Database = {
           descricao?: string | null
           folha_pagamento_id?: string | null
           id?: string
+          parcela_numero?: number | null
+          parcelas_total?: number | null
           tenant_id?: string
           tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at?: string
           valor?: number
         }
         Update: {
+          adiantamento_origem_id?: string | null
           colaborador_id?: string
           created_at?: string
           created_by?: string
@@ -1787,12 +1800,21 @@ export type Database = {
           descricao?: string | null
           folha_pagamento_id?: string | null
           id?: string
+          parcela_numero?: number | null
+          parcelas_total?: number | null
           tenant_id?: string
           tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at?: string
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "descontos_folha_adiantamento_origem_id_fkey"
+            columns: ["adiantamento_origem_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "descontos_folha_colaborador_id_fkey"
             columns: ["colaborador_id"]
@@ -6149,6 +6171,15 @@ export type Database = {
       next_mdfe_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
+      parcelar_vale_acerto: {
+        Args: {
+          _colaborador_id: string
+          _expense_id: string
+          _parcelas: number
+          _periodo_inicio: string
+        }
+        Returns: undefined
+      }
       pay_payroll_item_with_reimbursements: {
         Args: { _date: string; _item_id: string; _method: string }
         Returns: number
@@ -6161,6 +6192,14 @@ export type Database = {
           _user_id?: string
         }
         Returns: Json
+      }
+      remover_vale_parcelado_acerto: {
+        Args: {
+          _colaborador_id: string
+          _expense_id: string
+          _periodo_inicio: string
+        }
+        Returns: undefined
       }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }
