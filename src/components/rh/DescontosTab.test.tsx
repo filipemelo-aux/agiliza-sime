@@ -27,9 +27,9 @@ describe("Descontos de folha do motorista", () => {
     await waitFor(() => expect(mocks.periodo).toHaveBeenCalledWith(["motorista-1"], "2026-10-16", "2026-10-31"));
     fireEvent.click(screen.getByRole("button", { name: /Calcular para/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Lançar \(/ }));
-    const calculado = calcularDescontosLegais({ colaborador_id: motorista.id, nome: motorista.full_name, salarioBruto: 3071.24, regime: "clt" });
     await waitFor(() => expect(mocks.batch).toHaveBeenCalledWith([
-      expect.objectContaining({ colaborador_id: "motorista-1", tipo: "inss", valor: calculado.inss, data_referencia: "2026-10-16" }),
+      expect.objectContaining({ colaborador_id: "motorista-1", tipo: "inss", valor: 257.15, data_referencia: "2026-10-16" }),
+      expect.objectContaining({ colaborador_id: "motorista-1", tipo: "irrf", valor: 2.64, data_referencia: "2026-10-16" }),
     ]));
     expect(mocks.manual).not.toHaveBeenCalled();
     expect(mocks.month).not.toHaveBeenCalled();
@@ -41,7 +41,9 @@ describe("Descontos de folha do motorista", () => {
     render(<DescontosTab colaboradores={[motorista]} periodo={periodo} apenasFolha />);
     await waitFor(() => expect(mocks.periodo).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: /Calcular para/ }));
-    expect(screen.getByRole("button", { name: /^Lançar \(/ })).toBeDisabled();
-    expect(mocks.batch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^Lançar \(/ }));
+    await waitFor(() => expect(mocks.batch).toHaveBeenCalledWith([
+      expect.objectContaining({ tipo: "irrf", valor: 2.64, data_referencia: "2026-10-16" }),
+    ]));
   });
 });
