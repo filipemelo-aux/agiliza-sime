@@ -582,7 +582,7 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
   const imprimir = async () => {
     if (!alvo) return;
     setBaixando(true);
-    try { await baixarAcertoPdfLinha(alvo, movs); } catch (e: any) { toast.error("Falha ao gerar o PDF: " + e.message); } finally { setBaixando(false); }
+    try { await baixarAcertoPdfLinha(alvo, movsExibidos); } catch (e: any) { toast.error("Falha ao gerar o PDF: " + e.message); } finally { setBaixando(false); }
   };
   return (
     <Dialog open={!!alvo} onOpenChange={(o) => !o && !baixando && onClose()}>
@@ -593,7 +593,7 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
           <DialogDescription>Período {fmtData(alvo?.folha.data_inicio)} a {fmtData(alvo?.folha.data_fim)}</DialogDescription>
         </DialogHeader>
         <DataGrid
-          rows={movs}
+          rows={movsExibidos}
           rowId={(m) => m.id}
           selected={new Set()}
           onSelectedChange={() => {}}
@@ -610,7 +610,8 @@ function FechamentoMotoristaDialog({ alvo, onClose, adiantExpenses }: { alvo: Li
             { key: "sai", header: "Saída", align: "right", cell: (m) => (m.saida ? <span className="tabular-nums text-destructive">{formatBRL(m.saida)}</span> : "") },
           ]}
         />
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
+          {r.salario > 0 && <div>Salário base<br /><b className="tabular-nums">{formatBRL(r.salario)}</b></div>}
           <div>Comissões<br /><b className="tabular-nums">{formatBRL(r.comissoes)}</b></div>
           <div>Reembolsos<br /><b className="tabular-nums">{formatBRL(r.reembolsos)}</b></div>
           <div>Adiant. / Vales<br /><b className="tabular-nums text-destructive">{formatBRL(r.vales)}</b></div>
