@@ -9,23 +9,46 @@ const brl = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", c
 const dt = (d?: string | null) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "—");
 const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
-/** Baixa direto o PDF do acerto do motorista (movimentações detalhadas + saldo a receber). */
+/** Baixa direto o PDF do acerto do motorista, com o mesmo visual da tela de movimentações. */
 export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string; fim: string; vencimento?: string | null; movs: MovMotorista[]; resumo: ResumoAcerto; liquido: number }) {
-  const rows = o.movs.map((m) => `<tr><td>${dt(m.data)}</td><td>${NAT[m.natureza]}</td><td>${esc(m.descricao)}</td><td class="r">${m.entrada ? brl(m.entrada) : ""}</td><td class="r neg">${m.saida ? brl(m.saida) : ""}</td></tr>`).join("")
-    || `<tr><td colspan="5" style="text-align:center;color:#6b7280">Nenhuma movimentação.</td></tr>`;
+  const rows = o.movs.map((m) => {
+    const entrada = m.entrada > 0;
+    return `<tr class="${entrada ? "in" : "out"}">
+      <td class="nowrap">${dt(m.data)}</td>
+      <td class="nowrap"><span class="seta ${entrada ? "up" : "down"}">${entrada ? "▲" : "▼"}</span><span class="badge">${NAT[m.natureza]}</span></td>
+      <td>${esc(m.descricao)}</td>
+      <td class="r mono pos">${m.entrada ? brl(m.entrada) : ""}</td>
+      <td class="r mono neg">${m.saida ? brl(m.saida) : ""}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:14px">Movimentação em branco.</td></tr>`;
   const totE = o.movs.reduce((s, m) => s + m.entrada, 0), totS = o.movs.reduce((s, m) => s + m.saida, 0);
+  const saldo = totE - totS;
   let html = `<!doctype html><html><head><meta charset="utf-8"><title>Acerto ${esc(o.nome)}</title><style>
-    body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:0}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#1c2733;margin:0}
     .doc-page{width:186mm;padding:0}
     .doc-page>table:first-of-type>tbody>tr>td:last-child{padding-right:8px!important}
     .doc-page>table:first-of-type>tbody>tr>td:last-child>div:nth-child(2){font-family:Arial,Helvetica,sans-serif!important;font-size:11px!important;line-height:1.5;white-space:nowrap}
-    h2{font-size:13px;margin:10px 0 4px;color:#2B4C7E}
+    h2{font-size:13px;margin:10px 0 6px;color:#2B4C7E}
     .info{display:flex;gap:24px;margin:6px 0 10px}
-    table.mov{width:100%;border-collapse:collapse}
-    table.mov th{background:#2B4C7E;color:#fff;text-align:left;padding:5px;font-size:10px}
-    table.mov td{border-bottom:1px solid #e5e7eb;padding:4px 5px;vertical-align:top}
-    .r{text-align:right;white-space:nowrap}.neg{color:#b91c1c}
-    tfoot td{font-weight:bold;border-top:2px solid #111}
+    .nowrap{white-space:nowrap}
+    .mono{font-family:"Courier New",monospace}
+    table.mov{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #dfe4ec;border-radius:8px;overflow:hidden}
+    table.mov th{background:#f1f4f9;color:#5b6b7f;text-align:left;padding:6px 8px;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #dfe4ec}
+    table.mov td{padding:5px 8px;vertical-align:top;border-bottom:1px solid #e7ebf1}
+    table.mov tbody tr:last-child td{border-bottom:none}
+    tr.in td{background:#e9f6ee}
+    tr.out td{background:#fdf4d2}
+    .seta{display:inline-block;width:14px;font-size:9px}
+    .seta.up{color:#1e7e38}.seta.down{color:#dc2626}
+    .badge{display:inline-block;border:1px solid #9aa7b8;border-radius:5px;padding:1px 6px;font-size:9.5px;color:#37465a;background:#fff;white-space:nowrap}
+    .r{text-align:right;white-space:nowrap}
+    .pos{color:#1e7e38}.neg{color:#dc2626}
+    table.mov tfoot td{background:#f8fafc;border-top:2px solid #2B4C7E;font-weight:bold;padding:6px 8px}
+    .legenda{margin:6px 2px 0;font-size:9px;color:#6b7280;display:flex;gap:16px}
+    .legenda span{display:inline-flex;align-items:center;gap:5px}
+    .sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid}
+    .sw.in{background:#bfe6cc;border-color:#1e7e38}
+    .sw.out{background:#f5e19a;border-color:#c9a106}
     .resumo{margin-top:14px;width:60%;margin-left:auto;border-collapse:collapse}
     .resumo td{padding:4px 6px;border-bottom:1px solid #e5e7eb}
     .saldo td{font-size:13px;font-weight:bold;color:#2B4C7E;border-top:2px solid #2B4C7E}
@@ -37,8 +60,10 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Acerto do Motorista", subtitle: `${dt(o.inicio)} a ${dt(o.fim)}` }))}-->
   <div class="info"><div><b>Motorista:</b> ${esc(o.nome)}</div><div><b>Período:</b> ${dt(o.inicio)} a ${dt(o.fim)}</div>${o.vencimento ? `<div><b>Vencimento:</b> ${dt(o.vencimento)}</div>` : ""}</div>
   <h2>Movimentações</h2>
-  <table class="mov"><thead><tr><th style="width:14%">Data</th><th style="width:18%">Tipo</th><th>Descrição</th><th class="r" style="width:14%">Entrada</th><th class="r" style="width:14%">Saída</th></tr></thead>
-  <tbody>${rows}</tbody><tfoot><tr><td colspan="3">Totais</td><td class="r">${brl(totE)}</td><td class="r neg">${brl(totS)}</td></tr></tfoot></table>
+  <table class="mov"><thead><tr><th style="width:12%">Data</th><th style="width:24%">Tipo</th><th>Descrição</th><th class="r" style="width:15%">Entrada (crédito)</th><th class="r" style="width:15%">Saída (débito)</th></tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Entradas: <span class="mono pos">${brl(totE)}</span>&nbsp;&nbsp;·&nbsp;&nbsp;Saídas: <span class="mono neg">${brl(totS)}</span></td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
+  <div class="legenda"><span><span class="sw in"></span>Entrada (crédito)</span><span><span class="sw out"></span>Saída (débito)</span></div>
   <table class="resumo">
     <tr><td>(+) Comissões</td><td class="r">${brl(o.resumo.comissoes)}</td></tr>
     <tr><td>(+) Reembolsos</td><td class="r">${brl(o.resumo.reembolsos)}</td></tr>
@@ -52,6 +77,6 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   let logo: string | null = null;
   try { logo = await getCurrentTenantLogoUrl(); } catch { /* sem logo */ }
   html = await resolvePrintHeaders(html, logo);
-  const safe = o.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "_");
+  const safe = o.nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w]+/g, "_");
   await downloadHtmlAsPdf(html, `Acerto_${safe}_${o.inicio}.pdf`, { marginMm: 6 });
 }
