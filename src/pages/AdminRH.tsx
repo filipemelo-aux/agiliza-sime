@@ -162,6 +162,12 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
             </div>
+            {forcedSection === "administrativo" ? (
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês de referência</Label>
+                <MonthPicker value={adminMonth} onChange={setAdminMonth} className="w-[180px]" />
+              </div>
+            ) : (
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">Período do acerto</Label>
               <Select disabled={periodConfigLoading || !!periodConfigError} value={acertoPeriod.inicio} onValueChange={(v) => { const q = quinzenas.find((x) => x.inicio === v); if (q) setAcertoPeriod(q); }}>
@@ -173,6 +179,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
                 </SelectContent>
               </Select>
             </div>
+            )}
           </div>
         ) : (
           <SearchFilterCard>
@@ -206,6 +213,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           saveSettings={saveSettings}
           forcedSection={forcedSection}
           acertoPeriod={acertoPeriod}
+          adminPeriod={adminPeriod}
         />
       </div>
 
