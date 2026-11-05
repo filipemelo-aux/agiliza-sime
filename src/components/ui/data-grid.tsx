@@ -15,6 +15,7 @@ export interface DataGridColumn<T> {
   headerClassName?: string;
   width?: string;
   align?: "left" | "right" | "center";
+  footer?: React.ReactNode;
 }
 
 function DescriptionCell({ children, fullText }: { children: React.ReactNode; fullText: string }) {
@@ -290,11 +291,15 @@ export function DataGrid<T>({
           </tbody>
           <tfoot className="sticky bottom-0 bg-muted/60">
             <tr>
+              {columns.some((col) => col.footer !== undefined) ? <>
+                <td className="px-1 py-1.5" />
+                {columns.map((col) => <td key={col.key} data-column-key={col.key} className={cn("px-1.5 py-1.5 font-semibold", alignCls(col.align), col.className)}>{col.footer}</td>)}
+              </> :
               <td colSpan={columns.length + 1} className="px-2 py-1.5">
                 {footer ?? (
                   <div className="text-[11px] text-muted-foreground">{rows.length} registro(s)</div>
                 )}
-              </td>
+              </td>}
             </tr>
           </tfoot>
         </table>
