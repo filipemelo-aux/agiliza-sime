@@ -1,5 +1,9 @@
 # Project architecture rules
 
+<!-- LOVABLE:BEGIN -->
+- Driver taxes use a calculated picker and persist only selected sources on add, reusing the ledger callback to avoid a separate launch step.
+<!-- LOVABLE:END -->
+
 - Reports use HTML windows and foreign-object capture with isolated batch pages; `pdfImages.ts` decodes and paints images directly to avoid SVG image races. DACTE uses `dactePdf.ts` vectors; cheques use stored `checkPdf.ts` layouts, preserving geometry.
 - Long fiscal entry forms are composed from collapsible section blocks and tinted sub-groups, with fields placed inside the block that owns the data, so density stays high while collapsed sections keep their state.
 - ANTT minimum-freight coefficients live as versioned constants in one module, and road distance comes from a backend function, so a new ANTT resolution only adds a table version.

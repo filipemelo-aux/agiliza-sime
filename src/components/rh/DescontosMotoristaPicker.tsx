@@ -25,6 +25,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState<MovMotorista[]>([]);
   const [dependentes, setDependentes] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -49,7 +50,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
       descricao: `${tipo.toUpperCase()} automático — salário base ${brl(calculo.salarioBruto)}`,
     }));
   const opcoes = [
-    ...disponiveis.filter((d) => d.natureza === "desconto").map((mov) => ({ id: mov.id, descricao: mov.descricao, valor: mov.saida, mov, novo: undefined as NovoDescontoFolha | undefined })),
+    ...[...disponiveis.filter((d) => d.natureza === "desconto"), ...saved.filter((d) => !disponiveis.some((m) => m.id === d.id))].map((mov) => ({ id: mov.id, descricao: mov.descricao, valor: mov.saida, mov, novo: undefined as NovoDescontoFolha | undefined })),
     ...novos.map((novo) => ({ id: `novo-${novo.tipo}`, descricao: novo.tipo.toUpperCase(), valor: novo.valor, mov: undefined as MovMotorista | undefined, novo })),
   ];
   const escolhidos = opcoes.filter((d) => selected.has(d.id));
@@ -65,6 +66,8 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
         ...criados.map((d): MovMotorista => ({ id: `d-${d.id}`, origemId: d.id, origemTipo: "desconto", natureza: "desconto",
           data: d.data_referencia, descricao: `${d.tipo.toUpperCase()} · ${d.descricao || ""}`, entrada: 0, saida: Number(d.valor), removivel: true })),
       ];
+      setSaved((prev) => [...prev, ...movimentos.filter((m) => !prev.some((d) => d.id === m.id))]);
+      setSelected(new Set(movimentos.map((m) => m.id)));
       await onAdicionar(movimentos);
     } catch (e: any) {
       toast.error("Erro ao adicionar descontos: " + e.message);
