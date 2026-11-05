@@ -142,7 +142,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   };
 
   const actions: ToolbarAction[] = [
-    { key: "in-com", label: "Entrada: Comissão", icon: Percent, mode: "create", variant: "default", disabled: bloqueado, onClick: () => abrir("comissao") },
+    ...(isMotorista ? [{ key: "in-com", label: "Entrada: Comissão", icon: Percent, mode: "create", variant: "default", disabled: bloqueado, onClick: () => abrir("comissao") } as ToolbarAction] : []),
     { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "create", disabled: bloqueado, onClick: () => abrir("reembolso") },
     { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "create", disabled: bloqueado, onClick: () => abrir("vale") },
     { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "create", disabled: bloqueado, onClick: () => abrir("desconto") },
@@ -178,7 +178,10 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
         <DialogContent className="max-w-6xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>Movimentações — {colaborador?.full_name}</DialogTitle>
-            <DialogDescription>{labelQuinzena(periodo)}</DialogDescription>
+            <DialogDescription>
+              {periodoLabel}
+              {!isMotorista && colaborador?.salario != null && ` · Salário base ${formatBRL(Number(colaborador.salario))} (entra automaticamente na folha)`}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {bloqueado && (
@@ -215,12 +218,12 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
         <DialogContent className="max-w-5xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>{lancar ? lancarTitle[lancar] : ""}</DialogTitle>
-            <DialogDescription>{colaborador?.full_name} · {labelQuinzena(periodo)}</DialogDescription>
+            <DialogDescription>{colaborador?.full_name} · {periodoLabel}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-xs">
             {lancar !== "desconto" && (lancar !== "comissao" || dispLancar.length > 0) && <div className="border rounded-md divide-y max-h-[50vh] overflow-y-auto">
               {dispLancar.length === 0 && (
-                <div className="p-3 text-center text-muted-foreground">Nenhum lançamento disponível nesta quinzena.</div>
+                <div className="p-3 text-center text-muted-foreground">Nenhum lançamento disponível neste período.</div>
               )}
               {dispLancar.map((r) => (
                 <div key={r.id}><label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/50">
@@ -246,8 +249,8 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
             {(lancar === "reembolso" || lancar === "vale") && (
               <p className="text-muted-foreground">
                 {lancar === "reembolso"
-                  ? "Reembolsos nascem no Contas a Pagar com “Pago pelo colaborador (Reembolso)” marcado para este motorista."
-                  : "Vales e adiantamentos nascem no Contas a Pagar, no plano de adiantamento, com este motorista como favorecido."}
+                  ? "Reembolsos nascem no Contas a Pagar com “Pago pelo colaborador (Reembolso)” marcado para este colaborador."
+                  : "Vales e adiantamentos nascem no Contas a Pagar, no plano de adiantamento, com este colaborador como favorecido."}
               </p>
             )}
             {lancar === "comissao" && <ComissoesTab colaboradores={lista} periodo={periodo} onAdicionar={adicionarComissoes} />}
