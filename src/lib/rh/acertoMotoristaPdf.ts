@@ -29,8 +29,10 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
     .resumo{margin-top:14px;width:60%;margin-left:auto;border-collapse:collapse}
     .resumo td{padding:4px 6px;border-bottom:1px solid #e5e7eb}
     .saldo td{font-size:13px;font-weight:bold;color:#2B4C7E;border-top:2px solid #2B4C7E}
-    .ass{margin-top:50px;display:flex;justify-content:space-around}
-    .ass div{width:40%;border-top:1px solid #111;text-align:center;padding-top:4px}
+    .ass{margin-top:28px;display:flex;flex-direction:column;align-items:center}
+    .ass p{font-size:9.5px;color:#374151;text-align:justify;line-height:1.45;margin:0 0 42px;width:100%}
+    .ass .linha{width:60%;border-top:1px solid #111;text-align:center;padding-top:4px;font-size:10.5px}
+    .ass .linha small{display:block;font-size:9px;color:#6b7280}
   </style></head><body><div class="doc-page">
   <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Acerto do Motorista", subtitle: `${dt(o.inicio)} a ${dt(o.fim)}` }))}-->
   <div class="info"><div><b>Motorista:</b> ${esc(o.nome)}</div><div><b>Período:</b> ${dt(o.inicio)} a ${dt(o.fim)}</div>${o.vencimento ? `<div><b>Vencimento:</b> ${dt(o.vencimento)}</div>` : ""}</div>
@@ -44,7 +46,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
     <tr><td>(−) Descontos</td><td class="r neg">${brl(o.resumo.descontos)}</td></tr>
     <tr class="saldo"><td>Saldo a receber</td><td class="r">${brl(o.liquido)}</td></tr>
   </table>
-  <div class="ass"><div>${esc(o.nome)}</div><div>Responsável</div></div>
+  <div class="ass"><p>Declaro que conferi as movimentações acima referentes ao período de ${dt(o.inicio)} a ${dt(o.fim)} e que estou de acordo com os valores informados, inclusive com o saldo a receber de ${brl(o.liquido)}.</p><div class="linha">${esc(o.nome)}<small>Assinatura do motorista</small></div></div>
   ${printBrandFooterHtml()}
   </div></body></html>`;
   let logo: string | null = null;
