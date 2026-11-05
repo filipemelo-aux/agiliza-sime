@@ -98,6 +98,13 @@ export async function loadMovimentosEDisponiveis(colabId: string, p: PeriodoAcer
   const meus = new Set(meusV.map((v) => vkey(v.origem_tipo, v.origem_id)));
   const natMeus = new Map(meusV.map((v) => [vkey(v.origem_tipo, v.origem_id), v.natureza]));
   const usados = new Set(vinc.map((v) => vkey(v.origem_tipo, v.origem_id)));
+  const expenseIds = todas.filter((m) => m.origemTipo === "expense" && m.natureza === "vale").map((m) => m.origemId);
+  const parcelados = new Set<string>();
+  if (expenseIds.length) {
+    const { data, error } = await (supabase.from("descontos_folha" as any) as any).select("adiantamento_origem_id").in("adiantamento_origem_id", expenseIds);
+    if (error) throw error;
+    (data || []).forEach((d: any) => parcelados.add(d.adiantamento_origem_id));
+  }
   return {
     incluidas: todas.filter((m) => {
       const k = vkey(m.origemTipo, m.origemId);
@@ -110,7 +117,7 @@ export async function loadMovimentosEDisponiveis(colabId: string, p: PeriodoAcer
       return v?.valor_desconto != null ? { ...m, saida: Number(v.valor_desconto), parcelasTotal: v.parcelas_total || undefined,
         descricao: `${m.descricao} — parcela 1/${v.parcelas_total}` } : m;
     }),
-    disponiveis: todas.filter((m) => !usados.has(vkey(m.origemTipo, m.origemId))),
+    disponiveis: todas.filter((m) => !usados.has(vkey(m.origemTipo, m.origemId)) && !(m.origemTipo === "expense" && parcelados.has(m.origemId))),
   };
 }
 
@@ -136,6 +143,11 @@ export async function parcelarValeAoAcerto(colabId: string, p: PeriodoAcerto, ex
 /** Remove do acerto apenas o vínculo; a despesa/comissão/desconto continua existindo. */
 export async function removerDoAcerto(colabId: string, p: PeriodoAcerto, movs: MovMotorista[]) {
   for (const m of movs) {
+    if (m.origemTipo === "expense" && m.parcelasTotal) {
+      const { error } = await (supabase.rpc as any)("remover_vale_parcelado_acerto", { _colaborador_id: colabId, _periodo_inicio: p.inicio, _expense_id: m.origemId });
+      if (error) throw error;
+      continue;
+    }
     const { error } = await (supabase.from("acerto_movimentos" as any) as any).delete()
       .eq("colaborador_id", colabId).eq("periodo_inicio", p.inicio).eq("origem_tipo", m.origemTipo).eq("origem_id", m.origemId);
     if (error) throw error;
