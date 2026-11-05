@@ -18,6 +18,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "@/lib/notice";
 import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
+import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import { MonthPicker } from "@/components/MonthPicker";
 import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
@@ -80,8 +81,17 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista">("all");
   const isPeopleSection = forcedSection === "motoristas" || forcedSection === "administrativo";
-  const quinzenas = useMemo(() => listQuinzenas(), []);
+  const { config: periodConfig, loading: periodConfigLoading, error: periodConfigError } = useRHPeriodConfig();
+  const quinzenas = useMemo(() => listQuinzenas(new Date(), 12, 2, periodConfig), [periodConfig]);
   const [acertoPeriod, setAcertoPeriod] = useState(() => getAcertoPeriod());
+  useEffect(() => {
+    if (periodConfigLoading || periodConfigError) return;
+    setAcertoPeriod((previous) => {
+      const half = previous.inicio.endsWith("-01") ? 0 : 1;
+      return quinzenas.find((q) => q.month === previous.month && (q.inicio.endsWith("-01") ? 0 : 1) === half) ?? getAcertoPeriod(new Date(), periodConfig);
+    });
+  }, [periodConfig, periodConfigLoading, periodConfigError, quinzenas]);
+  useEffect(() => { if (periodConfigError) toast.error("Não foi possível carregar as configurações do acerto."); }, [periodConfigError]);
   const [monthState, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -151,7 +161,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">Período do acerto</Label>
-              <Select value={acertoPeriod.inicio} onValueChange={(v) => { const q = quinzenas.find((x) => x.inicio === v); if (q) setAcertoPeriod(q); }}>
+              <Select disabled={periodConfigLoading || !!periodConfigError} value={acertoPeriod.inicio} onValueChange={(v) => { const q = quinzenas.find((x) => x.inicio === v); if (q) setAcertoPeriod(q); }}>
                 <SelectTrigger className="h-8 text-xs w-[330px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {quinzenas.map((q) => (
@@ -172,7 +182,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
         <RHWorkspace
           colaboradores={colaboradores}
           totalAtivos={totalAtivos}
-          loading={loading}
+          loading={loading || (isPeopleSection && (periodConfigLoading || !!periodConfigError))}
           search={search}
           setSearch={setSearch}
           tipoFilter={tipoFilter}

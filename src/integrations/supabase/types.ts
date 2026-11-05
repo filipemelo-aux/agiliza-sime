@@ -6145,6 +6145,7 @@ export type Database = {
           has_valid_cnh: boolean
         }[]
       }
+      get_rh_period_config: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -6209,6 +6210,7 @@ export type Database = {
         Args: { _invoice: Json; _invoice_id: string; _items: Json }
         Returns: undefined
       }
+      save_rh_period_config: { Args: { _config: Json }; Returns: undefined }
       save_vehicle_assignment: {
         Args: {
           _driver_profile_id?: string

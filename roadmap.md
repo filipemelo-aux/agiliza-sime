@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Alinhar Configurações RH e acertos: períodos e prazos compartilhados, 1–15 até dia 20 e 16–fim até dia 5; edição e releitura reais do prazo conferidas e restauradas ao padrão, filtro das duas quinzenas conferido. Limite preservado quando há vínculos existentes; 13 testes aprovados.
 - [x] Parcelar vales ao adicionar: prévia por quinzena, criação atômica, primeira parcela no acerto atual e demais disponíveis nas próximas quinzenas; remover preserva o plano e disponibiliza a primeira parcela sem liberar o total original. Oito testes aprovados; validação real indisponível porque a sessão retornou zero motoristas RH.
 - [x] Descontos do motorista: cálculo automático, seleção individual INSS/IRRF e inclusão direta sem Lançar; 10 testes aprovados. Inclusão real não conferida: sessão disponível retorna zero motoristas RH.
 - [x] Motoristas: apenas cálculo/geração de descontos de folha e inclusão na movimentação, sem entrada manual nem seletor mensal; 12 testes aprovados. Conferência real da inclusão indisponível: sessão retornou zero motoristas RH.

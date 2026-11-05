@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/notice";
+import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import {
   buildPeriodoQuinzenal,
   buildPeriodoMensal,
@@ -87,9 +88,10 @@ export function GerarFolhaWizard({
   folhaAccountId, adiantamentoAccountId,
   empresaId, userId, onGenerated,
 }: Props) {
+  const { config: periodConfig } = useRHPeriodConfig();
   const [step, setStep] = useState<Step>(0);
   const [periodo, setPeriodo] = useState<PeriodoFolha>(() =>
-    buildPeriodoQuinzenal(month, "primeira_quinzena")
+    buildPeriodoQuinzenal(month, "primeira_quinzena", periodConfig)
   );
 
   const [reembolsos, setReembolsos] = useState<ReembolsoExpense[]>([]);
@@ -118,8 +120,8 @@ export function GerarFolhaWizard({
   useEffect(() => {
     if (!open) return;
     setStep(0);
-    setPeriodo(buildPeriodoQuinzenal(month, "primeira_quinzena"));
-  }, [open, month]);
+    setPeriodo(buildPeriodoQuinzenal(month, "primeira_quinzena", periodConfig));
+  }, [open, month, periodConfig]);
 
   // Seleção sempre limitada aos colaboradores elegíveis ao período atual
   useEffect(() => {
@@ -420,6 +422,7 @@ function PeriodoStep({
   month, periodo, onChange, folhaAccountConfigured,
   colaboradores, selColabs, setSelColabs,
 }: any) {
+  const { config: periodConfig } = useRHPeriodConfig();
   // Mês de competência derivado do período atual (fallback: mês da tela)
   const mesRef = (periodo?.data_inicio || `${month}-01`).slice(0, 7);
   const [refYear, refMonthIdx] = [Number(mesRef.slice(0, 4)), Number(mesRef.slice(5, 7)) - 1];
@@ -428,7 +431,7 @@ function PeriodoStep({
 
   const buildFor = (tipo: TipoPeriodo, m: string) =>
     tipo === "primeira_quinzena" || tipo === "segunda_quinzena"
-      ? buildPeriodoQuinzenal(m, tipo)
+      ? buildPeriodoQuinzenal(m, tipo, periodConfig)
       : buildPeriodoMensal(m);
 
   // Competência padrão da folha mensal: mês ANTERIOR à data atual
@@ -474,9 +477,9 @@ function PeriodoStep({
         <Label className="text-xs text-muted-foreground">Tipo de período</Label>
         <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <PresetCard active={periodo.tipo === "primeira_quinzena"} onClick={() => setTipo("primeira_quinzena")}
-            title="1ª quinzena" subtitle="01 → 15 · pagamento dia 20" />
+            title="1ª quinzena" subtitle={`01 → ${periodConfig.firstEndDay} · pagamento dia ${periodConfig.firstPayDay}`} />
           <PresetCard active={periodo.tipo === "segunda_quinzena"} onClick={() => setTipo("segunda_quinzena")}
-            title="2ª quinzena" subtitle="16 → fim · pagamento dia 05" />
+            title="2ª quinzena" subtitle={`${periodConfig.firstEndDay + 1} → fim · pagamento dia ${periodConfig.secondPayDay}`} />
           <PresetCard active={periodo.tipo === "mensal" || periodo.tipo === "personalizado"} onClick={() => setTipo("mensal")}
             title="Mensal" subtitle="Competência do mês · pagamento no 5º dia útil seguinte" />
         </div>

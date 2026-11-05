@@ -19,6 +19,7 @@ import type { ColaboradorRH } from "./rhColaboradoresService";
 import type { ReembolsoExpense, Expense } from "./rhFinancialService";
 import type { Comissao } from "./comissoesService";
 import type { DescontoFolha } from "./descontosFolhaService";
+import { DEFAULT_RH_PERIOD_CONFIG, type RHPeriodConfig } from "@/lib/rhPeriodConfig";
 
 export type ColabMetrics = {
   recebido: number;
@@ -103,7 +104,8 @@ const lastDayOfMonth = (year: number, monthZeroIdx: number) =>
  */
 export function buildPeriodoQuinzenal(
   month: string,
-  qual: "primeira_quinzena" | "segunda_quinzena"
+  qual: "primeira_quinzena" | "segunda_quinzena",
+  config: RHPeriodConfig = DEFAULT_RH_PERIOD_CONFIG
 ): PeriodoFolha {
   const [y, m] = month.split("-").map(Number);
   const monthIdx = m - 1;
@@ -111,16 +113,16 @@ export function buildPeriodoQuinzenal(
     return {
       tipo: "primeira_quinzena",
       data_inicio: iso(new Date(y, monthIdx, 1)),
-      data_fim: iso(new Date(y, monthIdx, 15)),
-      data_pagamento: iso(new Date(y, monthIdx, 20)),
+      data_fim: iso(new Date(y, monthIdx, config.firstEndDay)),
+      data_pagamento: iso(new Date(y, monthIdx, config.firstPayDay)),
     };
   }
   const ultimo = lastDayOfMonth(y, monthIdx);
   return {
     tipo: "segunda_quinzena",
-    data_inicio: iso(new Date(y, monthIdx, 16)),
+    data_inicio: iso(new Date(y, monthIdx, config.firstEndDay + 1)),
     data_fim: iso(new Date(y, monthIdx, ultimo)),
-    data_pagamento: iso(new Date(y, monthIdx + 1, 5)),
+    data_pagamento: iso(new Date(y, monthIdx + 1, config.secondPayDay)),
   };
 }
 
