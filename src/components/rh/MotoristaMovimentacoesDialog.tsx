@@ -52,7 +52,6 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   const [disp, setDisp] = useState<Mov[]>([]);
   const [pick, setPick] = useState<Set<string>>(new Set());
-  const [criarNovo, setCriarNovo] = useState(false);
 
   const load = useCallback(async () => {
     if (!colaborador) return;
@@ -77,7 +76,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const lista = useMemo(() => (colaborador ? [colaborador] : []), [colaborador]);
   const dispLancar = lancar ? disp.filter((d) => d.natureza === lancar) : [];
 
-  const abrir = (l: Exclude<Lancar, null>) => { setPick(new Set()); setCriarNovo(false); setLancar(l); };
+  const abrir = (l: Exclude<Lancar, null>) => { setPick(new Set()); setLancar(l); };
 
   const adicionar = async () => {
     if (!colaborador) return;
@@ -217,11 +216,6 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                     {pick.size === dispLancar.length ? "Desmarcar todos" : "Marcar todos"}
                   </Button>
                 )}
-                {lancar === "desconto" && (
-                  <Button variant="outline" onClick={() => { if (criarNovo) load(); setCriarNovo((v) => !v); }}>
-                    Lançar novo desconto
-                  </Button>
-                )}
               </div>
               {(lancar !== "comissao" || dispLancar.length > 0) && <Button disabled={!pick.size} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>}
             </div>
@@ -233,7 +227,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
               </p>
             )}
             {lancar === "comissao" && <ComissoesTab colaboradores={lista} periodo={periodo} onAdicionar={adicionarComissoes} />}
-            {criarNovo && lancar === "desconto" && <div className="border-t pt-2"><DescontosTab colaboradores={lista} /></div>}
+            {lancar === "desconto" && <div className="border-t pt-2"><DescontosTab colaboradores={lista} periodo={periodo} apenasFolha onChanged={load} /></div>}
           </div>
         </DialogContent>
       </Dialog>
