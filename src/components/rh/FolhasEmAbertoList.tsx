@@ -23,7 +23,8 @@ import { Loader2, Trash2, FileText, BadgeDollarSign, Eye, Printer } from "lucide
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { loadMovimentosEDisponiveis, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
+import { loadMovimentosDoAcerto, resumirMovimentos, type MovMotorista } from "@/services/rh/acertoMotoristaService";
+import { baixarAcertoMotoristaPdf } from "@/lib/rh/acertoMotoristaPdf";
 import type { ColaboradorRH, Expense } from "@/services/rh";
 import { toast } from "@/lib/notice";
 import { supabase } from "@/integrations/supabase/client";
