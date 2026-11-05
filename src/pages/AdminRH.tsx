@@ -807,15 +807,6 @@ function RHWorkspace(props: any) {
                     </p>
                   )}
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Dia padrão de pagamento da folha</Label>
-                  <Input
-                    type="number" min={1} max={31}
-                    value={settings.payDay || ""}
-                    onChange={(e) => patch({ payDay: e.target.value })}
-                    className="h-9 w-32" placeholder="Ex: 5"
-                  />
-                </div>
                 <Button onClick={saveSettings} className="gap-2">
                   <Save className="h-4 w-4" /> Salvar configurações
                 </Button>
