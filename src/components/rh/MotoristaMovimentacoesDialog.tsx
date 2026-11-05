@@ -101,7 +101,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
       for (const m of parcelados) await parcelarValeAoAcerto(colaborador.id, periodo, m.origemId, parcelas[m.id]);
       await adicionarAoAcerto(colaborador.id, periodo, itens.filter((m) => !parcelados.includes(m)));
       toast.success(itens.length === 1 ? "Adicionado à movimentação" : `${itens.length} lançamentos adicionados`);
-      setLancar(null);
+      fecharLancar();
       load();
     } catch (e: any) {
       toast.error("Erro ao adicionar: " + e.message);
@@ -119,7 +119,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
       saida: 0, removivel: true,
     })));
     toast.success("Comissões adicionadas à movimentação");
-    setLancar(null);
+    fecharLancar();
     await load();
   };
 
@@ -127,7 +127,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
     if (!colaborador || bloqueado) return;
     await adicionarAoAcerto(colaborador.id, periodo, movimentos);
     toast.success("Descontos adicionados à movimentação");
-    setLancar(null);
+    fecharLancar();
     await load();
   };
 
@@ -179,7 +179,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
 
   return (
     <>
-      <Dialog open={!!colaborador} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={!!colaborador && !initialLancar} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-6xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>Movimentações — {colaborador?.full_name}</DialogTitle>
@@ -219,7 +219,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!lancar} onOpenChange={(o) => { if (!o) { setLancar(null); load(); } else load(); }}>
+      <Dialog open={!!lancar && !!colaborador} onOpenChange={(o) => { if (!o) { fecharLancar(); load(); } else load(); }}>
         <DialogContent className="max-w-5xl max-h-[92vh]">
           <DialogHeader>
             <DialogTitle>{lancar ? lancarTitle[lancar] : ""}</DialogTitle>
