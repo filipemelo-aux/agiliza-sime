@@ -35,9 +35,6 @@ type Mov = MovMotorista;
 
 const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
 
-/** Linha sintética do salário base (administrativo): sempre listada, nunca removível nem gravada no acerto. */
-const SALARIO_ROW_ID = "salario-base";
-
 type Lancar = null | "comissao" | "reembolso" | "vale" | "desconto";
 
 interface Props {
@@ -84,16 +81,10 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   useEffect(() => { setSelected(new Set()); load(); }, [load]);
 
   // Administrativo: o salário base do cadastro já abre listado como entrada (linha sintética, não removível)
-  const rowsExibidas = useMemo<Mov[]>(() => {
-    if (isMotorista || !colaborador?.salario) return rows;
-    const salarioRow: Mov = {
-      id: SALARIO_ROW_ID, origemId: SALARIO_ROW_ID, origemTipo: "expense",
-      natureza: "salario", data: periodo.inicio,
-      descricao: "Salário base do mês (cadastro do colaborador)",
-      entrada: Number(colaborador.salario), saida: 0, removivel: false,
-    };
-    return [salarioRow, ...rows];
-  }, [isMotorista, colaborador?.salario, rows, periodo.inicio]);
+  const rowsExibidas = useMemo<Mov[]>(
+    () => (isMotorista ? rows : comSalarioBase(rows, Number(colaborador?.salario || 0), periodo.inicio)),
+    [isMotorista, colaborador?.salario, rows, periodo.inicio]
+  );
 
   const totalEntrada = rowsExibidas.reduce((s, r) => s + r.entrada, 0);
   const totalSaida = rowsExibidas.reduce((s, r) => s + r.saida, 0);
