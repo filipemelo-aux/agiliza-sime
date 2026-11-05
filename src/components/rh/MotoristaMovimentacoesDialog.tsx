@@ -8,7 +8,7 @@ import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { ArrowDownCircle, ArrowUpCircle, HandCoins, Percent, Receipt, Trash2, UserMinus } from "lucide-react";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
-import { DescontosTab } from "@/components/rh/DescontosTab";
+import { DescontosMotoristaPicker } from "@/components/rh/DescontosMotoristaPicker";
 import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
@@ -105,6 +105,14 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
     await load();
   };
 
+  const adicionarDescontos = async (movimentos: Mov[]) => {
+    if (!colaborador || bloqueado) return;
+    await adicionarAoAcerto(colaborador.id, periodo, movimentos);
+    toast.success("Descontos adicionados à movimentação");
+    setLancar(null);
+    await load();
+  };
+
   const excluir = async () => {
     if (!sel.length || bloqueado || !colaborador) return;
     const ok = await confirm({ title: "Remover da movimentação", description: `Remover ${sel.length === 1 ? "este lançamento" : `${sel.length} lançamentos`} do acerto da quinzena? O lançamento original (Contas a Pagar, comissão ou desconto) não é apagado e volta a ficar disponível.`, confirmLabel: "Remover" } as any);
@@ -196,7 +204,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
             <DialogDescription>{colaborador?.full_name} · {labelQuinzena(periodo)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-xs">
-            {(lancar !== "comissao" || dispLancar.length > 0) && <div className="border rounded-md divide-y max-h-[50vh] overflow-y-auto">
+            {lancar !== "desconto" && (lancar !== "comissao" || dispLancar.length > 0) && <div className="border rounded-md divide-y max-h-[50vh] overflow-y-auto">
               {dispLancar.length === 0 && (
                 <div className="p-3 text-center text-muted-foreground">Nenhum lançamento disponível nesta quinzena.</div>
               )}
@@ -209,7 +217,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                 </label>
               ))}
             </div>}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            {lancar !== "desconto" && <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2">
                 {dispLancar.length > 0 && (
                   <Button variant="outline" onClick={() => setPick(pick.size === dispLancar.length ? new Set() : new Set(dispLancar.map((d) => d.id)))}>
@@ -218,7 +226,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                 )}
               </div>
               {(lancar !== "comissao" || dispLancar.length > 0) && <Button disabled={!pick.size} onClick={adicionar}>Adicionar à movimentação ({pick.size})</Button>}
-            </div>
+            </div>}
             {(lancar === "reembolso" || lancar === "vale") && (
               <p className="text-muted-foreground">
                 {lancar === "reembolso"
@@ -227,7 +235,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
               </p>
             )}
             {lancar === "comissao" && <ComissoesTab colaboradores={lista} periodo={periodo} onAdicionar={adicionarComissoes} />}
-            {lancar === "desconto" && <div className="border-t pt-2"><DescontosTab colaboradores={lista} periodo={periodo} apenasFolha onChanged={load} /></div>}
+            {lancar === "desconto" && colaborador && <DescontosMotoristaPicker colaborador={colaborador} periodo={periodo} disponiveis={dispLancar} onAdicionar={adicionarDescontos} />}
           </div>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Descontos do motorista: cálculo automático, seleção individual INSS/IRRF e inclusão direta sem Lançar; 10 testes aprovados. Inclusão real não conferida: sessão disponível retorna zero motoristas RH.
 - [x] Motoristas: apenas cálculo/geração de descontos de folha e inclusão na movimentação, sem entrada manual nem seletor mensal; 12 testes aprovados. Conferência real da inclusão indisponível: sessão retornou zero motoristas RH.
 - [x] Adicionar Resumo da folha na toolbar: consolida todos os fechamentos do mês independentemente da seleção, com totais e download direto sob processamento; dois testes aprovados e PDF real do Geziel conferido.
 - [x] RH Motoristas: comissões abrem diretamente com Adicionar à movimentação; filtro converte horário UTC para data local e permanece após recargas. CT-e 8806 (15/10 23:59, salvo 16/10 02:59 UTC) excluído da segunda quinzena; seis testes aprovados no fuso brasileiro; adição de R$ 197,10 e remoção conferidas na tela, lançamento temporário limpo.
