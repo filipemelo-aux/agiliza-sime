@@ -77,6 +77,6 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   let logo: string | null = null;
   try { logo = await getCurrentTenantLogoUrl(); } catch { /* sem logo */ }
   html = await resolvePrintHeaders(html, logo);
-  const safe = o.nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w]+/g, "_");
+  const safe = o.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "_");
   await downloadHtmlAsPdf(html, `Acerto_${safe}_${o.inicio}.pdf`, { marginMm: 6 });
 }
