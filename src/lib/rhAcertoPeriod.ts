@@ -39,6 +39,19 @@ export function buildQuinzena(year: number, monthIndex: number, half: 1 | 2, con
   return { inicio: `${ym}-${pad(config.firstEndDay + 1)}`, fim: `${ym}-${pad(last)}`, month: ym };
 }
 
+/** Período de mês completo (1º ao último dia) — usado pelo Administrativo/Operacional. */
+export function buildMesCompleto(month: string): AcertoPeriod {
+  const [y, m] = month.split("-").map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { inicio: `${month}-01`, fim: `${month}-${pad(last)}`, month };
+}
+
+/** Mês anterior ao atual no formato YYYY-MM. */
+export function previousMonth(today: Date = new Date()): string {
+  const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
 /** Lista de quinzenas fechadas ao redor da atual (mais recentes primeiro). */
 export function listQuinzenas(today: Date = new Date(), before = 12, after = 2, config: RHPeriodConfig = DEFAULT_RH_PERIOD_CONFIG): AcertoPeriod[] {
   const base = getAcertoPeriod(today, config);

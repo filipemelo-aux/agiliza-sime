@@ -20,7 +20,7 @@ import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import { MonthPicker } from "@/components/MonthPicker";
-import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena } from "@/lib/rhAcertoPeriod";
+import { getAcertoPeriod, formatAcertoPeriod, inAcertoPeriod, listQuinzenas, labelQuinzena, buildMesCompleto, previousMonth } from "@/lib/rhAcertoPeriod";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
@@ -96,7 +96,10 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-  const month = isPeopleSection ? acertoPeriod.month : monthState;
+  // Administrativo/Operacional trabalha com o mês anterior completo (não a quinzena do acerto)
+  const [adminMonth, setAdminMonth] = useState(() => previousMonth());
+  const adminPeriod = useMemo(() => buildMesCompleto(adminMonth), [adminMonth]);
+  const month = forcedSection === "motoristas" ? acertoPeriod.month : forcedSection === "administrativo" ? adminMonth : monthState;
 
   // Observer-based data layer (colaboradores + expenses + realtime listener)
   const { loading, colaboradores, accounts, expenses, realtimeActive, reload } = useRHData(month);
@@ -159,6 +162,12 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
             </div>
+            {forcedSection === "administrativo" ? (
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês de referência</Label>
+                <MonthPicker value={adminMonth} onChange={setAdminMonth} className="w-[180px]" />
+              </div>
+            ) : (
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground whitespace-nowrap">Período do acerto</Label>
               <Select disabled={periodConfigLoading || !!periodConfigError} value={acertoPeriod.inicio} onValueChange={(v) => { const q = quinzenas.find((x) => x.inicio === v); if (q) setAcertoPeriod(q); }}>
@@ -170,6 +179,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
                 </SelectContent>
               </Select>
             </div>
+            )}
           </div>
         ) : (
           <SearchFilterCard>
@@ -203,6 +213,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           saveSettings={saveSettings}
           forcedSection={forcedSection}
           acertoPeriod={acertoPeriod}
+          adminPeriod={adminPeriod}
         />
       </div>
 
@@ -244,7 +255,7 @@ function RHWorkspace(props: any) {
     filteredColabs, metricsByColab, setHistoryFor,
     month, expenses, settings, patch, setSalaryOverride, reload,
     accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
-    forcedSection, acertoPeriod,
+    forcedSection, acertoPeriod, adminPeriod,
   } = props;
 
   const [internalSection, setInternalSection] = useState<RHSection>("colaboradores");
@@ -355,18 +366,19 @@ function RHWorkspace(props: any) {
   const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
   useEffect(() => {
     if (!isPeople || !colaboradores.length) return;
+    const periodoRef = section === "administrativo" ? adminPeriod : acertoPeriod;
     fetchReembolsosPendentes(colaboradores.map((c: ColaboradorRH) => c.id))
       .then((rows) => {
         const m = new Map<string, number>();
         rows.forEach((e) => {
-          if (acertoPeriod && !inAcertoPeriod(e.data_competencia || e.data_emissao, acertoPeriod)) return;
+          if (periodoRef && !inAcertoPeriod(e.data_competencia || e.data_emissao, periodoRef)) return;
           const id = e.reembolso_colaborador_id || "";
           m.set(id, (m.get(id) || 0) + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0));
         });
         setReembByColab(m);
       })
       .catch(() => setReembByColab(new Map()));
-  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio]);
+  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio, adminPeriod?.inicio, section]);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
   const isMotoristas = section === "motoristas";
@@ -606,7 +618,7 @@ function RHWorkspace(props: any) {
               colaborador={movFor}
               perfil="administrativo"
               adiantExpenses={adiantExpenses}
-              periodo={acertoPeriod}
+              periodo={adminPeriod}
               onClose={() => { setMovFor(null); reload(); }}
             />
             )}
