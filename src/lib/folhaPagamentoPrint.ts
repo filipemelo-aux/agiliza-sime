@@ -417,7 +417,7 @@ ${itens.map((i) => `<div class="pagina">${reciboHtml(folha, i, "1ª via — Empr
   URL.revokeObjectURL(url);
   if (opts?.downloadDireto) {
     const pdfHtml = html.replace(/<script>[\s\S]*?<\/script>/g, "")
-      .replaceAll('class="pagina"', 'class="pagina doc-page"')
+      .replace(/class="pagina"/g, 'class="pagina doc-page"')
       .replace("</style>", ".doc-page{width:190mm;margin:0}</style>");
     await downloadDirectPdf(pdfHtml, `${titleFromHtml(html, "Folha de Pagamento")}.pdf`, { marginMm: 10 });
   } else {
