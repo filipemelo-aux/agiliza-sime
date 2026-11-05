@@ -360,52 +360,38 @@ function RHWorkspace(props: any) {
           return [c.full_name, c.cargo, c.departamento].some((v) => (v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q));
         })
     : [];
-  const [reembByColab, setReembByColab] = useState<Map<string, number>>(new Map());
   const [movFor, setMovFor] = useState<ColaboradorRH | null>(null);
-  const [movLancar, setMovLancar] = useState<null | "comissao" | "reembolso" | "vale" | "desconto">(null);
-  const abrirMov = (lancar: typeof movLancar = null) => { const c = selectedPeople[0]; if (!c) return; setMovLancar(lancar); setMovFor(c); };
-  const fecharMov = () => { setMovFor(null); setMovLancar(null); reload(); };
-  const colabIdsKey = colaboradores.map((c: ColaboradorRH) => c.id).join(",");
-  useEffect(() => {
-    if (!isPeople || !colaboradores.length) return;
-    const periodoRef = section === "administrativo" ? adminPeriod : acertoPeriod;
-    fetchReembolsosPendentes(colaboradores.map((c: ColaboradorRH) => c.id))
-      .then((rows) => {
-        const m = new Map<string, number>();
-        rows.forEach((e) => {
-          if (periodoRef && !inAcertoPeriod(e.data_competencia || e.data_emissao, periodoRef)) return;
-          const id = e.reembolso_colaborador_id || "";
-          m.set(id, (m.get(id) || 0) + Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0));
-        });
-        setReembByColab(m);
-      })
-      .catch(() => setReembByColab(new Map()));
-  }, [isPeople, colabIdsKey, movFor, acertoPeriod?.inicio, adminPeriod?.inicio, section]);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
   const isMotoristas = section === "motoristas";
-  // Resumo do acerto por motorista na quinzena escolhida (movimentações ou snapshot do acerto gerado)
+  // Período ativo do acerto: quinzena (motoristas) ou mês de referência completo (administrativo)
+  const periodoAtivo = isMotoristas ? acertoPeriod : adminPeriod;
+  // Resumo do acerto por colaborador no período escolhido (movimentações ou snapshot do acerto gerado)
   const [resumoByColab, setResumoByColab] = useState<Map<string, ResumoAcerto>>(new Map());
   const [acertoByColab, setAcertoByColab] = useState<Map<string, AcertoGerado>>(new Map());
   const [resumoLoading, setResumoLoading] = useState(false);
   const [acertoBusy, setAcertoBusy] = useState(false);
   const [resumoTick, setResumoTick] = useState(0);
-  const motoristaIdsKey = colaboradores.filter((c: ColaboradorRH) => c.tipo === "motorista").map((c: ColaboradorRH) => c.id).join(",");
+  const peopleIdsKey = peopleRows.map((c: ColaboradorRH) => c.id).join(",");
   useEffect(() => {
-    if (!isMotoristas || !acertoPeriod || movFor) return;
-    const motoristas = colaboradores.filter((c: ColaboradorRH) => c.tipo === "motorista");
-    if (!motoristas.length) return;
+    if (!isPeople || !periodoAtivo || movFor) return;
+    if (!peopleRows.length) { setAcertoByColab(new Map()); setResumoByColab(new Map()); return; }
     let cancelled = false;
     setResumoLoading(true);
     (async () => {
       try {
-        const acertos = await fetchAcertosDoPeriodo(motoristas.map((c: ColaboradorRH) => c.id), acertoPeriod.inicio);
+        const acertos = await fetchAcertosDoPeriodo(peopleRows.map((c: ColaboradorRH) => c.id), periodoAtivo.inicio);
         const resumos = new Map<string, ResumoAcerto>();
-        const livres = motoristas.filter((c: ColaboradorRH) => !acertos.has(c.id));
+        const livres = peopleRows.filter((c: ColaboradorRH) => !acertos.has(c.id));
         for (let i = 0; i < livres.length; i += 4) {
           const lote = livres.slice(i, i + 4);
-          const res = await Promise.all(lote.map((c: ColaboradorRH) => loadMovimentosMotorista(c.id, acertoPeriod, adiantExpenses)));
-          lote.forEach((c: ColaboradorRH, k: number) => resumos.set(c.id, resumirMovimentos(res[k])));
+          const res = await Promise.all(lote.map((c: ColaboradorRH) => loadMovimentosMotorista(c.id, periodoAtivo, adiantExpenses)));
+          lote.forEach((c: ColaboradorRH, k: number) => {
+            const r = resumirMovimentos(res[k]);
+            // Administrativo: o salário base do cadastro entra integralmente no acerto do mês
+            if (!isMotoristas) { r.salario = Number(c.salario || 0); r.saldo += r.salario; }
+            resumos.set(c.id, r);
+          });
         }
         acertos.forEach((a, id) => resumos.set(id, a.resumo));
         if (!cancelled) { setAcertoByColab(acertos); setResumoByColab(resumos); }
@@ -416,7 +402,7 @@ function RHWorkspace(props: any) {
       }
     })();
     return () => { cancelled = true; };
-  }, [isMotoristas, motoristaIdsKey, acertoPeriod?.inicio, adiantExpenses, movFor, resumoTick]);
+  }, [isPeople, isMotoristas, peopleIdsKey, periodoAtivo?.inicio, adiantExpenses, movFor, resumoTick]);
 
   const money = (key: string, header: string, get: (r: ResumoAcerto) => number, tone: string): DataGridColumn<ColaboradorRH> => ({
     key, header, width: "120px", align: "right",
