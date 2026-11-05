@@ -12,7 +12,7 @@ import { DescontosMotoristaPicker } from "@/components/rh/DescontosMotoristaPick
 import { ValeParcelamento } from "@/components/rh/ValeParcelamento";
 import { toast } from "@/lib/notice";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { labelQuinzena, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
+import { labelQuinzena, formatAcertoPeriod, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import {
   adicionarAoAcerto,
   parcelarValeAoAcerto,
@@ -39,13 +39,17 @@ interface Props {
   colaborador: ColaboradorRH | null;
   adiantExpenses: Expense[];
   periodo: AcertoPeriod;
+  /** motorista (quinzena, com comissões) ou administrativo (mês de referência, sem comissões) */
+  perfil?: "motorista" | "administrativo";
   /** acerto gerado: movimentações somente leitura */
   bloqueado?: boolean;
   onClose: () => void;
 }
 
-/** Extrato de entradas (créditos) e saídas (débitos) do motorista na quinzena escolhida na grade. */
-export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, bloqueado = false, onClose }: Props) {
+/** Extrato de entradas (créditos) e saídas (débitos) do colaborador no período escolhido na grade. */
+export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, periodo, perfil = "motorista", bloqueado = false, onClose }: Props) {
+  const isMotorista = perfil === "motorista";
+  const periodoLabel = isMotorista ? labelQuinzena(periodo) : `Mês de referência: ${formatAcertoPeriod(periodo)}`;
   const [rows, setRows] = useState<Mov[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
