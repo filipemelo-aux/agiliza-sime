@@ -179,7 +179,8 @@ export async function gerarAcertoMotorista(input: {
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
   const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena");
   const [row] = computePayrollRowsFromPeriodo({
-    colaboradores: [{ ...colaborador, ativo: true }], periodo: pf,
+    // Acerto do motorista = só as movimentações; o salário do cadastro não entra.
+    colaboradores: [{ ...colaborador, ativo: true, salario: 0 }], periodo: pf,
     adiantamentos: f.vales, comissoes, descontos: f.descontos, reembolsos: f.reembolsos,
   });
   if (!row) throw new Error("Nenhuma movimentação para gerar o acerto nesta quinzena.");
