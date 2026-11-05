@@ -488,7 +488,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     const total = Number(valorTotal) || 0;
     const remaining = Math.max(Math.round((total - paid.reduce((s, p) => s + (Number(p.valor) || 0), 0)) * 100) / 100, 0);
     const each = openCount > 0 ? Math.floor(remaining / openCount * 100) / 100 : 0;
-    const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+    const base = new Date((dataVencimento || dataEmissao || getLocalDateISO()) + "T12:00:00");
     const next: Parcela[] = [...paid];
     for (let k = 0; k < openCount; k++) {
       const i = paid.length + k;
@@ -1746,7 +1746,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 const val = nfseValorTotal;
                                 const newCount = nfseParcelas.length + 1;
                                 const parcelaVal = (val / newCount).toFixed(2);
-                                const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
+                                const base = new Date((nfseDataVencimento || nfseDataEmissao || getLocalDateISO()) + "T12:00:00");
                                 const newP: NfseParcela[] = [];
                                 for (let i = 0; i < newCount; i++) {
                                   const d = addMonthsPreserveDay(base, i);
@@ -1765,7 +1765,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                   const val = nfseValorTotal;
                                   const newCount = nfseParcelas.length - 1;
                                   const parcelaVal = (val / newCount).toFixed(2);
-                                  const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
+                                  const base = new Date((nfseDataVencimento || nfseDataEmissao || getLocalDateISO()) + "T12:00:00");
                                   const newP: NfseParcela[] = [];
                                   for (let i = 0; i < newCount; i++) {
                                     const d = addMonthsPreserveDay(base, i);
@@ -1960,7 +1960,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           const defaultVal = tipo === "meses" ? 1 : 30;
                           setIntervaloDias(defaultVal);
                           if (parcelas.length > 1) {
-                            const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                            const base = new Date((dataVencimento || dataEmissao || getLocalDateISO()) + "T12:00:00");
                             setParcelas(prev => prev.map((p, i) => {
                               const d = tipo === "meses" ? addMonthsPreserveDay(base, defaultVal * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + defaultVal * i); return dd; })();
                               return p.status === "pago" ? p : { ...p, data_vencimento: getLocalDateISO(d) };
@@ -1982,7 +1982,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             const v = Math.max(1, Math.min(365, Number(e.target.value) || 30));
                             setIntervaloDias(v);
                             if (parcelas.length > 1) {
-                              const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                              const base = new Date((dataVencimento || dataEmissao || getLocalDateISO()) + "T12:00:00");
                               setParcelas(prev => prev.map((p, i) => {
                                 const d = new Date(base);
                                 d.setDate(d.getDate() + v * i);
@@ -2003,7 +2003,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             const v = Math.max(1, Math.min(12, Number(e.target.value) || 1));
                             setIntervaloDias(v);
                             if (parcelas.length > 1) {
-                              const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                              const base = new Date((dataVencimento || dataEmissao || getLocalDateISO()) + "T12:00:00");
                               setParcelas(prev => prev.map((p, i) => {
                                 const d = addMonthsPreserveDay(base, v * i);
                                 return p.status === "pago" ? p : { ...p, data_vencimento: getLocalDateISO(d) };
