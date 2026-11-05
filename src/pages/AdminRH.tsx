@@ -415,7 +415,7 @@ function RHWorkspace(props: any) {
       cell: (c) => {
         const a = acertoByColab.get(c.id);
         if (!a) return <Badge variant="outline" className="text-[10px]">Em edição</Badge>;
-        return <Badge variant="secondary" className="text-[10px]">{a.status === "confirmada" ? "Na folha (confirmada)" : "Gerado · na folha"}</Badge>;
+        return <Badge variant="secondary" className="text-[10px]">{a.status === "confirmada" ? "Na folha (confirmada)" : "Gerado na folha"}</Badge>;
       },
     },
   ];
