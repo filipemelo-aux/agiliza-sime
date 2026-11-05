@@ -18,6 +18,8 @@ import {
   parcelarValeAoAcerto,
   loadMovimentosEDisponiveis,
   removerDoAcerto,
+  comSalarioBase,
+  SALARIO_ROW_ID,
   type ColaboradorRH,
   type Expense,
   type MovMotorista,

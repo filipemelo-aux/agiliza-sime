@@ -155,6 +155,23 @@ export async function removerDoAcerto(colabId: string, p: PeriodoAcerto, movs: M
   }
 }
 
+export const SALARIO_ROW_ID = "salario-base";
+
+/** Linha sintética do salário base (acerto administrativo): só exibição, nunca gravada em acerto_movimentos. */
+export function movSalarioBase(salario: number, dataInicio: string): MovMotorista {
+  return {
+    id: SALARIO_ROW_ID, origemId: SALARIO_ROW_ID, origemTipo: "expense",
+    natureza: "salario", data: dataInicio,
+    descricao: "Salário base do mês (cadastro do colaborador)",
+    entrada: salario, saida: 0, removivel: false,
+  };
+}
+
+/** Prefixa o extrato com o salário base quando ele faz parte do acerto (administrativo). */
+export function comSalarioBase(movs: MovMotorista[], salarioBase: number, dataInicio: string): MovMotorista[] {
+  return salarioBase > 0 ? [movSalarioBase(salarioBase, dataInicio), ...movs] : movs;
+}
+
 export interface ResumoAcerto { salario: number; comissoes: number; reembolsos: number; vales: number; descontos: number; saldo: number }
 export function resumirMovimentos(movs: MovMotorista[]): ResumoAcerto {
   const sum = (n: MovNatureza, k: "entrada" | "saida") => movs.filter((m) => m.natureza === n).reduce((s, m) => s + m[k], 0);
