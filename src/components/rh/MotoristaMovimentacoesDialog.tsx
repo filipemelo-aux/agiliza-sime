@@ -191,6 +191,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
               onSelectedChange={setSelected}
               loading={loading}
               minWidth={760}
+              tableLayout="fixed"
               rowClassName={(r) => rowToneClass(r.entrada > 0 ? "resolved" : "pending")}
               emptyMessage="Movimentação em branco. Use os botões de entrada e saída para adicionar lançamentos."
               footer={
