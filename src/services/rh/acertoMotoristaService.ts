@@ -205,21 +205,29 @@ export async function gerarAcertoMotorista(input: {
     descontos: f0.descontos.filter((d) => inc.has(vkey("desconto", d.id))),
   };
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
-  const { data: config, error: configError } = await (supabase.rpc as any)("get_rh_period_config");
-  if (configError) throw configError;
-  const pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena", config);
-  if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("As configurações do acerto mudaram. Atualize a tela e selecione o período novamente.");
+  const isMotorista = colaborador.tipo === "motorista";
+  let pf;
+  if (isMotorista) {
+    const { data: config, error: configError } = await (supabase.rpc as any)("get_rh_period_config");
+    if (configError) throw configError;
+    pf = buildPeriodoQuinzenal(periodo.month, periodo.inicio.endsWith("-01") ? "primeira_quinzena" : "segunda_quinzena", config);
+    if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("As configurações do acerto mudaram. Atualize a tela e selecione o período novamente.");
+  } else {
+    // Administrativo/Operacional: mês de referência completo, pagamento no 5º dia útil do mês seguinte.
+    pf = buildPeriodoMensal(periodo.month);
+    if (pf.data_inicio !== periodo.inicio || pf.data_fim !== periodo.fim) throw new Error("O período selecionado não corresponde ao mês de referência. Atualize a tela e tente novamente.");
+  }
   const [row] = computePayrollRowsFromPeriodo({
-    // Acerto do motorista = só as movimentações; o salário do cadastro não entra.
-    colaboradores: [{ ...colaborador, ativo: true, salario: 0 }], periodo: pf,
+    // Motorista: só as movimentações (salário do cadastro não entra). Administrativo: salário base integral do mês.
+    colaboradores: [{ ...colaborador, ativo: true, salario: isMotorista ? 0 : Number(colaborador.salario || 0) }], periodo: pf,
     adiantamentos: f.vales, comissoes, descontos: f.descontos, reembolsos: f.reembolsos,
   });
-  if (!row) throw new Error("Nenhuma movimentação para gerar o acerto nesta quinzena.");
+  if (!row) throw new Error("Nenhuma movimentação para gerar o acerto neste período.");
   await criarFolhaEmAberto({
     empresa_id: input.empresaId, created_by: input.userId,
     mes_referencia: periodoToMesReferencia(pf), data_inicio: pf.data_inicio, data_fim: pf.data_fim,
     tipo_periodo: pf.tipo, data_emissao: pf.data_fim, data_vencimento: pf.data_pagamento,
-    observacoes: `Acerto de motorista — ${colaborador.full_name}`,
+    observacoes: `${isMotorista ? "Acerto de motorista" : "Acerto administrativo"} — ${colaborador.full_name}`,
     itens: [{
       colaborador_id: colaborador.id, colaborador_nome: colaborador.full_name,
       salario_base: row.salario_base, adiantamentos: row.adiantamentos, descontos: row.descontos,
