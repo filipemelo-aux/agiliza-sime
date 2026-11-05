@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Alinhar Configurações RH e acertos: quinzenas editáveis compartilhadas, prazos dia 20/dia 5, competência salarial e parcelas futuras coerentes; validar gravação e filtro.
 - [x] Parcelar vales ao adicionar: prévia por quinzena, criação atômica, primeira parcela no acerto atual e demais disponíveis nas próximas quinzenas; remover preserva o plano e disponibiliza a primeira parcela sem liberar o total original. Oito testes aprovados; validação real indisponível porque a sessão retornou zero motoristas RH.
 - [x] Descontos do motorista: cálculo automático, seleção individual INSS/IRRF e inclusão direta sem Lançar; 10 testes aprovados. Inclusão real não conferida: sessão disponível retorna zero motoristas RH.
 - [x] Motoristas: apenas cálculo/geração de descontos de folha e inclusão na movimentação, sem entrada manual nem seletor mensal; 12 testes aprovados. Conferência real da inclusão indisponível: sessão retornou zero motoristas RH.
