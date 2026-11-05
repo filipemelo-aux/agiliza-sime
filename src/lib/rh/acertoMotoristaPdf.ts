@@ -65,6 +65,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Entradas: <span class="mono pos">${brl(totE)}</span>&nbsp;&nbsp;·&nbsp;&nbsp;Saídas: <span class="mono neg">${brl(totS)}</span></td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
   <div class="legenda"><span><span class="sw in"></span>Entrada (crédito)</span><span><span class="sw out"></span>Saída (débito)</span></div>
   <table class="resumo">
+    ${o.resumo.salario > 0 ? `<tr><td>(+) Salário base</td><td class="r">${brl(o.resumo.salario)}</td></tr>` : ""}
     <tr><td>(+) Comissões</td><td class="r">${brl(o.resumo.comissoes)}</td></tr>
     <tr><td>(+) Reembolsos</td><td class="r">${brl(o.resumo.reembolsos)}</td></tr>
     <tr><td>(−) Adiantamentos / Vales</td><td class="r neg">${brl(o.resumo.vales)}</td></tr>
