@@ -506,7 +506,6 @@ function RHWorkspace(props: any) {
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
   ] : [
-    { key: "mov", label: "Movimentações", icon: HandCoins, mode: "single", onClick: () => abrirMov(null) },
     { key: "in-reemb", label: "Entrada: Reembolso", icon: Receipt, mode: "single", onClick: () => abrirMov("reembolso") },
     { key: "out-vale", label: "Saída: Vale / Adiantamento", icon: HandCoins, mode: "single", onClick: () => abrirMov("vale") },
     { key: "out-desc", label: "Saída: Desconto", icon: UserMinus, mode: "single", variant: "default", onClick: () => abrirMov("desconto") },
