@@ -25,6 +25,7 @@ export interface MovMotorista {
   removivel: boolean;
   origemId: string;
   origemTipo: "comissao" | "expense" | "desconto";
+  parcelasTotal?: number;
 }
 export interface PeriodoAcerto { inicio: string; fim: string; month: string }
 
@@ -74,7 +75,7 @@ function toMovs(f: Fontes): MovMotorista[] {
   return list.sort((a, b) => a.data.localeCompare(b.data));
 }
 
-interface Vinculo { colaborador_id: string; periodo_inicio: string; origem_tipo: string; origem_id: string }
+interface Vinculo { colaborador_id: string; periodo_inicio: string; origem_tipo: string; origem_id: string; valor_desconto?: number | null; parcelas_total?: number | null }
 const vkey = (t: string, id: string) => `${t}:${id}`;
 
 async function fetchVinculos(origemIds: string[]): Promise<Vinculo[]> {
@@ -82,7 +83,7 @@ async function fetchVinculos(origemIds: string[]): Promise<Vinculo[]> {
   const out: Vinculo[] = [];
   for (let i = 0; i < origemIds.length; i += 200) {
     const { data, error } = await (supabase.from("acerto_movimentos" as any) as any)
-      .select("colaborador_id, periodo_inicio, natureza, origem_tipo, origem_id").in("origem_id", origemIds.slice(i, i + 200));
+      .select("colaborador_id, periodo_inicio, natureza, origem_tipo, origem_id, valor_desconto, parcelas_total").in("origem_id", origemIds.slice(i, i + 200));
     if (error) throw error;
     out.push(...(data || []));
   }
@@ -104,6 +105,10 @@ export async function loadMovimentosEDisponiveis(colabId: string, p: PeriodoAcer
       const n = natMeus.get(k);
       // vínculo guarda a natureza adicionada: reembolso não reaparece como vale
       return !n || m.origemTipo !== "expense" || n === m.natureza;
+    }).map((m) => {
+      const v = meusV.find((v) => v.origem_tipo === m.origemTipo && v.origem_id === m.origemId);
+      return v?.valor_desconto != null ? { ...m, saida: Number(v.valor_desconto), parcelasTotal: v.parcelas_total || undefined,
+        descricao: `${m.descricao} — parcela 1/${v.parcelas_total}` } : m;
     }),
     disponiveis: todas.filter((m) => !usados.has(vkey(m.origemTipo, m.origemId))),
   };
@@ -120,6 +125,11 @@ export async function adicionarAoAcerto(colabId: string, p: PeriodoAcerto, movs:
   const { error } = await (supabase.from("acerto_movimentos" as any) as any).insert(movs.map((m) => ({
     colaborador_id: colabId, periodo_inicio: p.inicio, natureza: m.natureza, origem_tipo: m.origemTipo, origem_id: m.origemId,
   })));
+  if (error) throw error;
+}
+
+export async function parcelarValeAoAcerto(colabId: string, p: PeriodoAcerto, expenseId: string, parcelas: number) {
+  const { error } = await (supabase.rpc as any)("parcelar_vale_acerto", { _colaborador_id: colabId, _periodo_inicio: p.inicio, _expense_id: expenseId, _parcelas: parcelas });
   if (error) throw error;
 }
 
@@ -173,7 +183,10 @@ export async function gerarAcertoMotorista(input: {
   const f: Fontes = {
     comissoes: f0.comissoes.filter((c) => inc.has(vkey("comissao", c.id))),
     reembolsos: f0.reembolsos.filter((e) => inc.has(vkey("expense", e.id))),
-    vales: f0.vales.filter((e: any) => incluidas.some((m) => m.natureza === "vale" && m.origemTipo === "expense" && m.origemId === e.id)),
+    vales: f0.vales.filter((e: any) => incluidas.some((m) => m.natureza === "vale" && m.origemTipo === "expense" && m.origemId === e.id)).map((e) => {
+      const mov = incluidas.find((m) => m.origemTipo === "expense" && m.origemId === e.id && m.natureza === "vale");
+      return mov?.parcelasTotal ? { ...e, valor_total: mov.saida, valor_pago: mov.saida } : e;
+    }),
     descontos: f0.descontos.filter((d) => inc.has(vkey("desconto", d.id))),
   };
   const comissoes = f.comissoes.filter((c) => c.status === "pendente");
@@ -209,9 +222,9 @@ export async function editarAcertoMotorista(acerto: AcertoGerado): Promise<void>
 /** Movimentações gravadas no acerto (independe do status atual das origens — usado após gerar o acerto). */
 export async function loadMovimentosDoAcerto(colabId: string, inicio: string): Promise<MovMotorista[]> {
   const { data: vinc, error } = await (supabase.from("acerto_movimentos" as any) as any)
-    .select("natureza, origem_tipo, origem_id").eq("colaborador_id", colabId).eq("periodo_inicio", inicio);
+    .select("natureza, origem_tipo, origem_id, valor_desconto, parcelas_total").eq("colaborador_id", colabId).eq("periodo_inicio", inicio);
   if (error) throw error;
-  const v = (vinc || []) as { natureza: MovNatureza; origem_tipo: string; origem_id: string }[];
+  const v = (vinc || []) as { natureza: MovNatureza; origem_tipo: string; origem_id: string; valor_desconto?: number | null; parcelas_total?: number | null }[];
   const ids = (t: string) => v.filter((x) => x.origem_tipo === t).map((x) => x.origem_id);
   const natPorId = new Map(v.map((x) => [x.origem_id, x.natureza]));
   const q = async (table: string, cols: string, list: string[]) => {
@@ -229,11 +242,12 @@ export async function loadMovimentosDoAcerto(colabId: string, inicio: string): P
     ...toMovs({ comissoes: coms, descontos: descs, reembolsos: [], vales: [] }),
     ...exps.map((e) => {
       const nat = natPorId.get(e.id) === "reembolso" ? "reembolso" : "vale";
-      const valor = Number(e.valor_total || 0);
+      const vinculo = v.find((x) => x.origem_tipo === "expense" && x.origem_id === e.id);
+      const valor = Number(vinculo?.valor_desconto ?? e.valor_total ?? 0);
       return {
         id: `${nat === "reembolso" ? "r" : "v"}-${e.id}`, origemId: e.id, natureza: nat as MovNatureza,
         data: String((nat === "reembolso" ? e.data_competencia || e.data_emissao : e.data_pagamento || e.data_emissao) || "").slice(0, 10),
-        descricao: e.descricao || (nat === "reembolso" ? "Reembolso" : "Adiantamento"),
+        descricao: `${e.descricao || (nat === "reembolso" ? "Reembolso" : "Adiantamento")}${vinculo?.parcelas_total ? ` — parcela 1/${vinculo.parcelas_total}` : ""}`,
         entrada: nat === "reembolso" ? valor : 0, saida: nat === "vale" ? valor : 0, removivel: false, origemTipo: "expense" as const,
       };
     }),
