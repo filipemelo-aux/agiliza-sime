@@ -193,3 +193,38 @@ export async function editarAcertoMotorista(acerto: AcertoGerado): Promise<void>
   if (folha.status === "confirmada") await reabrirFolhaConfirmada(acerto.folhaId);
   await excluirItemFolhaEmAberto(acerto.folhaId, acerto.itemId);
 }
+
+/** Movimentações gravadas no acerto (independe do status atual das origens — usado após gerar o acerto). */
+export async function loadMovimentosDoAcerto(colabId: string, inicio: string): Promise<MovMotorista[]> {
+  const { data: vinc, error } = await (supabase.from("acerto_movimentos" as any) as any)
+    .select("natureza, origem_tipo, origem_id").eq("colaborador_id", colabId).eq("periodo_inicio", inicio);
+  if (error) throw error;
+  const v = (vinc || []) as { natureza: MovNatureza; origem_tipo: string; origem_id: string }[];
+  const ids = (t: string) => v.filter((x) => x.origem_tipo === t).map((x) => x.origem_id);
+  const natPorId = new Map(v.map((x) => [x.origem_id, x.natureza]));
+  const q = async (table: string, cols: string, list: string[]) => {
+    if (!list.length) return [] as any[];
+    const { data, error: e } = await (supabase.from(table as any) as any).select(cols).in("id", list);
+    if (e) throw e;
+    return (data || []) as any[];
+  };
+  const [coms, exps, descs] = await Promise.all([
+    q("comissoes", "*", ids("comissao")),
+    q("expenses", "id, descricao, valor_total, data_emissao, data_pagamento, data_competencia", ids("expense")),
+    q("descontos_folha", "*", ids("desconto")),
+  ]);
+  const list: MovMotorista[] = [
+    ...toMovs({ comissoes: coms, descontos: descs, reembolsos: [], vales: [] }),
+    ...exps.map((e) => {
+      const nat = natPorId.get(e.id) === "reembolso" ? "reembolso" : "vale";
+      const valor = Number(e.valor_total || 0);
+      return {
+        id: `${nat === "reembolso" ? "r" : "v"}-${e.id}`, origemId: e.id, natureza: nat as MovNatureza,
+        data: String((nat === "reembolso" ? e.data_competencia || e.data_emissao : e.data_pagamento || e.data_emissao) || "").slice(0, 10),
+        descricao: e.descricao || (nat === "reembolso" ? "Reembolso" : "Adiantamento"),
+        entrada: nat === "reembolso" ? valor : 0, saida: nat === "vale" ? valor : 0, removivel: false, origemTipo: "expense" as const,
+      };
+    }),
+  ];
+  return list.sort((a, b) => a.data.localeCompare(b.data));
+}
