@@ -496,7 +496,7 @@ export function FinancialInvoicing() {
     setCondicaoPagamento(condicao);
     setNumParcelas(fatura.num_parcelas);
     setIntervaloDias(fatura.intervalo_dias || 30);
-    setDataEmissaoEdit(emissaoReal);
+    setDataEmissaoEdit(fatura.data_emissao);
     setDataVencimentoUnico(vencimentoRef);
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
@@ -634,7 +634,9 @@ export function FinancialInvoicing() {
 
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? 0 : 0;
-  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
+  // A emissão é livre (inicia na data atual); o vencimento do pagamento único alimenta a coluna-base do cronograma.
+  const effectiveDataEmissao = dataEmissaoEdit;
+  const effectiveVencimentoBase = condicaoPagamento === "unico" ? dataVencimentoUnico : null;
 
   // Cronograma base: valores divididos igualmente, datas em branco (definição manual)
   const buildDefaultSchedule = (qtd = numParcelas) => {
@@ -684,6 +686,7 @@ export function FinancialInvoicing() {
         ? parcelasCustom.map((p) => ({ valor: Number(unmaskCurrency(p.valor) || 0), data_vencimento: p.data_vencimento }))
         : null,
       ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
+      data_vencimento_base: effectiveVencimentoBase,
       status: "faturada" as any,
     } as any;
 
@@ -2431,7 +2434,6 @@ ${hasRecebimentos ? `
                       type="date"
                       value={dataEmissaoEdit}
                       onChange={(e) => setDataEmissaoEdit(e.target.value)}
-                      disabled={condicaoPagamento === "unico"}
                     />
                   </div>
                   {condicaoPagamento === "unico" && (

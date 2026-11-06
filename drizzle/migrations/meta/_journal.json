@@ -246,6 +246,13 @@
       "when": 1793982167996,
       "tag": "0034_fatura_forma_pagamento_remessas",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793989023720,
+      "tag": "0035_fatura_data_vencimento_base",
+      "breakpoints": true
     }
   ]
 }

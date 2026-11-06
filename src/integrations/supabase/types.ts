@@ -2849,6 +2849,7 @@ export type Database = {
           cliente_id: string
           created_at: string
           data_emissao: string
+          data_vencimento_base: string | null
           empresa_id: string | null
           forma_pagamento: string | null
           id: string
@@ -2867,6 +2868,7 @@ export type Database = {
           cliente_id: string
           created_at?: string
           data_emissao?: string
+          data_vencimento_base?: string | null
           empresa_id?: string | null
           forma_pagamento?: string | null
           id?: string
@@ -2885,6 +2887,7 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           data_emissao?: string
+          data_vencimento_base?: string | null
           empresa_id?: string | null
           forma_pagamento?: string | null
           id?: string
