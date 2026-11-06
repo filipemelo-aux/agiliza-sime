@@ -295,6 +295,64 @@ export type Database = {
           },
         ]
       }
+      boleto_titulos: {
+        Row: {
+          config_id: string
+          conta_receber_id: string
+          created_at: string
+          id: string
+          nosso_numero: number
+          nosso_numero_dv: number
+          primeira_remessa_nsa: number
+          tenant_id: string
+          ultima_remessa_nsa: number
+        }
+        Insert: {
+          config_id: string
+          conta_receber_id: string
+          created_at?: string
+          id?: string
+          nosso_numero: number
+          nosso_numero_dv: number
+          primeira_remessa_nsa: number
+          tenant_id?: string
+          ultima_remessa_nsa: number
+        }
+        Update: {
+          config_id?: string
+          conta_receber_id?: string
+          created_at?: string
+          id?: string
+          nosso_numero?: number
+          nosso_numero_dv?: number
+          primeira_remessa_nsa?: number
+          tenant_id?: string
+          ultima_remessa_nsa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boleto_titulos_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "cobranca_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boleto_titulos_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: true
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boleto_titulos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           ativo: boolean
@@ -811,6 +869,120 @@ export type Database = {
           },
           {
             foreignKeyName: "cheques_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobranca_configs: {
+        Row: {
+          aceite: string
+          agencia: string
+          agencia_dv: string
+          ativo: boolean
+          baixa_codigo: string
+          baixa_dias: number | null
+          banco_codigo: string
+          banco_nome: string
+          beneficiario_cnpj: string
+          beneficiario_nome: string
+          carteira: string
+          codigo_beneficiario: string
+          conta: string
+          conta_dv: string
+          created_at: string
+          empresa_id: string | null
+          especie_titulo: string
+          id: string
+          juros_codigo: string
+          juros_percentual: number
+          modalidade: string
+          multa_codigo: string
+          multa_percentual: number
+          nome: string
+          protesto_codigo: string
+          protesto_dias: number
+          tenant_id: string
+          ultimo_nosso_numero: number
+          ultimo_nsa: number
+          updated_at: string
+        }
+        Insert: {
+          aceite?: string
+          agencia: string
+          agencia_dv?: string
+          ativo?: boolean
+          baixa_codigo?: string
+          baixa_dias?: number | null
+          banco_codigo?: string
+          banco_nome?: string
+          beneficiario_cnpj: string
+          beneficiario_nome: string
+          carteira?: string
+          codigo_beneficiario: string
+          conta: string
+          conta_dv?: string
+          created_at?: string
+          empresa_id?: string | null
+          especie_titulo?: string
+          id?: string
+          juros_codigo?: string
+          juros_percentual?: number
+          modalidade?: string
+          multa_codigo?: string
+          multa_percentual?: number
+          nome?: string
+          protesto_codigo?: string
+          protesto_dias?: number
+          tenant_id?: string
+          ultimo_nosso_numero?: number
+          ultimo_nsa?: number
+          updated_at?: string
+        }
+        Update: {
+          aceite?: string
+          agencia?: string
+          agencia_dv?: string
+          ativo?: boolean
+          baixa_codigo?: string
+          baixa_dias?: number | null
+          banco_codigo?: string
+          banco_nome?: string
+          beneficiario_cnpj?: string
+          beneficiario_nome?: string
+          carteira?: string
+          codigo_beneficiario?: string
+          conta?: string
+          conta_dv?: string
+          created_at?: string
+          empresa_id?: string | null
+          especie_titulo?: string
+          id?: string
+          juros_codigo?: string
+          juros_percentual?: number
+          modalidade?: string
+          multa_codigo?: string
+          multa_percentual?: number
+          nome?: string
+          protesto_codigo?: string
+          protesto_dias?: number
+          tenant_id?: string
+          ultimo_nosso_numero?: number
+          ultimo_nsa?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranca_configs_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_configs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6248,6 +6420,10 @@ export type Database = {
           _periodo_inicio: string
         }
         Returns: undefined
+      }
+      reservar_remessa_cnab: {
+        Args: { _config_id: string; _conta_receber_ids: string[] }
+        Returns: Json
       }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }

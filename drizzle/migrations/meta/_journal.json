@@ -232,6 +232,13 @@
       "when": 1793969403588,
       "tag": "0032_cte_saldo_frete",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793978222259,
+      "tag": "0033_boleto_cnab240_sicoob",
+      "breakpoints": true
     }
   ]
 }

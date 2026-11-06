@@ -24,7 +24,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/lib/notice";
 
 import { cn } from "@/lib/utils";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2, ChevronDown, X } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2, ChevronDown, X, Landmark } from "lucide-react";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
+import { gerarRemessaCnab } from "@/lib/boleto/remessaService";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCNPJ, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { receivableBalance, totalReceivableBalance } from "@/lib/receivableBalance";
@@ -1586,6 +1588,7 @@ ${hasRecebimentos ? `
 
   // ─── Seleção em lote ──────────────────────────────────────
   const [selectedFaturaIds, setSelectedFaturaIds] = useState<Set<string>>(new Set());
+  const [cnabBusy, setCnabBusy] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const toggleFaturaSelect = (id: string) => {
@@ -1910,6 +1913,7 @@ ${hasRecebimentos ? `
         </div>
       </SearchFilterCard>
 
+      <ProcessingOverlay open={cnabBusy} label="Gerando remessa de boletos..." />
       <GlobalToolbar
         actions={[
           { key: "new", label: "Nova Fatura", icon: Plus, mode: "create", variant: "default", onClick: openNewInvoice },
@@ -1936,6 +1940,21 @@ ${hasRecebimentos ? `
             key: "print", label: "Imprimir", icon: Printer, mode: "single",
             disabled: !singleFatura,
             onClick: () => singleFatura && handlePrintFatura(singleFatura),
+          },
+          {
+            key: "cnab", label: "Remessa de boletos (CNAB 240)", icon: Landmark, mode: "single+batch",
+            disabled: cnabBusy || selectedFaturas.length === 0 || !selectedFaturas.some((f) => hasPendingContas(f)),
+            onClick: async () => {
+              setCnabBusy(true);
+              try {
+                const r = await gerarRemessaCnab(selectedFaturas.filter((f) => hasPendingContas(f)).map((f) => f.id));
+                toast.success(`Remessa ${r.nsa} gerada (${r.arquivo}) com ${r.titulos} boleto(s).`);
+              } catch (e: any) {
+                toast.error(e?.message || "Não foi possível gerar a remessa.");
+              } finally {
+                setCnabBusy(false);
+              }
+            },
           },
           {
             key: "reverse", label: "Estornar", icon: Undo2, mode: "single+batch",

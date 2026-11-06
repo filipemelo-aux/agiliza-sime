@@ -91,3 +91,5 @@
 - [x] Liberação da clonagem de CT-e: botão Clonar disponível com 1 ou mais selecionados (Produção ou Serviço), copiando o último clicado; seletor informa o documento de origem e a caixinha seleciona ao clicar em qualquer ponto da célula; cinco testes aprovados e telas de CT-e e Contas a Pagar conferidas.
 - [x] Acertos em edição zerados: reserva de reembolso (reembolso_folha_item_id) não era liberada ao excluir item da folha ("Editar acerto"); criado trigger release_payroll_reimbursements_on_item_delete (migração 0027) e acertos de Antonio Carlos e Jailan regenerados com os valores originais.
 - [x] Impressão do acerto: removida a linha repetitiva de créditos/débitos e saldo após os débitos, restando só a somatoria geral; PDF real do Antonio Jefferson baixado e conferido.
+- [ ] Tela de configuração de cobrança/boleto por empresa (novos clientes do SaaS)
+- [ ] Impressão do boleto (linha digitável e código de barras)
