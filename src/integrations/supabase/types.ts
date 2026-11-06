@@ -6113,6 +6113,37 @@ export type Database = {
         }
         Returns: string
       }
+      criar_planos_desconto_acerto: {
+        Args: {
+          _colaborador_id: string
+          _periodo_fim: string
+          _periodo_inicio: string
+          _planos: Json
+        }
+        Returns: {
+          adiantamento_origem_id: string | null
+          colaborador_id: string
+          created_at: string
+          created_by: string
+          data_referencia: string
+          descricao: string | null
+          folha_pagamento_id: string | null
+          id: string
+          parcela_numero: number | null
+          parcelas_total: number | null
+          plano_desconto_id: string | null
+          tenant_id: string
+          tipo: Database["public"]["Enums"]["desconto_folha_tipo"]
+          updated_at: string
+          valor: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "descontos_folha"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       current_tenant_id: { Args: never; Returns: string }
       fn_contract_city_from_address: {
         Args: { _addr: string }
