@@ -9,7 +9,7 @@ type Draft = Omit<TituloRemessa, "nossoNumero" | "nossoNumeroDv"> & { contaReceb
  */
 export async function gerarRemessaCnab(faturaIds: string[]): Promise<{ arquivo: string; titulos: number; nsa: number }> {
   const { data: faturas, error: fErr } = await supabase
-    .from("faturas_recebimento").select("id, numero, cliente_id, empresa_id, data_emissao").in("id", faturaIds);
+    .from("faturas_recebimento").select("id, numero, cliente_id, empresa_id, data_emissao, created_at").in("id", faturaIds);
   if (fErr) throw fErr;
   if (!faturas?.length) throw new Error("Nenhuma fatura selecionada.");
 
@@ -49,7 +49,8 @@ export async function gerarRemessaCnab(faturaIds: string[]): Promise<{ arquivo: 
         numeroDocumento: String(f.numero),
         usoEmpresa: String(f.numero),
         vencimento: c.data_vencimento,
-        emissao: String(f.data_emissao).slice(0, 10),
+        // Na fatura, data_emissao é o campo legado do vencimento; a emissão real é a data de criação (horário de Brasília).
+        emissao: new Date(f.created_at).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }),
         valor: Math.round((Number(c.valor) - Number(c.valor_recebido ?? 0)) * 100) / 100,
         pagador: {
           documento: cli?.cnpj ?? "",
