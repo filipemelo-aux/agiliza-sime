@@ -25,7 +25,6 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
     </tr>`;
   }).join("") || `<tr><td colspan="4" style="text-align:center;color:#6b7280;padding:10px">${vazio}</td></tr>`;
   const totE = o.movs.reduce((s, m) => s + m.entrada, 0), totS = o.movs.reduce((s, m) => s + m.saida, 0);
-  const saldo = totE - totS;
   let html = `<!doctype html><html><head><meta charset="utf-8"><title>Acerto ${esc(o.nome)}</title><style>
     body{font-family:Arial,sans-serif;font-size:11px;color:#1c2733;margin:0}
     .doc-page{width:186mm;padding:0}
@@ -68,8 +67,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   <h2>Débitos</h2>
   <table class="mov"><thead><tr><th class="nowrap" style="width:1%">Data</th><th class="nowrap" style="width:1%">Tipo</th><th>Descrição</th><th class="r" style="width:1%">Débito</th></tr></thead>
   <tbody>${linhas(saidasL, "Nenhum débito no período.")}</tbody>
-  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de débitos</td><td class="r mono neg">${brl(totS)}</td></tr>
-  <tr><td colspan="2" style="text-align:right;color:#5b6b7f">Créditos ${brl(totE)} − Débitos ${brl(totS)}</td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
+  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de débitos</td><td class="r mono neg">${brl(totS)}</td></tr></tfoot></table>
   <div class="legenda"><span><span class="sw in"></span>Crédito</span><span><span class="sw out"></span>Débito</span></div>
   <table class="resumo">
     ${o.resumo.salario > 0 ? `<tr><td>(+) Salário base</td><td class="r">${brl(o.resumo.salario)}</td></tr>` : ""}
