@@ -78,6 +78,8 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [to, setTo] = useState("");
+  const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
   const [subject, setSubject] = useState("");
   const [mensagem, setMensagem] = useState("");
 
@@ -89,7 +91,7 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
       .then((d) => {
         if (!alive || !d) return;
         setData(d);
-        setTo(d.clienteEmail);
+        setTo(d.clienteEmail); setCc(""); setBcc("");
         setSubject(`Fatura Nº ${fatura.numero} — ${d.empresaNome}`);
         setMensagem(`Olá, ${d.clienteNome}.\n\nSegue a fatura Nº ${fatura.numero} no valor de ${formatCurrency(Number(fatura.valor_total))}.`);
       })
@@ -100,11 +102,15 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
 
   const send = async () => {
     if (!fatura || !data) return;
-    const emails = to.split(/[;,]/).map((e) => e.trim()).filter(Boolean);
-    if (!emails.length || emails.some((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))) {
+    const split = (v: string) => v.split(/[;,\s]+/).map((e) => e.trim()).filter(Boolean);
+    const valid = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    const emails = split(to), ccList = split(cc), bccList = split(bcc);
+    if (!emails.length || emails.some((e) => !valid(e))) {
       toast.error("Informe um e-mail válido para o destinatário.");
       return;
     }
+    const bad = [...ccList, ...bccList].find((e) => !valid(e));
+    if (bad) { toast.error(`E-mail inválido em Cópia/Cópia oculta: ${bad}`); return; }
     setSending(true);
     try {
       const attachments: { filename: string; content: string; contentType: string }[] = [];
@@ -125,7 +131,7 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
       }
 
       const { data: res, error } = await supabase.functions.invoke("send-smtp-email", {
-        body: { to: emails.join(", "), subject, html: previewHtml(fatura.numero, Number(fatura.valor_total), data, mensagem), attachments },
+        body: { to: emails, cc: ccList, bcc: bccList, subject, html: previewHtml(fatura.numero, Number(fatura.valor_total), data, mensagem), attachments },
       });
       if (error) throw error;
       if ((res as any)?.error) throw new Error((res as any).error);
@@ -151,6 +157,16 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
               <Label className="text-xs">Para</Label>
               <Input className="h-9 text-xs" value={to} onChange={(e) => setTo(e.target.value)} placeholder="cliente@empresa.com.br" />
               <p className="text-[11px] text-muted-foreground">Para mais de um destinatário, separe por vírgula.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Cópia (Cc)</Label>
+                <Input className="h-9 text-xs" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="opcional" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cópia oculta (Cco)</Label>
+                <Input className="h-9 text-xs" value={bcc} onChange={(e) => setBcc(e.target.value)} placeholder="opcional" />
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Assunto</Label>

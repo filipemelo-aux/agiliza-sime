@@ -28,6 +28,11 @@ const htmlToText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const splitEmails = (v?: string | string[]) =>
+  (Array.isArray(v) ? v : String(v || "").split(/[,;\s]+/))
+    .map((e) => e.trim())
+    .filter(Boolean);
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -60,15 +65,15 @@ serve(async (req) => {
 
     const { to, subject, html, cc, bcc, smtpConfig, attachments } = await req.json() as {
       attachments?: { filename: string; content: string; contentType?: string }[];
-      to?: string;
+      to?: string | string[];
       subject?: string;
       html?: string;
-      cc?: string;
-      bcc?: string;
+      cc?: string | string[];
+      bcc?: string | string[];
       smtpConfig?: SmtpConfigInput;
     };
 
-    if (!to || !subject || !html) {
+    if (!splitEmails(to).length || !subject || !html) {
       return new Response(
         JSON.stringify({ error: "Campos obrigatórios: to, subject, html" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -185,9 +190,9 @@ serve(async (req) => {
       from: smtp.from_name
         ? `${smtp.from_name} <${smtp.from_email}>`
         : smtp.from_email,
-      to,
-      cc: cc || undefined,
-      bcc: bcc || undefined,
+      to: splitEmails(to),
+      cc: splitEmails(cc).length ? splitEmails(cc) : undefined,
+      bcc: splitEmails(bcc).length ? splitEmails(bcc) : undefined,
       subject,
       content: htmlToText(html) || "Mensagem sem conteúdo em texto.",
       html,
