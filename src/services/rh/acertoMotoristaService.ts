@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { descricaoDesconto } from "@/lib/rh/descontoParcelas";
 import { fetchComissoes } from "./comissoesService";
+import { juntarSaldosFrete } from "./juntarSaldoFrete";
 import { fetchDescontosPendentesNoPeriodo } from "./descontosFolhaService";
 import { fetchReembolsosPendentesNoPeriodo, type ReembolsoExpense } from "./rhFinancialService";
 import { buildPeriodoMensal, buildPeriodoQuinzenal, computePayrollRowsFromPeriodo, periodoToMesReferencia } from "./rhViewModel";
@@ -295,5 +296,11 @@ export async function loadMovimentosDoAcerto(colabId: string, inicio: string): P
       };
     }),
   ];
-  return list.sort((a, b) => a.data.localeCompare(b.data));
+  list.sort((a, b) => a.data.localeCompare(b.data));
+  // Fechamento: CT-e principal + saldo de frete no mesmo acerto viram uma linha com o frete total.
+  const cteIds = coms.filter((c: any) => c.origem === "cte" && c.referencia_id).map((c: any) => c.referencia_id);
+  const ctes = await q("ctes", "id, cte_origem_id", cteIds);
+  return juntarSaldosFrete(list,
+    coms.map((c: any) => ({ id: c.id, referenciaId: c.referencia_id, origem: c.origem, valorBase: Number(c.valor_base || 0), percentual: c.percentual })),
+    ctes.map((c: any) => ({ id: c.id, origemId: c.cte_origem_id })));
 }
