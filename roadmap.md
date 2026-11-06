@@ -93,3 +93,4 @@
 - [x] Impressão do acerto: removida a linha repetitiva de créditos/débitos e saldo após os débitos, restando só a somatoria geral; PDF real do Antonio Jefferson baixado e conferido.
 - [ ] Tela de configuração de cobrança/boleto por empresa (novos clientes do SaaS)
 - [ ] Impressão do boleto (linha digitável e código de barras)
+- [x] Boleto em PDF junto do download e do e-mail da fatura (só quando há nosso número registrado).

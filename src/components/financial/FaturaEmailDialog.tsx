@@ -13,6 +13,7 @@ import { buildHtmlPdf } from "@/lib/htmlToPdf";
 import { resolvePrintableHtml } from "@/lib/pdfDownload";
 import { buildDactePdf } from "@/components/freight/dactePdf";
 import { cteXmlToPrintFields } from "@/lib/cteXmlToPrint";
+import { buildBoletosFaturaPdf } from "@/lib/boleto/boletoPdf";
 
 export interface FaturaEmailData {
   html: string;
@@ -122,6 +123,9 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
         }
       }
 
+      const boletos = await buildBoletosFaturaPdf(fatura.id);
+      if (boletos) attachments.push({ filename: `Boleto-Fatura-${fatura.numero}.pdf`, content: await blobToBase64(boletos.output("blob")), contentType: "application/pdf" });
+
       const { data: res, error } = await supabase.functions.invoke("send-smtp-email", {
         body: { to: emails.join(", "), subject, html: previewHtml(fatura.numero, Number(fatura.valor_total), data, mensagem), attachments },
       });
@@ -159,7 +163,7 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
               <Textarea className="text-xs" rows={4} value={mensagem} onChange={(e) => setMensagem(e.target.value)} />
             </div>
             <div className="rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
-              Anexos: Fatura Nº {fatura?.numero} (PDF){data?.cteIds.length ? ` e ${data.cteIds.length} CT-e(s) (PDF)` : ""}. O corpo do e-mail leva uma prévia da fatura.
+              Anexos: Fatura Nº {fatura?.numero} (PDF){data?.cteIds.length ? ` e ${data.cteIds.length} CT-e(s) (PDF)` : ""}, mais o boleto quando a fatura tiver boleto gerado. O corpo do e-mail leva uma prévia da fatura.
             </div>
           </div>
           <DialogFooter>

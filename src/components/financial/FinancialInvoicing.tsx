@@ -29,6 +29,7 @@ import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { gerarRemessaCnab } from "@/lib/boleto/remessaService";
 import { FaturaEmailDialog } from "./FaturaEmailDialog";
+import { buildBoletosFaturaPdf } from "@/lib/boleto/boletoPdf";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCNPJ, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { receivableBalance, totalReceivableBalance } from "@/lib/receivableBalance";
@@ -1624,7 +1625,13 @@ ${hasRecebimentos ? `
         parcelas: contas.map((c) => ({ vencimento: c.data_vencimento, valor: Number(c.valor) })),
       };
     }
-    downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"), { marginMm: 20 });
+    await downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"), { marginMm: 20 });
+    try {
+      const boletos = await buildBoletosFaturaPdf(fatura.id);
+      if (boletos) boletos.save(`Boleto-Fatura-${fatura.numero}.pdf`);
+    } catch (e: any) {
+      toast.error(`Fatura baixada, mas o boleto não pôde ser gerado: ${e?.message || e}`);
+    }
     return null;
   };
 
