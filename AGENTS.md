@@ -27,7 +27,7 @@
 - Freight contracts use fixed wrapping tables, matching A4 margins and an unbreakable signature/brand closing block with compact print spacing to prevent orphaned logos; `fiscalProtocol.ts` extracts protocol numbers to prevent overflow.
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Financial reads wait for auth, paginate with fetchAllRows and surface errors; edits reuse payment-state triggers. Receivables grid uses receivableBalance.ts for cent-rounded remaining principal and visible-row totals, separate from original values.
-- Expense composition uses expenseComposition.ts totals; combined parts/service keeps separate payable IDs and aggregates only maintenance cost to avoid double-counting.
+- Expense composition uses expenseComposition.ts totals; combined parts/service keeps separate payable IDs and aggregates only maintenance cost (no double count).
 - Accounting uses `contabilidadeExport.ts` for due-month debt and payment-month history; payables and bank reports share `payableReportState.ts` for signed principal (cash minus interest plus discount), oldest-first unlinked installment allocation and disjoint due filters; summaries total visible balances. DRE uses `dreCompetence.ts` for competence dates and card purchase deduplication, paginated authenticated reads and settlement adjustments without repeating principal.
 
 - Employee reimbursements retain supplier and cost category on the original expense; payroll snapshots reserve their remaining balances, salary payables exclude reimbursements, and the authenticated payroll-item RPC atomically settles originals with one cash movement per employee to avoid double expense/payment.
