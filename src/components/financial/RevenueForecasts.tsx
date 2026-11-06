@@ -28,6 +28,7 @@ import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
 import { useNavigate } from "react-router-dom";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter } from "./EmpresaControls";
@@ -77,6 +78,7 @@ export function RevenueForecasts() {
   const [filterDataInicio, setFilterDataInicio] = useMemoryState<string>("rf:filterDataInicio", "");
   const [filterDataFim, setFilterDataFim] = useMemoryState<string>("rf:filterDataFim", "");
   const [filterEmpresa, setFilterEmpresa] = useMemoryState<string>("rf:filterEmpresa", "");
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   // Individual invoice dialog: per-previsao due dates
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
@@ -498,6 +500,7 @@ export function RevenueForecasts() {
 
   const goToInvoice = () => {
     if (selectedItems.length === 0 || !sameClient) return;
+    setInvoiceLoading(true);
     navigate("/admin/financial/invoicing", {
       state: { clienteId: selectedClientIds[0], previsaoIds: selectedItems.map((p) => p.id) },
     });
@@ -519,6 +522,7 @@ export function RevenueForecasts() {
 
   return (
     <div className="space-y-3">
+      <ProcessingOverlay open={invoiceLoading} label="Montando a fatura com as previsões selecionadas..." />
       {ConfirmDialog}
       <PageTitle>Previsões de Recebimento</PageTitle>
 

@@ -575,14 +575,20 @@ export function FinancialInvoicing() {
   const location = useLocation();
   const navigate = useNavigate();
   const prefillHandled = useRef(false);
+  const [prefillBusy, setPrefillBusy] = useState(false);
   useEffect(() => {
     const st = location.state as { clienteId?: string; previsaoIds?: string[] } | null;
     if (prefillHandled.current || !st?.clienteId || !st.previsaoIds?.length) return;
     prefillHandled.current = true;
     navigate(location.pathname, { replace: true, state: null });
+    setPrefillBusy(true);
     (async () => {
-      await openNewInvoice();
-      await handleClientSelect(st.clienteId!, st.previsaoIds);
+      try {
+        await openNewInvoice();
+        await handleClientSelect(st.clienteId!, st.previsaoIds);
+      } finally {
+        setPrefillBusy(false);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
@@ -1932,6 +1938,7 @@ ${hasRecebimentos ? `
       </SearchFilterCard>
 
       <ProcessingOverlay open={cnabBusy} label="Gerando remessa de boletos..." />
+      <ProcessingOverlay open={prefillBusy} label="Montando a fatura com as previsões selecionadas..." />
       <GlobalToolbar
         actions={[
           { key: "new", label: "Nova Fatura", icon: Plus, mode: "create", variant: "default", onClick: openNewInvoice },
