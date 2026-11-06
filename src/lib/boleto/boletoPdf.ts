@@ -16,7 +16,7 @@ const fmtDoc = (v: string) => {
  * Gera o PDF com os boletos já registrados (com nosso número) das parcelas em aberto da fatura.
  * Retorna null quando a fatura não tem boleto gerado.
  */
-export async function buildBoletosFaturaPdf(faturaId: string): Promise<jsPDF | null> {
+export async function buildBoletosFaturaPdf(faturaId: string, base?: jsPDF): Promise<jsPDF | null> {
   const { data: fatura, error: fErr } = await supabase
     .from("faturas_recebimento").select("id, numero, cliente_id, created_at").eq("id", faturaId).maybeSingle();
   if (fErr) throw fErr;
@@ -40,7 +40,7 @@ export async function buildBoletosFaturaPdf(faturaId: string): Promise<jsPDF | n
   ]);
   if (gErr) throw gErr;
 
-  const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  const pdf = base ?? new jsPDF({ unit: "mm", format: "a4" });
   const emissao = new Date(fatura.created_at).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   const pagadorNome = cli?.razao_social || cli?.full_name || "";
   const pagadorEnd = [
@@ -50,7 +50,7 @@ export async function buildBoletosFaturaPdf(faturaId: string): Promise<jsPDF | n
   ].filter(Boolean).join(" - ");
 
   abertos.forEach((c, i) => {
-    if (i > 0) pdf.addPage();
+    if (i > 0 || base) pdf.addPage("a4", "p");
     const t = titulos!.find((x) => x.conta_receber_id === c.id)!;
     const cfg = cfgs!.find((x) => x.id === t.config_id)!;
     const parcela = contas.findIndex((p) => p.id === c.id) + 1;
@@ -131,7 +131,7 @@ export async function buildBoletosFaturaPdf(faturaId: string): Promise<jsPDF | n
     y += 8;
     pdf.rect(L, y, LW, 40);
     pdf.setFontSize(6); pdf.text("Instruções (texto de responsabilidade do beneficiário)", L + 1, y + 2.5);
-    pdf.setFontSize(8.5); instrucoes.forEach((s, k) => pdf.text(s, L + 1, y + 7 + k * 4.5));
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.5); instrucoes.forEach((s, k) => pdf.text(s, L + 1, y + 7 + k * 4.5));
     ["(-) Desconto/Abatimento", "(-) Outras Deduções", "(+) Mora/Multa", "(+) Outros Acréscimos", "(=) Valor Cobrado"]
       .forEach((lb, k) => cell(L + LW, y + k * 8, R, 8, lb, ""));
     y += 40;

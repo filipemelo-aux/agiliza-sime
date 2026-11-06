@@ -109,6 +109,7 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
     try {
       const attachments: { filename: string; content: string; contentType: string }[] = [];
       const faturaPdf = await buildHtmlPdf(await resolvePrintableHtml(data.html), { marginMm: 20 });
+      await buildBoletosFaturaPdf(fatura.id, faturaPdf);
       attachments.push({ filename: `Fatura-${fatura.numero}.pdf`, content: await blobToBase64(faturaPdf.output("blob")), contentType: "application/pdf" });
 
       if (data.cteIds.length) {
@@ -122,9 +123,6 @@ export function FaturaEmailDialog({ fatura, onOpenChange, build }: Props) {
           attachments.push({ filename: `CTe-${num || c.id.slice(0, 8)}.pdf`, content: await blobToBase64(pdf.output("blob")), contentType: "application/pdf" });
         }
       }
-
-      const boletos = await buildBoletosFaturaPdf(fatura.id);
-      if (boletos) attachments.push({ filename: `Boleto-Fatura-${fatura.numero}.pdf`, content: await blobToBase64(boletos.output("blob")), contentType: "application/pdf" });
 
       const { data: res, error } = await supabase.functions.invoke("send-smtp-email", {
         body: { to: emails.join(", "), subject, html: previewHtml(fatura.numero, Number(fatura.valor_total), data, mensagem), attachments },

@@ -2,7 +2,8 @@ import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { useState, useEffect, useMemo, Fragment, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageTitle } from "@/components/PageTitle";
-import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
+import { downloadHtmlAsPdf, titleFromHtml, resolvePrintableHtml } from "@/lib/pdfDownload";
+import { buildHtmlPdf } from "@/lib/htmlToPdf";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { GlobalToolbar } from "@/components/ui/global-toolbar";
 import { EmpresaFilter, EmpresaUf } from "./EmpresaControls";
@@ -1088,6 +1089,7 @@ export function FinancialInvoicing() {
   };
 
   // --- Print ---
+  const [printBusy, setPrintBusy] = useState(false);
   const handlePrintFatura = async (fatura: Fatura, mode: "print" | "build" = "print") => {
     // Load logo as data URL so it appears in blob-printed invoices
     let logoDataUrl = "";
@@ -1625,12 +1627,17 @@ ${hasRecebimentos ? `
         parcelas: contas.map((c) => ({ vencimento: c.data_vencimento, valor: Number(c.valor) })),
       };
     }
-    await downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"), { marginMm: 20 });
+    setPrintBusy(true);
     try {
-      const boletos = await buildBoletosFaturaPdf(fatura.id);
-      if (boletos) boletos.save(`Boleto-Fatura-${fatura.numero}.pdf`);
-    } catch (e: any) {
-      toast.error(`Fatura baixada, mas o boleto não pôde ser gerado: ${e?.message || e}`);
+      const pdf = await buildHtmlPdf(await resolvePrintableHtml(html), { marginMm: 20 });
+      try {
+        await buildBoletosFaturaPdf(fatura.id, pdf);
+      } catch (e: any) {
+        toast.error(`O boleto não pôde ser incluído na fatura: ${e?.message || e}`);
+      }
+      pdf.save(`${titleFromHtml(html, "Fatura")}.pdf`);
+    } finally {
+      setPrintBusy(false);
     }
     return null;
   };
@@ -1984,6 +1991,7 @@ ${hasRecebimentos ? `
         </div>
       </SearchFilterCard>
 
+      <ProcessingOverlay open={printBusy} label="Gerando o PDF da fatura..." />
       <ProcessingOverlay open={cnabBusy} label="Gerando remessa de boletos..." />
       <FaturaEmailDialog
         fatura={emailFatura}
