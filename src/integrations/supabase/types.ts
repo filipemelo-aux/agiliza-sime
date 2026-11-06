@@ -2850,6 +2850,7 @@ export type Database = {
           created_at: string
           data_emissao: string
           empresa_id: string | null
+          forma_pagamento: string | null
           id: string
           intervalo_dias: number
           num_parcelas: number
@@ -2867,6 +2868,7 @@ export type Database = {
           created_at?: string
           data_emissao?: string
           empresa_id?: string | null
+          forma_pagamento?: string | null
           id?: string
           intervalo_dias?: number
           num_parcelas?: number
@@ -2884,6 +2886,7 @@ export type Database = {
           created_at?: string
           data_emissao?: string
           empresa_id?: string | null
+          forma_pagamento?: string | null
           id?: string
           intervalo_dias?: number
           num_parcelas?: number
@@ -5402,6 +5405,66 @@ export type Database = {
           },
           {
             foreignKeyName: "receivable_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remessas_cnab: {
+        Row: {
+          config_id: string
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          fatura_ids: string[]
+          fatura_numeros: number[]
+          id: string
+          nome_arquivo: string
+          nsa: number
+          qtd_titulos: number
+          tenant_id: string
+          valor_total: number
+        }
+        Insert: {
+          config_id: string
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          fatura_ids?: string[]
+          fatura_numeros?: number[]
+          id?: string
+          nome_arquivo: string
+          nsa: number
+          qtd_titulos?: number
+          tenant_id?: string
+          valor_total?: number
+        }
+        Update: {
+          config_id?: string
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          fatura_ids?: string[]
+          fatura_numeros?: number[]
+          id?: string
+          nome_arquivo?: string
+          nsa?: number
+          qtd_titulos?: number
+          tenant_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remessas_cnab_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "cobranca_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remessas_cnab_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

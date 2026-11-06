@@ -214,6 +214,7 @@ export function FinancialInvoicing() {
   const [acrescimoStr, setAcrescimoStr] = useState("");
   const [descontoStr, setDescontoStr] = useState("");
   const [observacoesFatura, setObservacoesFatura] = useState("");
+  const [formaPagamentoFatura, setFormaPagamentoFatura] = useState("boleto");
   const [parcelasCustomOn, setParcelasCustomOn] = useState(false);
   const [parcelasCustom, setParcelasCustom] = useState<{ valor: string; data_vencimento: string }[]>([]);
 
@@ -451,6 +452,7 @@ export function FinancialInvoicing() {
     setAcrescimoStr("");
     setDescontoStr("");
     setObservacoesFatura("");
+    setFormaPagamentoFatura("boleto");
     setParcelasCustomOn(false);
     setParcelasCustom([]);
 
@@ -501,6 +503,7 @@ export function FinancialInvoicing() {
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
     setObservacoesFatura(fatura.observacoes || "");
+    setFormaPagamentoFatura((fatura as any).forma_pagamento || "outros");
     const custom = (fatura as any).parcelas_custom;
     if (Array.isArray(custom) && custom.length > 0) {
       setParcelasCustomOn(true);
@@ -678,6 +681,7 @@ export function FinancialInvoicing() {
       valor_acrescimo: acrescimoValor,
       valor_desconto: descontoValor,
       observacoes: observacoesFatura.trim() || null,
+      forma_pagamento: formaPagamentoFatura,
       parcelas_custom: parcelasCustomAtivo
         ? parcelasCustom.map((p) => ({ valor: Number(unmaskCurrency(p.valor) || 0), data_vencimento: p.data_vencimento }))
         : null,
@@ -776,7 +780,19 @@ export function FinancialInvoicing() {
         const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
         if (linkErr) throw linkErr;
 
-        toast.success(`Fatura criada com ${effectiveParcelas} parcela(s)!`);
+        if (formaPagamentoFatura === "boleto") {
+          setCnabBusy(true);
+          try {
+            const r = await gerarRemessaCnab([fatura.id]);
+            toast.success(`Fatura ${fatura.numero} criada. Remessa ${r.nsa} gerada com ${r.titulos} boleto(s) e guardada em Remessas de Boletos.`);
+          } catch (e: any) {
+            toast.error(`Fatura ${fatura.numero} criada, mas a remessa do boleto não foi gerada: ${e?.message || "erro"}. Corrija e use o botão Remessa de boletos.`);
+          } finally {
+            setCnabBusy(false);
+          }
+        } else {
+          toast.success(`Fatura criada com ${effectiveParcelas} parcela(s)!`);
+        }
       }
 
       if (!opts?.keepOpen) setNewDialogOpen(false);
@@ -2331,6 +2347,22 @@ ${hasRecebimentos ? `
                       onChange={(e) => setDescontoStr(maskCurrency(e.target.value))}
                     />
                   </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Forma de pagamento</Label>
+                  <Select value={formaPagamentoFatura} onValueChange={setFormaPagamentoFatura}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
+                      <SelectItem value="pix">Pix</SelectItem>
+                      <SelectItem value="transferencia">Transferência / Depósito</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="outros">Outros</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formaPagamentoFatura === "boleto" && !editingFaturaId && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Ao salvar, o arquivo de remessa é baixado e guardado em Remessas de Boletos.</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs">Observações</Label>

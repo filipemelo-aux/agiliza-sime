@@ -13,6 +13,7 @@ import { BankReconciliation } from "@/components/financial/BankReconciliation";
 import { CreditCardInvoices } from "@/components/financial/CreditCardInvoices";
 import { FinancialReports } from "@/components/financial/FinancialReports";
 import { FinancialChecks } from "@/components/financial/FinancialChecks";
+import { RemessasCnab } from "@/components/financial/RemessasCnab";
 import { useEffect, useRef, useState } from "react";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "payables" && <FinancialPayables />}
         {section === "invoicing" && <FinancialInvoicing />}
         {section === "forecasts" && <RevenueForecasts />}
+        {section === "remessas" && <RemessasCnab />}
         
         {section === "paid" && <FinancialPaid />}
         

@@ -112,6 +112,7 @@ const App = () => (
             <Route path="/admin/financial" element={<Navigate to="/admin/financial/invoicing" replace />} />
             <Route path="/admin/financial/invoicing" element={<AdminFinancial section="invoicing" />} />
             <Route path="/admin/financial/forecasts" element={<AdminFinancial section="forecasts" />} />
+            <Route path="/admin/financial/remessas" element={<AdminFinancial section="remessas" />} />
             
             <Route path="/admin/financial/payables" element={<AdminFinancial section="payables" />} />
             <Route path="/admin/financial/paid" element={<AdminFinancial section="paid" />} />

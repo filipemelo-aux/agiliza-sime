@@ -41,6 +41,7 @@ export const allMenuItems = [
       { title: "Faturas a Receber", url: "/admin/financial/invoicing", icon: Receipt },
       
       { title: "Previsões a Receber", url: "/admin/financial/forecasts", icon: TrendingUp },
+      { title: "Remessas de Boletos", url: "/admin/financial/remessas", icon: FileText },
     ],
   },
   {

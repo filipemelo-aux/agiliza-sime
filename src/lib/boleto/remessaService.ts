@@ -81,10 +81,21 @@ export async function gerarRemessaCnab(faturaIds: string[]): Promise<{ arquivo: 
   const agora = new Date();
   const conteudo = gerarRemessaSicoob(cfg as unknown as CobrancaConfig, titulos, r.nsa, agora);
   const nome = nomeArquivoRemessa(agora, r.nsa % 100 || 1);
+  const { data: u } = await supabase.auth.getUser();
+  const { error: sErr } = await supabase.from("remessas_cnab").insert({
+    config_id: cfg.id, nsa: r.nsa, nome_arquivo: nome, conteudo, qtd_titulos: titulos.length,
+    valor_total: Math.round(titulos.reduce((s, t) => s + t.valor, 0) * 100) / 100,
+    fatura_ids: faturas.map((f) => f.id), fatura_numeros: faturas.map((f) => f.numero), created_by: u.user?.id ?? null,
+  });
+  baixarRemessa(nome, conteudo);
+  if (sErr) throw new Error(`Remessa ${r.nsa} baixada, mas não foi guardada em Remessas: ${sErr.message}`);
+  return { arquivo: nome, titulos: titulos.length, nsa: r.nsa };
+}
+
+export function baixarRemessa(nome: string, conteudo: string) {
   const blob = new Blob([conteudo], { type: "text/plain;charset=iso-8859-1" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-  return { arquivo: nome, titulos: titulos.length, nsa: r.nsa };
 }
