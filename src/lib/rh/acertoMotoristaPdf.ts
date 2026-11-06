@@ -19,12 +19,11 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
     const entrada = m.entrada > 0;
     return `<tr class="${entrada ? "in" : "out"}">
       <td class="nowrap">${dt(m.data)}</td>
-      <td class="nowrap"><span class="seta ${entrada ? "up" : "down"}">${entrada ? "▲" : "▼"}</span><span class="badge">${NAT[m.natureza]}</span></td>
-      <td>${esc(m.descricao)}</td>
-      <td class="r mono pos">${m.entrada ? brl(m.entrada) : ""}</td>
-      <td class="r mono neg">${m.saida ? brl(m.saida) : ""}</td>
+      <td class="nowrap fit">${NAT[m.natureza]}</td>
+      <td class="desc">${esc(m.descricao)}</td>
+      <td class="r mono ${entrada ? "pos" : "neg"}">${brl(entrada ? m.entrada : m.saida)}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:10px">${vazio}</td></tr>`;
+  }).join("") || `<tr><td colspan="4" style="text-align:center;color:#6b7280;padding:10px">${vazio}</td></tr>`;
   const totE = o.movs.reduce((s, m) => s + m.entrada, 0), totS = o.movs.reduce((s, m) => s + m.saida, 0);
   const saldo = totE - totS;
   let html = `<!doctype html><html><head><meta charset="utf-8"><title>Acerto ${esc(o.nome)}</title><style>
@@ -38,13 +37,12 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
     .mono{font-family:"Courier New",monospace}
     table.mov{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #dfe4ec;border-radius:8px;overflow:hidden}
     table.mov th{background:#f1f4f9;color:#5b6b7f;text-align:left;padding:6px 8px;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #dfe4ec}
-    table.mov td{padding:5px 8px;vertical-align:top;border-bottom:1px solid #e7ebf1}
+    table.mov td{padding:4px 8px;vertical-align:top;border-bottom:1px solid #e7ebf1}
     table.mov tbody tr:last-child td{border-bottom:none}
     tr.in td{background:#e9f6ee}
     tr.out td{background:#fdf4d2}
-    .seta{display:inline-block;width:14px;font-size:9px}
-    .seta.up{color:#1e7e38}.seta.down{color:#dc2626}
-    .badge{display:inline-block;border:1px solid #9aa7b8;border-radius:5px;padding:1px 6px;font-size:9.5px;color:#37465a;background:#fff;white-space:nowrap}
+    .fit{width:1%;color:#37465a}
+    td.desc{white-space:nowrap;font-size:10px}
     .r{text-align:right;white-space:nowrap}
     .pos{color:#1e7e38}.neg{color:#dc2626}
     table.mov tfoot td{background:#f8fafc;border-top:2px solid #2B4C7E;font-weight:bold;padding:6px 8px}
@@ -63,16 +61,16 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   </style></head><body><div class="doc-page">
   <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Acerto do Motorista", subtitle: `${dt(o.inicio)} a ${dt(o.fim)}` }))}-->
   <div class="info"><div><b>Motorista:</b> ${esc(o.nome)}</div><div><b>Período:</b> ${dt(o.inicio)} a ${dt(o.fim)}</div>${o.vencimento ? `<div><b>Vencimento:</b> ${dt(o.vencimento)}</div>` : ""}</div>
-  <h2>Entradas (créditos)</h2>
-  <table class="mov"><thead><tr><th style="width:12%">Data</th><th style="width:24%">Tipo</th><th>Descrição</th><th class="r" style="width:15%">Entrada (crédito)</th><th class="r" style="width:15%">Saída (débito)</th></tr></thead>
-  <tbody>${linhas(entradasL, "Nenhuma entrada no período.")}</tbody>
-  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de entradas</td><td class="r mono pos">${brl(totE)}</td><td></td></tr></tfoot></table>
-  <h2>Saídas (débitos)</h2>
-  <table class="mov"><thead><tr><th style="width:12%">Data</th><th style="width:24%">Tipo</th><th>Descrição</th><th class="r" style="width:15%">Entrada (crédito)</th><th class="r" style="width:15%">Saída (débito)</th></tr></thead>
-  <tbody>${linhas(saidasL, "Nenhuma saída no período.")}</tbody>
-  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de saídas</td><td></td><td class="r mono neg">${brl(totS)}</td></tr>
-  <tr><td colspan="3" style="text-align:right;color:#5b6b7f">Entradas ${brl(totE)} − Saídas ${brl(totS)}</td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
-  <div class="legenda"><span><span class="sw in"></span>Entrada (crédito)</span><span><span class="sw out"></span>Saída (débito)</span></div>
+  <h2>Créditos</h2>
+  <table class="mov"><thead><tr><th class="nowrap" style="width:1%">Data</th><th class="nowrap" style="width:1%">Tipo</th><th>Descrição</th><th class="r" style="width:1%">Crédito</th></tr></thead>
+  <tbody>${linhas(entradasL, "Nenhum crédito no período.")}</tbody>
+  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de créditos</td><td class="r mono pos">${brl(totE)}</td></tr></tfoot></table>
+  <h2>Débitos</h2>
+  <table class="mov"><thead><tr><th class="nowrap" style="width:1%">Data</th><th class="nowrap" style="width:1%">Tipo</th><th>Descrição</th><th class="r" style="width:1%">Débito</th></tr></thead>
+  <tbody>${linhas(saidasL, "Nenhum débito no período.")}</tbody>
+  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de débitos</td><td class="r mono neg">${brl(totS)}</td></tr>
+  <tr><td colspan="2" style="text-align:right;color:#5b6b7f">Créditos ${brl(totE)} − Débitos ${brl(totS)}</td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
+  <div class="legenda"><span><span class="sw in"></span>Crédito</span><span><span class="sw out"></span>Débito</span></div>
   <table class="resumo">
     ${o.resumo.salario > 0 ? `<tr><td>(+) Salário base</td><td class="r">${brl(o.resumo.salario)}</td></tr>` : ""}
     <tr><td>(+) Comissões</td><td class="r">${brl(o.resumo.comissoes)}</td></tr>
