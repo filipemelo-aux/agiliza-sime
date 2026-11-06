@@ -30,6 +30,17 @@ describe("remessa CNAB 240 Sicoob", () => {
     if (expected) expect(out).toBe(expected.endsWith("\r\n") ? expected : expected + "\r\n");
   });
 
+  it("emissão futura sai com a data de geração (Sicoob ocorrência 25)", () => {
+    const out = gerarRemessaSicoob(cfg, [{ ...titulo, emissao: "2026-11-09" }], 692, new Date(2026, 10, 6, 13, 32, 0));
+    const segP = out.split("\r\n")[2];
+    expect(segP.slice(109, 117)).toBe("06112026");
+  });
+
+  it("emissão passada é mantida", () => {
+    const out = gerarRemessaSicoob(cfg, [titulo], 692, new Date(2026, 10, 6, 13, 32, 0));
+    expect(out.split("\r\n")[2].slice(109, 117)).toBe("07102026");
+  });
+
   it("recusa parcela sem CEP do pagador", () => {
     expect(() => gerarRemessaSicoob(cfg, [{ ...titulo, pagador: { ...titulo.pagador, cep: "" } }], 692))
       .toThrow(/CEP/);

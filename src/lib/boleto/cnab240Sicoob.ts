@@ -80,6 +80,17 @@ function check(line: string, label: string) {
   return line;
 }
 
+/**
+ * O Sicoob recusa (ocorrência 25) título com data de emissão posterior à data do movimento.
+ * Faturas com emissão futura saem com a data de geração da remessa.
+ */
+export function emissaoTitulo(emissao: string, geradoEm: Date): string {
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  const hoje = `${geradoEm.getFullYear()}-${p2(geradoEm.getMonth() + 1)}-${p2(geradoEm.getDate())}`;
+  const e = (emissao || "").slice(0, 10);
+  return !/^\d{4}-\d{2}-\d{2}$/.test(e) || e > hoje ? hoje : e;
+}
+
 export function validarTitulo(t: TituloRemessa): string[] {
   const erros: string[] = [];
   const p = t.pagador;
@@ -133,7 +144,7 @@ export function gerarRemessaSicoob(
     lines.push(check(
       reg("P") + ag + ct + " " + nn + num(cfg.carteira, 1) + "0" + " " + "2" + "2" +
       alfa(t.numeroDocumento, 15) + dateDMY(t.vencimento) + cents(t.valor, 15) + "00000" + " " +
-      num(cfg.especie_titulo, 2) + alfa(cfg.aceite, 1) + dateDMY(t.emissao) +
+      num(cfg.especie_titulo, 2) + alfa(cfg.aceite, 1) + dateDMY(emissaoTitulo(t.emissao, geradoEm)) +
       alfa(cfg.juros_codigo, 1) + (Number(cfg.juros_percentual) > 0 ? diaSeguinte : "00000000") + cents(Number(cfg.juros_percentual), 15) +
       "0" + "00000000" + "0".repeat(15) + "0".repeat(15) + "0".repeat(15) +
       alfa(t.usoEmpresa, 25) +
