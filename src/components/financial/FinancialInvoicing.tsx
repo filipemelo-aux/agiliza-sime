@@ -205,6 +205,7 @@ export function FinancialInvoicing() {
   const [selectedClientId, setSelectedClientId] = useState("");
   const [clientPrevisoes, setClientPrevisoes] = useState<Previsao[]>([]);
   const [selectedPrevIds, setSelectedPrevIds] = useState<Set<string>>(new Set());
+  const [showPrevPicker, setShowPrevPicker] = useState(false);
   const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "unico" | "parcelado">("avista");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
@@ -608,7 +609,8 @@ export function FinancialInvoicing() {
     }));
     setClientPrevisoes(mapped);
     const pre = preselectedIds?.length ? new Set(preselectedIds) : null;
-    setSelectedPrevIds(new Set(mapped.filter((p: any) => !pre || pre.has(p.id)).map((p: any) => p.id)));
+    setSelectedPrevIds(new Set(pre ? mapped.filter((p: any) => pre.has(p.id)).map((p: any) => p.id) : []));
+    setShowPrevPicker(!pre && mapped.length > 0);
     setStep("preview");
   };
 
@@ -2255,7 +2257,15 @@ ${hasRecebimentos ? `
               </p>
 
               {/* Previsões list */}
-              <div className="border rounded max-h-[180px] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {showPrevPicker ? "Selecione os CT-es para incluir" : "CT-es da fatura"}
+                </Label>
+                <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setShowPrevPicker((v) => !v)} disabled={clientPrevisoes.length === 0}>
+                  {showPrevPicker ? "Concluir seleção" : "Incluir CT-es"}
+                </Button>
+              </div>
+              <div className="border rounded max-h-[220px] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -2277,7 +2287,10 @@ ${hasRecebimentos ? `
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientPrevisoes.map((p) => (
+                    {clientPrevisoes.filter((p) => showPrevPicker || selectedPrevIds.has(p.id)).length === 0 && (
+                      <TableRow><TableCell colSpan={4} className="text-xs text-center text-muted-foreground py-4">Nenhum CT-e selecionado. Clique em "Incluir CT-es".</TableCell></TableRow>
+                    )}
+                    {clientPrevisoes.filter((p) => showPrevPicker || selectedPrevIds.has(p.id)).map((p) => (
                       <TableRow key={p.id} className={selectedPrevIds.has(p.id) ? "bg-accent/30" : ""}>
                         <TableCell>
                           <Checkbox checked={selectedPrevIds.has(p.id)} onCheckedChange={() => togglePrev(p.id)} />
