@@ -280,7 +280,17 @@ export function computePayrollRowsFromPeriodo(input: {
     if (selectedDescontoIds && !selectedDescontoIds.has(d.id)) return;
     const cur = descByColab.get(d.colaborador_id) || { total: 0, ids: [] };
     const nd = Math.max(1, Number(descontoParcelas?.[d.id] || 1));
-    cur.total += splitParcelas(Number(d.valor || 0), nd)[0];
+    const parcela = splitParcelas(Number(d.valor || 0), nd)[0];
+    // Parcelas de vale/adiantamento são adiantamentos, não descontos.
+    if ((d as any).tipo === "vale" || (d as any).tipo === "adiantamento") {
+      const adv = advByColab.get(d.colaborador_id) || { total: 0, ids: [] };
+      adv.total += parcela;
+      advByColab.set(d.colaborador_id, adv);
+      cur.ids.push(d.id);
+      descByColab.set(d.colaborador_id, cur);
+      return;
+    }
+    cur.total += parcela;
     cur.ids.push(d.id);
     descByColab.set(d.colaborador_id, cur);
   });

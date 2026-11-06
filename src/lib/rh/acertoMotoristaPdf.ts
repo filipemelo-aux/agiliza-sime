@@ -11,7 +11,11 @@ const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&a
 
 /** Baixa direto o PDF do acerto do motorista, com o mesmo visual da tela de movimentações. */
 export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string; fim: string; vencimento?: string | null; movs: MovMotorista[]; resumo: ResumoAcerto; liquido: number }) {
-  const rows = o.movs.map((m) => {
+  const ORD: Record<string, number> = { salario: 0, comissao: 1, reembolso: 2, vale: 3, desconto: 4 };
+  const ordenar = (l: MovMotorista[]) => [...l].sort((a, b) => (ORD[a.natureza] - ORD[b.natureza]) || String(a.data).localeCompare(String(b.data)));
+  const entradasL = ordenar(o.movs.filter((m) => m.entrada > 0));
+  const saidasL = ordenar(o.movs.filter((m) => !(m.entrada > 0)));
+  const linhas = (l: MovMotorista[], vazio: string) => l.map((m) => {
     const entrada = m.entrada > 0;
     return `<tr class="${entrada ? "in" : "out"}">
       <td class="nowrap">${dt(m.data)}</td>
@@ -20,7 +24,7 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
       <td class="r mono pos">${m.entrada ? brl(m.entrada) : ""}</td>
       <td class="r mono neg">${m.saida ? brl(m.saida) : ""}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:14px">Movimentação em branco.</td></tr>`;
+  }).join("") || `<tr><td colspan="5" style="text-align:center;color:#6b7280;padding:10px">${vazio}</td></tr>`;
   const totE = o.movs.reduce((s, m) => s + m.entrada, 0), totS = o.movs.reduce((s, m) => s + m.saida, 0);
   const saldo = totE - totS;
   let html = `<!doctype html><html><head><meta charset="utf-8"><title>Acerto ${esc(o.nome)}</title><style>
@@ -59,10 +63,15 @@ export async function baixarAcertoMotoristaPdf(o: { nome: string; inicio: string
   </style></head><body><div class="doc-page">
   <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Acerto do Motorista", subtitle: `${dt(o.inicio)} a ${dt(o.fim)}` }))}-->
   <div class="info"><div><b>Motorista:</b> ${esc(o.nome)}</div><div><b>Período:</b> ${dt(o.inicio)} a ${dt(o.fim)}</div>${o.vencimento ? `<div><b>Vencimento:</b> ${dt(o.vencimento)}</div>` : ""}</div>
-  <h2>Movimentações</h2>
+  <h2>Entradas (créditos)</h2>
   <table class="mov"><thead><tr><th style="width:12%">Data</th><th style="width:24%">Tipo</th><th>Descrição</th><th class="r" style="width:15%">Entrada (crédito)</th><th class="r" style="width:15%">Saída (débito)</th></tr></thead>
-  <tbody>${rows}</tbody>
-  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Entradas: <span class="mono pos">${brl(totE)}</span>&nbsp;&nbsp;·&nbsp;&nbsp;Saídas: <span class="mono neg">${brl(totS)}</span></td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
+  <tbody>${linhas(entradasL, "Nenhuma entrada no período.")}</tbody>
+  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de entradas</td><td class="r mono pos">${brl(totE)}</td><td></td></tr></tfoot></table>
+  <h2>Saídas (débitos)</h2>
+  <table class="mov"><thead><tr><th style="width:12%">Data</th><th style="width:24%">Tipo</th><th>Descrição</th><th class="r" style="width:15%">Entrada (crédito)</th><th class="r" style="width:15%">Saída (débito)</th></tr></thead>
+  <tbody>${linhas(saidasL, "Nenhuma saída no período.")}</tbody>
+  <tfoot><tr><td colspan="3" style="text-align:right;color:#5b6b7f">Subtotal de saídas</td><td></td><td class="r mono neg">${brl(totS)}</td></tr>
+  <tr><td colspan="3" style="text-align:right;color:#5b6b7f">Entradas ${brl(totE)} − Saídas ${brl(totS)}</td><td colspan="2" class="r">Saldo do acerto: <span class="mono ${saldo < 0 ? "neg" : ""}">${brl(saldo)}</span></td></tr></tfoot></table>
   <div class="legenda"><span><span class="sw in"></span>Entrada (crédito)</span><span><span class="sw out"></span>Saída (débito)</span></div>
   <table class="resumo">
     ${o.resumo.salario > 0 ? `<tr><td>(+) Salário base</td><td class="r">${brl(o.resumo.salario)}</td></tr>` : ""}

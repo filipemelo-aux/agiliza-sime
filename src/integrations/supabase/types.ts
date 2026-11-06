@@ -1354,6 +1354,7 @@ export type Database = {
           created_at: string
           created_by: string
           cst_icms: string
+          cte_origem_id: string | null
           data_autorizacao: string | null
           data_carregamento: string | null
           data_emissao: string | null
@@ -1385,6 +1386,7 @@ export type Database = {
           importado_xml: boolean
           ind_ie_toma: number | null
           info_quantidade: Json | null
+          is_saldo_frete: boolean
           lotacao: boolean
           modal: string | null
           motivo_rejeicao: string | null
@@ -1480,6 +1482,7 @@ export type Database = {
           created_at?: string
           created_by: string
           cst_icms?: string
+          cte_origem_id?: string | null
           data_autorizacao?: string | null
           data_carregamento?: string | null
           data_emissao?: string | null
@@ -1511,6 +1514,7 @@ export type Database = {
           importado_xml?: boolean
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
+          is_saldo_frete?: boolean
           lotacao?: boolean
           modal?: string | null
           motivo_rejeicao?: string | null
@@ -1606,6 +1610,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           cst_icms?: string
+          cte_origem_id?: string | null
           data_autorizacao?: string | null
           data_carregamento?: string | null
           data_emissao?: string | null
@@ -1637,6 +1642,7 @@ export type Database = {
           importado_xml?: boolean
           ind_ie_toma?: number | null
           info_quantidade?: Json | null
+          is_saldo_frete?: boolean
           lotacao?: boolean
           modal?: string | null
           motivo_rejeicao?: string | null
@@ -1719,6 +1725,13 @@ export type Database = {
             columns: ["contratado_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ctes_cte_origem_id_fkey"
+            columns: ["cte_origem_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
             referencedColumns: ["id"]
           },
           {

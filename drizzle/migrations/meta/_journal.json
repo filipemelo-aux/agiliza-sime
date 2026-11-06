@@ -225,6 +225,13 @@
       "when": 1793927117704,
       "tag": "0031_payroll_custom_discount_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793969403588,
+      "tag": "0032_cte_saldo_frete",
+      "breakpoints": true
     }
   ]
 }

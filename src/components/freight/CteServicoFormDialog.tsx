@@ -107,6 +107,78 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
   const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
   const [modoValor, setModoValor] = useState<"tonelada" | "total">("tonelada");
   const [valorTotalManual, setValorTotalManual] = useState("");
+  // Saldo de frete (complemento de um CT-e de produção)
+  const [isSaldoFrete, setIsSaldoFrete] = useState(false);
+  const [cteOrigem, setCteOrigem] = useState<Cte | null>(null);
+  const [origemBusca, setOrigemBusca] = useState("");
+  const [origemResultados, setOrigemResultados] = useState<any[]>([]);
+  const [origemBuscando, setOrigemBuscando] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const c = cte as any;
+    setIsSaldoFrete(!!c?.is_saldo_frete);
+    setOrigemBusca("");
+    setOrigemResultados([]);
+    if (c?.cte_origem_id) {
+      supabase.from("ctes").select("id, numero, placa_veiculo, tomador_nome, destinatario_nome, data_emissao").eq("id", c.cte_origem_id).maybeSingle()
+        .then(({ data }) => setCteOrigem((data as any) || null));
+    } else setCteOrigem(null);
+  }, [open, cte]);
+
+  useEffect(() => {
+    if (!isSaldoFrete || cteOrigem) { setOrigemResultados([]); return; }
+    const q = origemBusca.trim();
+    if (q.length < 1) { setOrigemResultados([]); return; }
+    let cancel = false;
+    const t = setTimeout(async () => {
+      setOrigemBuscando(true);
+      let query = supabase.from("ctes")
+        .select("id, numero, placa_veiculo, tomador_nome, destinatario_nome, data_emissao")
+        .neq("tipo_talao", "servico").order("data_emissao", { ascending: false }).limit(10);
+      const digits = q.replace(/\D/g, "");
+      if (/^\d+$/.test(q)) query = query.eq("numero", Number(digits));
+      else query = query.or(`placa_veiculo.ilike.%${unmaskPlate(q).toUpperCase()}%,tomador_nome.ilike.%${q}%,destinatario_nome.ilike.%${q}%`);
+      const { data } = await query;
+      if (!cancel) { setOrigemResultados(data || []); setOrigemBuscando(false); }
+    }, 300);
+    return () => { cancel = true; clearTimeout(t); };
+  }, [origemBusca, isSaldoFrete, cteOrigem]);
+
+  const selecionarOrigem = async (id: string) => {
+    const { data, error } = await supabase.from("ctes").select("*").eq("id", id).single();
+    if (error || !data) { toast({ title: "Erro", description: "Não foi possível carregar o CT-e principal.", variant: "destructive" }); return; }
+    const src = data as any;
+    setCteOrigem(src);
+    setOrigemResultados([]);
+    // Preenche como numa clonagem; usuário informa apenas peso e valor.
+    setForm((f) => ({
+      ...f,
+      tomador_id: src.tomador_id ?? null,
+      tomador_tipo: src.tomador_tipo ?? null,
+      tomador_nome: src.tomador_nome || "", tomador_cnpj: src.tomador_cnpj ? maskCNPJ(src.tomador_cnpj) : "",
+      tomador_ie: src.tomador_ie || "", tomador_endereco: src.tomador_endereco || "",
+      tomador_municipio_ibge: src.tomador_municipio_ibge || "", tomador_uf: src.tomador_uf || "",
+      ...(["remetente", "destinatario", "expedidor", "recebedor"] as const).reduce((acc, p) => ({
+        ...acc,
+        [`${p}_nome`]: src[`${p}_nome`] ? maskName(src[`${p}_nome`]) : "",
+        [`${p}_cnpj`]: src[`${p}_cnpj`] ? maskCNPJ(src[`${p}_cnpj`]) : "",
+        [`${p}_ie`]: src[`${p}_ie`] || "",
+        [`${p}_endereco`]: src[`${p}_endereco`] || "",
+        [`${p}_municipio_ibge`]: src[`${p}_municipio_ibge`] || "",
+        [`${p}_uf`]: src[`${p}_uf`] || "",
+      }), {}),
+      natureza_carga: src.produto_predominante || src.natureza_operacao || "",
+      motorista_id: src.motorista_id ?? null,
+      motorista_nome: src.motorista_nome || "",
+      placa_veiculo: src.placa_veiculo || "",
+      peso_bruto_kg: "",
+      valor_tonelada: "",
+    }) as FormState);
+    setModoValor("tonelada");
+    setValorTotalManual("");
+    setDesconto(emptyDesconto);
+  };
 
   useEffect(() => {
     if (!open || !cte?.id) { setLinkedContract(null); return; }
@@ -404,7 +476,15 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
         observacoes: form.observacoes || null,
         desconto: serializeDesconto(desconto),
         created_by: user?.id ?? null,
+        is_saldo_frete: isSaldoFrete && !!cteOrigem,
+        cte_origem_id: isSaldoFrete && cteOrigem ? cteOrigem.id : null,
       };
+      if (!cte && isSaldoFrete && cteOrigem) {
+        const co = cteOrigem as any;
+        payload.chaves_nfe_ref = co.chaves_nfe_ref ?? [];
+        payload.nfe_detalhes = co.nfe_detalhes ?? [];
+        payload.outros_documentos = co.outros_documentos ?? [];
+      }
       // Novo CT-e clonado: herda os dados básicos dos documentos do original (busca por documento).
       if (!cte && cloneFrom) {
         const cf = cloneFrom as any;
@@ -551,6 +631,51 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
+          {/* Saldo de frete (complemento) */}
+          <Card>
+            <CardContent className="pt-4 space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox
+                  checked={isSaldoFrete}
+                  onCheckedChange={(v) => { setIsSaldoFrete(!!v); if (!v) setCteOrigem(null); }}
+                />
+                Este CT-e é um saldo de frete (complemento)?
+              </label>
+              {isSaldoFrete && (cteOrigem ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <span>
+                    CT-e principal Nº <strong>{(cteOrigem as any).numero ?? "—"}</strong>
+                    {cteOrigem.placa_veiculo ? ` · ${cteOrigem.placa_veiculo}` : ""}
+                    {(cteOrigem as any).tomador_nome ? ` · ${(cteOrigem as any).tomador_nome}` : ""}
+                  </span>
+                  <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => setCteOrigem(null)}>Trocar</Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Input
+                    className="h-9 text-xs"
+                    placeholder="Buscar CT-e principal por número, placa ou cliente"
+                    value={origemBusca}
+                    onChange={(e) => setOrigemBusca(e.target.value)}
+                  />
+                  {origemBuscando && <p className="text-xs text-muted-foreground">Buscando...</p>}
+                  {origemResultados.length > 0 && (
+                    <div className="rounded-md border divide-y max-h-48 overflow-y-auto">
+                      {origemResultados.map((r) => (
+                        <button key={r.id} type="button" className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted"
+                          onClick={() => selecionarOrigem(r.id)}>
+                          <strong>Nº {r.numero ?? "—"}</strong> · {r.placa_veiculo || "sem placa"} · {r.tomador_nome || r.destinatario_nome || ""}
+                          {r.data_emissao ? ` · ${String(r.data_emissao).slice(0, 10).split("-").reverse().join("/")}` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">Ao escolher, os dados do CT-e principal são copiados; informe apenas peso e valor.</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
           {/* Emitente (Estabelecimento) */}
           <Card>
             <CardHeader className="pb-3">
