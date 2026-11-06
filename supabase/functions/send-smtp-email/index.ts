@@ -58,7 +58,8 @@ serve(async (req) => {
       });
     }
 
-    const { to, subject, html, cc, bcc, smtpConfig } = await req.json() as {
+    const { to, subject, html, cc, bcc, smtpConfig, attachments } = await req.json() as {
+      attachments?: { filename: string; content: string; contentType?: string }[];
       to?: string;
       subject?: string;
       html?: string;
@@ -190,6 +191,12 @@ serve(async (req) => {
       subject,
       content: htmlToText(html) || "Mensagem sem conteúdo em texto.",
       html,
+      attachments: (attachments || []).slice(0, 30).map((a) => ({
+        filename: String(a.filename || "anexo.pdf").replace(/[\\/:*?"<>|]/g, "_"),
+        content: a.content,
+        encoding: "base64" as const,
+        contentType: a.contentType || "application/pdf",
+      })),
     });
 
     await client.close();

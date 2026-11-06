@@ -25,9 +25,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/lib/notice";
 
 import { cn } from "@/lib/utils";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2, ChevronDown, X, Landmark } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2, ChevronDown, X, Mail } from "lucide-react";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { gerarRemessaCnab } from "@/lib/boleto/remessaService";
+import { FaturaEmailDialog } from "./FaturaEmailDialog";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCNPJ, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { receivableBalance, totalReceivableBalance } from "@/lib/receivableBalance";
@@ -1086,7 +1087,7 @@ export function FinancialInvoicing() {
   };
 
   // --- Print ---
-  const handlePrintFatura = async (fatura: Fatura) => {
+  const handlePrintFatura = async (fatura: Fatura, mode: "print" | "build" = "print") => {
     // Load logo as data URL so it appears in blob-printed invoices
     let logoDataUrl = "";
     try {
@@ -1604,7 +1605,27 @@ ${hasRecebimentos ? `
 </div>
 </body></html>`;
 
+    if (mode === "build") {
+      return {
+        html,
+        cteIds: [...new Set(cteIds)],
+        clienteEmail: cli?.email || "",
+        clienteNome: clienteNomeDisplay,
+        empresaNome: companyName,
+        itens: previsoes.map((p) => {
+          const c = p.origem_tipo === "cte" ? ctesById[p.origem_id] : null;
+          const num = c ? (c.tipo_talao === "servico" ? c.numero_interno : c.numero) : null;
+          return {
+            descricao: c ? `CT-e ${num ?? "—"}${c.placa_veiculo ? ` · ${c.placa_veiculo}` : ""}` : ((p as any).descricao || (p.origem_tipo === "colheita" ? "Colheita" : "Item")),
+            data: c?.data_emissao || p.data_prevista || "",
+            valor: Number(p.valor || 0),
+          };
+        }),
+        parcelas: contas.map((c) => ({ vencimento: c.data_vencimento, valor: Number(c.valor) })),
+      };
+    }
     downloadHtmlAsPdf(html, titleFromHtml(html, "Fatura"), { marginMm: 20 });
+    return null;
   };
 
   const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);
@@ -1631,6 +1652,7 @@ ${hasRecebimentos ? `
   // ─── Seleção em lote ──────────────────────────────────────
   const [selectedFaturaIds, setSelectedFaturaIds] = useState<Set<string>>(new Set());
   const [cnabBusy, setCnabBusy] = useState(false);
+  const [emailFatura, setEmailFatura] = useState<Fatura | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const toggleFaturaSelect = (id: string) => {
@@ -1956,6 +1978,11 @@ ${hasRecebimentos ? `
       </SearchFilterCard>
 
       <ProcessingOverlay open={cnabBusy} label="Gerando remessa de boletos..." />
+      <FaturaEmailDialog
+        fatura={emailFatura}
+        onOpenChange={(o) => { if (!o) setEmailFatura(null); }}
+        build={(f) => handlePrintFatura(f as Fatura, "build") as any}
+      />
       <ProcessingOverlay open={prefillBusy} label="Montando a fatura com as previsões selecionadas..." />
       <GlobalToolbar
         actions={[
@@ -1985,19 +2012,9 @@ ${hasRecebimentos ? `
             onClick: () => singleFatura && handlePrintFatura(singleFatura),
           },
           {
-            key: "cnab", label: "Remessa de boletos (CNAB 240)", icon: Landmark, mode: "single+batch",
-            disabled: cnabBusy || selectedFaturas.length === 0 || !selectedFaturas.some((f) => hasPendingContas(f)),
-            onClick: async () => {
-              setCnabBusy(true);
-              try {
-                const r = await gerarRemessaCnab(selectedFaturas.filter((f) => hasPendingContas(f)).map((f) => f.id));
-                toast.success(`Remessa ${r.nsa} gerada (${r.arquivo}) com ${r.titulos} boleto(s).`);
-              } catch (e: any) {
-                toast.error(e?.message || "Não foi possível gerar a remessa.");
-              } finally {
-                setCnabBusy(false);
-              }
-            },
+            key: "email", label: "Enviar fatura por e-mail", icon: Mail, mode: "single",
+            disabled: !singleFatura,
+            onClick: () => singleFatura && setEmailFatura(singleFatura),
           },
           {
             key: "reverse", label: "Estornar", icon: Undo2, mode: "single+batch",

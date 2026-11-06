@@ -82,7 +82,12 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
     toast.error("Permita a abertura da janela de impressão no navegador.");
     return;
   }
+  html = await resolvePrintableHtml(html);
+  return finishPrintWindow(html, fileName, landscape, marginMm, printWindow);
+}
 
+/** Resolve cabeçalho, logo da empresa e rodapé de marca de um documento HTML. */
+export async function resolvePrintableHtml(html: string): Promise<string> {
   // Cabeçalho padrão (marcador) → logo + dados da agência.
   if (html.includes("<!--PRINT_HEADER:")) {
     try { html = await resolvePrintHeaders(html); } catch { /* mantém documento */ }
@@ -99,6 +104,10 @@ export async function downloadHtmlAsPdf(html: string, fileName: string, opts?: {
   if (!html.includes('class="agiliza-brand-footer"')) {
     html = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${printBrandFooterHtml()}</body>`);
   }
+  return html;
+}
+
+async function finishPrintWindow(html: string, fileName: string, landscape: boolean, marginMm: number, printWindow: Window) {
 
   const safeTitle = sanitizeFileName(fileName).replace(/_/g, " ");
   const requestId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `r${Date.now()}-${Math.random().toString(36).slice(2)}`;
