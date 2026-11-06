@@ -207,7 +207,7 @@ export function FinancialInvoicing() {
   const [clientPrevisoes, setClientPrevisoes] = useState<Previsao[]>([]);
   const [selectedPrevIds, setSelectedPrevIds] = useState<Set<string>>(new Set());
   const [showPrevPicker, setShowPrevPicker] = useState(false);
-  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "unico" | "parcelado">("avista");
+  const [condicaoPagamento, setCondicaoPagamento] = useState<"unico" | "parcelado">("unico");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>(getLocalDateISO());
@@ -445,7 +445,7 @@ export function FinancialInvoicing() {
     setSelectedClientId("");
     setClientPrevisoes([]);
     setSelectedPrevIds(new Set());
-    setCondicaoPagamento("avista");
+    setCondicaoPagamento("unico");
     setNumParcelas(1);
     setIntervaloDias(30);
     setDataEmissaoEdit(getLocalDateISO());
@@ -487,10 +487,7 @@ export function FinancialInvoicing() {
     const emissaoReal = (fatura as any).data_emissao_real || fatura.data_emissao;
     const vencimentoRef = (fatura as any).data_vencimento_ref || fatura.data_emissao;
 
-    let condicao: "avista" | "unico" | "parcelado";
-    if (Number(fatura.num_parcelas) > 1) condicao = "parcelado";
-    else if (vencimentoRef && emissaoReal && vencimentoRef > emissaoReal) condicao = "unico";
-    else condicao = "avista";
+    const condicao: "unico" | "parcelado" = Number(fatura.num_parcelas) > 1 ? "parcelado" : "unico";
 
     setReceiveMode(mode === "receive");
     setEditingFaturaId(fatura.id);
@@ -2400,12 +2397,9 @@ ${hasRecebimentos ? `
                 <RadioGroup
                   value={condicaoPagamento}
                   onValueChange={(v) => {
-                    const val = v as "avista" | "unico" | "parcelado";
+                    const val = v as "unico" | "parcelado";
                     setCondicaoPagamento(val);
-                    if (val === "avista") {
-                      setNumParcelas(1);
-                      setIntervaloDias(0);
-                    } else if (val === "unico") {
+                    if (val === "unico") {
                       setNumParcelas(1);
                       setIntervaloDias(0);
                       if (!editingFaturaId) setDataVencimentoUnico(getLocalDateISO());
@@ -2420,10 +2414,6 @@ ${hasRecebimentos ? `
                   }}
                   className="flex gap-4 flex-wrap"
                 >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="avista" id="avista" />
-                    <Label htmlFor="avista" className="cursor-pointer text-sm">À Vista</Label>
-                  </div>
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="unico" id="unico" />
                     <Label htmlFor="unico" className="cursor-pointer text-sm">Pagamento Único</Label>
@@ -2573,9 +2563,7 @@ ${hasRecebimentos ? `
                 <div className="flex justify-between border-t pt-1 font-semibold"><span>Total da fatura</span><span className="font-mono">{formatCurrency(totalLiquido)}</span></div>
 
                 <div className="border-t pt-1.5 mt-1 space-y-0.5">
-                  {condicaoPagamento === "avista" ? (
-                    <p className="font-medium">À vista — vencimento em {formatDateBR(dataEmissaoEdit)}</p>
-                  ) : condicaoPagamento === "unico" ? (
+                  {condicaoPagamento === "unico" ? (
                     <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
                   ) : (
                     <>
