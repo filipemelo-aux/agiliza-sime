@@ -261,7 +261,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
               </p>
             )}
             {lancar === "comissao" && <ComissoesTab colaboradores={lista} periodo={periodo} onAdicionar={adicionarComissoes} />}
-            {lancar === "desconto" && colaborador && <DescontosMotoristaPicker colaborador={colaborador} periodo={periodo} disponiveis={dispLancar} onAdicionar={adicionarDescontos} />}
+            {lancar === "desconto" && colaborador && <DescontosMotoristaPicker colaborador={colaborador} periodo={periodo} disponiveis={dispLancar} mensal={!isMotorista} onAdicionar={adicionarDescontos} />}
           </div>
         </DialogContent>
       </Dialog>

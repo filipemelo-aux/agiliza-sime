@@ -7,6 +7,8 @@
  * Mensal apenas exibe a coluna "Descontos" totalizando o que existir.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { PlanoDesconto } from "@/lib/rh/descontoParcelas";
+import type { AcertoPeriod } from "@/lib/rhAcertoPeriod";
 
 export type DescontoFolhaTipo =
   | "adiantamento"
@@ -16,6 +18,8 @@ export type DescontoFolhaTipo =
   | "faltas"
   | "multas"
   | "combustivel"
+  | "credito_trabalhador"
+  | "avaria"
   | "outros";
 
 export type DescontoFolha = {
@@ -29,6 +33,9 @@ export type DescontoFolha = {
   created_at: string;
   updated_at: string;
   created_by: string;
+  plano_desconto_id?: string | null;
+  parcela_numero?: number | null;
+  parcelas_total?: number | null;
 };
 
 export type NovoDescontoFolha = {
@@ -103,6 +110,17 @@ export async function createDescontosFolhaBatch(
 export async function deleteDescontoFolha(id: string): Promise<void> {
   const { error } = await (supabase.from("descontos_folha" as any) as any).delete().eq("id", id);
   if (error) throw error;
+}
+
+/** Creates whole plans atomically; stable plan IDs make a linking retry idempotent. */
+export async function criarPlanosDescontoAcerto(colaboradorId: string, periodo: AcertoPeriod, planos: PlanoDesconto[]): Promise<DescontoFolha[]> {
+  if (!planos.length) return [];
+  const { data, error } = await supabase.rpc("criar_planos_desconto_acerto", {
+    _colaborador_id: colaboradorId, _periodo_inicio: periodo.inicio, _periodo_fim: periodo.fim,
+    _planos: planos.map((p) => ({ ...p })),
+  });
+  if (error) throw error;
+  return (data || []) as DescontoFolha[];
 }
 
 /** Vincula descontos a uma folha gerada (despesa). */
