@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Busca do CT-e principal no saldo de frete: liberada para o talão de Serviço (número interno, placa ou cliente), com selo Produção/Serviço nos resultados, auto-exclusão do CT-e em edição e número/talão do principal restaurados na reabertura; conferido na tela com rascunho temporário removido.
 - [x] Ampliar descontos com Crédito do Trabalhador e outros parcelados: seleção simples, gravação atômica e parcelas futuras por quinzena/mês; inclusão/releitura mensal e parcela 2/3 na próxima quinzena conferidas pela tela, registros temporários removidos e 16 testes aprovados.
 - [x] Corrigir erro ao pagar a folha de Antonio Jefferson: validação comparava enum de comissão com status inexistente; cinco testes aprovados e pagamento pela tela em folha temporária confirmado com saída única, registros removidos. Folha original preservada em aberto sem pagamentos.
 - [x] Incluir chave Pix cadastral no resumo da folha para colaboradores com pagamento em aberto; cinco testes aprovados e download real de novembro conferido com quatro chaves, cinco fechamentos e totais preservados, sem cortes.

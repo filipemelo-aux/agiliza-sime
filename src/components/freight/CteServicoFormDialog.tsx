@@ -121,7 +121,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
     setOrigemBusca("");
     setOrigemResultados([]);
     if (c?.cte_origem_id) {
-      supabase.from("ctes").select("id, numero, placa_veiculo, tomador_nome, destinatario_nome, data_emissao").eq("id", c.cte_origem_id).maybeSingle()
+      supabase.from("ctes").select("id, numero, numero_interno, tipo_talao, placa_veiculo, tomador_nome, destinatario_nome, data_emissao").eq("id", c.cte_origem_id).maybeSingle()
         .then(({ data }) => setCteOrigem((data as any) || null));
     } else setCteOrigem(null);
   }, [open, cte]);
@@ -133,17 +133,19 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
     let cancel = false;
     const t = setTimeout(async () => {
       setOrigemBuscando(true);
+      // Busca em ambos os talões (Produção e Serviço), menos o próprio CT-e em edição.
       let query = supabase.from("ctes")
-        .select("id, numero, placa_veiculo, tomador_nome, destinatario_nome, data_emissao")
-        .neq("tipo_talao", "servico").order("data_emissao", { ascending: false }).limit(10);
+        .select("id, numero, numero_interno, placa_veiculo, tomador_nome, destinatario_nome, data_emissao, tipo_talao")
+        .order("data_emissao", { ascending: false }).limit(10);
+      if (cte?.id) query = query.neq("id", cte.id);
       const digits = q.replace(/\D/g, "");
-      if (/^\d+$/.test(q)) query = query.eq("numero", Number(digits));
+      if (/^\d+$/.test(q)) query = query.or(`numero.eq.${Number(digits)},numero_interno.eq.${Number(digits)}`);
       else query = query.or(`placa_veiculo.ilike.%${unmaskPlate(q).toUpperCase()}%,tomador_nome.ilike.%${q}%,destinatario_nome.ilike.%${q}%`);
       const { data } = await query;
       if (!cancel) { setOrigemResultados(data || []); setOrigemBuscando(false); }
     }, 300);
     return () => { cancel = true; clearTimeout(t); };
-  }, [origemBusca, isSaldoFrete, cteOrigem]);
+  }, [origemBusca, isSaldoFrete, cteOrigem, cte?.id]);
 
   const selecionarOrigem = async (id: string) => {
     const { data, error } = await supabase.from("ctes").select("*").eq("id", id).single();
@@ -644,7 +646,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
               {isSaldoFrete && (cteOrigem ? (
                 <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
                   <span>
-                    CT-e principal Nº <strong>{(cteOrigem as any).numero ?? "—"}</strong>
+                    CT-e principal Nº <strong>{(cteOrigem as any).tipo_talao === "servico" ? (cteOrigem as any).numero_interno ?? "—" : (cteOrigem as any).numero ?? "—"}</strong>
+                    {` · ${(cteOrigem as any).tipo_talao === "servico" ? "Serviço" : "Produção"}`}
                     {cteOrigem.placa_veiculo ? ` · ${cteOrigem.placa_veiculo}` : ""}
                     {(cteOrigem as any).tomador_nome ? ` · ${(cteOrigem as any).tomador_nome}` : ""}
                   </span>
@@ -664,7 +667,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
                       {origemResultados.map((r) => (
                         <button key={r.id} type="button" className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted"
                           onClick={() => selecionarOrigem(r.id)}>
-                          <strong>Nº {r.numero ?? "—"}</strong> · {r.placa_veiculo || "sem placa"} · {r.tomador_nome || r.destinatario_nome || ""}
+                          <strong>Nº {r.tipo_talao === "servico" ? r.numero_interno ?? "—" : r.numero ?? "—"}</strong> · {r.tipo_talao === "servico" ? "Serviço" : "Produção"} · {r.placa_veiculo || "sem placa"} · {r.tomador_nome || r.destinatario_nome || ""}
                           {r.data_emissao ? ` · ${String(r.data_emissao).slice(0, 10).split("-").reverse().join("/")}` : ""}
                         </button>
                       ))}
