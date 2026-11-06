@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Ampliar o seletor de descontos com Crédito do Trabalhador e outros descontos parcelados, parcelas futuras por quinzena/mês e validação do fluxo.
 - [x] Corrigir erro ao pagar a folha de Antonio Jefferson: validação comparava enum de comissão com status inexistente; cinco testes aprovados e pagamento pela tela em folha temporária confirmado com saída única, registros removidos. Folha original preservada em aberto sem pagamentos.
 - [x] Incluir chave Pix cadastral no resumo da folha para colaboradores com pagamento em aberto; cinco testes aprovados e download real de novembro conferido com quatro chaves, cinco fechamentos e totais preservados, sem cortes.
 - [x] Alinhar Configurações RH e acertos: períodos e prazos compartilhados, 1–15 até dia 20 e 16–fim até dia 5; edição e releitura reais do prazo conferidas e restauradas ao padrão, filtro das duas quinzenas conferido. Limite preservado quando há vínculos existentes; 13 testes aprovados.
