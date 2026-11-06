@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { GlobalToolbar, type ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, type DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { ArrowDownCircle, ArrowUpCircle, HandCoins, Percent, Receipt, Trash2, UserMinus } from "lucide-react";
+import { HandCoins, Percent, Receipt, Trash2, UserMinus } from "lucide-react";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosMotoristaPicker } from "@/components/rh/DescontosMotoristaPicker";
 import { ValeParcelamento } from "@/components/rh/ValeParcelamento";
@@ -162,12 +162,9 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const columns: DataGridColumn<Mov>[] = [
     { key: "data", header: "Data", width: "82px", sortValue: (r) => r.data, cell: (r) => <span className="whitespace-nowrap">{formatDate(r.data)}</span> },
     {
-      key: "natureza", header: "Tipo", width: "168px", sortValue: (r) => r.natureza,
+      key: "natureza", header: "Tipo", width: "128px", sortValue: (r) => r.natureza,
       cell: (r) => (
-        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-          {r.entrada > 0 ? <ArrowUpCircle className="h-3.5 w-3.5 text-success shrink-0" /> : <ArrowDownCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-          <Badge variant="outline" className="text-[10px] whitespace-nowrap">{NAT_LABEL[r.natureza]}</Badge>
-        </span>
+        <Badge variant="outline" className="text-[10px] whitespace-nowrap px-1.5">{NAT_LABEL[r.natureza]}</Badge>
       ),
     },
     { key: "desc", header: "Descrição", sortValue: (r) => r.descricao, cell: (r) => <span className="truncate block" title={r.descricao}>{r.descricao}</span> },
