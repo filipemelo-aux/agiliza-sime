@@ -1,6 +1,7 @@
 import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
 import { useState, useEffect, useMemo } from "react";
 import { PageTitle } from "@/components/PageTitle";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -823,6 +824,7 @@ export function FinancialPaid() {
   return (
     <div className="space-y-4">
       {ConfirmDialog}
+      <ProcessingOverlay open={reversing} label="Estornando pagamento, aguarde..." />
       <PageTitle>Contas Pagas</PageTitle>
 
       <div className="grid grid-cols-2 gap-2">
