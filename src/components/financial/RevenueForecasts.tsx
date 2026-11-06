@@ -26,6 +26,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
+import { useNavigate } from "react-router-dom";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { PeriodFilter } from "@/components/PeriodFilter";
@@ -58,6 +59,7 @@ export function RevenueForecasts() {
   const { ConfirmDialog, confirm } = useConfirmDialog();
   const [previsoes, setPrevisoes] = useMemoryState<Previsao[]>("rf:previsoes", []);
   const [loading, setLoading] = useState(() => !hasMemoryState("rf:previsoes"));
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "unico" | "parcelado">("avista");
@@ -494,33 +496,21 @@ export function RevenueForecasts() {
       ? loteGroups.find((g) => g.items.every((i: any) => selected.has(i.id)) && g.items.length === selected.size)
       : undefined;
 
+  const goToInvoice = () => {
+    if (selectedItems.length === 0 || !sameClient) return;
+    navigate("/admin/financial/invoicing", {
+      state: { clienteId: selectedClientIds[0], previsaoIds: selectedItems.map((p) => p.id) },
+    });
+  };
+
   const toolbarActions: ToolbarAction[] = [
-    { key: "new", label: "Nova Previsão Manual", icon: Plus, mode: "create", variant: "default", onClick: () => setManualDialogOpen(true) },
-    { key: "invoice", label: "Gerar Faturas", icon: Receipt, mode: "single+batch", onClick: openIndividualDialog },
     {
-      key: "invoice-single",
-      label: "Gerar Fatura Única",
-      icon: Layers,
-      mode: "batch",
-      disabled: selected.size < 2 || !sameClient,
-      onClick: openInvoiceDialog,
-    },
-    {
-      key: "append",
-      label: "Adicionar ao Lote",
-      icon: Plus,
+      key: "invoice",
+      label: "Gerar Fatura",
+      icon: Receipt,
       mode: "single+batch",
-      variant: "outline",
-      disabled: !loteForSelection,
-      onClick: () => loteForSelection && openAppendDialog(loteForSelection.loteId, loteForSelection.items[0].cliente_id),
-    },
-    {
-      key: "edit",
-      label: "Editar",
-      icon: PencilLine,
-      mode: "single",
-      disabled: !singleSelected || singleSelected.origem_tipo !== "manual" || singleSelected.status !== "pendente",
-      onClick: () => singleSelected && openEditDialog(singleSelected),
+      disabled: selectedItems.length === 0 || !sameClient,
+      onClick: goToInvoice,
     },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDeleteSelected },
   ];

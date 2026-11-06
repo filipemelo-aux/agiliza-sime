@@ -1,5 +1,6 @@
 import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo, Fragment, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -570,7 +571,23 @@ export function FinancialInvoicing() {
     setNewDialogOpen(true);
   };
 
-  const handleClientSelect = async (clientId: string) => {
+  // Previsões pré-selecionadas vindas de "Previsões a Receber"
+  const location = useLocation();
+  const navigate = useNavigate();
+  const prefillHandled = useRef(false);
+  useEffect(() => {
+    const st = location.state as { clienteId?: string; previsaoIds?: string[] } | null;
+    if (prefillHandled.current || !st?.clienteId || !st.previsaoIds?.length) return;
+    prefillHandled.current = true;
+    navigate(location.pathname, { replace: true, state: null });
+    (async () => {
+      await openNewInvoice();
+      await handleClientSelect(st.clienteId!, st.previsaoIds);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
+
+  const handleClientSelect = async (clientId: string, preselectedIds?: string[]) => {
     setSelectedClientId(clientId);
     const { data } = await supabase
       .from("previsoes_recebimento")
@@ -584,7 +601,8 @@ export function FinancialInvoicing() {
       cliente_nome: p.profiles?.full_name || "—",
     }));
     setClientPrevisoes(mapped);
-    setSelectedPrevIds(new Set(mapped.map((p: any) => p.id)));
+    const pre = preselectedIds?.length ? new Set(preselectedIds) : null;
+    setSelectedPrevIds(new Set(mapped.filter((p: any) => !pre || pre.has(p.id)).map((p: any) => p.id)));
     setStep("preview");
   };
 
