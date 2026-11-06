@@ -33,7 +33,7 @@ const formatDate = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7
 type Natureza = MovNatureza;
 type Mov = MovMotorista;
 
-const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale / Adiantamento", desconto: "Desconto", salario: "Salário base" };
+const NAT_LABEL: Record<Natureza, string> = { comissao: "Comissão", reembolso: "Reembolso", vale: "Vale/Adiant.", desconto: "Desconto", salario: "Salário base" };
 
 type Lancar = null | "comissao" | "reembolso" | "vale" | "desconto";
 
@@ -162,7 +162,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   const columns: DataGridColumn<Mov>[] = [
     { key: "data", header: "Data", width: "82px", sortValue: (r) => r.data, cell: (r) => <span className="whitespace-nowrap">{formatDate(r.data)}</span> },
     {
-      key: "natureza", header: "Tipo", width: "128px", sortValue: (r) => r.natureza,
+      key: "natureza", header: "Tipo", width: "100px", sortValue: (r) => r.natureza,
       cell: (r) => (
         <Badge variant="outline" className="text-[10px] whitespace-nowrap px-1.5">{NAT_LABEL[r.natureza]}</Badge>
       ),
