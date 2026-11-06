@@ -1770,6 +1770,7 @@ export type Database = {
           id: string
           parcela_numero: number | null
           parcelas_total: number | null
+          plano_desconto_id: string | null
           tenant_id: string
           tipo: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at: string
@@ -1786,6 +1787,7 @@ export type Database = {
           id?: string
           parcela_numero?: number | null
           parcelas_total?: number | null
+          plano_desconto_id?: string | null
           tenant_id?: string
           tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at?: string
@@ -1802,6 +1804,7 @@ export type Database = {
           id?: string
           parcela_numero?: number | null
           parcelas_total?: number | null
+          plano_desconto_id?: string | null
           tenant_id?: string
           tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
           updated_at?: string
@@ -6280,6 +6283,8 @@ export type Database = {
         | "multas"
         | "outros"
         | "combustivel"
+        | "credito_trabalhador"
+        | "avaria"
       document_status: "pending" | "approved" | "rejected" | "expired"
       establishment_type: "matriz" | "filial"
       expense_origin:
@@ -6476,6 +6481,8 @@ export const Constants = {
         "multas",
         "outros",
         "combustivel",
+        "credito_trabalhador",
+        "avaria",
       ],
       document_status: ["pending", "approved", "rejected", "expired"],
       establishment_type: ["matriz", "filial"],
