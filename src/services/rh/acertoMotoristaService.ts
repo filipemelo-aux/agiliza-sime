@@ -6,6 +6,7 @@
  *  - "Editar acerto" retira o motorista da folha (reabrindo-a se já confirmada) e libera a edição.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { descricaoDesconto } from "@/lib/rh/descontoParcelas";
 import { fetchComissoes } from "./comissoesService";
 import { fetchDescontosPendentesNoPeriodo } from "./descontosFolhaService";
 import { fetchReembolsosPendentesNoPeriodo, type ReembolsoExpense } from "./rhFinancialService";
@@ -31,7 +32,6 @@ export interface MovMotorista {
 export interface PeriodoAcerto { inicio: string; fim: string; month: string }
 
 const formatBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
-const DESC_LABEL: Record<string, string> = { inss: "INSS", irrf: "IRRF", faltas: "Faltas", multas: "Multas", combustivel: "Combustível", vale: "Vale", adiantamento: "Adiantamento", outros: "Outros" };
 const inPeriod = (d: string | null | undefined, p: PeriodoAcerto) => {
   const v = (d || "").slice(0, 10);
   return !!v && v >= p.inicio && v <= p.fim;
@@ -69,7 +69,7 @@ function toMovs(f: Fontes): MovMotorista[] {
     })),
     ...f.descontos.map((d) => ({
       id: `d-${d.id}`, origemId: d.id, natureza: (d.tipo === "vale" || d.tipo === "adiantamento" ? "vale" : "desconto") as MovNatureza,
-      data: d.data_referencia, descricao: `${DESC_LABEL[d.tipo] || d.tipo}${d.descricao ? ` · ${d.descricao}` : ""}`,
+      data: d.data_referencia, descricao: descricaoDesconto(d),
       entrada: 0, saida: Number(d.valor || 0), removivel: true, origemTipo: "desconto" as const,
     })),
   ];
