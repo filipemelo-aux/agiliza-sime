@@ -174,12 +174,14 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
       motorista_id: src.motorista_id ?? null,
       motorista_nome: src.motorista_nome || "",
       placa_veiculo: src.placa_veiculo || "",
-      peso_bruto_kg: "",
-      valor_tonelada: "",
+      // Em edição, preserva peso e valor já informados no CT-e de serviço.
+      ...(cte?.id ? {} : { peso_bruto_kg: "", valor_tonelada: "" }),
     }) as FormState);
-    setModoValor("tonelada");
-    setValorTotalManual("");
-    setDesconto(emptyDesconto);
+    if (!cte?.id) {
+      setModoValor("tonelada");
+      setValorTotalManual("");
+      setDesconto(emptyDesconto);
+    }
   };
 
   useEffect(() => {
