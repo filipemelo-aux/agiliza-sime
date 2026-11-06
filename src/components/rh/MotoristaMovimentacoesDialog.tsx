@@ -213,7 +213,10 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                 </div>
               }
             />
-            <StatusLegend className="px-1" items={[{ tone: "resolved", label: "Entrada (crédito)" }, { tone: "pending", label: "Saída (débito)" }]} />
+            <div className="flex items-center justify-between gap-2">
+              <StatusLegend className="px-1" items={[{ tone: "resolved", label: "Entrada (crédito)" }, { tone: "pending", label: "Saída (débito)" }]} />
+              <Button variant="default" onClick={onClose}>Concluir</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
