@@ -160,9 +160,9 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
   ];
 
   const columns: DataGridColumn<Mov>[] = [
-    { key: "data", header: "Data", width: "95px", sortValue: (r) => r.data, cell: (r) => <span className="whitespace-nowrap">{formatDate(r.data)}</span> },
+    { key: "data", header: "Data", width: "82px", sortValue: (r) => r.data, cell: (r) => <span className="whitespace-nowrap">{formatDate(r.data)}</span> },
     {
-      key: "natureza", header: "Tipo", width: "210px", sortValue: (r) => r.natureza,
+      key: "natureza", header: "Tipo", width: "168px", sortValue: (r) => r.natureza,
       cell: (r) => (
         <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
           {r.entrada > 0 ? <ArrowUpCircle className="h-3.5 w-3.5 text-success shrink-0" /> : <ArrowDownCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
@@ -171,8 +171,8 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
       ),
     },
     { key: "desc", header: "Descrição", sortValue: (r) => r.descricao, cell: (r) => <span className="truncate block" title={r.descricao}>{r.descricao}</span> },
-    { key: "entrada", header: "Entrada (crédito)", width: "130px", align: "right", sortValue: (r) => r.entrada, cell: (r) => <span className="font-mono text-success whitespace-nowrap">{r.entrada ? formatBRL(r.entrada) : ""}</span> },
-    { key: "saida", header: "Saída (débito)", width: "130px", align: "right", sortValue: (r) => r.saida, cell: (r) => <span className="font-mono text-destructive whitespace-nowrap">{r.saida ? formatBRL(r.saida) : ""}</span> },
+    { key: "entrada", header: "Entrada (crédito)", width: "120px", align: "right", sortValue: (r) => r.entrada, cell: (r) => <span className="font-mono text-success whitespace-nowrap">{r.entrada ? formatBRL(r.entrada) : ""}</span> },
+    { key: "saida", header: "Saída (débito)", width: "120px", align: "right", sortValue: (r) => r.saida, cell: (r) => <span className="font-mono text-destructive whitespace-nowrap">{r.saida ? formatBRL(r.saida) : ""}</span> },
   ];
 
   const lancarTitle: Record<Exclude<Lancar, null>, string> = {
