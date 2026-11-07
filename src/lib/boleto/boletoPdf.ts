@@ -49,8 +49,14 @@ export async function buildBoletosFaturaPdf(faturaId: string, base?: jsPDF): Pro
     cli?.address_zip ? `CEP ${digits(cli.address_zip).replace(/(\d{5})(\d{3})/, "$1-$2")}` : "",
   ].filter(Boolean).join(" - ");
 
+  // Altura total do boleto (recibo + ficha + código de barras), em mm.
+  const BOLETO_H = 149;
   abertos.forEach((c, i) => {
-    if (i > 0 || base) pdf.addPage("a4", "p");
+    // 1º boleto cabe abaixo da fatura? Então fica na mesma página, encostado no rodapé.
+    const bottom = Number((pdf as any).__contentBottomMm ?? Infinity);
+    const startCompact = i === 0 && !!base && bottom + 6 + BOLETO_H <= 291;
+    if (!startCompact && (i > 0 || base)) pdf.addPage("a4", "p");
+    const top = startCompact ? 291 - BOLETO_H : 12;
     const t = titulos!.find((x) => x.conta_receber_id === c.id)!;
     const cfg = cfgs!.find((x) => x.id === t.config_id)!;
     const parcela = contas.findIndex((p) => p.id === c.id) + 1;
@@ -86,7 +92,10 @@ export async function buildBoletosFaturaPdf(faturaId: string, base?: jsPDF): Pro
     };
 
     // Recibo do pagador
-    let y = 12;
+    let y = top;
+    if (startCompact) {
+      pdf.setLineDashPattern([1, 1], 0); pdf.setLineWidth(0.2); pdf.line(L, y - 3, L + W, y - 3); pdf.setLineDashPattern([], 0);
+    }
     header(y, "Recibo do Pagador");
     y += 9;
     cell(L, y, 110, 8, "Beneficiário", `${cfg.beneficiario_nome} - CNPJ ${fmtDoc(cfg.beneficiario_cnpj)}`);
@@ -100,12 +109,12 @@ export async function buildBoletosFaturaPdf(faturaId: string, base?: jsPDF): Pro
     cell(L, y, 50, 8, "Número do Documento", String(fatura.numero));
     cell(L + 50, y, 60, 8, "Data do Documento", formatDateBR(emissao));
     cell(L + 110, y, 80, 8, "Autenticação mecânica", "");
-    y += 14;
+    y += 10;
     pdf.setLineDashPattern([1, 1], 0); pdf.line(L, y, L + W, y); pdf.setLineDashPattern([], 0);
     pdf.setFontSize(6); pdf.setFont("helvetica", "normal"); pdf.text("Corte na linha pontilhada", L + W, y - 1, { align: "right" });
 
     // Ficha de compensação
-    y += 6;
+    y += 4;
     header(y, linha);
     y += 9;
     const R = 45, LW = W - R;
@@ -129,18 +138,18 @@ export async function buildBoletosFaturaPdf(faturaId: string, base?: jsPDF): Pro
     cell(L + 100, y, LW - 100, 8, "Valor", "");
     cell(L + LW, y, R, 8, "(=) Valor do Documento", formatCurrency(valor), { bold: true, right: true });
     y += 8;
-    pdf.rect(L, y, LW, 40);
+    pdf.rect(L, y, LW, 30);
     pdf.setFontSize(6); pdf.text("Instruções (texto de responsabilidade do beneficiário)", L + 1, y + 2.5);
-    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.5); instrucoes.forEach((s, k) => pdf.text(s, L + 1, y + 7 + k * 4.5));
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.5); instrucoes.forEach((s, k) => pdf.text(s, L + 1, y + 6.5 + k * 4));
     ["(-) Desconto/Abatimento", "(-) Outras Deduções", "(+) Mora/Multa", "(+) Outros Acréscimos", "(=) Valor Cobrado"]
-      .forEach((lb, k) => cell(L + LW, y + k * 8, R, 8, lb, ""));
-    y += 40;
-    pdf.rect(L, y, W, 16);
+      .forEach((lb, k) => cell(L + LW, y + k * 6, R, 6, lb, ""));
+    y += 30;
+    pdf.rect(L, y, W, 13);
     pdf.setFontSize(6); pdf.text("Pagador", L + 1, y + 2.5);
     pdf.setFontSize(8.5);
     pdf.text(`${pagadorNome} - ${fmtDoc(cli?.cnpj ?? "")}`, L + 12, y + 3);
-    pdf.text(pdf.splitTextToSize(pagadorEnd, W - 14).slice(0, 2), L + 12, y + 7.5);
-    y += 16;
+    pdf.text(pdf.splitTextToSize(pagadorEnd, W - 14).slice(0, 2), L + 12, y + 7);
+    y += 13;
     pdf.setFontSize(6); pdf.text("Autenticação mecânica - Ficha de Compensação", L + W, y + 3, { align: "right" });
 
     // Código de barras ITF (largura fina 0,33 mm, altura 13 mm)

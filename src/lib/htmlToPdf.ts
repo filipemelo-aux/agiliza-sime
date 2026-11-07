@@ -58,6 +58,21 @@ function collectTextLines(el: HTMLElement): TextLine[] {
 
 const toWinAnsi = (s: string) => s.replace(/[\u2212\u2013\u2014]/g, "-").replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\u2026/g, "...").replace(/[^\x20-\xFF]/g, "");
 
+/** Última linha (px) com conteúdo não branco do canvas. */
+function contentBottomPx(canvas: HTMLCanvasElement): number {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas.height;
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  for (let y = canvas.height - 1; y >= 0; y--) {
+    const row = y * canvas.width * 4;
+    for (let x = 0; x < canvas.width; x += 2) {
+      const i = row + x * 4;
+      if (data[i] < 240 || data[i + 1] < 240 || data[i + 2] < 240) return y + 1;
+    }
+  }
+  return 0;
+}
+
 /** Renderiza um HTML completo (A4) num iframe oculto e devolve o jsPDF (uma página por .doc-page). */
 export async function buildHtmlPdf(
   html: string,
@@ -91,6 +106,8 @@ export async function buildHtmlPdf(
       if (!first) pdf.addPage();
       first = false;
       pdf.addImage(dataUrl, "JPEG", (pageW - wMm) / 2, margin, wMm, hMm);
+      // Onde termina o conteúdo da última página (mm): permite anexar blocos vetoriais logo abaixo.
+      (pdf as any).__contentBottomMm = margin + hMm;
     };
     for (const el of targets) {
       const textLines = collectTextLines(el);
@@ -117,6 +134,7 @@ export async function buildHtmlPdf(
       const left = (pageW - elWidthMm) / 2;
       if (naturalHeight <= usableH) {
         putImage(canvas.toDataURL("image/jpeg", 0.94), elWidthMm, naturalHeight);
+        (pdf as any).__contentBottomMm = margin + contentBottomPx(canvas) / pxPerMm;
       } else {
         // Conteúdo maior que uma página: fatia o canvas em páginas A4 inteiras.
         const chunkPx = Math.floor(usableH * pxPerMm);

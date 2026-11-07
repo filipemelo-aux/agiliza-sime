@@ -1349,45 +1349,45 @@ export function FinancialInvoicing() {
 <html><head><meta charset="UTF-8"><title>faturamento-${String(fatura.numero).padStart(4, '0')}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;background:#fff;padding:40px 48px;font-size:13px;line-height:1.5}
-.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid #1a1a2e;margin-bottom:14px}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;background:#fff;padding:0 48px;font-size:13px;line-height:1.35}
+.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:2px solid #1a1a2e;margin-bottom:8px}
 .company{font-size:18px;font-weight:700;letter-spacing:-0.3px;color:#1a1a2e}
 .company-sub{font-size:11px;color:#6b7280;margin-top:4px}
 .company-addr{font-size:10px;color:#9ca3af;margin-top:2px}
 .doc-info{text-align:right}
 .doc-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#1a1a2e;text-transform:uppercase}
 .doc-number{font-size:11px;color:#6b7280;margin-top:2px;font-family:monospace}
-.section{margin-bottom:20px}
-.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e5e7eb}
+.section{margin-bottom:8px}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px;padding-bottom:2px;border-bottom:1px solid #e5e7eb}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
 .info-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 24px}
 .info-item label{display:block;font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px}
 .info-item span{font-size:12px;font-weight:600;color:#1a1a2e}
 .info-item-full{grid-column:1/-1}
 table{width:100%;border-collapse:collapse;margin-top:4px}
-th{background:#f8f9fa;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#6b7280;padding:4px 6px;text-align:left;border-bottom:2px solid #e5e7eb}
-td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
+th{background:#f8f9fa;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;color:#6b7280;padding:3px 6px;text-align:left;border-bottom:2px solid #e5e7eb;white-space:nowrap}
+td{padding:2px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 .text-right{text-align:right}
 .text-center{text-align:center}
 .mono{font-family:'SF Mono',Monaco,monospace;font-weight:600}
 .total-row{background:#f0fdf4;font-weight:700}
 .total-row td{border-bottom:2px solid #16a34a;color:#15803d}
-.badge{display:inline-block;padding:1px 6px;border-radius:99px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px}
+.badge{display:inline-block;padding:1px 6px;border-radius:99px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap}
 .badge-open{background:#fef3c7;color:#92400e}
 .badge-received{background:#dcfce7;color:#166534}
 .badge-late{background:#fee2e2;color:#991b1b}
-.footer{margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;text-align:center;font-size:9px;color:#9ca3af}
+.footer{margin-top:6px;padding-top:4px;border-top:1px solid #e5e7eb;text-align:center;font-size:9px;color:#9ca3af}
 .summary-box{background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
 .summary-item{text-align:center}
 .summary-item .value{font-size:14px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px}
-.divider{border:none;border-top:1px dashed #e5e7eb;margin:6px 0}
+.divider{border:none;border-top:1px dashed #e5e7eb;margin:4px 0}
 @media print{body{padding:0;font-size:9px}@page{margin:20mm;size:A4 portrait}table{font-size:9px}th{padding:2px 4px;font-size:8px}td{padding:1px 4px;font-size:9px;line-height:1.15}.header{margin-bottom:4px;padding-bottom:4px}.summary-box{padding:4px 6px;gap:4px;margin-bottom:6px}.summary-item .value{font-size:11px}.summary-item .label{font-size:7px}.divider{margin:4px 0}.footer{margin-top:5px;padding-top:4px;font-size:7px}h2{font-size:11px;margin-bottom:3px}.section{margin-bottom:6px}.section-title{font-size:8px;margin-bottom:3px;padding-bottom:2px}.info-item label{font-size:7px}.info-item span{font-size:9px}.info-grid,.info-grid-3,.info-grid-4{gap:2px 12px}.company{font-size:13px}.company-sub,.company-addr{font-size:8px}.doc-title{font-size:16px}.doc-number{font-size:9px}.badge{padding:1px 4px;font-size:8px}}
 </style></head><body>
 
 <div class="header">
   <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
-    <img src="${logoSrc}" alt="" style="height:54px;width:auto;object-fit:contain;flex-shrink:0" />
+    <img src="${logoSrc}" alt="" style="height:46px;width:auto;object-fit:contain;flex-shrink:0" />
     <div style="min-width:0">
       <div class="company">${companyName}</div>
       <div class="company-sub">${companyCnpj}</div>
