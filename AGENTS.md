@@ -39,4 +39,4 @@
 - Payroll printing awaits direct PDF generation and download dispatch under ProcessingOverlay, including driver closure previews, so processing remains visible for the whole operation without opening a print window.
 - Payroll summaries total monthly stored snapshots regardless of selection; exports fetch profile payment details only for unpaid, non-cancelled items.
 - DataGrid column footers render in the same table tracks as body cells for exact total alignment, preserving legacy full-width footers otherwise.
-- Driver portal: CPF maps to a synthetic auth email; drivers have no tenant membership/roles and act only via the service-role `driver-portal` function; portal reimbursements stay out of acerto/payment until `portal_status` is approved.
+- Driver portal: CPF login via synthetic email; drivers lack tenant roles and act only through the service-role `driver-portal` function; unapproved `portal_status` blocks acerto/payment.
