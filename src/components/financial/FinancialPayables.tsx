@@ -1136,7 +1136,7 @@ export function FinancialPayables() {
         return (
           <span className="block min-w-0">
             <span className="block truncate whitespace-nowrap font-medium text-foreground" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
-            {r.item.is_reembolso && <span className={cn("block text-[10px] truncate", (r.item as any).portal_status === "em_analise" ? "text-review-strong font-semibold" : (r.item as any).portal_status === "rejeitado" ? "text-destructive" : "text-primary")} title={`Fornecedor: ${r.item.favorecido_nome || "—"}${r.item.veiculo_placa ? ` · Placa ${r.item.veiculo_placa}` : ""}`}>{(r.item as any).portal_status === "em_analise" ? "Reembolso em análise (portal)" : (r.item as any).portal_status === "rejeitado" ? "Reembolso recusado" : r.item.reembolso_folha_item_id ? "Reembolso na folha" : "Reembolso a pagar"}</span>}
+            {r.item.is_reembolso && <span className={cn("block text-[10px] truncate", (r.item as any).portal_status === "em_analise" ? "text-review-strong font-semibold" : (r.item as any).portal_status === "rejeitado" ? "text-muted-foreground" : "text-primary")} title={`Fornecedor: ${r.item.favorecido_nome || "—"}${r.item.veiculo_placa ? ` · Placa ${r.item.veiculo_placa}` : ""}`}>{(r.item as any).portal_status === "em_analise" ? "Reembolso em análise (portal)" : (r.item as any).portal_status === "rejeitado" ? "Reembolso recusado" : r.item.reembolso_folha_item_id ? "Reembolso na folha" : "Reembolso a pagar"}</span>}
             {creator && (
               <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}
@@ -1759,6 +1759,8 @@ tfoot{display:table-row-group}
           rowToneClass(
             (r.item as any)?.portal_status === "em_analise"
               ? "review"
+              : (r.item as any)?.portal_status === "rejeitado"
+              ? "cancelled"
               : r.status === "pago"
               ? "resolved"
               : r.status === "parcial"
@@ -1783,6 +1785,7 @@ tfoot{display:table-row-group}
         className="px-1"
         items={[
           { tone: "review", label: "Em análise (portal do motorista)" },
+          { tone: "cancelled", label: "Recusado no portal" },
           { tone: "pending", label: "A vencer / pendente" },
           { tone: "resolved", label: "Pago / quitado" },
           { tone: "overdue", label: "Vencido / atrasado" },
