@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,8 +70,8 @@ export default function DriverPortal() {
     <div className="min-h-screen bg-muted/30">
       <header className="bg-primary text-primary-foreground px-4 py-3">
         <div className="max-w-md mx-auto flex items-center gap-3">
-          <div className="shrink-0 rounded-lg bg-white px-2 py-1">
-            <img src={tenantLogoFrom(ctx.empresa?.logo_url, ctx.empresa?.cnpj) || agilizaLogo} alt={ctx.empresa?.nome || "Agiliza TMS"} className="h-11 w-auto object-contain" />
+          <div className="shrink-0 rounded-lg bg-card px-2 py-1">
+            <img src={tenantLogoFrom(ctx.empresa?.logo_url) || agilizaLogo} alt={ctx.empresa?.nome || "Agiliza TMS"} className="h-11 max-w-28 w-auto object-contain" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs opacity-80">Portal do Motorista</p>
@@ -97,11 +97,10 @@ function Login() {
   const [cpf, setCpf] = useState("");
   const [busy, setBusy] = useState(false);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
-  const lastQuery = useRef("");
   useEffect(() => {
     const d = cpfDigits(cpf);
-    if (d.length !== 11 || !isValidCpf(d) || lastQuery.current === d) return;
-    lastQuery.current = d;
+    setEmpresa(null);
+    if (d.length !== 11 || !isValidCpf(d)) return;
     let alive = true;
     (async () => {
       const { data } = await supabase.functions.invoke("driver-portal", { body: { action: "branding", cpf: d } });
@@ -128,9 +127,9 @@ function Login() {
       <form onSubmit={submit} className="w-full max-w-sm bg-card rounded-xl border p-6 space-y-4 shadow-sm">
         <div className="text-center">
           <img
-            src={tenantLogoFrom(empresa?.logo_url, empresa?.cnpj) || agilizaLogo}
+            src={tenantLogoFrom(empresa?.logo_url) || agilizaLogo}
             alt={empresa?.nome || "Agiliza TMS"}
-            className="h-14 w-auto mx-auto object-contain"
+            className="h-20 max-w-full w-auto mx-auto object-contain"
           />
           <h1 className="text-xl font-bold mt-3">Portal do Motorista</h1>
           <p className="text-sm text-muted-foreground">Entre com seu CPF</p>
@@ -205,7 +204,7 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
     const v = Number(unmaskCurrency(valor));
     if (!(v > 0)) return toast.error("Informe o valor");
     if (!natureza) return toast.error("Escolha o motivo");
-    if (!ctx.vehicle) return toast.error("Sem caminhão vinculado", "Procure o escritório para vincular sua placa.");
+    if (!ctx.vehicle) return toast.error("Sem placa vinculada", "Procure o escritório para vincular sua placa.");
     if (!foto) return toast.error("Tire a foto do comprovante");
     setBusy(true);
     try {
@@ -232,7 +231,7 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
       <button type="button" onClick={onBack} className="flex items-center gap-1 text-sm text-primary"><ArrowLeft className="h-4 w-4" /> Voltar</button>
       <h1 className="text-xl font-bold">Reembolso</h1>
       <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm">
-        {ctx.vehicle ? <>Caminhão: <b>{ctx.vehicle.plate}</b></> : <span className="text-destructive">Nenhum caminhão vinculado a você. Procure o escritório.</span>}
+        {ctx.vehicle ? <>Placa: <b>{ctx.vehicle.plate}</b></> : <span className="text-destructive">Nenhuma placa vinculada a você. Procure o escritório.</span>}
       </div>
       <div className="space-y-1"><Label>Motivo</Label>
         <select className={sel} value={natureza} onChange={(e) => setNatureza(e.target.value)}>

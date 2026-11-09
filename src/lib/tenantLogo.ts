@@ -3,11 +3,9 @@ import simeLogo from "@/assets/logo.png";
 
 const SIME_CNPJ = "23662751000179";
 
-/** Logo da empresa a partir dos dados do servidor, com o fallback da Sime. */
-export function tenantLogoFrom(logo_url?: string | null, cnpj?: string | null): string | null {
-  if (logo_url) return logo_url;
-  if (String(cnpj || "").replace(/\D/g, "") === SIME_CNPJ) return simeLogo;
-  return null;
+/** O portal usa exclusivamente a logomarca salva no cadastro global da empresa. */
+export function tenantLogoFrom(logo_url?: string | null): string | null {
+  return logo_url || null;
 }
 
 /** Logo da empresa (tenant) atual em URL absoluta, para cabeçalhos de impressão. */
