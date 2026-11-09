@@ -184,7 +184,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
             </div>
             )}
           </div>
-        ) : (
+        ) : forcedSection === "config" ? null : (
           <SearchFilterCard>
             <FilterField label="Mês" className="ml-auto">
               <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
