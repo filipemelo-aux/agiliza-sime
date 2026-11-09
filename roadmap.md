@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Plano de contas por motivo na linha do grid do Portal do Motorista: salvamento/releitura e remoção conferidos, aplicação aos novos reembolsos publicada e 12 testes aprovados; configuração do teste restaurada.
 - [x] Gerenciar motivos de reembolso na aba Portal do Motorista: adicionar, editar e remover por empresa; dois testes aprovados e salvamento/releitura/seleção/remoção conferidos no portal autenticado; motivo temporário removido.
 - [x] Portal: “Placa:” e logo exclusiva do cadastro global; logo existente da Sime cadastrada, troca de CPF e login real com placa conferidos no computador e celular; dois testes aprovados.
 - [x] Busca do CT-e principal no saldo de frete: liberada para o talão de Serviço (número interno, placa ou cliente), com selo Produção/Serviço nos resultados, auto-exclusão do CT-e em edição e número/talão do principal restaurados na reabertura; conferido na tela com rascunho temporário removido.

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DEFAULT_PORTAL_REASONS, validatePortalReasons } from "../_shared/driverPortalReasons.ts";
+import { portalReasonAccount } from "../_shared/driverPortalAccounts.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -145,6 +146,15 @@ Deno.serve(async (req) => {
       if (!(valor > 0) || valor > 100000) return json({ error: "Valor inválido" }, 400);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return json({ error: "Data inválida" }, 400);
       if (!(await loadReasons()).includes(natureza)) return json({ error: "Motivo indisponível. Reabra o reembolso e selecione um motivo atualizado." }, 400);
+      const { data: settings, error: settingsError } = await admin.from("driver_portal_settings").select("reimbursement_accounts").eq("tenant_id", acc.tenant_id).maybeSingle();
+      if (settingsError) throw settingsError;
+      const accountId = portalReasonAccount(settings?.reimbursement_accounts, natureza);
+      let account: { id: string; centro_custo_default: string | null } | null = null;
+      if (accountId) {
+        const { data: configured, error: accountError } = await admin.from("chart_of_accounts").select("id, centro_custo_default").eq("id", accountId).eq("tenant_id", acc.tenant_id).eq("ativo", true).eq("tipo", "despesa").maybeSingle();
+        if (accountError) throw accountError;
+        account = configured;
+      }
       const veiculo = await loadVehicle();
       if (!veiculo) return json({ error: "Você não está vinculado a nenhum caminhão. Procure o escritório." }, 400);
 
@@ -165,7 +175,8 @@ Deno.serve(async (req) => {
         empresa_id: matriz.id,
         descricao: `Reembolso motorista — ${natureza}${obs ? `: ${obs}` : ""}`,
         tipo_despesa: natureza === "Pedágio" ? "pedagio" : "outros",
-        centro_custo: "frota_propria",
+        plano_contas_id: account?.id || null,
+        centro_custo: account?.centro_custo_default || "frota_propria",
         valor_total: Math.round(valor * 100) / 100,
         data_emissao: data,
         data_competencia: data,

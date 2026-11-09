@@ -2181,16 +2181,19 @@ export type Database = {
       }
       driver_portal_settings: {
         Row: {
+          reimbursement_accounts: Json
           reimbursement_reasons: Json
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          reimbursement_accounts?: Json
           reimbursement_reasons?: Json
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          reimbursement_accounts?: Json
           reimbursement_reasons?: Json
           tenant_id?: string
           updated_at?: string
