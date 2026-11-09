@@ -18,7 +18,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { toast } from "@/lib/notice";
 import { assignmentValidation, isImplement, unitCategory, unitLabel } from "@/lib/vehicleUnits";
-import { maskPlate, maskDocument } from "@/lib/masks";
+import { maskPlate, maskDocument, maskPlateInput, unmaskPlate } from "@/lib/masks";
 import { matchesText } from "@/lib/search";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -67,7 +67,7 @@ export default function AdminVehicleAssignments() {
   const [rows,setRows]=useState<Assignment[]>([]);
   const [selected,setSelected]=useState<Set<string>>(new Set());
   const [loading,setLoading]=useState(true);
-  const [search,setSearch]=useState("");
+  const [plateSearch,setPlateSearch]=useState("");const [driverSearch,setDriverSearch]=useState("");
   const [open,setOpen]=useState(false);
   const [editing,setEditing]=useState<Assignment|null>(null);
   const [vehicleId,setVehicleId]=useState("");
@@ -121,7 +121,7 @@ export default function AdminVehicleAssignments() {
     finally{lock.current=false;setSaving(false);}
   };
   const plateOf=(r:Assignment)=>vehicle(r.vehicle_id)?.plate || "";
-  const filtered=rows.filter(r=>!search || matchesText([plateOf(r),person(r.driver_profile_id)?.full_name,...r.implement_ids.map(id=>vehicle(id)?.plate)].join(" "),search)).sort((a,b)=>plateOf(a).localeCompare(plateOf(b)));
+  const filtered=rows.filter(r=>{const q=unmaskPlate(plateSearch);if(q&&![plateOf(r),...r.implement_ids.map(id=>vehicle(id)?.plate||"")].some(p=>unmaskPlate(p||"").includes(q)))return false;return !driverSearch||matchesText(person(r.driver_profile_id)?.full_name||"",driverSearch);}).sort((a,b)=>plateOf(a).localeCompare(plateOf(b)));
   const columns:DataGridColumn<Assignment>[]=[
     {key:"plate",header:"Tração / Veículo",width:"200px",cell:r=><div><span className="font-medium">{maskPlate(vehicle(r.vehicle_id)?.plate || "")}</span><div className="text-[10px] text-muted-foreground">{unitLabel(vehicle(r.vehicle_id) || {})}</div></div>},
     {key:"driver",header:"Motorista / Colaborador",width:"28%",cell:r=><div>{person(r.driver_profile_id)?.full_name || "—"}{person(r.driver_profile_id)?.cnpj && <div className="text-[10px] text-muted-foreground">{maskDocument(person(r.driver_profile_id)?.cnpj)}</div>}</div>},
@@ -131,7 +131,10 @@ export default function AdminVehicleAssignments() {
   const category=unitCategory(vehicle(vehicleId) || {});
   return <AdminLayout><main className="px-4 py-3 md:px-6 space-y-3">
     <PageTitle>Vinculações</PageTitle>
-    <SearchFilterCard><FilterField label="Placa ou motorista" className="flex-1"><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar placa ou motorista"/></FilterField></SearchFilterCard>
+    <SearchFilterCard>
+      <FilterField label="Placa" className="w-full md:w-auto md:flex-[1_1_9rem]"><div className="relative w-full"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"/><Input placeholder="ABC-1D23" aria-label="Placa" value={plateSearch} onChange={e=>setPlateSearch(maskPlateInput(e.target.value))} className="pl-8 h-8 text-xs uppercase" maxLength={8} autoCapitalize="characters" autoCorrect="off" spellCheck={false}/></div></FilterField>
+      <FilterField label="Motorista" className="w-full md:w-auto md:flex-[1_1_12rem]"><div className="relative w-full"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"/><Input placeholder="Motorista" aria-label="Motorista" value={driverSearch} onChange={e=>setDriverSearch(e.target.value)} className="pl-8 h-8 text-xs"/></div></FilterField>
+    </SearchFilterCard>
     <GlobalToolbar selectedCount={selected.size} actions={[
       {key:"new",label:"Nova vinculação",icon:Plus,mode:"create",disabled:!canEdit || saving,onClick:()=>begin(null)},
       {key:"edit",label:"Trocar motorista ou conjunto",icon:Pencil,mode:"single",disabled:!canEdit || saving,onClick:()=>current && begin(current)},
