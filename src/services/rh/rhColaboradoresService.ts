@@ -21,10 +21,15 @@ export type ColaboradorRH = {
   salario: number | null;
   /** Categoria original do cadastro (motorista, colaborador, etc.) — apenas informativo. */
   tipo: "colaborador" | "motorista" | "outro";
+  categories_extra?: string[];
   /** Regime de contratação — apenas CLT sofre INSS/IRRF em folha. */
   regime?: "clt" | "pj" | "freelancer";
   ativo: boolean;
 };
+
+export function canSelectDriverPortalAccess(colaborador: Pick<ColaboradorRH, "tipo" | "categories_extra" | "ativo">): boolean {
+  return colaborador.ativo && (colaborador.tipo === "motorista" || colaborador.categories_extra?.includes("motorista") === true);
+}
 
 export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
   // [DEBUG RH] Carrega TODOS os profiles para diagnosticar inclusões/exclusões
@@ -78,7 +83,7 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
   const { data } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, cargo, departamento, data_admissao, salario, category, tipo_colaborador_rh"
+      "id, full_name, email, phone, cargo, departamento, data_admissao, salario, category, categories_extra, tipo_colaborador_rh"
     )
     .eq("is_colaborador_rh", true)
     .order("full_name");
@@ -104,6 +109,7 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
     departamento: p.departamento,
     data_admissao: p.data_admissao,
     salario: p.salario,
+    categories_extra: p.categories_extra ?? [],
     tipo:
       p.category === "colaborador"
         ? "colaborador"

@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "@/lib/notice";
 import { useRHData } from "@/hooks/useRHData";
+import { canSelectDriverPortalAccess } from "@/services/rh/rhColaboradoresService";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { useRHPeriodConfig } from "@/hooks/useRHPeriodConfig";
 import { MonthPicker } from "@/components/MonthPicker";
@@ -1357,7 +1358,7 @@ function PortalAccessCard({ colaboradores, onOpen }: { colaboradores: Colaborado
   const list = useMemo(() => {
     const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const q = norm(search.trim());
-    return colaboradores.filter((c) => c.ativo && (!q || norm(c.full_name).includes(q)));
+    return colaboradores.filter((c) => canSelectDriverPortalAccess(c) && (!q || norm(c.full_name).includes(q)));
   }, [colaboradores, search]);
   return (
     <Card>
