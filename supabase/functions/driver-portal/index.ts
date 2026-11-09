@@ -157,6 +157,8 @@ Deno.serve(async (req) => {
 
     return json({ error: "Ação inválida" }, 400);
   } catch (e) {
-    return json({ error: (e as Error).message || "Erro" }, 500);
+    const msg = (e as Error).message || "Erro";
+    if (/weak|easy to guess|pwned/i.test(msg)) return json({ error: "Senha fraca ou muito comum. Escolha outra (evite sequências e datas)." }, 400);
+    return json({ error: msg }, 500);
   }
 });
