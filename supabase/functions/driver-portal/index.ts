@@ -28,6 +28,16 @@ Deno.serve(async (req) => {
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const loadBranding = async (tenantId: string) => {
+      const { data: t } = await admin.from("tenants")
+        .select("razao_social, nome_fantasia, cnpj, logo_url").eq("id", tenantId).maybeSingle();
+      if (!t) return null;
+      return {
+        nome: String(t.nome_fantasia || t.razao_social || "").toUpperCase(),
+        logo_url: t.logo_url || null,
+        cnpj: String(t.cnpj || "").replace(/\D/g, ""),
+      };
+    };
     const auth = req.headers.get("Authorization") || "";
     const pre = await req.clone().json().catch(() => ({}));
     // ---------- Login do motorista somente com CPF ----------
@@ -39,6 +49,14 @@ Deno.serve(async (req) => {
       const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: driverEmail(cpf) });
       if (error) throw error;
       return json({ token_hash: link.properties.hashed_token });
+    }
+    // ---------- Marca da empresa na tela de entrada ----------
+    if (pre.action === "branding") {
+      const cpf = onlyDigits(pre.cpf);
+      if (!validCpf(cpf)) return json({ error: "CPF inválido" }, 400);
+      const { data: acc } = await admin.from("driver_portal_access").select("tenant_id").eq("cpf", cpf).eq("ativo", true).maybeSingle();
+      if (!acc) return json({ ok: false });
+      return json({ ok: true, empresa: await loadBranding(acc.tenant_id) });
     }
     const caller = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
     const { data: { user } } = await caller.auth.getUser();
@@ -112,7 +130,7 @@ Deno.serve(async (req) => {
         .select("id, descricao, valor_total, data_emissao, veiculo_placa, portal_status, status")
         .eq("reembolso_colaborador_id", acc.profile_id).eq("is_reembolso", true).is("deleted_at", null)
         .not("portal_status", "is", null).order("created_at", { ascending: false }).limit(10);
-      return json({ nome: prof?.full_name, naturezas: NATUREZAS, vehicle, recentes: recent || [] });
+      return json({ nome: prof?.full_name, naturezas: NATUREZAS, vehicle, recentes: recent || [], empresa: await loadBranding(acc.tenant_id) });
     }
 
     if (action === "reembolso") {

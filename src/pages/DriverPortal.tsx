@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,12 +7,17 @@ import { toast } from "@/lib/notice";
 import { Wallet, FileText, Truck, Fuel, LogOut, ArrowLeft, Camera, Loader2, CheckCircle2 } from "lucide-react";
 import { maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { cpfDigits, driverEmailFromCpf, maskCpf, isValidCpf } from "@/lib/driverPortal";
+import { tenantLogoFrom } from "@/lib/tenantLogo";
 import { getLocalDateISO } from "@/lib/date";
+import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
+
+type Empresa = { nome: string; logo_url: string | null; cnpj: string };
 
 type Ctx = {
   nome: string;
   naturezas: string[];
   vehicle: { id: string; plate: string } | null;
+  empresa: Empresa | null;
   recentes: { id: string; status: string; descricao: string; valor_total: number; data_emissao: string; veiculo_placa: string | null; portal_status: string }[];
 };
 
@@ -63,14 +68,19 @@ export default function DriverPortal() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="bg-primary text-primary-foreground px-4 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs opacity-80">Portal do Motorista</p>
-          <p className="font-semibold text-lg leading-tight">{ctx.nome}</p>
+      <header className="bg-primary text-primary-foreground px-4 py-3">
+        <div className="max-w-md mx-auto flex items-center gap-3">
+          <div className="shrink-0 rounded-lg bg-white px-2 py-1">
+            <img src={tenantLogoFrom(ctx.empresa?.logo_url, ctx.empresa?.cnpj) || agilizaLogo} alt={ctx.empresa?.nome || "Agiliza TMS"} className="h-11 w-auto object-contain" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs opacity-80">Portal do Motorista</p>
+            <p className="font-semibold text-lg leading-tight truncate">{ctx.nome}</p>
+          </div>
+          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" aria-label="Sair" onClick={() => supabase.auth.signOut()}>
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" aria-label="Sair" onClick={() => supabase.auth.signOut()}>
-          <LogOut className="h-5 w-5" />
-        </Button>
       </header>
       <main className="max-w-md mx-auto p-4">
         {view === "home" ? (
@@ -86,6 +96,19 @@ export default function DriverPortal() {
 function Login() {
   const [cpf, setCpf] = useState("");
   const [busy, setBusy] = useState(false);
+  const [empresa, setEmpresa] = useState<Empresa | null>(null);
+  const lastQuery = useRef("");
+  useEffect(() => {
+    const d = cpfDigits(cpf);
+    if (d.length !== 11 || !isValidCpf(d) || lastQuery.current === d) return;
+    lastQuery.current = d;
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.functions.invoke("driver-portal", { body: { action: "branding", cpf: d } });
+      if (alive && data?.ok && data.empresa) setEmpresa(data.empresa as Empresa);
+    })();
+    return () => { alive = false; };
+  }, [cpf]);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidCpf(cpf)) return toast.error("CPF inválido", "Confira os números do seu CPF.");
@@ -104,8 +127,12 @@ function Login() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
       <form onSubmit={submit} className="w-full max-w-sm bg-card rounded-xl border p-6 space-y-4 shadow-sm">
         <div className="text-center">
-          <Truck className="h-10 w-10 mx-auto text-primary" />
-          <h1 className="text-xl font-bold mt-2">Portal do Motorista</h1>
+          <img
+            src={tenantLogoFrom(empresa?.logo_url, empresa?.cnpj) || agilizaLogo}
+            alt={empresa?.nome || "Agiliza TMS"}
+            className="h-14 w-auto mx-auto object-contain"
+          />
+          <h1 className="text-xl font-bold mt-3">Portal do Motorista</h1>
           <p className="text-sm text-muted-foreground">Entre com seu CPF</p>
         </div>
         <div className="space-y-1">

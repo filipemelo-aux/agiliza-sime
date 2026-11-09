@@ -3,6 +3,13 @@ import simeLogo from "@/assets/logo.png";
 
 const SIME_CNPJ = "23662751000179";
 
+/** Logo da empresa a partir dos dados do servidor, com o fallback da Sime. */
+export function tenantLogoFrom(logo_url?: string | null, cnpj?: string | null): string | null {
+  if (logo_url) return logo_url;
+  if (String(cnpj || "").replace(/\D/g, "") === SIME_CNPJ) return simeLogo;
+  return null;
+}
+
 /** Logo da empresa (tenant) atual em URL absoluta, para cabeçalhos de impressão. */
 export async function getCurrentTenantLogoUrl(): Promise<string | null> {
   const { data: tid } = await (supabase.rpc as any)("current_tenant_id");
