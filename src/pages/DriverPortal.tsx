@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/notice";
-import { Wallet, FileText, Truck, Fuel, LogOut, ArrowLeft, Camera, Loader2, CheckCircle2 } from "lucide-react";
+import { Wallet, FileText, Truck, Fuel, LogOut, ArrowLeft, Camera, Loader2, CheckCircle2, X } from "lucide-react";
 import { maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { cpfDigits, driverEmailFromCpf, maskCpf, isValidCpf } from "@/lib/driverPortal";
 import { tenantLogoFrom } from "@/lib/tenantLogo";
@@ -197,8 +197,16 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
   const [natureza, setNatureza] = useState("");
   const [obs, setObs] = useState("");
   const [foto, setFoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (!foto) { setPreview(null); return; }
+    const url = URL.createObjectURL(foto);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [foto]);
 
   const submit = async () => {
     const v = Number(unmaskCurrency(valor));
@@ -221,6 +229,9 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
       <CheckCircle2 className="h-16 w-16 mx-auto text-success" />
       <p className="text-lg font-semibold">Reembolso enviado!</p>
       <p className="text-sm text-muted-foreground">O escritório vai analisar e você verá o resultado aqui.</p>
+      {preview && (
+        <img src={preview} alt="Foto do comprovante enviada" className="w-full max-h-72 object-contain rounded-xl border bg-card p-1" />
+      )}
       <Button className="h-12 w-full" onClick={onDone}>Voltar ao início</Button>
     </div>
   );
@@ -244,11 +255,27 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
         <div className="space-y-1"><Label>Valor (R$)</Label><Input inputMode="numeric" className="h-12 text-lg" value={valor} onChange={(e) => setValor(maskCurrency(e.target.value))} placeholder="0,00" /></div>
       </div>
       <div className="space-y-1"><Label>Observação (local, detalhe)</Label><Input className="h-12" value={obs} maxLength={300} onChange={(e) => setObs(e.target.value)} /></div>
-      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-6 cursor-pointer bg-card">
-        <Camera className="h-8 w-8 text-primary" />
-        <span className="text-sm font-medium">{foto ? foto.name : "Foto do comprovante / cupom"}</span>
-        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] || null)} />
-      </label>
+      {preview ? (
+        <div className="space-y-2">
+          <Label>Foto do comprovante</Label>
+          <img src={preview} alt="Prévia da foto do comprovante" className="w-full max-h-72 object-contain rounded-xl border bg-card p-1" />
+          <div className="flex gap-2">
+            <label className="flex-1 flex items-center justify-center gap-2 h-12 rounded-md border bg-card cursor-pointer text-sm font-medium">
+              <Camera className="h-4 w-4 text-primary" /> Trocar foto
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] || null)} />
+            </label>
+            <Button type="button" variant="outline" className="h-12 px-4" onClick={() => setFoto(null)}>
+              <X className="h-4 w-4" /> Remover
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-6 cursor-pointer bg-card">
+          <Camera className="h-8 w-8 text-primary" />
+          <span className="text-sm font-medium">Foto do comprovante / cupom</span>
+          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] || null)} />
+        </label>
+      )}
       <Button className="w-full h-14 text-base" onClick={submit} disabled={busy}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Enviar reembolso"}</Button>
     </div>
   );
