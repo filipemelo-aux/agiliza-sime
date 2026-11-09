@@ -2668,6 +2668,7 @@ export type Database = {
           origem: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id: string | null
           portal_anexo_path: string | null
+          portal_revisado_em: string | null
           portal_status: string | null
           proxima_manutencao_km: number | null
           reembolso_colaborador_id: string | null
@@ -2722,6 +2723,7 @@ export type Database = {
           origem?: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id?: string | null
           portal_anexo_path?: string | null
+          portal_revisado_em?: string | null
           portal_status?: string | null
           proxima_manutencao_km?: number | null
           reembolso_colaborador_id?: string | null
@@ -2776,6 +2778,7 @@ export type Database = {
           origem?: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id?: string | null
           portal_anexo_path?: string | null
+          portal_revisado_em?: string | null
           portal_status?: string | null
           proxima_manutencao_km?: number | null
           reembolso_colaborador_id?: string | null

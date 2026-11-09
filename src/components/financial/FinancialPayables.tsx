@@ -5,7 +5,7 @@ import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { printGroupedExpenseDetails } from "@/lib/printGroupedExpense";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
-import { isRejectedPortalExpense } from "@/lib/expenseRules";
+import { canApprovePortalExpense, isRejectedPortalExpense } from "@/lib/expenseRules";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -467,6 +467,11 @@ export function FinancialPayables() {
   };
   const setPortalStatus = async (item: any, status: "aprovado" | "rejeitado") => {
     if (!item) return;
+    if (status === "aprovado" && !canApprovePortalExpense(item)) {
+      toast.warning("Antes de aprovar, edite e salve o plano de contas, a descrição da despesa e o favorecido cadastrado.");
+      handleEdit(item);
+      return;
+    }
     const ok = await confirm({
       title: status === "aprovado" ? "Aprovar reembolso" : "Recusar reembolso",
       description: status === "aprovado"
