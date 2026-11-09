@@ -264,7 +264,7 @@ function RHWorkspace(props: any) {
   const [movSubTab, setMovSubTab] = useState<MovSubTab>("comissoes");
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
-  const { user } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const { confirm: confirmAcerto, ConfirmDialog: AcertoConfirmDialog } = useConfirmDialog();
 
 
@@ -798,7 +798,7 @@ function RHWorkspace(props: any) {
             <JanelaSalarioConfigCard />
 
             <SalaryOverridesCard colaboradores={colaboradores} onSaved={reload} />
-            <PortalAccessCard colaboradores={colaboradores} onOpen={(c) => setPortalFor(c)} />
+            {(isAdmin || isSuperAdmin) && <PortalAccessCard colaboradores={colaboradores} onOpen={(c) => setPortalFor(c)} />}
           </div>
         )}
       </section>
@@ -1364,7 +1364,7 @@ function PortalAccessCard({ colaboradores, onOpen }: { colaboradores: Colaborado
       <CardContent className="p-4 space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Acesso ao Portal do Motorista</h3>
-          <p className="text-[11px] text-muted-foreground">Libere, troque a senha ou bloqueie o acesso do motorista ao portal (login por CPF).</p>
+          <p className="text-[11px] text-muted-foreground">Ative ou bloqueie o acesso do motorista ao portal. Ele entra somente com o CPF.</p>
         </div>
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -29,6 +29,17 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const auth = req.headers.get("Authorization") || "";
+    const pre = await req.clone().json().catch(() => ({}));
+    // ---------- Login do motorista somente com CPF ----------
+    if (pre.action === "login") {
+      const cpf = onlyDigits(pre.cpf);
+      if (!validCpf(cpf)) return json({ error: "CPF inválido" }, 400);
+      const { data: acc } = await admin.from("driver_portal_access").select("auth_user_id").eq("cpf", cpf).eq("ativo", true).maybeSingle();
+      if (!acc) return json({ error: "CPF sem acesso liberado ao portal" }, 403);
+      const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: driverEmail(cpf) });
+      if (error) throw error;
+      return json({ token_hash: link.properties.hashed_token });
+    }
     const caller = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
     const { data: { user } } = await caller.auth.getUser();
     if (!user) return json({ error: "Não autorizado" }, 401);
@@ -38,7 +49,7 @@ Deno.serve(async (req) => {
     // ---------- Equipe: liberar / redefinir acesso do motorista ----------
     if (action === "grant" || action === "revoke") {
       const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-      if (!roles?.some((r: any) => ["admin", "moderator", "superadmin"].includes(r.role))) return json({ error: "Sem permissão" }, 403);
+      if (!roles?.some((r: any) => ["admin", "superadmin"].includes(r.role))) return json({ error: "Sem permissão" }, 403);
       const { data: tid } = await caller.rpc("current_tenant_id");
       const { data: prof } = await admin.from("profiles").select("id, tenant_id, full_name").eq("id", body.profile_id).maybeSingle();
       if (!prof || prof.tenant_id !== tid) return json({ error: "Motorista não encontrado" }, 404);
@@ -53,9 +64,8 @@ Deno.serve(async (req) => {
       }
 
       const cpf = onlyDigits(body.cpf);
-      const senha = String(body.senha || "");
+      const senha = crypto.randomUUID() + crypto.randomUUID();
       if (!validCpf(cpf)) return json({ error: "CPF inválido" }, 400);
-      if (senha.length < 6) return json({ error: "A senha precisa ter pelo menos 6 caracteres" }, 400);
 
       const { data: other } = await admin.from("driver_portal_access").select("profile_id").eq("cpf", cpf).maybeSingle();
       if (other && other.profile_id !== prof.id) return json({ error: "Este CPF já está liberado para outro motorista" }, 409);

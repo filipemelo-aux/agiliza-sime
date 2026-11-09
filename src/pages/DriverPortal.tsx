@@ -86,15 +86,20 @@ export default function DriverPortal() {
 
 function Login() {
   const [cpf, setCpf] = useState("");
-  const [senha, setSenha] = useState("");
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidCpf(cpf)) return toast.error("CPF inválido", "Confira os números do seu CPF.");
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: driverEmailFromCpf(cpfDigits(cpf)), password: senha });
+    const { data, error } = await supabase.functions.invoke("driver-portal", { body: { action: "login", cpf: cpfDigits(cpf) } });
+    let msg = data?.error;
+    if (error) { try { msg = (await (error as any).context.json()).error; } catch { msg = error.message; } }
+    if (!msg) {
+      const { error: e2 } = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "magiclink" });
+      if (e2) msg = e2.message;
+    }
     setBusy(false);
-    if (error) toast.error("Não foi possível entrar", "CPF ou senha incorretos.");
+    if (msg) toast.error("Não foi possível entrar", msg);
   };
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
@@ -107,10 +112,6 @@ function Login() {
         <div className="space-y-1">
           <Label htmlFor="cpf">CPF</Label>
           <Input id="cpf" inputMode="numeric" className="h-12 text-lg" value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="senha">Senha</Label>
-          <Input id="senha" type="password" className="h-12 text-lg" value={senha} onChange={(e) => setSenha(e.target.value)} />
         </div>
         <Button type="submit" className="w-full h-12 text-base" disabled={busy}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}</Button>
       </form>
