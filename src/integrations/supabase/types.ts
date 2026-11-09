@@ -2179,6 +2179,32 @@ export type Database = {
           },
         ]
       }
+      driver_portal_settings: {
+        Row: {
+          reimbursement_reasons: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          reimbursement_reasons?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          reimbursement_reasons?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_portal_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_services: {
         Row: {
           assigned_by: string | null

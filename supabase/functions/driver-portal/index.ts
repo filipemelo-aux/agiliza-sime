@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { DEFAULT_PORTAL_REASONS, validatePortalReasons } from "../_shared/driverPortalReasons.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -20,8 +21,6 @@ function validCpf(c: string) {
   };
   return dv(9) === Number(c[9]) && dv(10) === Number(c[10]);
 }
-
-const NATUREZAS = ["Alimentação", "Pedágio", "Borracharia", "Hospedagem", "Lavagem", "Peças", "Outros"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -115,6 +114,11 @@ Deno.serve(async (req) => {
     const { data: acc } = await admin.from("driver_portal_access").select("*").eq("auth_user_id", user.id).eq("ativo", true).maybeSingle();
     if (!acc) return json({ error: "Acesso ao portal não liberado" }, 403);
     const { data: prof } = await admin.from("profiles").select("id, full_name").eq("id", acc.profile_id).single();
+    const loadReasons = async () => {
+      const { data: settings, error } = await admin.from("driver_portal_settings").select("reimbursement_reasons").eq("tenant_id", acc.tenant_id).maybeSingle();
+      if (error) throw error;
+      return settings ? validatePortalReasons(settings.reimbursement_reasons) : DEFAULT_PORTAL_REASONS;
+    };
 
     const loadVehicle = async () => {
       const { data: asg } = await admin.from("vehicle_assignments").select("vehicle_id").eq("tenant_id", acc.tenant_id).eq("driver_profile_id", acc.profile_id).limit(1);
@@ -130,7 +134,7 @@ Deno.serve(async (req) => {
         .select("id, descricao, valor_total, data_emissao, veiculo_placa, portal_status, status")
         .eq("reembolso_colaborador_id", acc.profile_id).eq("is_reembolso", true).is("deleted_at", null)
         .not("portal_status", "is", null).order("created_at", { ascending: false }).limit(10);
-      return json({ nome: prof?.full_name, naturezas: NATUREZAS, vehicle, recentes: recent || [], empresa: await loadBranding(acc.tenant_id) });
+      return json({ nome: prof?.full_name, naturezas: await loadReasons(), vehicle, recentes: recent || [], empresa: await loadBranding(acc.tenant_id) });
     }
 
     if (action === "reembolso") {
@@ -140,7 +144,7 @@ Deno.serve(async (req) => {
       const obs = String(body.observacao || "").slice(0, 500);
       if (!(valor > 0) || valor > 100000) return json({ error: "Valor inválido" }, 400);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return json({ error: "Data inválida" }, 400);
-      if (!NATUREZAS.includes(natureza)) return json({ error: "Natureza inválida" }, 400);
+      if (!(await loadReasons()).includes(natureza)) return json({ error: "Motivo indisponível. Reabra o reembolso e selecione um motivo atualizado." }, 400);
       if (!body.foto_base64) return json({ error: "Envie a foto do comprovante" }, 400);
       const veiculo = await loadVehicle();
       if (!veiculo) return json({ error: "Você não está vinculado a nenhum caminhão. Procure o escritório." }, 400);

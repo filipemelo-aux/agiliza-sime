@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Gerenciar motivos de reembolso na aba Portal do Motorista: adicionar, editar e remover por empresa; dois testes aprovados e salvamento/releitura/seleção/remoção conferidos no portal autenticado; motivo temporário removido.
 - [x] Portal: “Placa:” e logo exclusiva do cadastro global; logo existente da Sime cadastrada, troca de CPF e login real com placa conferidos no computador e celular; dois testes aprovados.
 - [x] Busca do CT-e principal no saldo de frete: liberada para o talão de Serviço (número interno, placa ou cliente), com selo Produção/Serviço nos resultados, auto-exclusão do CT-e em edição e número/talão do principal restaurados na reabertura; conferido na tela com rascunho temporário removido.
 - [x] Ampliar descontos com Crédito do Trabalhador e outros parcelados: seleção simples, gravação atômica e parcelas futuras por quinzena/mês; inclusão/releitura mensal e parcela 2/3 na próxima quinzena conferidas pela tela, registros temporários removidos e 16 testes aprovados.

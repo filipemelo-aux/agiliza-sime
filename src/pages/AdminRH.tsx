@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Smartphone } from "lucide-react";
 import { DriverPortalAccessDialog } from "@/components/rh/DriverPortalAccessDialog";
+import { PortalReasonsSettings } from "@/components/rh/PortalReasonsSettings";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -813,6 +814,7 @@ function RHWorkspace(props: any) {
 
             {(isAdmin || isSuperAdmin) && (
             <TabsContent value="portal" className="space-y-4">
+            <PortalReasonsSettings />
             <PortalAccessCard colaboradores={colaboradores} onOpen={(c) => setPortalFor(c)} />
             </TabsContent>
             )}
