@@ -17,15 +17,10 @@ export function DriverPortalAccessDialog({ profile, onClose }: Props) {
     setCpf(""); setAtivo(false);
     (async () => {
       const { data: acc } = await supabase.from("driver_portal_access").select("cpf, ativo").eq("profile_id", profile.id).maybeSingle();
-      if (acc) { setCpf(maskCpf(acc.cpf)); setAtivo(acc.ativo); return; }
-      const { data: pr } = await supabase.from("profiles").select("cnpj, user_id").eq("id", profile.id).maybeSingle();
+      if (acc) setAtivo(acc.ativo);
+      const { data: pr } = await supabase.from("profiles").select("cnpj").eq("id", profile.id).maybeSingle();
       const d = cpfDigits(pr?.cnpj || "");
-      if (d.length === 11) { setCpf(maskCpf(d)); return; }
-      const uid = profile.user_id || pr?.user_id;
-      if (uid) {
-        const { data: doc } = await supabase.from("driver_documents").select("cpf").eq("user_id", uid).limit(1).maybeSingle();
-        if (doc?.cpf) setCpf(maskCpf(doc.cpf));
-      }
+      if (d.length === 11) setCpf(maskCpf(d));
     })();
   }, [profile]);
 

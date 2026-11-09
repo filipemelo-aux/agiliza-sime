@@ -40,3 +40,4 @@
 - Payroll summaries total monthly stored snapshots regardless of selection; exports fetch profile payment details only for unpaid, non-cancelled items.
 - DataGrid column footers render in the same table tracks as body cells for exact total alignment, preserving legacy full-width footers otherwise.
 - Driver portal: CPF login via synthetic email; drivers lack tenant roles and act only through the service-role `driver-portal` function; unapproved `portal_status` blocks payment.
+- A person's CPF lives in `profiles.cnpj` (canonical); `driver_documents.cpf` is a trigger-maintained mirror for legacy readers, so new code reads CPF only from profiles.
