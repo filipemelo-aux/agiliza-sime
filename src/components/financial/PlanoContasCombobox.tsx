@@ -29,7 +29,7 @@ interface PlanoContasComboboxProps {
   options: PlanoContaOption[];
   disabled?: boolean;
   placeholder?: string;
-  size?: "sm" | "md";
+  size?: "cell" | "sm" | "md";
   className?: string;
   /** Inclui opção "Todas as contas" no topo (uso em filtros) */
   includeAll?: boolean;
@@ -159,8 +159,10 @@ export function PlanoContasCombobox({
       : null;
   const isSemClassificacao = value === SEM_CLASSIFICACAO_VALUE;
 
-  const heightCls = size === "sm" ? "h-8 text-xs px-2" : "h-9 text-sm";
-  const itemTextCls = size === "sm" ? "text-xs" : "text-sm";
+  const heightCls = size === "cell"
+    ? "h-auto min-h-0 border-0 bg-transparent p-0 text-xs shadow-none hover:bg-transparent"
+    : size === "sm" ? "h-8 text-xs px-2" : "h-9 text-sm";
+  const itemTextCls = size === "md" ? "text-sm" : "text-xs";
 
 
   return (
@@ -187,14 +189,14 @@ export function PlanoContasCombobox({
             ) : isSemClassificacao ? (
               <span className="truncate text-left text-amber-600">{semClassificacaoLabel}</span>
             ) : includeAll && (value === allValue || !value) ? (
-              <span className="flex items-center gap-1 text-left">
-                <FolderTree className="h-3 w-3 text-muted-foreground" />
+              <span className={cn("flex items-center gap-1 text-left", size === "cell" && "text-muted-foreground")}>
+                {size !== "cell" && <FolderTree className="h-3 w-3 text-muted-foreground" />}
                 {allLabel}
               </span>
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
             )}
-            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+            {size !== "cell" && <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />}
           </Button>
         </PopoverTrigger>
         <PopoverContent

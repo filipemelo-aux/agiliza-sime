@@ -80,9 +80,9 @@ export function PortalReasonsSettings() {
   const columns: DataGridColumn<Row>[] = [
     { key: "reason", header: "Motivo", cell: (r) => r.reason, sortValue: (r) => r.reason },
     { key: "account", header: "Plano de contas", cell: (r) => (
-      <div onClick={e => e.stopPropagation()} className="min-w-64">
-        <PlanoContasCombobox size="sm" value={accounts[r.reason]} options={accountQuery.data ?? []} allowCreate={false} disabled={!isAdmin || saving || accountQuery.isLoading}
-          includeAll allValue="" allLabel="Não definido" placeholder="Selecionar plano de contas"
+      <div onClick={e => e.stopPropagation()} className="min-w-0">
+        <PlanoContasCombobox size="cell" showParentPathOnSelected={false} value={accounts[r.reason]} options={accountQuery.data ?? []} allowCreate={false} disabled={!isAdmin || saving || accountQuery.isLoading}
+          includeAll allValue="" allLabel="—" placeholder="—"
           onChange={id => { void persist(reasons, "Plano de contas salvo.", { ...accounts, [r.reason]: id }); }} />
       </div>
     ) },
