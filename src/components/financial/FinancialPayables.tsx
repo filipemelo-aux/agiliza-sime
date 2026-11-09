@@ -218,6 +218,14 @@ export function FinancialPayables() {
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPayments, setDetailPayments] = useState<any[]>([]);
+  const [detailPhotoUrl, setDetailPhotoUrl] = useState<string | null>(null);
+  const [photoZoom, setPhotoZoom] = useState(false);
+  useEffect(() => {
+    setDetailPhotoUrl(null);
+    const path = (detailExpense as any)?.portal_anexo_path;
+    if (!detailOpen || !path) return;
+    supabase.storage.from("driver-portal").createSignedUrl(path, 600).then(({ data }) => setDetailPhotoUrl(data?.signedUrl || null));
+  }, [detailOpen, detailExpense]);
   useEffect(() => {
     if (!detailOpen || !detailExpense) { setDetailPayments([]); return; }
     supabase.from("expense_payments" as any).select("id, data_pagamento, forma_pagamento, valor")
@@ -1249,6 +1257,8 @@ export function FinancialPayables() {
     return false;
   }, [selectedIds, items, installmentsMap]);
 
+  const selectedPortalBlocked = selectedRows.some((r: any) => ["em_analise", "rejeitado"].includes(r.item?.portal_status));
+
   const selectedUnpaidCount = useMemo(() => {
     let count = 0;
     for (const id of selectedIds) {
@@ -1635,7 +1645,7 @@ tfoot{display:table-row-group}
             priority: true,
             className: "bg-success text-success-foreground hover:bg-success/90 border-transparent",
             hidden: selectedUnpaidCount >= 2,
-            disabled: batchPaying || !hasSelectedUnpaid,
+            disabled: batchPaying || !hasSelectedUnpaid || selectedPortalBlocked,
             onClick: () => handleBatchPay(false),
           },
           {
@@ -1648,7 +1658,7 @@ tfoot{display:table-row-group}
               ? "bg-success text-success-foreground hover:bg-success/90 border-transparent"
               : "border-success/60 text-success hover:bg-success/10",
             hidden: selectedUnpaidCount < 2 || !selectedUnpaidSameFavorecido,
-            disabled: batchPaying,
+            disabled: batchPaying || selectedPortalBlocked,
             onClick: () => handleBatchPay(true),
           },
           {
@@ -1661,7 +1671,7 @@ tfoot{display:table-row-group}
               ? "border-success/60 text-success hover:bg-success/10"
               : "bg-success text-success-foreground hover:bg-success/90 border-transparent",
             hidden: selectedUnpaidCount < 2,
-            disabled: batchPaying,
+            disabled: batchPaying || selectedPortalBlocked,
             onClick: () => handleBatchPay(false),
           },
           { key: "new", label: "Nova Despesa", icon: Plus, mode: "create", variant: "default", onClick: handleNew },
@@ -1694,11 +1704,6 @@ tfoot{display:table-row-group}
             className: "border-accent/60 text-accent-foreground hover:bg-accent/20",
             disabled: !selectedRows[0]?.inst?.boleto_url,
             onClick: () => { const r = selectedRows[0]; if (r?.inst) handleDownloadBoleto(r.inst); },
-          },
-          {
-            key: "portal-view", label: "Ver comprovante (portal)", icon: Eye, mode: "single",
-            hidden: !(selectedRows[0]?.item as any)?.portal_anexo_path,
-            onClick: () => openPortalAnexo(selectedRows[0]?.item),
           },
           {
             key: "portal-approve", label: "Aprovar reembolso", icon: CheckCircle2, mode: "single",
@@ -1843,6 +1848,13 @@ tfoot{display:table-row-group}
         </DialogContent>
       </Dialog>
 
+      <Dialog open={photoZoom} onOpenChange={setPhotoZoom}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>Comprovante do reembolso</DialogTitle></DialogHeader>
+          {detailPhotoUrl && <img src={detailPhotoUrl} alt="Comprovante ampliado" className="w-full max-h-[75vh] object-contain" />}
+        </DialogContent>
+      </Dialog>
+
       {/* Expense Detail Dialog (from installment card) */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-lg overflow-x-hidden">
@@ -1896,6 +1908,18 @@ tfoot{display:table-row-group}
                     <div>
                       <span className="text-xs text-muted-foreground">Veículo</span>
                       <p className="text-foreground">{detailExpense.veiculo_placa}</p>
+                    </div>
+                  )}
+                  {(detailExpense as any).portal_status && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Comprovante enviado pelo motorista</span>
+                      {(detailExpense as any).portal_anexo_path ? (
+                        detailPhotoUrl ? (
+                          <button type="button" onClick={() => setPhotoZoom(true)} className="mt-1 block" title="Clique para ampliar">
+                            <img src={detailPhotoUrl} alt="Miniatura do comprovante" className="h-24 w-24 object-cover rounded-md border hover:opacity-80" />
+                          </button>
+                        ) : <p className="text-xs text-muted-foreground">Carregando foto...</p>
+                      ) : <p className="text-xs text-warning">Enviado sem foto</p>}
                     </div>
                   )}
                   {detailExpense.observacoes && (
