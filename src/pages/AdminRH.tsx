@@ -1357,7 +1357,7 @@ function PortalAccessCard({ colaboradores, onOpen }: { colaboradores: Colaborado
   const list = useMemo(() => {
     const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const q = norm(search.trim());
-    return colaboradores.filter((c) => c.ativo && c.tipo !== "colaborador" && (!q || norm(c.full_name).includes(q)));
+    return colaboradores.filter((c) => c.ativo && (!q || norm(c.full_name).includes(q)));
   }, [colaboradores, search]);
   return (
     <Card>
