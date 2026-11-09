@@ -1912,6 +1912,14 @@ tfoot{display:table-row-group}
                       {STATUS_MAP[detailExpense.status]?.label || detailExpense.status}
                     </Badge>
                   </div>
+                  {(detailExpense as any).portal_status && (
+                    <div className="col-span-2 min-w-0">
+                      <span className="text-xs text-muted-foreground">Motorista que pagou a despesa</span>
+                      <p className="font-semibold text-foreground break-words">
+                        {detailExpense.reembolso_colaborador_nome || "—"}
+                      </p>
+                    </div>
+                  )}
                   {dChart && (
                     <div className="col-span-2">
                       <span className="text-xs text-muted-foreground">Conta Contábil</span>
