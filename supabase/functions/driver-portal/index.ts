@@ -98,19 +98,21 @@ Deno.serve(async (req) => {
     if (!acc) return json({ error: "Acesso ao portal não liberado" }, 403);
     const { data: prof } = await admin.from("profiles").select("id, full_name").eq("id", acc.profile_id).single();
 
-    const loadVehicles = async () => {
-      const { data: vs } = await admin.from("vehicles").select("id, plate").eq("tenant_id", acc.tenant_id).eq("is_active", true).order("plate");
+    const loadVehicle = async () => {
       const { data: asg } = await admin.from("vehicle_assignments").select("vehicle_id").eq("tenant_id", acc.tenant_id).eq("driver_profile_id", acc.profile_id).limit(1);
-      return { vehicles: vs || [], defaultVehicleId: asg?.[0]?.vehicle_id || null };
+      const vid = asg?.[0]?.vehicle_id;
+      if (!vid) return null;
+      const { data: v } = await admin.from("vehicles").select("id, plate").eq("id", vid).eq("is_active", true).maybeSingle();
+      return v || null;
     };
 
     if (action === "context") {
-      const v = await loadVehicles();
+      const vehicle = await loadVehicle();
       const { data: recent } = await admin.from("expenses")
         .select("id, descricao, valor_total, data_emissao, veiculo_placa, portal_status, status")
         .eq("reembolso_colaborador_id", acc.profile_id).eq("is_reembolso", true).is("deleted_at", null)
         .not("portal_status", "is", null).order("created_at", { ascending: false }).limit(10);
-      return json({ nome: prof?.full_name, naturezas: NATUREZAS, ...v, recentes: recent || [] });
+      return json({ nome: prof?.full_name, naturezas: NATUREZAS, vehicle, recentes: recent || [] });
     }
 
     if (action === "reembolso") {
@@ -122,9 +124,8 @@ Deno.serve(async (req) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return json({ error: "Data inválida" }, 400);
       if (!NATUREZAS.includes(natureza)) return json({ error: "Natureza inválida" }, 400);
       if (!body.foto_base64) return json({ error: "Envie a foto do comprovante" }, 400);
-      const { vehicles } = await loadVehicles();
-      const veiculo = vehicles.find((v: any) => v.id === body.veiculo_id);
-      if (!veiculo) return json({ error: "Selecione a placa do caminhão" }, 400);
+      const veiculo = await loadVehicle();
+      if (!veiculo) return json({ error: "Você não está vinculado a nenhum caminhão. Procure o escritório." }, 400);
 
       const { data: matriz } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", acc.tenant_id).eq("type", "matriz").limit(1).maybeSingle();
       if (!matriz) return json({ error: "Empresa matriz não configurada" }, 500);

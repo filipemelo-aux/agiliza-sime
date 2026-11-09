@@ -12,8 +12,7 @@ import { getLocalDateISO } from "@/lib/date";
 type Ctx = {
   nome: string;
   naturezas: string[];
-  vehicles: { id: string; plate: string }[];
-  defaultVehicleId: string | null;
+  vehicle: { id: string; plate: string } | null;
   recentes: { id: string; status: string; descricao: string; valor_total: number; data_emissao: string; veiculo_placa: string | null; portal_status: string }[];
 };
 
@@ -170,7 +169,6 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
   const [data, setData] = useState(getLocalDateISO());
   const [valor, setValor] = useState("");
   const [natureza, setNatureza] = useState("");
-  const [veiculoId, setVeiculoId] = useState(ctx.defaultVehicleId || "");
   const [obs, setObs] = useState("");
   const [foto, setFoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -180,12 +178,12 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
     const v = Number(unmaskCurrency(valor));
     if (!(v > 0)) return toast.error("Informe o valor");
     if (!natureza) return toast.error("Escolha o motivo");
-    if (!veiculoId) return toast.error("Escolha a placa do caminhão");
+    if (!ctx.vehicle) return toast.error("Sem caminhão vinculado", "Procure o escritório para vincular sua placa.");
     if (!foto) return toast.error("Tire a foto do comprovante");
     setBusy(true);
     try {
       const foto_base64 = await compressImage(foto);
-      await call({ action: "reembolso", data, valor: v, natureza, veiculo_id: veiculoId, observacao: obs, foto_base64 });
+      await call({ action: "reembolso", data, valor: v, natureza, observacao: obs, foto_base64 });
       setSent(true);
     } catch (e: any) {
       toast.error("Não foi possível enviar", e.message);
@@ -206,11 +204,8 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
     <div className="space-y-4">
       <button type="button" onClick={onBack} className="flex items-center gap-1 text-sm text-primary"><ArrowLeft className="h-4 w-4" /> Voltar</button>
       <h1 className="text-xl font-bold">Reembolso</h1>
-      <div className="space-y-1"><Label>Placa do caminhão</Label>
-        <select className={sel} value={veiculoId} onChange={(e) => setVeiculoId(e.target.value)}>
-          <option value="">Selecione</option>
-          {ctx.vehicles.map((v) => <option key={v.id} value={v.id}>{v.plate}</option>)}
-        </select>
+      <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm">
+        {ctx.vehicle ? <>Caminhão: <b>{ctx.vehicle.plate}</b></> : <span className="text-destructive">Nenhum caminhão vinculado a você. Procure o escritório.</span>}
       </div>
       <div className="space-y-1"><Label>Motivo</Label>
         <select className={sel} value={natureza} onChange={(e) => setNatureza(e.target.value)}>
