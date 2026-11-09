@@ -2473,7 +2473,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     <PersonCreateDialog
       open={showCreateFornecedor}
       onOpenChange={setShowCreateFornecedor}
-      onCreated={(_, name) => { if (name) setFavorecidoNome(name); }}
+      onCreated={async (uid, name) => {
+        if (name) setFavorecidoNome(name);
+        if (!uid) return;
+        const { data: p } = await supabase.from("profiles").select("id, full_name, category, cnpj").eq("user_id", uid).maybeSingle();
+        if (!p) return;
+        setFavorecidoId(p.id);
+        setFavorecidoNome(p.full_name || name || "");
+        setFavorecidoCategory(p.category || null);
+        if (p.cnpj) setFornecedorCnpj(maskDocument(p.cnpj));
+      }}
       defaultCategory="fornecedor"
       simplified={informalSupplier}
     />
