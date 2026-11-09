@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { NoticeHost } from "@/components/NoticeHost";
@@ -7,39 +8,39 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminApplications from "./pages/AdminApplications";
-import AdminDrivers from "./pages/AdminDrivers";
-import AdminPeople from "./pages/AdminPeople";
-import AdminVehicles from "./pages/AdminVehicles";
-import AdminVehicleAssignments from "./pages/AdminVehicleAssignments";
-import AdminHarvest from "./pages/AdminHarvest";
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminApplications = lazy(() => import("./pages/AdminApplications"));
+const AdminDrivers = lazy(() => import("./pages/AdminDrivers"));
+const AdminPeople = lazy(() => import("./pages/AdminPeople"));
+const AdminVehicles = lazy(() => import("./pages/AdminVehicles"));
+const AdminVehicleAssignments = lazy(() => import("./pages/AdminVehicleAssignments"));
+const AdminHarvest = lazy(() => import("./pages/AdminHarvest"));
 
-import AdminSettings from "./pages/AdminSettings";
-import HarvestDetail from "./pages/HarvestDetail";
-import FreightDashboard from "./pages/FreightDashboard";
-import FreightCte from "./pages/FreightCte";
-import NotasFiscaisConsulta from "./pages/NotasFiscaisConsulta";
-import NotasFiscaisDownloadXml from "./pages/NotasFiscaisDownloadXml";
-import FreightContracts from "./pages/FreightContracts";
-import FreightSettings from "./pages/FreightSettings";
-import FreightCiot from "./pages/FreightCiot";
-import FreightMdfe from "./pages/FreightMdfe";
-import FreightFiscalSettings from "./pages/FreightFiscalSettings";
-import AdminCargas from "./pages/AdminCargas";
-import AdminQuotations from "./pages/AdminQuotations";
-import AdminFinancial from "./pages/AdminFinancial";
-import AdminFuelOrders from "./pages/AdminFuelOrders";
-import AdminFuelings from "./pages/AdminFuelings";
-import AdminMaintenances from "./pages/AdminMaintenances";
-import AdminReports from "./pages/AdminReports";
-import AdminTransportReports from "./pages/AdminTransportReports";
-import AdminFleetMetrics from "./pages/AdminFleetMetrics";
-import AdminRH from "./pages/AdminRH";
-import ContabilidadeFechamento from "./pages/ContabilidadeFechamento";
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const HarvestDetail = lazy(() => import("./pages/HarvestDetail"));
+const FreightDashboard = lazy(() => import("./pages/FreightDashboard"));
+const FreightCte = lazy(() => import("./pages/FreightCte"));
+const NotasFiscaisConsulta = lazy(() => import("./pages/NotasFiscaisConsulta"));
+const NotasFiscaisDownloadXml = lazy(() => import("./pages/NotasFiscaisDownloadXml"));
+const FreightContracts = lazy(() => import("./pages/FreightContracts"));
+const FreightSettings = lazy(() => import("./pages/FreightSettings"));
+const FreightCiot = lazy(() => import("./pages/FreightCiot"));
+const FreightMdfe = lazy(() => import("./pages/FreightMdfe"));
+const FreightFiscalSettings = lazy(() => import("./pages/FreightFiscalSettings"));
+const AdminCargas = lazy(() => import("./pages/AdminCargas"));
+const AdminQuotations = lazy(() => import("./pages/AdminQuotations"));
+const AdminFinancial = lazy(() => import("./pages/AdminFinancial"));
+const AdminFuelOrders = lazy(() => import("./pages/AdminFuelOrders"));
+const AdminFuelings = lazy(() => import("./pages/AdminFuelings"));
+const AdminMaintenances = lazy(() => import("./pages/AdminMaintenances"));
+const AdminReports = lazy(() => import("./pages/AdminReports"));
+const AdminTransportReports = lazy(() => import("./pages/AdminTransportReports"));
+const AdminFleetMetrics = lazy(() => import("./pages/AdminFleetMetrics"));
+const AdminRH = lazy(() => import("./pages/AdminRH"));
+const ContabilidadeFechamento = lazy(() => import("./pages/ContabilidadeFechamento"));
 import NotFound from "./pages/NotFound";
 import DriverPortal from "./pages/DriverPortal";
-import SuperAdminTenants from "./pages/superadmin/SuperAdminTenants";
+const SuperAdminTenants = lazy(() => import("./pages/superadmin/SuperAdminTenants"));
 import { UpdateNotification } from "./components/UpdateNotification";
 import { GlobalWriteOverlay } from "./components/ui/global-write-overlay";
 
@@ -64,6 +65,7 @@ const App = () => (
       <GlobalWriteOverlay />
       <BrowserRouter>
         <AuthProvider>
+          <Suspense fallback={<div className="min-h-screen" />}>
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -146,6 +148,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
