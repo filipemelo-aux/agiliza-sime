@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
@@ -19,7 +20,7 @@ export function PortalReasonsSettings() {
   const { tenant } = useTenant();
   const { isAdmin } = useUserRole();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [dialog, setDialog] = useState<{ original: string | null; value: string } | null>(null);
+  const [dialog, setDialog] = useState<{ original: string | null; value: string; accountId: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const query = useQuery({
     queryKey: ["driver-portal-reasons", tenant?.id],
@@ -68,24 +69,24 @@ export function PortalReasonsSettings() {
     if (reasons.some((r) => r !== dialog.original && r.toLowerCase() === value.toLowerCase())) { toast.error("Motivo já existe."); return; }
     const next = dialog.original ? reasons.map((r) => (r === dialog.original ? value : r)) : [...reasons, value];
     const mapping = { ...accounts };
-    if (dialog.original && mapping[dialog.original]) { mapping[value] = mapping[dialog.original]; if (value !== dialog.original) delete mapping[dialog.original]; }
+    if (dialog.original && value !== dialog.original) delete mapping[dialog.original];
+    if (dialog.accountId) mapping[value] = dialog.accountId;
+    else delete mapping[value];
     if (await persist(next, dialog.original ? "Motivo atualizado." : "Motivo adicionado.", mapping)) { setDialog(null); setSelected(new Set([value])); }
   };
 
   const actions: ToolbarAction[] = [
-    { key: "add", label: "Adicionar motivo", icon: Plus, mode: "always", priority: true, disabled: saving || reasons.length >= 100, onClick: () => setDialog({ original: null, value: "" }) },
-    { key: "edit", label: "Editar motivo", icon: Pencil, mode: "single", disabled: saving, onClick: () => sel && setDialog({ original: sel, value: sel }) },
+    { key: "add", label: "Adicionar motivo", icon: Plus, mode: "always", priority: true, disabled: saving || reasons.length >= 100, onClick: () => setDialog({ original: null, value: "", accountId: "" }) },
+    { key: "edit", label: "Editar motivo", icon: Pencil, mode: "single", disabled: saving, onClick: () => sel && setDialog({ original: sel, value: sel, accountId: accounts[sel] || "" }) },
     { key: "del", label: "Excluir motivo", icon: Trash2, mode: "single", variant: "destructive", disabled: saving || reasons.length <= 1, onClick: async () => { if (sel && await persist(reasons.filter((r) => r !== sel), "Motivo excluído.")) setSelected(new Set()); } },
   ];
   const columns: DataGridColumn<Row>[] = [
     { key: "reason", header: "Motivo", cell: (r) => r.reason, sortValue: (r) => r.reason },
-    { key: "account", header: "Plano de contas", cell: (r) => (
-      <div onClick={e => e.stopPropagation()} className="min-w-0">
-        <PlanoContasCombobox size="cell" showParentPathOnSelected={false} value={accounts[r.reason]} options={accountQuery.data ?? []} allowCreate={false} disabled={!isAdmin || saving || accountQuery.isLoading}
-          includeAll allValue="" allLabel="—" placeholder="—"
-          onChange={id => { void persist(reasons, "Plano de contas salvo.", { ...accounts, [r.reason]: id }); }} />
-      </div>
-    ) },
+    { key: "account", header: "Plano de contas", cell: (r) => {
+      const account = accountQuery.data?.find(a => a.id === accounts[r.reason]);
+      const text = account ? `${account.codigo} · ${account.nome}` : "—";
+      return <span className="block truncate text-xs" title={text}>{text}</span>;
+    } },
   ];
 
   return (
@@ -98,7 +99,18 @@ export function PortalReasonsSettings() {
       <Dialog open={!!dialog} onOpenChange={(o) => !o && setDialog(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{dialog?.original ? "Editar motivo" : "Adicionar motivo"}</DialogTitle></DialogHeader>
-          <Input autoFocus maxLength={60} value={dialog?.value ?? ""} onChange={(e) => setDialog((d) => d && { ...d, value: e.target.value })} onKeyDown={(e) => e.key === "Enter" && confirmDialog()} />
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="portal-reason-name" className="text-xs">Motivo</Label>
+              <Input id="portal-reason-name" autoFocus maxLength={60} value={dialog?.value ?? ""} onChange={(e) => setDialog((d) => d && { ...d, value: e.target.value })} onKeyDown={(e) => e.key === "Enter" && confirmDialog()} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Plano de contas</Label>
+              <PlanoContasCombobox size="sm" value={dialog?.accountId} options={accountQuery.data ?? []} allowCreate={false}
+                disabled={!isAdmin || saving || accountQuery.isLoading} includeAll allValue="" allLabel="Não definido"
+                onChange={accountId => setDialog(d => d && { ...d, accountId })} />
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(null)}>Cancelar</Button>
             <Button disabled={saving} onClick={confirmDialog}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Salvar</Button>
