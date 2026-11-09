@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -740,7 +741,14 @@ function RHWorkspace(props: any) {
 
 
         {section === "config" && (
-          <div className="space-y-4">
+          <Tabs defaultValue="regras" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="regras">Contas e Regras</TabsTrigger>
+              <TabsTrigger value="salarios">Salários</TabsTrigger>
+              {(isAdmin || isSuperAdmin) && <TabsTrigger value="portal">Portal do Motorista</TabsTrigger>}
+            </TabsList>
+
+            <TabsContent value="regras" className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-4 max-w-2xl">
                 <div>
@@ -797,10 +805,18 @@ function RHWorkspace(props: any) {
             </Card>
 
             <JanelaSalarioConfigCard />
+            </TabsContent>
 
+            <TabsContent value="salarios" className="space-y-4">
             <SalaryOverridesCard colaboradores={colaboradores} onSaved={reload} />
-            {(isAdmin || isSuperAdmin) && <PortalAccessCard colaboradores={colaboradores} onOpen={(c) => setPortalFor(c)} />}
-          </div>
+            </TabsContent>
+
+            {(isAdmin || isSuperAdmin) && (
+            <TabsContent value="portal" className="space-y-4">
+            <PortalAccessCard colaboradores={colaboradores} onOpen={(c) => setPortalFor(c)} />
+            </TabsContent>
+            )}
+          </Tabs>
         )}
       </section>
     </div>
