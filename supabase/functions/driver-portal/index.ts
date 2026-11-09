@@ -145,18 +145,20 @@ Deno.serve(async (req) => {
       if (!(valor > 0) || valor > 100000) return json({ error: "Valor inválido" }, 400);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return json({ error: "Data inválida" }, 400);
       if (!(await loadReasons()).includes(natureza)) return json({ error: "Motivo indisponível. Reabra o reembolso e selecione um motivo atualizado." }, 400);
-      if (!body.foto_base64) return json({ error: "Envie a foto do comprovante" }, 400);
       const veiculo = await loadVehicle();
       if (!veiculo) return json({ error: "Você não está vinculado a nenhum caminhão. Procure o escritório." }, 400);
 
       const { data: matriz } = await admin.from("fiscal_establishments").select("id").eq("tenant_id", acc.tenant_id).eq("type", "matriz").limit(1).maybeSingle();
       if (!matriz) return json({ error: "Empresa matriz não configurada" }, 500);
 
-      const bytes = Uint8Array.from(atob(String(body.foto_base64)), (c) => c.charCodeAt(0));
-      if (bytes.length > 8 * 1024 * 1024) return json({ error: "Foto muito grande" }, 400);
-      const path = `${acc.tenant_id}/${acc.profile_id}/${crypto.randomUUID()}.jpg`;
-      const { error: upErr } = await admin.storage.from("driver-portal").upload(path, bytes, { contentType: "image/jpeg" });
-      if (upErr) throw upErr;
+      let path: string | null = null;
+      if (body.foto_base64) {
+        const bytes = Uint8Array.from(atob(String(body.foto_base64)), (c) => c.charCodeAt(0));
+        if (bytes.length > 8 * 1024 * 1024) return json({ error: "Foto muito grande" }, 400);
+        path = `${acc.tenant_id}/${acc.profile_id}/${crypto.randomUUID()}.jpg`;
+        const { error: upErr } = await admin.storage.from("driver-portal").upload(path, bytes, { contentType: "image/jpeg" });
+        if (upErr) throw upErr;
+      }
 
       const { error } = await admin.from("expenses").insert({
         tenant_id: acc.tenant_id,
@@ -182,7 +184,7 @@ Deno.serve(async (req) => {
         created_by: user.id,
       });
       if (error) {
-        await admin.storage.from("driver-portal").remove([path]);
+        if (path) await admin.storage.from("driver-portal").remove([path]);
         throw error;
       }
       return json({ ok: true });

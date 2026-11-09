@@ -203,6 +203,7 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [askPhoto, setAskPhoto] = useState(false);
 
   useEffect(() => {
     if (!foto) { setPreview(null); return; }
@@ -211,15 +212,16 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
     return () => URL.revokeObjectURL(url);
   }, [foto]);
 
-  const submit = async () => {
+  const submit = async (skipPhotoCheck = false) => {
     const v = Number(unmaskCurrency(valor));
     if (!(v > 0)) return toast.error("Informe o valor");
     if (!natureza) return toast.error("Escolha o motivo");
     if (!ctx.vehicle) return toast.error("Sem placa vinculada", "Procure o escritório para vincular sua placa.");
-    if (!foto) return toast.error("Tire a foto do comprovante");
+    if (!foto && !skipPhotoCheck) { setAskPhoto(true); return; }
+    setAskPhoto(false);
     setBusy(true);
     try {
-      const foto_base64 = await compressImage(foto);
+      const foto_base64 = foto ? await compressImage(foto) : undefined;
       await call({ action: "reembolso", data, valor: v, natureza, observacao: obs, foto_base64 });
       setSent(true);
     } catch (e: any) {
@@ -275,11 +277,22 @@ function ReembolsoForm({ ctx, onBack, onDone }: { ctx: Ctx; onBack: () => void; 
       ) : (
         <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-6 cursor-pointer bg-card">
           <Camera className="h-8 w-8 text-primary" />
-          <span className="text-sm font-medium">Foto do comprovante / cupom</span>
+          <span className="text-sm font-medium">Foto do comprovante / cupom (opcional)</span>
           <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] || null)} />
         </label>
       )}
-      <Button className="w-full h-14 text-base" onClick={submit} disabled={busy}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Enviar reembolso"}</Button>
+      {askPhoto && !foto && (
+        <div className="rounded-xl border border-warning bg-warning/10 p-4 space-y-3">
+          <p className="text-sm font-semibold">Você não tirou a foto do comprovante.</p>
+          <p className="text-sm text-muted-foreground">A foto ajuda o escritório a aprovar seu reembolso mais rápido.</p>
+          <label className="flex items-center justify-center gap-2 h-12 rounded-md bg-primary text-primary-foreground cursor-pointer text-sm font-medium">
+            <Camera className="h-4 w-4" /> Tirar foto
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { setFoto(e.target.files?.[0] || null); setAskPhoto(false); }} />
+          </label>
+          <Button type="button" variant="outline" className="w-full h-12" onClick={() => submit(true)} disabled={busy}>Continuar sem foto</Button>
+        </div>
+      )}
+      <Button className="w-full h-14 text-base" onClick={() => submit()} disabled={busy}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Enviar reembolso"}</Button>
     </div>
   );
 }
