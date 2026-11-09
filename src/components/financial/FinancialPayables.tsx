@@ -1493,7 +1493,7 @@ tfoot{display:table-row-group}
       <col style="width:11%" />
     </colgroup>
     <thead><tr>
-      <th>Status</th><th>Venc.</th><th>Favorecido</th><th>Descrição</th><th>Plano de Contas</th><th class="r">Valor Original</th><th class="r">Saldo / Pago</th>
+      <th>Status</th><th>Venc.</th><th>Favorecido</th><th>Descrição</th><th>Plano de Contas</th><th class="r">Valor Original</th><th class="r">Saldo</th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
     <tfoot>
