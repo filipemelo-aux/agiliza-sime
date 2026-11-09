@@ -1,13 +1,15 @@
 import { cn } from "@/lib/utils";
 
 /** Tonalidades padrão de linha de lista em todo o sistema */
-export type RowTone = "info" | "pending" | "resolved" | "overdue" | "cancelled" | "neutral";
+export type RowTone = "info" | "review" | "pending" | "resolved" | "overdue" | "cancelled" | "neutral";
 
 /** Classe de fundo aplicada à linha da lista conforme a situação do registro */
 export function rowToneClass(tone: RowTone): string {
   switch (tone) {
     case "info":
       return "bg-info/20 hover:bg-info/30";
+    case "review":
+      return "bg-review/15 hover:bg-review/25";
     case "pending":
       return "bg-warning/10 hover:bg-warning/20";
     case "resolved":
@@ -29,6 +31,7 @@ const DEFAULT_LEGEND: { tone: RowTone; label: string }[] = [
 
 const SWATCH: Record<RowTone, string> = {
   info: "bg-info/60 border-info",
+  review: "bg-review/40 border-review",
   pending: "bg-warning/40 border-warning",
   resolved: "bg-success/40 border-success",
   overdue: "bg-destructive/40 border-destructive",

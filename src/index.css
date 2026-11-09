@@ -39,6 +39,8 @@
 
     --info: 217 91% 55%;
 
+    --review: 265 55% 55%;
+
     --warning: 46 91% 53%;
     --warning-foreground: 214 48% 15%;
 
@@ -87,6 +89,8 @@
     --success-foreground: 0 0% 100%;
 
     --info: 217 91% 65%;
+
+    --review: 265 70% 68%;
 
     --warning: 46 91% 53%;
     --warning-foreground: 214 48% 12%;

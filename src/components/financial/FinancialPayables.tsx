@@ -1757,7 +1757,9 @@ tfoot{display:table-row-group}
         emptyMessage="Nenhuma despesa encontrada"
         rowClassName={(r) =>
           rowToneClass(
-            r.status === "pago"
+            (r.item as any)?.portal_status === "em_analise"
+              ? "review"
+              : r.status === "pago"
               ? "resolved"
               : r.status === "parcial"
               ? "pending"
@@ -1780,6 +1782,7 @@ tfoot{display:table-row-group}
       <StatusLegend
         className="px-1"
         items={[
+          { tone: "review", label: "Em análise (portal do motorista)" },
           { tone: "pending", label: "A vencer / pendente" },
           { tone: "resolved", label: "Pago / quitado" },
           { tone: "overdue", label: "Vencido / atrasado" },

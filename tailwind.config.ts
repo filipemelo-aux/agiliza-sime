@@ -54,6 +54,9 @@ export default {
         info: {
           DEFAULT: "hsl(var(--info))",
         },
+        review: {
+          DEFAULT: "hsl(var(--review))",
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
