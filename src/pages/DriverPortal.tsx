@@ -126,12 +126,13 @@ function Login() {
             alt="Agiliza TMS"
             width={1142}
             height={202}
-            className="mb-4 h-auto w-full max-w-sm object-contain"
+            className="mb-3 h-auto w-full max-w-64 object-contain"
           />
           <div className="flex items-center gap-2 mb-4">
             <span className="text-[10px] font-medium text-muted-foreground">by</span>
-            <img src={fsmLogo} alt="FSM Sistemas" className="h-5 w-auto object-contain" />
+            <img src={fsmLogo} alt="FSM Sistemas" className="h-4 w-auto object-contain" />
           </div>
+          <h1 className="text-2xl font-bold text-foreground text-center mb-2">Portal do Motorista</h1>
           <p className="text-sm text-muted-foreground">Entre com seu CPF</p>
         </div>
         <form onSubmit={submit} className="space-y-5">
