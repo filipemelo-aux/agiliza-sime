@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Smartphone } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Smartphone, Eraser } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DriverPortalAccessDialog } from "@/components/rh/DriverPortalAccessDialog";
 import { PortalReasonsSettings } from "@/components/rh/PortalReasonsSettings";
 import { cn } from "@/lib/utils";
@@ -1373,212 +1374,110 @@ function statusLabel(s: string) {
 // ===========================
 function PortalAccessCard({ colaboradores, onOpen }: { colaboradores: ColaboradorRH[]; onOpen: (c: ColaboradorRH) => void }) {
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const list = useMemo(() => {
     const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const q = norm(search.trim());
     return colaboradores.filter((c) => canSelectDriverPortalAccess(c) && (!q || norm(c.full_name).includes(q)));
   }, [colaboradores, search]);
+  const sel = list.find((c) => selected.has(c.id));
+  const actions: ToolbarAction[] = [
+    { key: "portal", label: "Acesso ao portal", icon: Smartphone, mode: "single", priority: true, onClick: () => sel && onOpen(sel) },
+  ];
+  const columns: DataGridColumn<ColaboradorRH>[] = [
+    { key: "nome", header: "Motorista", cell: (c) => <span className="font-medium">{c.full_name}</span>, sortValue: (c) => c.full_name },
+    { key: "cargo", header: "Cargo", cell: (c) => c.cargo || "—", sortValue: (c) => c.cargo || "" },
+  ];
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Acesso ao Portal do Motorista</h3>
-          <p className="text-[11px] text-muted-foreground">Ative ou bloqueie o acesso do motorista ao portal. Ele entra somente com o CPF.</p>
-        </div>
-        <div className="relative max-w-sm">
+    <section className="space-y-2">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">Acesso ao Portal do Motorista</h3>
+        <p className="text-[11px] text-muted-foreground">Selecione o motorista e use o botão da barra para ativar ou bloquear o acesso. Ele entra somente com o CPF.</p>
+      </div>
+      <GlobalToolbar actions={actions} selectedCount={selected.size}>
+        <div className="relative w-full max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar motorista..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
         </div>
-        {list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum motorista.</p>
-        ) : (
-          <div className="rounded-md border border-border divide-y divide-border max-h-80 overflow-y-auto">
-            {list.map((c) => (
-              <div key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span className="font-medium">{c.full_name}</span>
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => onOpen(c)}>
-                  <Smartphone className="h-3.5 w-3.5" /> Acesso ao portal
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </GlobalToolbar>
+      <DataGrid rows={list} columns={columns} rowId={(c) => c.id} selected={selected} onSelectedChange={setSelected} singleSelection
+        minWidth={400} maxHeight="20rem" emptyMessage="Nenhum motorista."
+        footer={<div className="text-[11px] text-muted-foreground">{list.length} motorista(s)</div>} />
+    </section>
   );
 }
 
-function SalaryOverridesCard({
-  colaboradores,
-  onSaved,
-}: {
-  colaboradores: ColaboradorRH[];
-  onSaved: () => void | Promise<void>;
-}) {
+function SalaryOverridesCard({ colaboradores, onSaved }: { colaboradores: ColaboradorRH[]; onSaved: () => void | Promise<void> }) {
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<ColaboradorRH | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const list = colaboradores.filter((c) => c.ativo);
-    if (!q) return list;
-    return list.filter(
-      (c) => c.full_name?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) || c.cargo?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q)
-    );
+    const norm = (s?: string | null) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const q = norm(search.trim());
+    return colaboradores.filter((c) => c.ativo && (!q || norm(c.full_name).includes(q) || norm(c.cargo).includes(q)));
   }, [colaboradores, search]);
+  const sel = filtered.find((c) => selected.has(c.id)) || null;
 
-  const startEdit = (id: string, current: number) => {
-    setEditingId(id);
-    setEditValue(String(current || ""));
-  };
-  const commit = async (id: string) => {
-    const raw = editValue.replace(",", ".").trim();
-    const n = raw === "" ? null : parseFloat(raw);
-    const valueToSave = n != null && !isNaN(n) && n >= 0 ? n : null;
-
-    setSavingId(id);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ salario: valueToSave })
-      .eq("id", id);
-    setSavingId(null);
-    setEditingId(null);
-
-    if (error) {
-      toast.error("Erro ao atualizar salário: " + error.message);
-      return;
-    }
-    toast.success(
-      valueToSave == null
-        ? "Salário removido do cadastro"
-        : "Salário base atualizado no cadastro"
-    );
+  const save = async (c: ColaboradorRH, value: number | null) => {
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({ salario: value }).eq("id", c.id);
+    setSaving(false);
+    if (error) { toast.error("Erro ao atualizar salário: " + error.message); return false; }
+    toast.success(value == null ? "Salário removido do cadastro" : "Salário base atualizado no cadastro");
     await onSaved();
+    return true;
   };
+  const commit = async () => {
+    if (!editing) return;
+    const raw = editValue.replace(/\./g, "").replace(",", ".").trim();
+    const n = raw === "" ? null : parseFloat(raw);
+    if (n != null && (isNaN(n) || n < 0)) { toast.error("Valor inválido."); return; }
+    if (await save(editing, n)) setEditing(null);
+  };
+
+  const actions: ToolbarAction[] = [
+    { key: "edit", label: "Editar salário", icon: Pencil, mode: "single", priority: true, disabled: saving,
+      onClick: () => { if (sel) { setEditing(sel); setEditValue(sel.salario ? String(sel.salario).replace(".", ",") : ""); } } },
+    { key: "clear", label: "Limpar salário", icon: Eraser, mode: "single", variant: "destructive", disabled: saving || !sel || !Number(sel.salario),
+      onClick: async () => { if (sel && await confirm({ title: "Limpar salário", description: `Remover o salário de ${sel.full_name} do cadastro?` })) await save(sel, null); } },
+  ];
+  const columns: DataGridColumn<ColaboradorRH>[] = [
+    { key: "nome", header: "Colaborador", cell: (c) => <span className="font-medium">{c.full_name}</span>, sortValue: (c) => c.full_name },
+    { key: "tipo", header: "Tipo", cell: (c) => (c.tipo === "colaborador" ? "Colaborador" : "Motorista"), sortValue: (c) => c.tipo },
+    { key: "cargo", header: "Cargo", cell: (c) => c.cargo || "—", sortValue: (c) => c.cargo || "" },
+    { key: "sal", header: "Salário base", align: "right", cell: (c) => Number(c.salario) > 0 ? <span className="tabular-nums font-semibold">{formatBRL(Number(c.salario))}</span> : <span className="text-muted-foreground">—</span>, sortValue: (c) => Number(c.salario || 0) },
+  ];
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Salário base por colaborador</h3>
-          <p className="text-[11px] text-muted-foreground">
-            A edição altera <span className="font-medium">diretamente o cadastro da pessoa</span> (campo
-            "Salário"). Funciona inclusive para motoristas — que não têm esse campo no fluxo de Frota — e o
-            valor é usado imediatamente no cálculo da Folha Mensal.
-          </p>
-        </div>
-        <div className="relative max-w-sm">
+    <section className="space-y-2">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">Salário base por colaborador</h3>
+        <p className="text-[11px] text-muted-foreground">A edição altera diretamente o cadastro da pessoa (campo "Salário") e é usada no cálculo da Folha Mensal.</p>
+      </div>
+      <GlobalToolbar actions={actions} selectedCount={selected.size}>
+        <div className="relative w-full max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar colaborador..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
-          />
+          <Input placeholder="Buscar colaborador..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
         </div>
-        {filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum colaborador.</p>
-        ) : (
-          <div className="rounded-md border border-border overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-[11px] uppercase text-muted-foreground">
-                <tr>
-                  <th className="text-left px-3 py-2">Colaborador</th>
-                  <th className="text-right px-3 py-2">Salário base (cadastro)</th>
-                  <th className="text-right px-3 py-2">Ação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map((c) => {
-                  const current = Number(c.salario || 0);
-                  const has = current > 0;
-                  return (
-                    <tr key={c.id}>
-                      <td className="px-3 py-2">
-                        <div className="font-medium">{c.full_name}</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {c.tipo === "colaborador" ? "Colaborador" : "Motorista"}
-                          {c.cargo ? ` · ${c.cargo}` : ""}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {editingId === c.id ? (
-                          <div className="inline-flex items-center gap-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              className="h-7 w-32 text-right"
-                              autoFocus
-                              disabled={savingId === c.id}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") commit(c.id);
-                                if (e.key === "Escape") setEditingId(null);
-                              }}
-                            />
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0"
-                              disabled={savingId === c.id}
-                              onClick={() => commit(c.id)}
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        ) : has ? (
-                          <button
-                            className="inline-flex items-center gap-1 hover:text-primary font-semibold"
-                            onClick={() => startEdit(c.id, current)}
-                          >
-                            {formatBRL(current)}
-                            <Pencil className="h-3 w-3 opacity-60" />
-                          </button>
-                        ) : (
-                          <button
-                            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
-                            onClick={() => startEdit(c.id, 0)}
-                          >
-                            Definir <Pencil className="h-3 w-3 opacity-60" />
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {has && editingId !== c.id && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-[11px]"
-                            onClick={async () => {
-                              setSavingId(c.id);
-                              const { error } = await supabase
-                                .from("profiles")
-                                .update({ salario: null })
-                                .eq("id", c.id);
-                              setSavingId(null);
-                              if (error) {
-                                toast.error("Erro: " + error.message);
-                                return;
-                              }
-                              toast.success("Salário removido do cadastro");
-                              await onSaved();
-                            }}
-                          >
-                            Limpar
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </GlobalToolbar>
+      <DataGrid rows={filtered} columns={columns} rowId={(c) => c.id} selected={selected} onSelectedChange={setSelected} singleSelection
+        minWidth={600} maxHeight="28rem" emptyMessage="Nenhum colaborador."
+        footer={<div className="text-[11px] text-muted-foreground">{filtered.length} colaborador(es)</div>} />
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Salário base — {editing?.full_name}</DialogTitle></DialogHeader>
+          <Input autoFocus inputMode="decimal" placeholder="0,00" value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && commit()} className="text-right" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button disabled={saving} onClick={commit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {ConfirmDialog}
+    </section>
   );
 }
