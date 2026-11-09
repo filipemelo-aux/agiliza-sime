@@ -128,7 +128,7 @@ function Login() {
             height={202}
             className="mb-3 h-auto w-full max-w-64 object-contain"
           />
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-8">
             <span className="text-[10px] font-medium text-muted-foreground">by</span>
             <img src={fsmLogo} alt="FSM Sistemas" className="h-4 w-auto object-contain" />
           </div>
