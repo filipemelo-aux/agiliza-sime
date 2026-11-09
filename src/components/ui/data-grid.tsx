@@ -164,7 +164,7 @@ export function DataGrid<T>({
           className={cn("data-grid-table w-full border-collapse text-xs", tableLayout === "fixed" ? "table-fixed" : "table-auto")}
           style={{ "--data-grid-min-width": `${minWidth}px` } as React.CSSProperties}
         >
-          <thead className="sticky top-0 z-10 bg-muted/60">
+          <thead className="sticky top-0 z-10 bg-muted">
             <tr className="border-b border-border">
                 <th className="w-8 min-w-[32px] max-w-[32px] bg-muted px-1 py-1.5 text-center">
                   <div className="flex items-center justify-center">
@@ -289,13 +289,13 @@ export function DataGrid<T>({
               })
             )}
           </tbody>
-          <tfoot className="sticky bottom-0 bg-muted/60">
+          <tfoot className="sticky bottom-0 z-10 border-t border-border bg-muted">
             <tr>
               {columns.some((col) => col.footer !== undefined) ? <>
-                <td className="px-1 py-1.5" />
-                {columns.map((col) => <td key={col.key} data-column-key={col.key} className={cn("px-1.5 py-1.5 font-semibold", alignCls(col.align), col.className)}>{col.footer}</td>)}
+                <td className="border-t border-border px-1 py-1.5" />
+                {columns.map((col) => <td key={col.key} data-column-key={col.key} className={cn("border-t border-border px-1.5 py-1.5 font-semibold", alignCls(col.align), col.className)}>{col.footer}</td>)}
               </> :
-              <td colSpan={columns.length + 1} className="px-2 py-1.5">
+              <td colSpan={columns.length + 1} className="border-t border-border px-2 py-1.5">
                 {footer ?? (
                   <div className="text-[11px] text-muted-foreground">{rows.length} registro(s)</div>
                 )}
