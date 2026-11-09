@@ -22,8 +22,7 @@
 - Plate inputs mask by position in `maskPlateInput`: 3 letters, digit, letter-or-digit, 2 digits — so both Mercosul (ABC1D23) and old-format (ABC1234) plates can be typed; validation (`validatePlate`) accepts both.
 - Each vehicle is an independent tenant-unique plate with a unit category and owner; operational assignments own drivers and implement composition, projecting legacy fields transactionally to preserve existing fiscal and operational consumers. Each vehicle keeps one assignment updated in place (no history/unassign); assignments block category changes and deactivation, and plate edits refresh projections without touching fiscal snapshots.
 - DialogContent owns default padding and vertical scrolling directly, without a nested scrolling wrapper; dialogs with their own body scroller override it with overflow-hidden so each window has only one primary scroll area.
-- Print headers (except DACTE/DAMDFE/cheques) use `buildPrintHeaderHtml` with the document's establishment; contracts use its invoice layout to match faturas without changing other reports.
-- Brand footers share `printBrand.ts` assets and physical sizes; cheques remain isolated.
+- Print headers (except DACTE/DAMDFE/cheques) use `buildPrintHeaderHtml` with the document's establishment (contracts use the invoice layout); brand footers share `printBrand.ts`.
 - Freight contracts use fixed wrapping tables, matching A4 margins and an unbreakable signature/brand closing block with compact print spacing to prevent orphaned logos; `fiscalProtocol.ts` extracts protocol numbers to prevent overflow.
 - MDF-e printing resolves missing driver snapshots through `mdfeDrivers.ts` and profile IDs, so old manifests gain CPFs without altering authorized data.
 - Financial reads wait for auth, paginate with fetchAllRows and surface errors; edits reuse payment-state triggers. Receivables grid uses receivableBalance.ts for cent-rounded remaining principal and visible-row totals, separate from original values.
@@ -40,4 +39,4 @@
 - Payroll summaries total monthly stored snapshots regardless of selection; exports fetch profile payment details only for unpaid, non-cancelled items.
 - DataGrid column footers render in the same table tracks as body cells for exact total alignment, preserving legacy full-width footers otherwise.
 - Driver portal: CPF login via synthetic email; drivers lack tenant roles and act only through the service-role `driver-portal` function; unapproved `portal_status` blocks payment.
-- A person's CPF lives in `profiles.cnpj` (canonical); `driver_documents.cpf` is a trigger-maintained mirror for legacy readers, so new code reads CPF only from profiles.
+- CPF is canonical in `profiles.cnpj`; `driver_documents.cpf` is a trigger mirror, so read CPF from profiles.
