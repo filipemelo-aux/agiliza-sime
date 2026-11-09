@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer, ListTree, XCircle } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer, ListTree, XCircle, ZoomIn } from "lucide-react";
 import { toast } from "@/lib/notice";
 import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
@@ -1850,8 +1850,23 @@ tfoot{display:table-row-group}
 
       <Dialog open={photoZoom} onOpenChange={setPhotoZoom}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>Comprovante do reembolso</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Comprovante do reembolso</DialogTitle>
+            <p className="text-xs text-muted-foreground">Clique na lupa para abrir em tamanho real em uma nova aba.</p>
+          </DialogHeader>
           {detailPhotoUrl && <img src={detailPhotoUrl} alt="Comprovante ampliado" className="w-full max-h-[75vh] object-contain" />}
+          {detailPhotoUrl && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-center"
+              onClick={() => window.open(detailPhotoUrl, "_blank", "noopener")}
+              title="Abrir em tamanho real em uma nova aba"
+            >
+              <ZoomIn className="h-4 w-4 mr-1" /> Abrir em tamanho real
+            </Button>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1915,9 +1930,22 @@ tfoot{display:table-row-group}
                       <span className="text-xs text-muted-foreground">Comprovante enviado pelo motorista</span>
                       {(detailExpense as any).portal_anexo_path ? (
                         detailPhotoUrl ? (
-                          <button type="button" onClick={() => setPhotoZoom(true)} className="mt-1 block" title="Clique para ampliar">
-                            <img src={detailPhotoUrl} alt="Miniatura do comprovante" className="h-24 w-24 object-cover rounded-md border hover:opacity-80" />
-                          </button>
+                          <div className="mt-1 flex items-end gap-2">
+                            <button type="button" onClick={() => setPhotoZoom(true)} className="block" title="Clique para ampliar">
+                              <img src={detailPhotoUrl} alt="Miniatura do comprovante" className="h-24 w-24 object-cover rounded-md border hover:opacity-80" />
+                            </button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              onClick={() => window.open(detailPhotoUrl, "_blank", "noopener")}
+                              title="Abrir em tamanho real em uma nova aba"
+                              aria-label="Abrir comprovante em tamanho real em uma nova aba"
+                            >
+                              <ZoomIn className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         ) : <p className="text-xs text-muted-foreground">Carregando foto...</p>
                       ) : <p className="text-xs text-warning">Enviado sem foto</p>}
                     </div>
