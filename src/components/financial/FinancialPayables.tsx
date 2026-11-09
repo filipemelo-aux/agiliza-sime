@@ -5,6 +5,7 @@ import { PageTitle } from "@/components/PageTitle";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { printGroupedExpenseDetails } from "@/lib/printGroupedExpense";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import { isRejectedPortalExpense } from "@/lib/expenseRules";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -457,7 +458,7 @@ export function FinancialPayables() {
     if (!authLoading && user) fetchData();
   }, [authLoading, user?.id, supportTenantId]);
 
-  const handleEdit = (item: Expense) => { if (item.reembolso_folha_item_id) return toast.warning("Reembolso reservado: remova o colaborador da folha em aberto antes de editar."); setEditingExpense(item); setFormOpen(true); };
+  const handleEdit = (item: Expense) => { if (isRejectedPortalExpense(item)) return toast.warning("Reembolso recusado no portal: não é possível editar. Se for o caso, lance a despesa novamente em Nova Despesa."); if (item.reembolso_folha_item_id) return toast.warning("Reembolso reservado: remova o colaborador da folha em aberto antes de editar."); setEditingExpense(item); setFormOpen(true); };
   const openPortalAnexo = async (item: any) => {
     if (!item?.portal_anexo_path) return;
     const { data, error } = await supabase.storage.from("driver-portal").createSignedUrl(item.portal_anexo_path, 600);
@@ -1678,7 +1679,7 @@ tfoot{display:table-row-group}
           {
             key: "edit", label: "Editar", icon: Pencil, mode: "single",
             className: "border-primary/50 text-primary hover:bg-primary/10",
-            disabled: !selectedRows[0] || selectedRows[0].isHarvest,
+            disabled: !selectedRows[0] || selectedRows[0].isHarvest || isRejectedPortalExpense(selectedRows[0].item),
             onClick: () => { const r = selectedRows[0]; if (r) handleEdit(r.item); },
           },
           {
