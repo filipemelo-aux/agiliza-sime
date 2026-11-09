@@ -40,6 +40,7 @@
     --info: 217 91% 55%;
 
     --review: 265 55% 55%;
+    --review-strong: 265 60% 36%;
 
     --warning: 46 91% 53%;
     --warning-foreground: 214 48% 15%;
@@ -91,6 +92,7 @@
     --info: 217 91% 65%;
 
     --review: 265 70% 68%;
+    --review-strong: 265 65% 74%;
 
     --warning: 46 91% 53%;
     --warning-foreground: 214 48% 12%;

@@ -56,6 +56,7 @@ export default {
         },
         review: {
           DEFAULT: "hsl(var(--review))",
+          strong: "hsl(var(--review-strong))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
