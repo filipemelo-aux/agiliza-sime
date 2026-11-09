@@ -23,17 +23,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 import { getLocalDateISO } from "@/lib/date";
+import { cn } from "@/lib/utils";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
+import {
+  buildPayableUnits,
+  portalRowLabel,
+  portalRowTone,
+  type PayableUnit,
+} from "@/lib/dashboardPayables";
 
-interface DueItem {
-  id: string;
-  expense_id: string;
-  numero_parcela: number;
-  valor: number;
-  data_vencimento: string;
-  status: string;
-  descricao: string;
-  favorecido_nome: string | null;
-}
+type DueItem = PayableUnit;
 
 export default function AdminDashboard() {
   const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
@@ -93,56 +92,37 @@ export default function AdminDashboard() {
       startOverdue.setDate(today.getDate() - 7);
       const startOverdueStr = getLocalDateISO(startOverdue);
 
-      // Fetch installments from 7 days ago through end of week
-      const { data: installments } = await supabase
-        .from("expense_installments")
-        .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
-        .in("status", ["pendente", "atrasado"])
-        .gte("data_vencimento", startOverdueStr)
-        .lte("data_vencimento", endWeekStr)
-        .order("data_vencimento", { ascending: true });
+      // Mesma base do Contas a Pagar: a despesa aparece quando é de pagamento
+      // único; quando tem parcelas, quem conta são as parcelas em aberto.
+      const [{ data: installments }, { data: expenses }] = await Promise.all([
+        supabase
+          .from("expense_installments")
+          .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
+          .in("status", ["pendente", "atrasado", "parcial"]),
+        supabase
+          .from("expenses")
+          .select("id, descricao, favorecido_nome, valor_total, valor_pago, data_vencimento, data_emissao, status, portal_status")
+          .is("deleted_at", null)
+          .in("status", ["pendente", "atrasado", "parcial"]),
+      ]);
 
-      if (!installments || installments.length === 0) {
-        setDueToday([]);
-        setDueWeek([]);
-        setOverdue([]);
-        setTotalToday(0);
-        setTotalWeek(0);
-        setTotalOverdue(0);
-        setLoading(false);
-        return;
-      }
+      const units = buildPayableUnits(
+        (expenses || []) as any[],
+        (installments || []) as any[]
+      );
 
-      // Fetch parent expenses for descriptions + filter out deleted
-      const expenseIds = [...new Set(installments.map((i) => i.expense_id))];
-      const { data: expenses } = await supabase
-        .from("expenses")
-        .select("id, descricao, favorecido_nome, deleted_at")
-        .in("id", expenseIds);
-
-      const activeExpenses = (expenses || []).filter(e => !e.deleted_at);
-      const expenseMap = new Map(activeExpenses.map((e) => [e.id, e]));
-
-      // Only keep installments whose parent expense is active
-      const enriched: DueItem[] = installments
-        .filter((inst) => expenseMap.has(inst.expense_id))
-        .map((inst) => {
-          const exp = expenseMap.get(inst.expense_id);
-          return {
-            ...inst,
-            descricao: exp?.descricao || "—",
-            favorecido_nome: exp?.favorecido_nome || null,
-          };
-        });
+      const inWindow = units.filter(
+        (i) => i.data_vencimento >= startOverdueStr && i.data_vencimento <= endWeekStr
+      );
 
       // "Vencidos (últimos 7 dias)" — antes de hoje, dentro do intervalo
-      const overdueItems = enriched
-        .filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr)
+      const overdueItems = inWindow
+        .filter((i) => i.data_vencimento < todayStr)
         .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento));
       // "Vencendo Hoje" — somente vencimentos do dia
-      const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
+      const todayItems = inWindow.filter((i) => i.data_vencimento === todayStr);
       // "Próximos 7 dias" — de amanhã até hoje+7
-      const weekItems = enriched.filter((i) => i.data_vencimento > todayStr && i.data_vencimento <= endWeekStr);
+      const weekItems = inWindow.filter((i) => i.data_vencimento > todayStr && i.data_vencimento <= endWeekStr);
 
       setOverdue(overdueItems);
       setDueToday(todayItems);
@@ -164,6 +144,26 @@ export default function AdminDashboard() {
     const [y, m, day] = d.split("-");
     return `${day}/${m}`;
   };
+
+  // Mesmas cores do Contas a Pagar para reembolsos do portal do motorista.
+  const portalTone = (item: DueItem) => portalRowTone(item.portal_status);
+  const portalLabel = (item: DueItem) => portalRowLabel(item.portal_status);
+
+  const valueClass = (item: DueItem, fallback: string) =>
+    item.portal_status === "em_analise" ? "text-review-strong"
+      : item.portal_status === "rejeitado" ? "text-muted-foreground"
+      : fallback;
+
+  // Legenda só com as situações realmente presentes nos cartões.
+  const portalItems = [...dueToday, ...overdue, ...dueWeek].filter((i) => i.portal_status);
+  const legendItems = [
+    ...(portalItems.some((i) => i.portal_status === "em_analise")
+      ? [{ tone: "review" as const, label: "Em análise (portal do motorista)" }]
+      : []),
+    ...(portalItems.some((i) => i.portal_status === "rejeitado")
+      ? [{ tone: "cancelled" as const, label: "Recusado no portal" }]
+      : []),
+  ];
 
   if (roleLoading) {
     return (
@@ -204,137 +204,188 @@ export default function AdminDashboard() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Vencendo Hoje */}
-            <Card className="border-border bg-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
-                <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencendo Hoje</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-foreground/80">{fmt(totalToday)}</span>
-                  <Link to="/admin/financial/payables" state={{ quickFilter: "hoje" }}>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-1 space-y-3">
-                {/* Vencendo Hoje */}
-                <div>
-                  {dueToday.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {dueToday.map((item) => (
-                        <Link
-                          key={item.id}
-                          to="/admin/financial/payables"
-                          state={{ quickFilter: "hoje", openExpenseId: item.expense_id }}
-                          className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
-                            <p className="text-[10px] text-muted-foreground/70 truncate">
-                              {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
-                            </p>
-                          </div>
-                          <span className="text-[13px] font-medium text-destructive/80 whitespace-nowrap ml-3">{fmt(item.valor)}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Vencidos (últimos 7 dias) */}
-                {overdue.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between pb-2 px-1">
-                      <div className="flex items-center gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencidos 7 dias</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-foreground/80">{fmt(totalOverdue)}</span>
-                        <Link to="/admin/financial/payables" state={{ quickFilter: "atrasadas" }}>
-                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      {overdue.map((item) => (
-                        <Link
-                          key={item.id}
-                          to="/admin/financial/payables"
-                          state={{ quickFilter: "atrasadas", openExpenseId: item.expense_id }}
-                          className="flex items-center justify-between py-2 px-2.5 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
-                            <p className="text-[10px] text-muted-foreground/70 truncate">
-                              {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
-                            </p>
-                          </div>
-                          <div className="text-right ml-3 shrink-0">
-                            <p className="text-[13px] font-medium text-destructive whitespace-nowrap">{fmt(item.valor)}</p>
-                            <p className="text-[10px] text-destructive/70">{fmtDate(item.data_vencimento)}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Vencendo Hoje */}
+              <Card className="border-border bg-card">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencendo Hoje</span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Próximos 7 dias */}
-            <Card className="border-border bg-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
-                <div className="flex items-center gap-1.5">
-                  <CalendarClock className="h-3.5 w-3.5 text-primary/70" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Próximos 7 dias</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-foreground/80">{fmt(totalWeek)}</span>
-                  <Link to="/admin/financial/payables" state={{ quickFilter: "semana" }}>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-1">
-                {dueWeek.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta nos próximos 7 dias</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {dueWeek.slice(0, 10).map((item) => (
-                      <Link
-                        key={item.id}
-                        to="/admin/financial/payables"
-                        state={{ quickFilter: "semana", openExpenseId: item.expense_id }}
-                        className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
-                          <p className="text-[10px] text-muted-foreground/70 truncate">
-                            {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
-                          </p>
-                        </div>
-                        <div className="text-right ml-3 shrink-0">
-                          <p className="text-[13px] font-medium text-foreground/80 whitespace-nowrap">{fmt(item.valor)}</p>
-                          <p className="text-[10px] text-muted-foreground/60">{fmtDate(item.data_vencimento)}</p>
-                        </div>
-                      </Link>
-                    ))}
-                    {dueWeek.length > 10 && (
-                      <p className="text-[10px] text-muted-foreground/60 text-center pt-1">
-                        + {dueWeek.length - 10} parcelas
-                      </p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-foreground/80">{fmt(totalToday)}</span>
+                    <Link to="/admin/financial/payables" state={{ quickFilter: "hoje" }}>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-1 space-y-3">
+                  {/* Vencendo Hoje */}
+                  <div>
+                    {dueToday.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {dueToday.map((item) => {
+                          const tone = portalTone(item);
+                          const label = portalLabel(item);
+                          return (
+                            <Link
+                              key={item.id}
+                              to="/admin/financial/payables"
+                              state={{ quickFilter: "hoje", openExpenseId: item.expense_id }}
+                              className={cn(
+                                "flex items-center justify-between py-2 px-2.5 rounded-md transition-colors",
+                                tone ? rowToneClass(tone) : "hover:bg-muted/40"
+                              )}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className={cn("text-[13px] font-medium truncate", tone === "cancelled" ? "text-muted-foreground" : "text-foreground/90")}>
+                                  {item.favorecido_nome || item.descricao}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground/70 truncate">
+                                  {label ? (
+                                    <span className={item.portal_status === "em_analise" ? "text-review-strong font-semibold" : "text-muted-foreground"}>{label}</span>
+                                  ) : (
+                                    <>
+                                      {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                              <span className={cn("text-[13px] font-medium whitespace-nowrap ml-3", valueClass(item, "text-destructive/80"))}>{fmt(item.valor)}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+
+                  {/* Vencidos (últimos 7 dias) */}
+                  {overdue.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between pb-2 px-1">
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencidos 7 dias</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-semibold text-foreground/80">{fmt(totalOverdue)}</span>
+                          <Link to="/admin/financial/payables" state={{ quickFilter: "atrasadas" }}>
+                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        {overdue.map((item) => {
+                          const tone = portalTone(item);
+                          const label = portalLabel(item);
+                          return (
+                            <Link
+                              key={item.id}
+                              to="/admin/financial/payables"
+                              state={{ quickFilter: "atrasadas", openExpenseId: item.expense_id }}
+                              className={cn(
+                                "flex items-center justify-between py-2 px-2.5 rounded-md transition-colors",
+                                tone ? rowToneClass(tone) : "bg-destructive/5 hover:bg-destructive/10"
+                              )}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className={cn("text-[13px] font-medium truncate", tone === "cancelled" ? "text-muted-foreground" : "text-foreground/90")}>
+                                  {item.favorecido_nome || item.descricao}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground/70 truncate">
+                                  {label ? (
+                                    <span className={item.portal_status === "em_analise" ? "text-review-strong font-semibold" : "text-muted-foreground"}>{label}</span>
+                                  ) : (
+                                    <>
+                                      {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="text-right ml-3 shrink-0">
+                                <p className={cn("text-[13px] font-medium whitespace-nowrap", valueClass(item, "text-destructive"))}>{fmt(item.valor)}</p>
+                                <p className="text-[10px] text-destructive/70">{fmtDate(item.data_vencimento)}</p>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Próximos 7 dias */}
+              <Card className="border-border bg-card">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
+                  <div className="flex items-center gap-1.5">
+                    <CalendarClock className="h-3.5 w-3.5 text-primary/70" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Próximos 7 dias</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-foreground/80">{fmt(totalWeek)}</span>
+                    <Link to="/admin/financial/payables" state={{ quickFilter: "semana" }}>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-1">
+                  {dueWeek.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta nos próximos 7 dias</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {dueWeek.slice(0, 10).map((item) => {
+                        const tone = portalTone(item);
+                        const label = portalLabel(item);
+                        return (
+                          <Link
+                            key={item.id}
+                            to="/admin/financial/payables"
+                            state={{ quickFilter: "semana", openExpenseId: item.expense_id }}
+                            className={cn(
+                              "flex items-center justify-between py-2 px-2.5 rounded-md transition-colors",
+                              tone ? rowToneClass(tone) : "hover:bg-muted/40"
+                            )}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className={cn("text-[13px] font-medium truncate", tone === "cancelled" ? "text-muted-foreground" : "text-foreground/90")}>
+                                {item.favorecido_nome || item.descricao}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/70 truncate">
+                                {label ? (
+                                  <span className={item.portal_status === "em_analise" ? "text-review-strong font-semibold" : "text-muted-foreground"}>{label}</span>
+                                ) : (
+                                  <>
+                                    {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                            <div className="text-right ml-3 shrink-0">
+                              <p className={cn("text-[13px] font-medium whitespace-nowrap", valueClass(item, "text-foreground/80"))}>{fmt(item.valor)}</p>
+                              <p className="text-[10px] text-muted-foreground/60">{fmtDate(item.data_vencimento)}</p>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                      {dueWeek.length > 10 && (
+                        <p className="text-[10px] text-muted-foreground/60 text-center pt-1">
+                          + {dueWeek.length - 10} parcelas
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {legendItems.length > 0 && (
+              <StatusLegend className="mt-3" items={legendItems} />
+            )}
+          </>
         )}
       </main>
     </AdminLayout>
