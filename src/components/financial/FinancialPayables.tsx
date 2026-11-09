@@ -31,7 +31,6 @@ import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
-import { exportExpenseDetailPdf } from "@/lib/expenseDetail";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { limitDisplayText } from "@/lib/displayText";
@@ -2037,8 +2036,15 @@ tfoot{display:table-row-group}
                   ))}
                 </div>
 
-                <Button type="button" variant="outline" size="sm" className="w-full gap-1.5" onClick={() => void exportExpenseDetailPdf(detailExpense.id).catch((e) => toast.error("Não foi possível gerar o PDF", { description: e?.message }))}>
-                  <Download className="h-3.5 w-3.5" /> Exportar PDF
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5"
+                  disabled={isRejectedPortalExpense(detailExpense) || Boolean(detailExpense.reembolso_folha_item_id)}
+                  onClick={() => { setDetailOpen(false); handleEdit(detailExpense); }}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Editar despesa
                 </Button>
               </div>
             );
