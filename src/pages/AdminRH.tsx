@@ -484,7 +484,6 @@ function RHWorkspace(props: any) {
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
-    ...(isMotoristas ? [{ key: "portal", label: "Acesso ao portal", icon: Smartphone, mode: "single" as const, onClick: () => selectedPeople[0] && setPortalFor(selectedPeople[0]) }] : []),
   ];
 
   const allItems: NavItem[] = [
@@ -559,10 +558,10 @@ function RHWorkspace(props: any) {
           </div>
         )}
 
+        <DriverPortalAccessDialog profile={portalFor as any} onClose={() => setPortalFor(null)} />
         {isPeople && (
           <div className="space-y-3">
             <GlobalToolbar actions={peopleActions} selectedCount={selectedColabs.size} />
-            <DriverPortalAccessDialog profile={portalFor as any} onClose={() => setPortalFor(null)} />
             <DataGrid
               rows={peopleRows}
               columns={peopleColumns}
@@ -799,6 +798,7 @@ function RHWorkspace(props: any) {
             <JanelaSalarioConfigCard />
 
             <SalaryOverridesCard colaboradores={colaboradores} onSaved={reload} />
+            <PortalAccessCard colaboradores={colaboradores} onOpen={(c) => setPortalFor(c)} />
           </div>
         )}
       </section>
@@ -1352,6 +1352,43 @@ function statusLabel(s: string) {
 // Salário base por colaborador — grava DIRETO em profiles.salario
 // (fonte única; reflete imediatamente no cadastro da pessoa)
 // ===========================
+function PortalAccessCard({ colaboradores, onOpen }: { colaboradores: ColaboradorRH[]; onOpen: (c: ColaboradorRH) => void }) {
+  const [search, setSearch] = useState("");
+  const list = useMemo(() => {
+    const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const q = norm(search.trim());
+    return colaboradores.filter((c) => c.ativo && c.tipo !== "colaborador" && (!q || norm(c.full_name).includes(q)));
+  }, [colaboradores, search]);
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Acesso ao Portal do Motorista</h3>
+          <p className="text-[11px] text-muted-foreground">Libere, troque a senha ou bloqueie o acesso do motorista ao portal (login por CPF).</p>
+        </div>
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar motorista..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+        </div>
+        {list.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum motorista.</p>
+        ) : (
+          <div className="rounded-md border border-border divide-y divide-border max-h-80 overflow-y-auto">
+            {list.map((c) => (
+              <div key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                <span className="font-medium">{c.full_name}</span>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => onOpen(c)}>
+                  <Smartphone className="h-3.5 w-3.5" /> Acesso ao portal
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function SalaryOverridesCard({
   colaboradores,
   onSaved,
