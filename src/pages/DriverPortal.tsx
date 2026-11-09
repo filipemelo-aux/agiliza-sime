@@ -11,6 +11,7 @@ import { tenantLogoFrom } from "@/lib/tenantLogo";
 import { AgilizaBrandMark } from "@/components/brand/AgilizaBrandMark";
 import { getLocalDateISO } from "@/lib/date";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
+import fsmLogo from "@/assets/brand/fsm-systems-logo-horizontal.png";
 
 type Empresa = { nome: string; logo_url: string | null; cnpj: string };
 
@@ -102,18 +103,6 @@ export default function DriverPortal() {
 function Login() {
   const [cpf, setCpf] = useState("");
   const [busy, setBusy] = useState(false);
-  const [empresa, setEmpresa] = useState<Empresa | null>(null);
-  useEffect(() => {
-    const d = cpfDigits(cpf);
-    setEmpresa(null);
-    if (d.length !== 11 || !isValidCpf(d)) return;
-    let alive = true;
-    (async () => {
-      const { data } = await supabase.functions.invoke("driver-portal", { body: { action: "branding", cpf: d } });
-      if (alive && data?.ok && data.empresa) setEmpresa(data.empresa as Empresa);
-    })();
-    return () => { alive = false; };
-  }, [cpf]);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidCpf(cpf)) return toast.error("CPF inválido", "Confira os números do seu CPF.");
@@ -129,26 +118,30 @@ function Login() {
     if (msg) toast.error("Não foi possível entrar", msg);
   };
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-      <form onSubmit={submit} className="w-full max-w-sm bg-card rounded-xl border p-6 space-y-4 shadow-sm">
-        <div className="text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
+      <div className="max-w-md w-full mx-auto">
+        <div className="flex flex-col items-center mb-8">
           <img
-            src={tenantLogoFrom(empresa?.logo_url) || agilizaLogo}
-            alt={empresa?.nome || "Agiliza TMS"}
-            className="h-20 max-w-full w-auto mx-auto object-contain"
+            src={agilizaLogo}
+            alt="Agiliza TMS"
+            width={1142}
+            height={202}
+            className="mb-4 h-auto w-full max-w-sm object-contain"
           />
-          <h1 className="text-xl font-bold mt-3">Portal do Motorista</h1>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[10px] font-medium text-muted-foreground">by</span>
+            <img src={fsmLogo} alt="FSM Sistemas" className="h-5 w-auto object-contain" />
+          </div>
           <p className="text-sm text-muted-foreground">Entre com seu CPF</p>
         </div>
+        <form onSubmit={submit} className="space-y-5">
         <div className="space-y-1">
           <Label htmlFor="cpf">CPF</Label>
           <Input id="cpf" inputMode="numeric" className="h-12 text-lg" value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" />
         </div>
         <Button type="submit" className="w-full h-12 text-base" disabled={busy}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}</Button>
-        <div className="border-t pt-4">
-          <AgilizaBrandMark size="sm" className="mx-auto" />
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
