@@ -31,6 +31,15 @@ export interface PayableUnit {
   portal_status: string | null;
 }
 
+/** Open details without narrowing the underlying list to the selected expense. */
+export function dashboardPayableNavigation(card: "hoje" | "atrasadas", expenseId: string) {
+  return {
+    fromNav: true,
+    quickFilter: card === "hoje" ? "a_vencer" as const : "atrasadas" as const,
+    openExpenseId: expenseId,
+  };
+}
+
 /**
  * Mesma base do Contas a Pagar: despesa com parcelas conta as parcelas em
  * aberto; despesa de pagamento único (reembolsos do portal inclusos) conta a

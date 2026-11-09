@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
 import {
   buildPayableUnits,
+  dashboardPayableNavigation,
   portalRowLabel,
   portalRowTone,
   type PayableExpense,
   type PayableInstallment,
 } from "./dashboardPayables";
+import { payableQuickFilterPeriod } from "./payableReportState";
+
+describe("atalhos das contas da página inicial", () => {
+  const today = new Date(2026, 10, 9);
+
+  it("Vencendo Hoje abre o detalhe com a mesma lista inicial do menu Contas a Pagar", () => {
+    const state = dashboardPayableNavigation("hoje", "conta-hoje");
+    expect(state).toEqual({ fromNav: true, quickFilter: "a_vencer", openExpenseId: "conta-hoje" });
+    expect(payableQuickFilterPeriod(state.quickFilter, today)).toEqual({ inicio: "2026-11-09", fim: "2026-11-30" });
+  });
+
+  it("Vencidos 7 dias abre o detalhe com todas as atrasadas, sem limitar aos sete dias", () => {
+    const state = dashboardPayableNavigation("atrasadas", "conta-atrasada");
+    expect(state).toEqual({ fromNav: true, quickFilter: "atrasadas", openExpenseId: "conta-atrasada" });
+    expect(payableQuickFilterPeriod(state.quickFilter, today)).toEqual({ inicio: "", fim: "2026-11-08" });
+  });
+});
 
 const expense = (over: Partial<PayableExpense>): PayableExpense => ({
   id: "e1",

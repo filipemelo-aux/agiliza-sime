@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import {
   buildPayableUnits,
+  dashboardPayableNavigation,
   portalRowLabel,
   portalRowTone,
   type PayableUnit,
@@ -234,7 +235,7 @@ export default function AdminDashboard() {
                             <Link
                               key={item.id}
                               to="/admin/financial/payables"
-                              state={{ quickFilter: "hoje", openExpenseId: item.expense_id }}
+                              state={dashboardPayableNavigation("hoje", item.expense_id)}
                               className={cn(
                                 "flex items-center justify-between py-2 px-2.5 rounded-md transition-colors",
                                 tone ? rowToneClass(tone) : "hover:bg-muted/40"
@@ -285,7 +286,7 @@ export default function AdminDashboard() {
                             <Link
                               key={item.id}
                               to="/admin/financial/payables"
-                              state={{ quickFilter: "atrasadas", openExpenseId: item.expense_id }}
+                              state={dashboardPayableNavigation("atrasadas", item.expense_id)}
                               className={cn(
                                 "flex items-center justify-between py-2 px-2.5 rounded-md transition-colors",
                                 tone ? rowToneClass(tone) : "bg-destructive/5 hover:bg-destructive/10"
