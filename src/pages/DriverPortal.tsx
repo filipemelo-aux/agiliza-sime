@@ -8,6 +8,7 @@ import { Wallet, FileText, Truck, Fuel, LogOut, ArrowLeft, Camera, Loader2, Chec
 import { maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { cpfDigits, driverEmailFromCpf, maskCpf, isValidCpf } from "@/lib/driverPortal";
 import { tenantLogoFrom } from "@/lib/tenantLogo";
+import { AgilizaBrandMark } from "@/components/brand/AgilizaBrandMark";
 import { getLocalDateISO } from "@/lib/date";
 import agilizaLogo from "@/assets/brand/agiliza-tms-logo.png";
 
@@ -89,6 +90,11 @@ export default function DriverPortal() {
           <ReembolsoForm ctx={ctx} onBack={() => setView("home")} onDone={() => { setView("home"); loadCtx(); }} />
         )}
       </main>
+      <footer className="max-w-md mx-auto px-4 pb-6 pt-2">
+        <div className="border-t pt-4">
+          <AgilizaBrandMark size="sm" className="mx-auto" />
+        </div>
+      </footer>
     </div>
   );
 }
@@ -139,6 +145,9 @@ function Login() {
           <Input id="cpf" inputMode="numeric" className="h-12 text-lg" value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" />
         </div>
         <Button type="submit" className="w-full h-12 text-base" disabled={busy}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}</Button>
+        <div className="border-t pt-4">
+          <AgilizaBrandMark size="sm" className="mx-auto" />
+        </div>
       </form>
     </div>
   );
