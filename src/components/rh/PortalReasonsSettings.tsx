@@ -8,7 +8,7 @@ import { useTenant } from "@/hooks/useTenant";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { maskSentence } from "@/lib/masks";
-import { DEFAULT_PORTAL_REASONS, validatePortalReasons } from "../../../supabase/functions/_shared/driverPortalReasons";
+import { DEFAULT_PORTAL_REASONS, sortPortalReasons, validatePortalReasons } from "../../../supabase/functions/_shared/driverPortalReasons";
 
 export function PortalReasonsSettings() {
   const { tenant } = useTenant();
@@ -37,14 +37,14 @@ export function PortalReasonsSettings() {
     } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível salvar os motivos."); }
     finally { setSaving(false); }
   };
-  return <section className="space-y-3 max-w-2xl">
+  return <section className="space-y-3 max-w-4xl">
     <h3 className="text-sm font-semibold">Motivos de reembolso</h3>
     {query.isLoading || !tenant ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : query.isError ? <div className="flex items-center gap-2"><p className="text-xs text-destructive">Não foi possível carregar os motivos.</p><Button variant="outline" onClick={() => query.refetch()}>Tentar novamente</Button></div> : <>
-      <div className="space-y-2">
-        {draft.map((reason, index) => <div key={index} className="flex items-center gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {draft.map((reason, index) => <div key={index} className="flex items-center gap-1 min-w-0">
           <Label htmlFor={`portal-reason-${index}`} className="sr-only">Motivo {index + 1}</Label>
-          <Input id={`portal-reason-${index}`} value={reason} maxLength={80} disabled={saving} className="h-9" onChange={(event) => setDraft(draft.map((value, i) => i === index ? maskSentence(event.target.value) : value))} />
-          <Button variant="ghost" size="icon" title="Remover motivo" aria-label={`Remover motivo ${index + 1}`} disabled={saving || draft.length === 1} onClick={() => setDraft(draft.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
+          <Input id={`portal-reason-${index}`} value={reason} maxLength={80} disabled={saving} className="h-9 flex-1 min-w-0 text-xs" onChange={(event) => setDraft(draft.map((value, i) => i === index ? maskSentence(event.target.value) : value))} onBlur={() => setDraft(sortPortalReasons(draft))} />
+          <Button variant="ghost" size="icon" title="Remover motivo" aria-label={`Remover motivo ${index + 1}`} disabled={saving || draft.length === 1} onClick={() => setDraft(sortPortalReasons(draft.filter((_, i) => i !== index)))}><Trash2 className="h-4 w-4" /></Button>
         </div>)}
       </div>
       <div className="flex flex-wrap gap-2">
