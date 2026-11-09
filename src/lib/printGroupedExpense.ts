@@ -26,7 +26,7 @@ export async function printGroupedExpenseDetails(expenseId: string) {
   win.document.write('<p style="font-family:Arial;padding:20px">Carregando detalhes...</p>');
   const fail = (msg: string) => { try { win.close(); } catch {} toast.error(msg); };
   const { data: expense, error: expErr } = await supabase.from("expenses")
-    .select("id, descricao, favorecido_nome, data_vencimento, valor_total, plano_contas_id").eq("id", expenseId).maybeSingle();
+    .select("id, descricao, favorecido_nome, data_vencimento, valor_total, valor_pago, plano_contas_id").eq("id", expenseId).maybeSingle();
   if (expErr || !expense) return fail(expErr?.message || "Conta não encontrada.");
 
     const { data: links, error } = await supabase
@@ -141,7 +141,9 @@ tfoot{display:table-row-group}
     <span>Descrição: <b>${esc(expense.descricao || "—")}</b></span>
     <span>Vencimento: <b>${esc(expense.data_vencimento ? formatDateBR(expense.data_vencimento) : "—")}</b></span>
     <span>Plano de Contas: <b>${esc(chartGroup ? `${chartGroup.codigo} ${chartGroup.nome}` : "—")}</b></span>
-    <span>Valor Total: <b>${esc(formatCurrency(Number(expense.valor_total) || 0))}</b></span>
+    <span>Valor Original: <b>${esc(formatCurrency(Number(expense.valor_total) || 0))}</b></span>
+    ${Number((expense as any).valor_pago) > 0 ? `<span>Pago: <b>${esc(formatCurrency(Number((expense as any).valor_pago)))}</b></span>
+    <span>Em aberto: <b>${esc(formatCurrency(Math.max(Math.round((Number(expense.valor_total) - Number((expense as any).valor_pago)) * 100) / 100, 0)))}</b></span>` : ""}
   </div>
   <table>
     <colgroup>

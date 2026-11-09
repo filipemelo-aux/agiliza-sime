@@ -1062,6 +1062,7 @@ export function FinancialPayables() {
               // Valor = valor original da parcela; Saldo = o que falta pagar
               valor: Number(inst.valor),
               saldo: isPago ? 0 : Math.max(Number(inst.valor) - (instPaidMap[inst.id] || 0), 0),
+              original: Number(inst.valor) || 0,
               status: isOverdue ? "atrasado" : inst.status,
               isPago,
               isOverdue,
@@ -1383,7 +1384,7 @@ export function FinancialPayables() {
 
   const handlePrintSelected = async () => {
     if (selectedIds.size === 0) return;
-    const rows: { favorecido: string; descricao: string; vencimento: string; valor: number; status: string; planoContas: string }[] = [];
+    const rows: { favorecido: string; descricao: string; vencimento: string; valor: number; original: number; status: string; planoContas: string }[] = [];
     selectedIds.forEach(id => {
       if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
@@ -1414,6 +1415,7 @@ export function FinancialPayables() {
             descricao: item.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ${item.descricao}` : item.descricao,
             vencimento: item.data_vencimento || item.data_emissao,
             valor: item.status === "pago" ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total) - Number(item.valor_pago),
+            original: Number(item.valor_total) || 0,
             status: item.status,
             planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
           });
@@ -1441,6 +1443,7 @@ export function FinancialPayables() {
         <td>${esc(r.favorecido)}</td>
         <td>${esc(r.descricao)}</td>
         <td>${esc(r.planoContas)}</td>
+        <td class="r">${esc(formatCurrency(r.original))}</td>
         <td class="r ${overdue ? "neg" : ""}">${esc(formatCurrency(r.valor))}</td>
       </tr>`;
     }).join("");
@@ -1483,18 +1486,19 @@ tfoot{display:table-row-group}
     <colgroup>
       <col style="width:11%" />
       <col style="width:9%" />
-      <col style="width:22%" />
-      <col style="width:28%" />
-      <col style="width:18%" />
-      <col style="width:12%" />
+      <col style="width:19%" />
+      <col style="width:23%" />
+      <col style="width:16%" />
+      <col style="width:11%" />
+      <col style="width:11%" />
     </colgroup>
     <thead><tr>
-      <th>Status</th><th>Venc.</th><th>Favorecido</th><th>Descrição</th><th>Plano de Contas</th><th class="r">Valor</th>
+      <th>Status</th><th>Venc.</th><th>Favorecido</th><th>Descrição</th><th>Plano de Contas</th><th class="r">Valor Original</th><th class="r">Saldo / Pago</th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
     <tfoot>
       <tr>
-        <td colspan="5" class="totals-labels">
+        <td colspan="6" class="totals-labels">
           <div class="totals-row">
             <span class="total-item">Atrasado: <b>${esc(formatCurrency(totalAtrasado))}</b></span>
             <span class="total-item">Em aberto: <b>${esc(formatCurrency(totalAberto))}</b></span>
