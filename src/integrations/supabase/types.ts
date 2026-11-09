@@ -2134,6 +2134,51 @@ export type Database = {
           },
         ]
       }
+      driver_portal_access: {
+        Row: {
+          ativo: boolean
+          auth_user_id: string
+          cpf: string
+          created_at: string
+          id: string
+          profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          auth_user_id: string
+          cpf: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          tenant_id: string
+        }
+        Update: {
+          ativo?: boolean
+          auth_user_id?: string
+          cpf?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_portal_access_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_portal_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_services: {
         Row: {
           assigned_by: string | null
@@ -2596,6 +2641,8 @@ export type Database = {
           observacoes: string | null
           origem: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id: string | null
+          portal_anexo_path: string | null
+          portal_status: string | null
           proxima_manutencao_km: number | null
           reembolso_colaborador_id: string | null
           reembolso_colaborador_nome: string | null
@@ -2648,6 +2695,8 @@ export type Database = {
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id?: string | null
+          portal_anexo_path?: string | null
+          portal_status?: string | null
           proxima_manutencao_km?: number | null
           reembolso_colaborador_id?: string | null
           reembolso_colaborador_nome?: string | null
@@ -2700,6 +2749,8 @@ export type Database = {
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
           plano_contas_id?: string | null
+          portal_anexo_path?: string | null
+          portal_status?: string | null
           proxima_manutencao_km?: number | null
           reembolso_colaborador_id?: string | null
           reembolso_colaborador_nome?: string | null

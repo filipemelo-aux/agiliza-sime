@@ -253,6 +253,27 @@
       "when": 1793989023720,
       "tag": "0035_fatura_data_vencimento_base",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794229179795,
+      "tag": "0036_driver_portal",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794229196929,
+      "tag": "0037_driver_portal_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794229242283,
+      "tag": "0038_driver_portal_guards",
+      "breakpoints": true
     }
   ]
 }

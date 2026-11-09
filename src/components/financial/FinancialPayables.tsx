@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer, ListTree } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Banknote, HandCoins, Printer, ListTree, XCircle } from "lucide-react";
 import { toast } from "@/lib/notice";
 import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
@@ -450,6 +450,28 @@ export function FinancialPayables() {
   }, [authLoading, user?.id, supportTenantId]);
 
   const handleEdit = (item: Expense) => { if (item.reembolso_folha_item_id) return toast.warning("Reembolso reservado: remova o colaborador da folha em aberto antes de editar."); setEditingExpense(item); setFormOpen(true); };
+  const openPortalAnexo = async (item: any) => {
+    if (!item?.portal_anexo_path) return;
+    const { data, error } = await supabase.storage.from("driver-portal").createSignedUrl(item.portal_anexo_path, 600);
+    if (error || !data) return toast.error("Não foi possível abrir o comprovante", error?.message);
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+  const setPortalStatus = async (item: any, status: "aprovado" | "rejeitado") => {
+    if (!item) return;
+    const ok = await confirm({
+      title: status === "aprovado" ? "Aprovar reembolso" : "Recusar reembolso",
+      description: status === "aprovado"
+        ? `Aprovar ${formatCurrency(item.valor_total)} de ${item.reembolso_colaborador_nome || "motorista"} (placa ${item.veiculo_placa || "—"})? Ele passa a aparecer como crédito no acerto do motorista. Confira antes a natureza no Editar.`
+        : "O reembolso fica recusado e não entra no acerto nem pode ser pago.",
+      variant: status === "aprovado" ? "default" : "destructive",
+      confirmLabel: status === "aprovado" ? "Aprovar" : "Recusar",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("expenses").update({ portal_status: status } as any).eq("id", item.id);
+    if (error) return toast.error("Erro ao salvar", error.message);
+    toast.success(status === "aprovado" ? "Reembolso aprovado" : "Reembolso recusado");
+    fetchData();
+  };
   const handleNew = () => { setEditingExpense(null); setFormOpen(true); };
 
   const restoreGroupedOriginals = async (groupExpenseId: string): Promise<number> => {
@@ -1106,7 +1128,7 @@ export function FinancialPayables() {
         return (
           <span className="block min-w-0">
             <span className="block truncate whitespace-nowrap font-medium text-foreground" title={r.favorecido}>{limitDisplayText(r.favorecido)}</span>
-            {r.item.is_reembolso && <span className="block text-[10px] text-primary truncate" title={`Fornecedor: ${r.item.favorecido_nome || "—"}`}>{r.item.reembolso_folha_item_id ? "Reembolso na folha" : "Reembolso a pagar"}</span>}
+            {r.item.is_reembolso && <span className={cn("block text-[10px] truncate", (r.item as any).portal_status === "em_analise" ? "text-warning font-semibold" : (r.item as any).portal_status === "rejeitado" ? "text-destructive" : "text-primary")} title={`Fornecedor: ${r.item.favorecido_nome || "—"}${r.item.veiculo_placa ? ` · Placa ${r.item.veiculo_placa}` : ""}`}>{(r.item as any).portal_status === "em_analise" ? "Reembolso em análise (portal)" : (r.item as any).portal_status === "rejeitado" ? "Reembolso recusado" : r.item.reembolso_folha_item_id ? "Reembolso na folha" : "Reembolso a pagar"}</span>}
             {creator && (
               <span className="text-[10px] text-muted-foreground truncate block">por {creator}</span>
             )}
@@ -1672,6 +1694,23 @@ tfoot{display:table-row-group}
             className: "border-accent/60 text-accent-foreground hover:bg-accent/20",
             disabled: !selectedRows[0]?.inst?.boleto_url,
             onClick: () => { const r = selectedRows[0]; if (r?.inst) handleDownloadBoleto(r.inst); },
+          },
+          {
+            key: "portal-view", label: "Ver comprovante (portal)", icon: Eye, mode: "single",
+            hidden: !(selectedRows[0]?.item as any)?.portal_anexo_path,
+            onClick: () => openPortalAnexo(selectedRows[0]?.item),
+          },
+          {
+            key: "portal-approve", label: "Aprovar reembolso", icon: CheckCircle2, mode: "single",
+            className: "border-success/60 text-success hover:bg-success/10",
+            hidden: (selectedRows[0]?.item as any)?.portal_status !== "em_analise",
+            onClick: () => setPortalStatus(selectedRows[0]?.item, "aprovado"),
+          },
+          {
+            key: "portal-reject", label: "Recusar reembolso", icon: XCircle, mode: "single",
+            className: "border-destructive/60 text-destructive hover:bg-destructive/10",
+            hidden: (selectedRows[0]?.item as any)?.portal_status !== "em_analise",
+            onClick: () => setPortalStatus(selectedRows[0]?.item, "rejeitado"),
           },
           {
             key: "reverse", label: "Estornar", icon: Undo2, mode: "single+batch",

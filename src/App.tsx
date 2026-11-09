@@ -38,6 +38,7 @@ import AdminFleetMetrics from "./pages/AdminFleetMetrics";
 import AdminRH from "./pages/AdminRH";
 import ContabilidadeFechamento from "./pages/ContabilidadeFechamento";
 import NotFound from "./pages/NotFound";
+import DriverPortal from "./pages/DriverPortal";
 import SuperAdminTenants from "./pages/superadmin/SuperAdminTenants";
 import { UpdateNotification } from "./components/UpdateNotification";
 import { GlobalWriteOverlay } from "./components/ui/global-write-overlay";
@@ -66,6 +67,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/motorista" element={<DriverPortal />} />
             <Route path="/register" element={<Navigate to="/admin" replace />} />
             <Route path="/superadmin" element={<SuperAdminTenants />} />
             <Route path="/superadmin/*" element={<Navigate to="/superadmin" replace />} />

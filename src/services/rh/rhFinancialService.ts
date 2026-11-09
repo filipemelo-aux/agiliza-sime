@@ -146,7 +146,7 @@ export async function fetchReembolsosPendentesNoPeriodo(colabIds: string[], inic
   if (!colabIds.length) return [];
   const { data } = await fetchAllRows((from, to) => supabase.from("expenses")
     .select("id, descricao, valor_total, valor_pago, data_competencia, data_emissao, reembolso_colaborador_id, reembolso_colaborador_nome")
-    .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds)
+    .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds).or("portal_status.is.null,portal_status.eq.aprovado")
     .is("deleted_at", null).is("reembolso_folha_item_id", null)
     .neq("status", "pago")
     .gte("data_competencia", inicio).lte("data_competencia", fim).order("id").range(from, to));
@@ -158,7 +158,7 @@ export async function fetchReembolsosPendentes(colabIds: string[]): Promise<Reem
   if (!colabIds.length) return [];
   const { data, error } = await fetchAllRows((from, to) => supabase.from("expenses")
     .select("id, descricao, valor_total, valor_pago, data_competencia, data_emissao, reembolso_colaborador_id, reembolso_colaborador_nome")
-    .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds)
+    .eq("is_reembolso", true).in("reembolso_colaborador_id", colabIds).or("portal_status.is.null,portal_status.eq.aprovado")
     .is("deleted_at", null).is("reembolso_folha_item_id", null)
     .neq("status", "pago").order("id").range(from, to));
   if (error) throw error;

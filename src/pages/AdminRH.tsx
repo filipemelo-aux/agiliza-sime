@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Smartphone } from "lucide-react";
+import { DriverPortalAccessDialog } from "@/components/rh/DriverPortalAccessDialog";
 import { cn } from "@/lib/utils";
 import { limitDisplayText } from "@/lib/displayText";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -360,6 +361,7 @@ function RHWorkspace(props: any) {
         })
     : [];
   const [movFor, setMovFor] = useState<ColaboradorRH | null>(null);
+  const [portalFor, setPortalFor] = useState<ColaboradorRH | null>(null);
   useEffect(() => { setSelectedColabs(new Set()); }, [section]);
   const selectedPeople = peopleRows.filter((c) => selectedColabs.has(c.id));
   const isMotoristas = section === "motoristas";
@@ -482,6 +484,7 @@ function RHWorkspace(props: any) {
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
+    ...(isMotoristas ? [{ key: "portal", label: "Acesso ao portal", icon: Smartphone, mode: "single" as const, onClick: () => selectedPeople[0] && setPortalFor(selectedPeople[0]) }] : []),
   ];
 
   const allItems: NavItem[] = [
@@ -559,6 +562,7 @@ function RHWorkspace(props: any) {
         {isPeople && (
           <div className="space-y-3">
             <GlobalToolbar actions={peopleActions} selectedCount={selectedColabs.size} />
+            <DriverPortalAccessDialog profile={portalFor as any} onClose={() => setPortalFor(null)} />
             <DataGrid
               rows={peopleRows}
               columns={peopleColumns}
