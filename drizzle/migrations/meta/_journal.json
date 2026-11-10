@@ -309,6 +309,13 @@
       "when": 1794253341281,
       "tag": "0043_expense_payment_state_cent_rounding",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794322871694,
+      "tag": "0044_tighten_permissive_policies",
+      "breakpoints": true
     }
   ]
 }
