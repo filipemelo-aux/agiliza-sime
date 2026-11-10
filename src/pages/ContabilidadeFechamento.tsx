@@ -85,7 +85,7 @@ export default function ContabilidadeFechamento() {
       }
 
       // CT-es emitidos (autorizados) da competência
-      const ctes = (await fetchAllRows<any>((a, b) => sb.from("ctes").select("numero, serie, tp_serv, chave_acesso, data_emissao, status, establishment_id, tomador_nome, tomador_cnpj, uf_origem, uf_destino, cfop, cst_icms, valor_frete, base_calculo_icms, aliquota_icms, valor_icms, xml_autorizado").gte("data_emissao", from).lte("data_emissao", to).in("status", ["autorizado", "encerrado"]).order("numero").order("id").range(a, b))).data || [];
+      const ctes = (await fetchAllRows<any>((a, b) => sb.from("ctes").select("id, importado_xml, numero, serie, tp_serv, chave_acesso, data_emissao, status, establishment_id, tomador_nome, tomador_cnpj, uf_origem, uf_destino, cfop, cst_icms, valor_frete, base_calculo_icms, aliquota_icms, valor_icms, xml_autorizado").gte("data_emissao", from).lte("data_emissao", to).in("status", ["autorizado", "encerrado"]).order("numero").order("id").range(a, b))).data || [];
       const cteRows = ctes.map((c: any) => ({ Agência: agencia(c.establishment_id), Número: c.numero, Série: c.serie, "Tipo de serviço": accountingCteServiceType(c.tp_serv), Emissão: br(c.data_emissao), Chave: c.chave_acesso, Tomador: c.tomador_nome, "CNPJ tomador": c.tomador_cnpj, Origem: c.uf_origem, Destino: c.uf_destino, CFOP: c.cfop, CST: normalizeCst(c.cst_icms), "Valor frete": Number(c.valor_frete || 0), "Base ICMS": Number(c.base_calculo_icms || 0), "Alíq. %": Number(c.aliquota_icms || 0), ICMS: Number(c.valor_icms || 0) }));
       const resumoCte = groupCtesByAgenciaCst(ctes.map((c: any) => ({ ...c, agencia: agencia(c.establishment_id) }))).map((g) => ({ Agência: g.agencia, CST: g.cst, Quantidade: g.quantidade, "Valor frete": g.frete, "Base ICMS": g.base, ICMS: g.icms }));
 
@@ -123,6 +123,14 @@ export default function ContabilidadeFechamento() {
       const xmls = zip.folder("XML_CTes");
       if (!xmls) throw new Error("Não foi possível criar a pasta dos XMLs");
       let nx = 0;
+      // CT-es emitidos pelo sistema sem XML guardado: baixa o oficial (e o grava) antes de montar o pacote.
+      const faltantes = ctes.filter((c: any) => !c.xml_autorizado && !c.importado_xml);
+      for (let i = 0; i < faltantes.length; i += 5) {
+        await Promise.all(faltantes.slice(i, i + 5).map(async (c: any) => {
+          const { data } = await sb.functions.invoke("focus-nfe", { body: { action: "xml_cte_salvo", cte_id: c.id } });
+          if (data?.success && typeof data.xml === "string" && /<(cteProc|CTe)\b/.test(data.xml)) c.xml_autorizado = data.xml;
+        }));
+      }
       for (const c of ctes) if (c.xml_autorizado) { xmls.file(`${c.chave_acesso || c.numero}.xml`, c.xml_autorizado); nx++; }
       setBlob(await zip.generateAsync({ type: "blob", compression: "DEFLATE" }));
       setResumo(`${abertas.length} contas em atraso, ${pagas.length} pagamentos na competência, ${ctes.length} CT-es (${nx} XMLs), ${nfes.length} NF-es, ${separated.PJ.length} contratos PJ, ${separated.PF.length} contratos PF e ${extratoRows.length} lançamentos no extrato.`);

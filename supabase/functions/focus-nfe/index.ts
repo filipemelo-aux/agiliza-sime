@@ -297,6 +297,14 @@ Deno.serve(async (req) => {
       data_autorizacao: authorized ? new Date().toISOString() : cte.data_autorizacao,
       motivo_rejeicao: authorized ? null : reason,
     }).eq("id", cteId);
+    if (authorized && focusData?.caminho_xml) {
+      try {
+        const p = String(focusData.caminho_xml);
+        const x = await fetch(p.startsWith("http") ? p : emitBase + p, p.startsWith("http") ? {} : { headers: { Authorization: "Basic " + btoa(emitToken + ":") } });
+        const xml = x.ok ? await x.text() : "";
+        if (/<(cteProc|CTe)\b/.test(xml)) await supabase.from("ctes").update({ xml_autorizado: xml }).eq("id", cteId);
+      } catch { /* XML pode ser baixado depois pela consulta */ }
+    }
     return json({
       success: authorized || ["processando_autorizacao", "processando"].includes(focusData?.status), status: focusData?.status,
       chave_acesso: focusData?.chave_cte || focusData?.chave_acesso, protocolo: focusData?.protocolo,
@@ -652,8 +660,13 @@ Deno.serve(async (req) => {
     if (action === "xml_cte_salvo") {
       const path = d?.caminho_xml || d?.caminho_xml_nota_fiscal;
       if (!path) return json({ error: "XML ainda não disponível na SEFAZ" }, 404);
-      const x = await fetch(path.startsWith("http") ? path : opBase + path, { headers: hdr });
-      return json({ success: true, xml: await x.text() });
+      // Links absolutos são URLs assinadas do armazenamento: não aceitam o cabeçalho Authorization.
+      const x = await fetch(path.startsWith("http") ? path : opBase + path, path.startsWith("http") ? {} : { headers: hdr });
+      const xml = await x.text();
+      if (!x.ok || !/<(cteProc|CTe)\b/.test(xml)) return json({ error: "Não foi possível baixar o XML na Focus NFe" }, 502);
+      // Guarda o XML oficial para pacotes contábeis e downloads futuros.
+      if (["autorizado", "encerrado", "cancelado"].includes(cte.status)) await supabase.from("ctes").update({ xml_autorizado: xml }).eq("id", cteId);
+      return json({ success: true, xml });
     }
     // Grava o retorno da consulta para todos os usuários verem a mesma situação.
     if (cte.status === "processando" || cte.status === "rascunho" || cte.status === "rejeitado") {
@@ -662,6 +675,12 @@ Deno.serve(async (req) => {
           status: "autorizado", chave_acesso: d?.chave_cte || d?.chave_acesso || d?.chave || d?.protocolo?.chave, protocolo_autorizacao: d?.protocolo,
           data_autorizacao: new Date().toISOString(), motivo_rejeicao: null,
         }).eq("id", cteId);
+        const path = d?.caminho_xml;
+        if (path) {
+          const x = await fetch(path.startsWith("http") ? path : opBase + path, path.startsWith("http") ? {} : { headers: hdr }).catch(() => null);
+          const xml = x?.ok ? await x.text() : "";
+          if (/<(cteProc|CTe)\b/.test(xml)) await supabase.from("ctes").update({ xml_autorizado: xml }).eq("id", cteId);
+        }
       } else if (cte.status === "processando" && (d?.status === "erro_autorizacao" || d?.status === "denegado")) {
         const code = d?.status_sefaz ? `Rejeição ${d.status_sefaz}: ` : "";
         await supabase.from("ctes").update({ status: "rejeitado", motivo_rejeicao: `${code}${d?.mensagem_sefaz || d?.mensagem || d.status}` }).eq("id", cteId);
