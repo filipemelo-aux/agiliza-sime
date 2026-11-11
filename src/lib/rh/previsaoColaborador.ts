@@ -41,10 +41,45 @@ export async function carregarDescontosFuturos(colabId: string, desde: string): 
     if (e2) throw e2;
     (v || []).forEach((x: any) => usados.add(x.origem_id));
   }
-  return rows.filter((r) => !usados.has(r.id)).map((r) => ({
+  const livres: PrevisaoItem[] = rows.filter((r) => !usados.has(r.id)).map((r) => ({
     data: r.data_referencia, tipo: TIPOS[r.tipo] || r.tipo, descricao: r.descricao || "", valor: Number(r.valor || 0),
     parcela: r.parcela_numero && r.parcelas_total ? `${r.parcela_numero}/${r.parcelas_total}` : undefined,
   }));
+  return [...livres, ...(await carregarDebitosDosAcertos(colabId, desde))];
+}
+
+/** Débitos (vales/adiantamentos/descontos) já incluídos nos acertos dos meses do relatório. */
+async function carregarDebitosDosAcertos(colabId: string, desde: string): Promise<PrevisaoItem[]> {
+  const { data, error } = await (supabase.from("acerto_movimentos" as any) as any)
+    .select("periodo_inicio, origem_id, origem_tipo, valor_desconto, parcelas_total, natureza")
+    .eq("colaborador_id", colabId).gte("periodo_inicio", desde).in("natureza", ["vale", "desconto"]);
+  if (error) throw error;
+  const movs = (data || []) as any[];
+  const descIds = movs.filter((m) => m.origem_tipo === "desconto").map((m) => m.origem_id);
+  const expIds = movs.filter((m) => m.origem_tipo === "expense").map((m) => m.origem_id);
+  const descs = new Map<string, any>(); const exps = new Map<string, any>();
+  if (descIds.length) {
+    const { data: d, error: e } = await (supabase.from("descontos_folha" as any) as any).select("id, tipo, valor, descricao, parcela_numero, parcelas_total").in("id", descIds);
+    if (e) throw e; (d || []).forEach((x: any) => descs.set(x.id, x));
+  }
+  if (expIds.length) {
+    const { data: d, error: e } = await (supabase.from("expenses" as any) as any).select("id, description, amount, expense_type").in("id", expIds);
+    if (e) throw e; (d || []).forEach((x: any) => exps.set(x.id, x));
+  }
+  const out: PrevisaoItem[] = [];
+  for (const m of movs) {
+    if (m.origem_tipo === "desconto") {
+      const d = descs.get(m.origem_id); if (!d) continue;
+      out.push({ data: m.periodo_inicio, tipo: TIPOS[d.tipo] || d.tipo, descricao: d.descricao || "", valor: Number(m.valor_desconto ?? d.valor ?? 0),
+        parcela: d.parcela_numero && d.parcelas_total ? `${d.parcela_numero}/${d.parcelas_total}` : undefined });
+    } else if (m.origem_tipo === "expense") {
+      const x = exps.get(m.origem_id); if (!x) continue;
+      const tot = Number(m.parcelas_total || 1);
+      out.push({ data: m.periodo_inicio, tipo: m.natureza === "vale" ? "Adiantamento" : "Outros", descricao: x.description || "",
+        valor: Number(m.valor_desconto ?? x.amount ?? 0), parcela: tot > 1 ? `1/${tot}` : undefined });
+    }
+  }
+  return out;
 }
 
 const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] ?? c));
@@ -73,7 +108,7 @@ export async function baixarPrevisaoColaboradorPdf(nome: string, meses: Previsao
     .saldo td{font-size:13px;font-weight:bold;color:#2B4C7E;border-top:2px solid #2B4C7E}
   </style></head><body><section class="doc-page">
     <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Previsões do Colaborador", subtitle: nome }))}-->
-    <p>Vencimentos futuros em aberto, mês a mês, a partir de ${nomeMes(meses[0].mes)}. Parcelas ainda não usadas em nenhum fechamento.</p>
+    <p>Vencimentos futuros em aberto, mês a mês, a partir de ${nomeMes(meses[0].mes)}. Inclui os débitos já lançados nos acertos dos meses exibidos.</p>
     ${blocos}
     <table class="resumo"><tr><td>(+) Salários previstos</td><td class="r pos">R$ ${brl(totSal)}</td></tr>
     <tr><td>(−) Parcelas e descontos a descontar</td><td class="r neg">R$ ${brl(totDesc)}</td></tr>
