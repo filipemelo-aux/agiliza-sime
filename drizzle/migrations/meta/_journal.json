@@ -330,6 +330,13 @@
       "when": 1794359285610,
       "tag": "0046_preserve_original_payroll_debit_dates",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794400731955,
+      "tag": "0047_reconcile_paid_cents_tolerance",
+      "breakpoints": true
     }
   ]
 }

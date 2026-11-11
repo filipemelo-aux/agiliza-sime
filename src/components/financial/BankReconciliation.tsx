@@ -36,6 +36,9 @@ import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { FilterField, SearchFilterCard } from "@/components/ui/search-filter-card";
 
+/** Tolerância de centavos para sugerir correspondências na conciliação (R$ 0,10). */
+const RECON_TOLERANCE = 0.1005;
+
 
 type MatchPrecision = "exato" | "proximo";
 
@@ -614,7 +617,7 @@ export function BankReconciliation() {
         const candidates = movs.filter(
           (m) =>
             m.tipo === raw.tipo &&
-            Math.abs(Number(m.valor) - raw.absVal) < 0.01 &&
+            Math.abs(Number(m.valor) - raw.absVal) <= RECON_TOLERANCE &&
             daysDiff(raw.txDate, m.data_movimentacao) <= 5
         );
         for (const c of candidates) {
@@ -641,7 +644,7 @@ export function BankReconciliation() {
          // correspondência efetiva; não crie uma segunda sugestão de título.
          if (assignedMovByIdx.has(idx)) return;
         for (const p of payables) {
-           if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
+           if (Math.abs(p.amount - raw.absVal) > RECON_TOLERANCE) continue;
            if (!isPlausibleMatchDate(raw.txDate, p.referenceDate)) continue;
            payPairs.push({ idx, candId: p.id, dist: matchCost(raw.txDate, p.referenceDate) });
          }
@@ -663,7 +666,7 @@ export function BankReconciliation() {
       rawItems.forEach((raw, idx) => {
         if (raw.status !== "pendente" || raw.tipo !== "entrada") return;
         for (const r of receivables) {
-          if (Math.abs(r.amount - raw.absVal) >= 0.01) continue;
+          if (Math.abs(r.amount - raw.absVal) > RECON_TOLERANCE) continue;
           if (!isPlausibleMatchDate(raw.txDate, r.referenceDate)) continue;
           recPairs.push({ idx, candId: r.id, dist: matchCost(raw.txDate, r.referenceDate) });
         }
@@ -984,7 +987,7 @@ export function BankReconciliation() {
           .eq("origem", "pagamento_despesa")
           .in("origem_id", payIds)
           .eq("tipo", tipo);
-        const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) < 0.01);
+        const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) <= RECON_TOLERANCE);
         if (cand.length > 0) {
           cand.sort((a: any, b: any) =>
             Math.abs(new Date(a.data_movimentacao).getTime() - new Date(referenceDate).getTime()) -
@@ -1003,7 +1006,7 @@ export function BankReconciliation() {
         .eq("origem", "contas_pagar")
         .eq("origem_id", accountsPayableId)
         .eq("tipo", tipo);
-      const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) < 0.01);
+      const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) <= RECON_TOLERANCE);
       if (cand.length > 0) return cand[0].id;
     }
 
@@ -1014,7 +1017,7 @@ export function BankReconciliation() {
       .eq("tipo", tipo)
       .gte("data_movimentacao", minDate)
       .lte("data_movimentacao", maxDate);
-    const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) < 0.01);
+    const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) <= RECON_TOLERANCE);
     if (cand.length === 0) return null;
     cand.sort((a: any, b: any) =>
       Math.abs(new Date(a.data_movimentacao).getTime() - new Date(referenceDate).getTime()) -
@@ -1361,8 +1364,8 @@ export function BankReconciliation() {
 
         // 7) Ordena: valor compatível primeiro, depois por data
         results.sort((a, b) => {
-          const aMatch = Math.abs(Number(a.saldo) - targetValor) < 0.01 ? 0 : 1;
-          const bMatch = Math.abs(Number(b.saldo) - targetValor) < 0.01 ? 0 : 1;
+          const aMatch = Math.abs(Number(a.saldo) - targetValor) <= RECON_TOLERANCE ? 0 : 1;
+          const bMatch = Math.abs(Number(b.saldo) - targetValor) <= RECON_TOLERANCE ? 0 : 1;
           if (aMatch !== bMatch) return aMatch - bMatch;
           return String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""));
         });
@@ -1822,7 +1825,7 @@ export function BankReconciliation() {
       const hit = items.find((i) =>
         !consumed.has(i.id) &&
         i.tipo === m.tipo &&
-        Math.abs(Math.abs(i.amount) - absVal) < 0.01 &&
+        Math.abs(Math.abs(i.amount) - absVal) <= RECON_TOLERANCE &&
         daysDiff(i.date, m.data_movimentacao) <= 5
       );
       if (hit) consumed.add(hit.id);
@@ -2069,7 +2072,7 @@ export function BankReconciliation() {
         if (tx.tipo === "saida") {
           // Débito: buscar no fluxo de caixa — mesmo tipo (saída) + valor idêntico + data ±5 dias
           const candidates = movs.filter(
-            (m) => m.tipo === "saida" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5
+            (m) => m.tipo === "saida" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) <= RECON_TOLERANCE && daysDiff(txDate, m.data_movimentacao) <= 5
           );
           const exact = candidates.find((m) => m.data_movimentacao === txDate);
           matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
@@ -2086,7 +2089,7 @@ export function BankReconciliation() {
             : payables.filter(
                 (p) =>
                   !usedPayableIds.has(p.id) &&
-                  Math.abs(p.amount - absVal) < 0.01 &&
+                  Math.abs(p.amount - absVal) <= RECON_TOLERANCE &&
                   isPlausibleMatchDate(txDate, p.referenceDate),
               );
           const pExact = pCandidates.find((p) => p.referenceDate === txDate);
@@ -2101,7 +2104,7 @@ export function BankReconciliation() {
         } else {
           // Crédito: buscar no fluxo de caixa — mesmo tipo (entrada) + valor + data ±5 dias
           const candidates = movs.filter(
-            (m) => m.tipo === "entrada" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5
+            (m) => m.tipo === "entrada" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) <= RECON_TOLERANCE && daysDiff(txDate, m.data_movimentacao) <= 5
           );
           const exact = candidates.find((m) => m.data_movimentacao === txDate);
           matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
@@ -2114,7 +2117,7 @@ export function BankReconciliation() {
           const rCandidates = receivables.filter(
             (r) =>
               !usedReceivableIds.has(r.id) &&
-              Math.abs(r.amount - absVal) < 0.01 &&
+              Math.abs(r.amount - absVal) <= RECON_TOLERANCE &&
               isPlausibleMatchDate(txDate, r.referenceDate),
           );
           const rExact = rCandidates.find((r) => r.referenceDate === txDate);
