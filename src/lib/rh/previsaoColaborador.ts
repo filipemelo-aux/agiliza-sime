@@ -138,7 +138,7 @@ export async function baixarPrevisaoColaboradorPdf(nome: string, meses: Previsao
   const blocos = meses.map((m) => { const pg = dt(quintoDiaUtilMesSeguinte(`${m.mes}-01`)); return `<div class="mes"><h3>${nomeMes(m.mes)} <small style="font-weight:normal;color:#5b6b7f">· pagamento previsto ${pg}</small></h3><table class="mov"><colgroup><col style="width:12%"><col style="width:16%"><col style="width:34%"><col style="width:19%"><col style="width:19%"></colgroup>
     <thead><tr><th>Pagamento</th><th>Tipo</th><th>Descrição</th><th class="r">Valor original</th><th class="r">Valor</th></tr></thead><tbody>
     <tr><td>${pg}</td><td>Salário base</td><td>Valor a receber no mês</td><td class="r orig">—</td><td class="r pos">R$ ${brl(m.salario)}</td></tr>
-    ${m.descontos.map((d) => `<tr><td>${pg}</td><td>${esc(d.tipo)}</td><td>${esc(d.descricao)}${d.parcela && !/parcela\s*\d/i.test(d.descricao) ? ` — parcela ${d.parcela}` : ""}</td><td class="r orig">${orig(d.valorOriginal)}</td><td class="r neg">R$ ${brl(d.valor)}</td></tr>`).join("")}
+    ${m.descontos.map((d) => `<tr><td></td><td>${esc(d.tipo)}</td><td>${esc(d.descricao)}${d.parcela && !/parcela\s*\d/i.test(d.descricao) ? ` — parcela ${d.parcela}` : ""}</td><td class="r orig">${orig(d.valorOriginal)}</td><td class="r neg">R$ ${brl(d.valor)}</td></tr>`).join("")}
     </tbody><tfoot><tr><td colspan="4">Débitos R$ ${brl(m.totalDescontos)} · Previsão líquida</td><td class="r liq">R$ ${brl(m.liquido)}</td></tr></tfoot></table></div>`; }).join("");
   let html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Previsões ${esc(nome)}</title><style>
     *{box-sizing:border-box}body{font:9px Arial,Helvetica,sans-serif;color:#1c2733;margin:0}.doc-page{width:190mm}
