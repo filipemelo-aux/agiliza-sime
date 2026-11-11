@@ -102,7 +102,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
     setAdding(true);
     try {
       const parcelados = itens.filter((m) => m.natureza === "vale" && m.origemTipo === "expense" && (parcelas[m.id] || 1) > 1);
-      for (const m of parcelados) await parcelarValeAoAcerto(colaborador.id, periodo, m.origemId, parcelas[m.id]);
+      for (const m of parcelados) await parcelarValeAoAcerto(colaborador.id, periodo, m.origemId, parcelas[m.id], !isMotorista);
       await adicionarAoAcerto(colaborador.id, periodo, itens.filter((m) => !parcelados.includes(m)));
       toast.success(itens.length === 1 ? "Adicionado à movimentação" : `${itens.length} lançamentos adicionados`);
       fecharLancar();
@@ -239,7 +239,7 @@ export function MotoristaMovimentacoesDialog({ colaborador, adiantExpenses, peri
                   <span className="flex-1 truncate" title={r.descricao}>{r.descricao}</span>
                   <span className={`font-mono ${r.entrada ? "text-success" : "text-destructive"}`}>{formatBRL(r.entrada || r.saida)}</span>
                 </label>
-                {lancar === "vale" && r.origemTipo === "expense" && pick.has(r.id) && r.saida > 0 && <ValeParcelamento id={r.id} valor={r.saida} periodo={periodo} quantidade={parcelas[r.id] || 1} disabled={adding}
+                {lancar === "vale" && r.origemTipo === "expense" && pick.has(r.id) && r.saida > 0 && <ValeParcelamento id={r.id} valor={r.saida} periodo={periodo} mensal={!isMotorista} quantidade={parcelas[r.id] || 1} disabled={adding}
                   onChange={(n) => setParcelas((prev) => ({ ...prev, [r.id]: n }))} />}</div>
               ))}
             </div>}

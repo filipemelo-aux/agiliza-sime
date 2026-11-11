@@ -344,6 +344,13 @@
       "when": 1794410712333,
       "tag": "0048_delete_payroll_item_with_reversal",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794411788703,
+      "tag": "0049_monthly_advance_installments_admin",
+      "breakpoints": true
     }
   ]
 }

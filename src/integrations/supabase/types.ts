@@ -6556,6 +6556,7 @@ export type Database = {
         Args: {
           _colaborador_id: string
           _expense_id: string
+          _mensal?: boolean
           _parcelas: number
           _periodo_inicio: string
         }

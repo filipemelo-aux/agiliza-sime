@@ -136,8 +136,8 @@ export async function adicionarAoAcerto(colabId: string, p: PeriodoAcerto, movs:
   if (error) throw error;
 }
 
-export async function parcelarValeAoAcerto(colabId: string, p: PeriodoAcerto, expenseId: string, parcelas: number) {
-  const { error } = await (supabase.rpc as any)("parcelar_vale_acerto", { _colaborador_id: colabId, _periodo_inicio: p.inicio, _expense_id: expenseId, _parcelas: parcelas });
+export async function parcelarValeAoAcerto(colabId: string, p: PeriodoAcerto, expenseId: string, parcelas: number, mensal = false) {
+  const { error } = await (supabase.rpc as any)("parcelar_vale_acerto", { _colaborador_id: colabId, _periodo_inicio: p.inicio, _expense_id: expenseId, _parcelas: parcelas, _mensal: mensal });
   if (error) throw error;
 }
 
