@@ -33,6 +33,17 @@ export type Expense = {
 const EXPENSE_COLS =
   "id, descricao, valor_total, valor_pago, status, data_emissao, data_competencia, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id";
 
+/** Histórico de vales até o fim do acerto; a seleção compartilhada exclui origens já utilizadas. */
+export async function fetchValesAtePeriodo(colabId: string, accountId: string, fim: string): Promise<Expense[]> {
+  const { data, error } = await fetchAllRows((from, to) => supabase.from("expenses")
+    .select(`${EXPENSE_COLS}, is_reembolso, reembolso_colaborador_id`)
+    .eq("favorecido_id", colabId).eq("plano_contas_id", accountId)
+    .is("deleted_at", null).lte("data_emissao", fim)
+    .order("id").range(from, to));
+  if (error) throw error;
+  return (data || []) as Expense[];
+}
+
 export const monthRange = (ym: string) => {
   const [y, m] = ym.split("-").map(Number);
   const start = new Date(y, m - 1, 1);

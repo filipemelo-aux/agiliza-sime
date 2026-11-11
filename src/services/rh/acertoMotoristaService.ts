@@ -10,7 +10,8 @@ import { dataOriginalDesconto, descricaoDesconto } from "@/lib/rh/descontoParcel
 import { fetchComissoes } from "./comissoesService";
 import { juntarSaldosFrete } from "./juntarSaldoFrete";
 import { fetchDescontosPendentesNoPeriodo } from "./descontosFolhaService";
-import { fetchReembolsosPendentesNoPeriodo, type ReembolsoExpense } from "./rhFinancialService";
+import { fetchReembolsosPendentesNoPeriodo, fetchValesAtePeriodo, type ReembolsoExpense } from "./rhFinancialService";
+import { rhSettings } from "./rhSettings";
 import { buildPeriodoMensal, buildPeriodoQuinzenal, computePayrollRowsFromPeriodo, periodoToMesReferencia } from "./rhViewModel";
 import { criarFolhaEmAberto, buscarFolhaComItens, excluirItemFolhaEmAberto, reabrirFolhaConfirmada } from "./folhasPagamentoService";
 import type { ColaboradorRH, Comissao, DescontoFolha, Expense } from "./index";
@@ -33,23 +34,21 @@ export interface MovMotorista {
 export interface PeriodoAcerto { inicio: string; fim: string; month: string }
 
 const formatBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
-const inPeriod = (d: string | null | undefined, p: PeriodoAcerto) => {
-  const v = (d || "").slice(0, 10);
-  return !!v && v >= p.inicio && v <= p.fim;
-};
 
 interface Fontes { comissoes: Comissao[]; descontos: DescontoFolha[]; reembolsos: ReembolsoExpense[]; vales: Expense[] }
 
 async function carregarFontes(colabId: string, p: PeriodoAcerto, adiantExpenses: Expense[]): Promise<Fontes> {
-  const [comissoes, descontos, reembolsos] = await Promise.all([
+  const accountId = rhSettings.get().adiantamentoAccountId || adiantExpenses.find(e => e.plano_contas_id)?.plano_contas_id;
+  const [comissoes, descontos, reembolsos, historicoVales] = await Promise.all([
     fetchComissoes({ colaboradorId: colabId, dataInicio: p.inicio, dataFim: p.fim }),
     fetchDescontosPendentesNoPeriodo([colabId], p.inicio, p.fim),
     fetchReembolsosPendentesNoPeriodo([colabId], p.inicio, p.fim),
+    accountId ? fetchValesAtePeriodo(colabId, accountId, p.fim) : Promise.resolve(adiantExpenses),
   ]);
   const reembIds = new Set(reembolsos.map((e) => e.id));
   // Despesa marcada como reembolso nunca é vale (evita contar o mesmo valor como entrada e saída).
-  const vales = adiantExpenses.filter((e: any) => e.favorecido_id === colabId && !reembIds.has(e.id) && !e.reembolso_colaborador_id && !e.is_reembolso
-    && inPeriod(e.data_pagamento || e.data_emissao, p));
+  const vales = historicoVales.filter((e: any) => e.favorecido_id === colabId && !reembIds.has(e.id) && !e.reembolso_colaborador_id && !e.is_reembolso
+    && !!e.data_emissao && String(e.data_pagamento || e.data_emissao).slice(0, 10) <= p.fim);
   return { comissoes, descontos, reembolsos, vales };
 }
 
