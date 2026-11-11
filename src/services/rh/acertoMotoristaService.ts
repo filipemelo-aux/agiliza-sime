@@ -1,3 +1,4 @@
+import { limiteValesAcerto } from "@/lib/rh/quintoDiaUtil";
 /**
  * Acerto quinzenal do motorista.
  *  - Movimentações (entradas/saídas) do motorista na quinzena escolhida na grade.
@@ -38,17 +39,18 @@ const formatBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 interface Fontes { comissoes: Comissao[]; descontos: DescontoFolha[]; reembolsos: ReembolsoExpense[]; vales: Expense[] }
 
 async function carregarFontes(colabId: string, p: PeriodoAcerto, adiantExpenses: Expense[]): Promise<Fontes> {
+  const limVales = limiteValesAcerto(p.inicio, p.fim);
   const accountId = rhSettings.get().adiantamentoAccountId || adiantExpenses.find(e => e.plano_contas_id)?.plano_contas_id;
   const [comissoes, descontos, reembolsos, historicoVales] = await Promise.all([
     fetchComissoes({ colaboradorId: colabId, dataInicio: p.inicio, dataFim: p.fim }),
     fetchDescontosPendentesNoPeriodo([colabId], p.inicio, p.fim),
     fetchReembolsosPendentesNoPeriodo([colabId], p.inicio, p.fim),
-    accountId ? fetchValesAtePeriodo(colabId, accountId, p.fim) : Promise.resolve(adiantExpenses),
+    accountId ? fetchValesAtePeriodo(colabId, accountId, limVales) : Promise.resolve(adiantExpenses),
   ]);
   const reembIds = new Set(reembolsos.map((e) => e.id));
   // Despesa marcada como reembolso nunca é vale (evita contar o mesmo valor como entrada e saída).
   const vales = historicoVales.filter((e: any) => e.favorecido_id === colabId && !reembIds.has(e.id) && !e.reembolso_colaborador_id && !e.is_reembolso
-    && !!e.data_emissao && String(e.data_pagamento || e.data_emissao).slice(0, 10) <= p.fim);
+    && !!e.data_emissao && String(e.data_pagamento || e.data_emissao).slice(0, 10) <= limVales);
   return { comissoes, descontos, reembolsos, vales };
 }
 
