@@ -316,6 +316,13 @@
       "when": 1794322871694,
       "tag": "0044_tighten_permissive_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1794357711366,
+      "tag": "0045_sync_person_name_to_records",
+      "breakpoints": true
     }
   ]
 }
