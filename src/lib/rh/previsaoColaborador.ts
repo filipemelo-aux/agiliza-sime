@@ -63,7 +63,7 @@ async function carregarDebitosDosAcertos(colabId: string, desde: string): Promis
     if (e) throw e; (d || []).forEach((x: any) => descs.set(x.id, x));
   }
   if (expIds.length) {
-    const { data: d, error: e } = await (supabase.from("expenses" as any) as any).select("id, description, amount, expense_type").in("id", expIds);
+    const { data: d, error: e } = await (supabase.from("expenses" as any) as any).select("id, descricao, valor_total").in("id", expIds);
     if (e) throw e; (d || []).forEach((x: any) => exps.set(x.id, x));
   }
   const out: PrevisaoItem[] = [];
@@ -75,8 +75,8 @@ async function carregarDebitosDosAcertos(colabId: string, desde: string): Promis
     } else if (m.origem_tipo === "expense") {
       const x = exps.get(m.origem_id); if (!x) continue;
       const tot = Number(m.parcelas_total || 1);
-      out.push({ data: m.periodo_inicio, tipo: m.natureza === "vale" ? "Adiantamento" : "Outros", descricao: x.description || "",
-        valor: Number(m.valor_desconto ?? x.amount ?? 0), parcela: tot > 1 ? `1/${tot}` : undefined });
+      out.push({ data: m.periodo_inicio, tipo: m.natureza === "vale" ? "Adiantamento" : "Outros", descricao: x.descricao || "",
+        valor: Number(m.valor_desconto ?? x.valor_total ?? 0), parcela: tot > 1 ? `1/${tot}` : undefined });
     }
   }
   return out;
