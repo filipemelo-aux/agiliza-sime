@@ -1,3 +1,4 @@
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +12,7 @@ import { formatCurrency } from "@/lib/masks";
 import { toast } from "@/lib/notice";
 import type { AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import {
-  calcularDescontosLegais, createDescontosFolhaBatch, fetchDescontosPendentesNoPeriodo, criarPlanosDescontoAcerto,
+  calcularDescontosLegais, createDescontosFolhaBatch, excluirDescontoCriado, fetchDescontosPendentesNoPeriodo, criarPlanosDescontoAcerto,
   type ColaboradorRH, type DescontoFolha, type MovMotorista, type NovoDescontoFolha,
 } from "@/services/rh";
 
@@ -34,6 +35,8 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
   const [dependentes, setDependentes] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [planos, setPlanos] = useState<PlanoDesconto[]>([]);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [ocultos, setOcultos] = useState<Set<string>>(new Set());
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -57,7 +60,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
       descricao: `${tipo.toUpperCase()} automático — salário base ${brl(calculo.salarioBruto)}`,
     }));
   const opcoes = [
-    ...[...disponiveis.filter((d) => d.natureza === "desconto"), ...saved.filter((d) => !disponiveis.some((m) => m.id === d.id))].map((mov) => ({ id: mov.id, descricao: mov.descricao, valor: mov.saida, mov, novo: undefined as NovoDescontoFolha | undefined, plano: undefined as PlanoDesconto | undefined })),
+    ...[...disponiveis.filter((d) => d.natureza === "desconto"), ...saved.filter((d) => !disponiveis.some((m) => m.id === d.id))].filter((m) => !ocultos.has(m.id)).map((mov) => ({ id: mov.id, descricao: mov.descricao, valor: mov.saida, mov, novo: undefined as NovoDescontoFolha | undefined, plano: undefined as PlanoDesconto | undefined })),
     ...novos.map((novo) => ({ id: `novo-${novo.tipo}`, descricao: novo.tipo.toUpperCase(), valor: novo.valor, mov: undefined as MovMotorista | undefined, novo, plano: undefined as PlanoDesconto | undefined })),
     ...planos.map((plano) => ({ id: plano.id, descricao: `${DESCONTO_LABELS[plano.tipo]} · ${plano.descricao}${plano.parcelas > 1 ? ` — parcela 1/${plano.parcelas}` : ""}`, valor: parcelasDesconto(plano, periodo, mensal)[0].valor, mov: undefined as MovMotorista | undefined, novo: undefined as NovoDescontoFolha | undefined, plano })),
   ];
@@ -90,6 +93,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
     } finally { setBusy(false); }
   };
   return <div className="space-y-3">
+    {ConfirmDialog}
     <h3 className="text-xs font-semibold">Cálculo de folha</h3>
     <div className="flex flex-wrap items-end gap-4 text-xs">
       <span>Salário base: <strong>{brl(calculo.salarioBruto)}</strong></span>
@@ -112,6 +116,19 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
           <span className="min-w-0 flex-1 break-words">{d.descricao}</span><span className="shrink-0 font-mono text-destructive">{brl(d.valor)}</span>
         </label>{d.plano && <Button variant="ghost" size="icon" aria-label={`Remover ${d.plano.descricao}`} title="Remover desconto da seleção" disabled={busy} onClick={() => {
           setPlanos((prev) => prev.filter((p) => p.id !== d.id)); setSelected((prev) => { const n = new Set(prev); n.delete(d.id); return n; });
+        }}><Trash2 className="h-4 w-4" /></Button>}
+        {d.mov?.origemTipo === "desconto" && d.mov.origemId && <Button variant="ghost" size="icon" aria-label={`Excluir ${d.descricao}`} title="Excluir desconto" disabled={busy} onClick={async () => {
+          if (!(await confirm({ title: "Excluir desconto?", description: `"${d.descricao}" será excluído. Se for parcelado, todas as parcelas em aberto também serão excluídas.`, confirmLabel: "Excluir" }))) return;
+          setBusy(true);
+          try {
+            await excluirDescontoCriado(d.mov!.origemId!);
+            setSaved((prev) => prev.filter((m) => m.id !== d.id));
+            setExistentes((prev) => prev.filter((x) => x.id !== d.mov!.origemId));
+            setSelected((prev) => { const n = new Set(prev); n.delete(d.id); return n; });
+            setOcultos((prev) => new Set([...prev, d.id]));
+            toast.success("Desconto excluído.");
+          } catch (e: any) { toast.error("Não foi possível excluir: " + e.message); }
+          finally { setBusy(false); }
         }}><Trash2 className="h-4 w-4" /></Button>}</div>)}
         {!opcoes.length && <p className="p-3 text-xs text-muted-foreground">{calculo.motivoIsencao || "Nenhum desconto disponível neste período."}</p>}
       </div>}

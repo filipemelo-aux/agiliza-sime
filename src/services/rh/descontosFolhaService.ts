@@ -237,3 +237,27 @@ export async function createParcelasFuturasDesconto(input: {
   const { error } = await (supabase.from("descontos_folha" as any) as any).insert(rows);
   if (error) throw error;
 }
+
+/**
+ * Exclui um desconto criado no acerto (e todas as parcelas do mesmo plano).
+ * Bloqueia se for parcela de vale/adiantamento ou se alguma parcela já foi usada em acerto/folha.
+ */
+export async function excluirDescontoCriado(descontoId: string): Promise<number> {
+  const tbl = () => (supabase.from("descontos_folha" as any) as any);
+  const { data: d, error } = await tbl().select("id, plano_desconto_id, adiantamento_origem_id").eq("id", descontoId).maybeSingle();
+  if (error) throw error;
+  if (!d) return 0;
+  if (d.adiantamento_origem_id) throw new Error("Parcela de vale/adiantamento: remova o parcelamento pelo botão de Vales/Adiantamentos.");
+  const { data: rows, error: e1 } = d.plano_desconto_id
+    ? await tbl().select("id, folha_pagamento_id").or(`plano_desconto_id.eq.${d.plano_desconto_id},id.eq.${d.plano_desconto_id}`)
+    : await tbl().select("id, folha_pagamento_id").eq("id", descontoId);
+  if (e1) throw e1;
+  const ids = (rows || []).map((r: any) => r.id);
+  if ((rows || []).some((r: any) => r.folha_pagamento_id)) throw new Error("Uma das parcelas já está em uma folha.");
+  const { data: usados, error: e2 } = await (supabase.from("acerto_movimentos" as any) as any).select("origem_id").in("origem_id", ids);
+  if (e2) throw e2;
+  if ((usados || []).length) throw new Error("Uma das parcelas já está em um acerto. Remova-a da movimentação primeiro.");
+  const { error: e3 } = await tbl().delete().in("id", ids);
+  if (e3) throw e3;
+  return ids.length;
+}
