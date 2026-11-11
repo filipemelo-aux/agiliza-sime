@@ -179,6 +179,16 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
         .select("id, cnpj, cargo, departamento, data_admissao, tipo_colaborador_rh")
         .in("id", profileIds);
       const perfis = new Map((data || []).map((p: any) => [p.id, p]));
+      const descontoIds = Array.from(new Set(escolhidos.flatMap(({ item }) => item.desconto_ids || [])));
+      let descontosDetalhados: { id: string; tipo: string; descricao: string | null; valor: number; parcela_numero?: number | null; parcelas_total?: number | null }[] = [];
+      for (let i = 0; i < descontoIds.length; i += 200) {
+        const { data: descontos, error } = await supabase.from("descontos_folha")
+          .select("id, tipo, descricao, valor, parcela_numero, parcelas_total")
+          .in("id", descontoIds.slice(i, i + 200));
+        if (error) throw error;
+        descontosDetalhados.push(...(descontos || []));
+      }
+      const descontoPorId = new Map(descontosDetalhados.map(d => [d.id, d]));
       const primeiraFolha = escolhidos[0].folha;
       const recibos: HoleriteItem[] = escolhidos.map(({ item }) => {
         const p: any = perfis.get(item.colaborador_id) || {};
@@ -186,6 +196,10 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           colaborador_nome: item.colaborador_nome, reembolsos: Number(item.reembolsos || 0),
           salario_base: Number(item.salario_base), comissoes: Number(item.comissoes),
           adiantamentos: Number(item.adiantamentos), descontos: Number(item.descontos), liquido: Number(item.liquido),
+          descontos_detalhados: (item.desconto_ids || []).flatMap(id => {
+            const desconto = descontoPorId.get(id);
+            return desconto ? [desconto] : [];
+          }),
           codigo: String(item.colaborador_id || "").slice(0, 8).toUpperCase(), cpf: p.cnpj || null,
           funcao: p.cargo || null, departamento: p.departamento || null, admissao: p.data_admissao || null, regime: "clt",
         };

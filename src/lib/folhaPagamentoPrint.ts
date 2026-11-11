@@ -16,6 +16,7 @@
 import { calcularINSS, calcularIRRF } from "@/services/rh/tributosFolhaService";
 import { downloadHtmlAsPdf, titleFromHtml } from "@/lib/pdfDownload";
 import { downloadHtmlAsPdf as downloadDirectPdf } from "@/lib/htmlToPdf";
+import { descricaoDesconto } from "@/lib/rh/descontoParcelas";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
@@ -47,6 +48,7 @@ const esc = (s: any) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
 export interface HoleriteItem {
+  descontos_detalhados?: { tipo: string; descricao: string | null; valor: number; parcela_numero?: number | null; parcelas_total?: number | null }[];
   reembolsos?: number;
   colaborador_nome: string;
   salario_base: number;
@@ -107,6 +109,26 @@ function calcularBases(item: HoleriteItem) {
   };
 }
 
+/** Preserve snapshot totals while identifying only deductions actually saved in the payroll item. */
+export function descontosRecibo(item: HoleriteItem) {
+  const detalhes = item.descontos_detalhados || [];
+  const linhas: { cod: string; desc: string; ref: string; val: number; tipo: string }[] = [];
+  for (const [tipos, total, cod, fallback] of [
+    [["vale", "adiantamento"], item.adiantamentos, "9010", "ADIANTAMENTO / VALE"],
+    [null, item.descontos, "9020", "DESCONTOS DO PERÍODO"],
+  ] as const) {
+    let restante = Math.round(Number(total || 0) * 100);
+    for (const d of detalhes.filter(d => tipos ? tipos.some(t => t === d.tipo) : d.tipo !== "vale" && d.tipo !== "adiantamento")) {
+      const centavos = Math.min(restante, Math.round(Number(d.valor || 0) * 100));
+      if (centavos <= 0) continue;
+      linhas.push({ cod, desc: descricaoDesconto(d), ref: "", val: centavos / 100, tipo: d.tipo });
+      restante -= centavos;
+    }
+    if (restante > 0) linhas.push({ cod, desc: fallback, ref: "", val: restante / 100, tipo: tipos ? "adiantamento" : "outros" });
+  }
+  return linhas;
+}
+
 function reciboHtml(folha: HoleriteFolha, item: HoleriteItem, via: string) {
   const empresa = folha.empresa || EMPRESA_PADRAO;
   const bases = calcularBases(item);
@@ -118,14 +140,7 @@ function reciboHtml(folha: HoleriteFolha, item: HoleriteItem, via: string) {
       ? [{ cod: "0050", desc: "COMISSOES / PRODUCAO", ref: "", venc: Number(item.comissoes) }]
       : []),
   ];
-  const descontos = [
-    ...(Number(item.adiantamentos) > 0
-      ? [{ cod: "9010", desc: "ADIANTAMENTO / VALE", ref: "", val: Number(item.adiantamentos) }]
-      : []),
-    ...(Number(item.descontos) > 0
-      ? [{ cod: "9020", desc: "DESCONTOS DO PERIODO (INSS, IRRF E OUTROS)", ref: "", val: Number(item.descontos) }]
-      : []),
-  ];
+  const descontos = descontosRecibo(item);
 
   const totalProventos = proventos.reduce((s, p) => s + p.venc, 0);
   const totalDescontos = descontos.reduce((s, d) => s + d.val, 0);
