@@ -1949,6 +1949,7 @@ export type Database = {
           colaborador_id: string
           created_at: string
           created_by: string
+          data_original: string | null
           data_referencia: string
           descricao: string | null
           folha_pagamento_id: string | null
@@ -1966,6 +1967,7 @@ export type Database = {
           colaborador_id: string
           created_at?: string
           created_by: string
+          data_original?: string | null
           data_referencia: string
           descricao?: string | null
           folha_pagamento_id?: string | null
@@ -1983,6 +1985,7 @@ export type Database = {
           colaborador_id?: string
           created_at?: string
           created_by?: string
+          data_original?: string | null
           data_referencia?: string
           descricao?: string | null
           folha_pagamento_id?: string | null
@@ -6459,6 +6462,7 @@ export type Database = {
           colaborador_id: string
           created_at: string
           created_by: string
+          data_original: string | null
           data_referencia: string
           descricao: string | null
           folha_pagamento_id: string | null

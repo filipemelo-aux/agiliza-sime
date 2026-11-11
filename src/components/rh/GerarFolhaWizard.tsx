@@ -261,6 +261,8 @@ export function GerarFolhaWizard({
           mesReferencia: mesRef,
           parcelas: valores,
           descricaoBase: e.descricao || "Adiantamento",
+          origemExpenseId: e.id,
+          dataOriginal: e.data_emissao,
         });
         parcelasCriadas += n - 1;
       }
@@ -279,6 +281,7 @@ export function GerarFolhaWizard({
           mesReferencia: mesRef,
           parcelas: valores,
           descricaoBase: d.descricao || d.tipo,
+          dataOriginal: d.data_original || d.data_referencia,
         });
         parcelasDescCriadas += n - 1;
       }

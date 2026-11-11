@@ -29,6 +29,7 @@ export type DescontoFolha = {
   valor: number;
   descricao: string | null;
   data_referencia: string;
+  data_original?: string | null;
   folha_pagamento_id: string | null;
   created_at: string;
   updated_at: string;
@@ -171,6 +172,8 @@ export async function createParcelasFuturasAdiantamento(input: {
   mesReferencia: string; // "YYYY-MM" da folha atual
   parcelas: number[]; // todas as parcelas (índice 0 = folha atual)
   descricaoBase: string;
+  origemExpenseId: string;
+  dataOriginal: string;
 }): Promise<void> {
   const { colaborador_id, mesReferencia, parcelas, descricaoBase } = input;
   if (parcelas.length <= 1) return;
@@ -187,6 +190,10 @@ export async function createParcelasFuturasAdiantamento(input: {
       valor,
       descricao: `${descricaoBase} — parcela ${i + 2}/${parcelas.length}`,
       data_referencia: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      data_original: input.dataOriginal,
+      adiantamento_origem_id: input.origemExpenseId,
+      parcela_numero: i + 2,
+      parcelas_total: parcelas.length,
       created_by: userId,
     };
   });
@@ -205,6 +212,7 @@ export async function createParcelasFuturasDesconto(input: {
   mesReferencia: string; // "YYYY-MM" da folha atual
   parcelas: number[];
   descricaoBase: string;
+  dataOriginal: string;
 }): Promise<void> {
   const { colaborador_id, tipo, mesReferencia, parcelas, descricaoBase } = input;
   if (parcelas.length <= 1) return;
@@ -221,6 +229,7 @@ export async function createParcelasFuturasDesconto(input: {
       valor,
       descricao: `${descricaoBase} — parcela ${i + 2}/${parcelas.length}`,
       data_referencia: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      data_original: input.dataOriginal,
       created_by: userId,
     };
   });

@@ -6,7 +6,7 @@
  *  - "Editar acerto" retira o motorista da folha (reabrindo-a se já confirmada) e libera a edição.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { descricaoDesconto } from "@/lib/rh/descontoParcelas";
+import { dataOriginalDesconto, descricaoDesconto } from "@/lib/rh/descontoParcelas";
 import { fetchComissoes } from "./comissoesService";
 import { juntarSaldosFrete } from "./juntarSaldoFrete";
 import { fetchDescontosPendentesNoPeriodo } from "./descontosFolhaService";
@@ -65,12 +65,12 @@ function toMovs(f: Fontes): MovMotorista[] {
       descricao: e.descricao, entrada: Math.max(Number(e.valor_total) - Number(e.valor_pago || 0), 0), saida: 0, removivel: false, origemTipo: "expense" as const,
     })),
     ...f.vales.map((e: any) => ({
-      id: `v-${e.id}`, origemId: e.id, natureza: "vale" as MovNatureza, data: String(e.data_pagamento || e.data_emissao).slice(0, 10),
+      id: `v-${e.id}`, origemId: e.id, natureza: "vale" as MovNatureza, data: String(e.data_emissao).slice(0, 10),
       descricao: e.descricao || "Adiantamento", entrada: 0, saida: Number(e.valor_total || 0), removivel: false, origemTipo: "expense" as const,
     })),
     ...f.descontos.map((d) => ({
       id: `d-${d.id}`, origemId: d.id, natureza: (d.tipo === "vale" || d.tipo === "adiantamento" ? "vale" : "desconto") as MovNatureza,
-      data: d.data_referencia, descricao: descricaoDesconto(d),
+      data: dataOriginalDesconto(d), descricao: descricaoDesconto(d),
       entrada: 0, saida: Number(d.valor || 0), removivel: true, origemTipo: "desconto" as const,
     })),
   ];
@@ -290,7 +290,7 @@ export async function loadMovimentosDoAcerto(colabId: string, inicio: string): P
       const valor = Number(vinculo?.valor_desconto ?? e.valor_total ?? 0);
       return {
         id: `${nat === "reembolso" ? "r" : "v"}-${e.id}`, origemId: e.id, natureza: nat as MovNatureza,
-        data: String((nat === "reembolso" ? e.data_competencia || e.data_emissao : e.data_pagamento || e.data_emissao) || "").slice(0, 10),
+        data: String((nat === "reembolso" ? e.data_competencia || e.data_emissao : e.data_emissao) || "").slice(0, 10),
         descricao: `${e.descricao || (nat === "reembolso" ? "Reembolso" : "Adiantamento")}${vinculo?.parcelas_total ? ` — parcela 1/${vinculo.parcelas_total}` : ""}`,
         entrada: nat === "reembolso" ? valor : 0, saida: nat === "vale" ? valor : 0, removivel: false, origemTipo: "expense" as const,
       };

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trash2 } from "lucide-react";
 import { DescontoLinhaRapida } from "./DescontoLinhaRapida";
-import { descricaoDesconto, parcelasDesconto, DESCONTO_LABELS, type PlanoDesconto } from "@/lib/rh/descontoParcelas";
+import { dataOriginalDesconto, descricaoDesconto, parcelasDesconto, DESCONTO_LABELS, type PlanoDesconto } from "@/lib/rh/descontoParcelas";
+import { formatDateBR } from "@/lib/date";
 import { formatCurrency } from "@/lib/masks";
 import { toast } from "@/lib/notice";
 import type { AcertoPeriod } from "@/lib/rhAcertoPeriod";
@@ -68,7 +69,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
       const planosSelecionados = escolhidos.flatMap((d) => d.plano ? [d.plano] : []);
       const primeiras = await criarPlanosDescontoAcerto(colaborador.id, periodo, planosSelecionados);
       const toMov = (d: DescontoFolha): MovMotorista => ({ id: `d-${d.id}`, origemId: d.id, origemTipo: "desconto", natureza: "desconto",
-        data: d.data_referencia, descricao: descricaoDesconto(d), entrada: 0, saida: Number(d.valor), removivel: true });
+        data: dataOriginalDesconto(d), descricao: descricaoDesconto(d), entrada: 0, saida: Number(d.valor), removivel: true });
       // Save completed plans before creating taxes, retaining them even if the next call fails.
       setPlanos((prev) => prev.filter((p) => !planosSelecionados.some((s) => s.id === p.id)));
       setExistentes((prev) => [...prev, ...primeiras]);
@@ -107,6 +108,7 @@ export function DescontosMotoristaPicker({ colaborador, periodo, disponiveis, on
           <Checkbox aria-label={d.descricao} checked={selected.has(d.id)} disabled={busy} onCheckedChange={(v) => setSelected((prev) => {
             const next = new Set(prev); if (v === true) next.add(d.id); else next.delete(d.id); return next;
           })} />
+          {d.mov && <span className="shrink-0 whitespace-nowrap text-muted-foreground">{formatDateBR(d.mov.data)}</span>}
           <span className="min-w-0 flex-1 break-words">{d.descricao}</span><span className="shrink-0 font-mono text-destructive">{brl(d.valor)}</span>
         </label>{d.plano && <Button variant="ghost" size="icon" aria-label={`Remover ${d.plano.descricao}`} title="Remover desconto da seleção" disabled={busy} onClick={() => {
           setPlanos((prev) => prev.filter((p) => p.id !== d.id)); setSelected((prev) => { const n = new Set(prev); n.delete(d.id); return n; });

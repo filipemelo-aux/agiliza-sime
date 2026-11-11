@@ -31,6 +31,13 @@ export function parcelasDesconto(plano: Pick<PlanoDesconto, "tipo" | "valor" | "
   });
 }
 
+/** The payroll period selects installments; the original debit date is display-only. */
+export function dataOriginalDesconto(d: { data_referencia: string; data_original?: string | null; descricao?: string | null; parcela_numero?: number | null }) {
+  // Legacy installments without a source must not masquerade as a new debit.
+  if (!d.data_original && ((d.parcela_numero || 0) > 1 || /parcela\s+\d+\//i.test(d.descricao || ""))) return "";
+  return (d.data_original || d.data_referencia).slice(0, 10);
+}
+
 export function descricaoDesconto(d: { tipo: string; descricao: string | null; parcela_numero?: number | null; parcelas_total?: number | null }) {
   const parcela = d.parcela_numero && d.parcelas_total && d.parcelas_total > 1 && !/parcela\s+\d+\//i.test(d.descricao || "") ? ` — parcela ${d.parcela_numero}/${d.parcelas_total}` : "";
   return `${DESCONTO_LABELS[d.tipo] || d.tipo}${d.descricao ? ` · ${d.descricao}` : ""}${parcela}`;
