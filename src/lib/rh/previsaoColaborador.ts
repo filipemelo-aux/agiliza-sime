@@ -3,6 +3,7 @@ import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
 import { resolvePrintHeaders } from "@/lib/printHeader";
 import { printBrandFooterHtml } from "@/lib/printBrand";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
+import { quintoDiaUtilMesSeguinte } from "./quintoDiaUtil";
 
 export type PrevisaoItem = { data: string; tipo: string; descricao: string; valor: number; parcela?: string };
 export type PrevisaoMes = { mes: string; salario: number; descontos: PrevisaoItem[]; totalDescontos: number; liquido: number };
@@ -55,11 +56,11 @@ const nomeMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]}/${m.slice(0,
 export async function baixarPrevisaoColaboradorPdf(nome: string, meses: PrevisaoMes[]) {
   const totDesc = r2(meses.reduce((s, m) => s + m.totalDescontos, 0));
   const totSal = r2(meses.reduce((s, m) => s + m.salario, 0));
-  const blocos = meses.map((m) => `<div class="mes"><h3>${nomeMes(m.mes)}</h3><table class="mov"><colgroup><col style="width:14%"><col style="width:20%"><col style="width:44%"><col style="width:22%"></colgroup>
-    <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="r">Valor</th></tr></thead><tbody>
-    <tr><td>—</td><td>Salário base</td><td>Valor a receber no mês</td><td class="r pos">R$ ${brl(m.salario)}</td></tr>
-    ${m.descontos.map((d) => `<tr><td>${dt(d.data)}</td><td>${esc(d.tipo)}</td><td>${esc(d.descricao)}${d.parcela ? ` — parcela ${d.parcela}` : ""}</td><td class="r neg">R$ ${brl(d.valor)}</td></tr>`).join("")}
-    </tbody><tfoot><tr><td colspan="3">Débitos R$ ${brl(m.totalDescontos)} · Previsão líquida</td><td class="r liq">R$ ${brl(m.liquido)}</td></tr></tfoot></table></div>`).join("");
+  const blocos = meses.map((m) => { const pg = dt(quintoDiaUtilMesSeguinte(`${m.mes}-01`)); return `<div class="mes"><h3>${nomeMes(m.mes)} <small style="font-weight:normal;color:#5b6b7f">· pagamento previsto ${pg}</small></h3><table class="mov"><colgroup><col style="width:14%"><col style="width:20%"><col style="width:44%"><col style="width:22%"></colgroup>
+    <thead><tr><th>Pagamento</th><th>Tipo</th><th>Descrição</th><th class="r">Valor</th></tr></thead><tbody>
+    <tr><td>${pg}</td><td>Salário base</td><td>Valor a receber no mês</td><td class="r pos">R$ ${brl(m.salario)}</td></tr>
+    ${m.descontos.map((d) => `<tr><td>${pg}</td><td>${esc(d.tipo)}</td><td>${esc(d.descricao)}${d.parcela && !/parcela\s*\d/i.test(d.descricao) ? ` — parcela ${d.parcela}` : ""}</td><td class="r neg">R$ ${brl(d.valor)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="3">Débitos R$ ${brl(m.totalDescontos)} · Previsão líquida</td><td class="r liq">R$ ${brl(m.liquido)}</td></tr></tfoot></table></div>`; }).join("");
   let html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Previsões ${esc(nome)}</title><style>
     *{box-sizing:border-box}body{font:9px Arial,Helvetica,sans-serif;color:#1c2733;margin:0}.doc-page{width:190mm}
     p{margin:6px 0 10px;font-size:9.5px;color:#5b6b7f}h3{font-size:11px;color:#2B4C7E;margin:12px 0 4px}.mes{break-inside:avoid}
