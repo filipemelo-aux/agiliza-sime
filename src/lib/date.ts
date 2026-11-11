@@ -2,6 +2,25 @@ import { format, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const TZ_BRASIL = "America/Sao_Paulo";
+const HAS_OFFSET_REGEX = /(Z|[+-]\d{2}:?\d{2})$/;
+
+/**
+ * Reescreve um instante como o relógio de Brasília, para que a formatação
+ * local mostre a data brasileira mesmo em máquinas com outro fuso.
+ */
+const toBrasiliaWallClock = (d: Date): Date => {
+  const p = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ_BRASIL, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(d).reduce<Record<string, string>>((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+  const hour = p.hour === "24" ? "00" : p.hour;
+  const shifted = new Date(`${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}`);
+  return isValid(shifted) ? shifted : d;
+};
+
+/** true quando o valor traz o fuso explícito (Z ou ±hh:mm) — ou seja, é um instante. */
+const isInstant = (input: Date | string) => !(typeof input === "string" && !HAS_OFFSET_REGEX.test(input));
 
 /**
  * Safely parse a date input, using T12:00:00 for date-only strings
@@ -40,7 +59,8 @@ export const normalizeDateInput = (input?: string | null): string | null => {
   if (DATE_ONLY_REGEX.test(input)) return input;
 
   const parsed = parseDateInput(input);
-  return parsed ? format(parsed, "yyyy-MM-dd") : null;
+  if (!parsed) return null;
+  return format(HAS_OFFSET_REGEX.test(input) ? toBrasiliaWallClock(parsed) : parsed, "yyyy-MM-dd");
 };
 
 /**
@@ -52,7 +72,7 @@ export const formatDateBR = (input?: Date | string | null, pattern = "dd/MM/yyyy
   if (!input) return "—";
   const parsed = parseDateInput(input);
   if (!parsed) return "—";
-  return format(parsed, pattern, { locale: ptBR });
+  return format(isInstant(input) ? toBrasiliaWallClock(parsed) : parsed, pattern, { locale: ptBR });
 };
 
 /**
