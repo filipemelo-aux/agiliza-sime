@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Smartphone, Eraser } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles, FileCheck2, LockOpen, Smartphone, Eraser, CalendarClock } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DriverPortalAccessDialog } from "@/components/rh/DriverPortalAccessDialog";
 import { PortalReasonsSettings } from "@/components/rh/PortalReasonsSettings";
@@ -36,6 +36,7 @@ import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
 import { JanelaSalarioConfigCard } from "@/components/rh/JanelaSalarioConfigCard";
+import { carregarDescontosFuturos, montarPrevisao, baixarPrevisaoColaboradorPdf } from "@/lib/rh/previsaoColaborador";
 import { MotoristaMovimentacoesDialog } from "@/components/rh/MotoristaMovimentacoesDialog";
 import {
   buildMetricsByColab,
@@ -484,10 +485,26 @@ function RHWorkspace(props: any) {
     }
   };
 
+  const [previsaoBusy, setPrevisaoBusy] = useState(false);
+  const imprimirPrevisao = async () => {
+    const c = selectedPeople[0];
+    if (!c || !periodoAtivo) return;
+    setPrevisaoBusy(true);
+    try {
+      const itens = await carregarDescontosFuturos(c.id, periodoAtivo.inicio);
+      await baixarPrevisaoColaboradorPdf(c.full_name, montarPrevisao(periodoAtivo.inicio.slice(0, 7), Number(c.salario || 0), itens));
+    } catch (e: any) {
+      toast.error("Não foi possível gerar o relatório de previsões: " + (e?.message || e));
+    } finally {
+      setPrevisaoBusy(false);
+    }
+  };
+
   const peopleActions: ToolbarAction[] = [
     { key: "mov", label: "Nova movimentação", icon: HandCoins, mode: "single", variant: "default", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: () => selectedPeople[0] && setMovFor(selectedPeople[0]) },
     { key: "gerar", label: "Gerar fechamento", icon: FileCheck2, mode: "single", disabled: !!selAcerto || acertoBusy || resumoLoading, onClick: gerarAcerto },
     { key: "editar", label: "Liberar acerto", icon: LockOpen, mode: "single", disabled: !selAcerto || acertoBusy, onClick: editarAcerto },
+    ...(!isMotoristas ? [{ key: "previsao", label: "Relatório de previsões", icon: CalendarClock, mode: "single" as const, disabled: previsaoBusy, onClick: imprimirPrevisao }] : []),
   ];
 
   const allItems: NavItem[] = [
@@ -566,6 +583,7 @@ function RHWorkspace(props: any) {
         {isPeople && (
           <div className="space-y-3">
             <GlobalToolbar actions={peopleActions} selectedCount={selectedColabs.size} />
+            <ProcessingOverlay open={previsaoBusy} label="Gerando relatório de previsões..." />
             <DataGrid
               rows={peopleRows}
               columns={peopleColumns}
