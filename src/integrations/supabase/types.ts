@@ -6575,6 +6575,14 @@ export type Database = {
         }
         Returns: Json
       }
+      remover_plano_desconto_acerto: {
+        Args: {
+          _colaborador_id: string
+          _desconto_id: string
+          _periodo_inicio: string
+        }
+        Returns: undefined
+      }
       remover_vale_parcelado_acerto: {
         Args: {
           _colaborador_id: string

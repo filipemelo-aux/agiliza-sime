@@ -351,6 +351,13 @@
       "when": 1794411788703,
       "tag": "0049_monthly_advance_installments_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794417835270,
+      "tag": "0050_undo_installment_plan_on_unlink",
+      "breakpoints": true
     }
   ]
 }

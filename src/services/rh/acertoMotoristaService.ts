@@ -151,6 +151,11 @@ export async function removerDoAcerto(colabId: string, p: PeriodoAcerto, movs: M
       if (error) throw error;
       continue;
     }
+    if (m.origemTipo === "desconto") {
+      const { error } = await (supabase.rpc as any)("remover_plano_desconto_acerto", { _colaborador_id: colabId, _periodo_inicio: p.inicio, _desconto_id: m.origemId });
+      if (error) throw error;
+      continue;
+    }
     const { error } = await (supabase.from("acerto_movimentos" as any) as any).delete()
       .eq("colaborador_id", colabId).eq("periodo_inicio", p.inicio).eq("origem_tipo", m.origemTipo).eq("origem_id", m.origemId);
     if (error) throw error;
