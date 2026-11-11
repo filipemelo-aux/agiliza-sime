@@ -1,6 +1,23 @@
 import { describe, it, expect, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { montarPrevisao } from "./previsaoColaborador";
+import { montarPrevisao, valorOriginalParcela } from "./previsaoColaborador";
+
+describe("valorOriginalParcela", () => {
+  const totais = { planos: new Map([["p1", 420]]), despesas: new Map([["e1", 400]]) };
+
+  it("mostra o total do plano de desconto parcelado em 3 vezes", () => {
+    expect(valorOriginalParcela(3, "p1", null, totais)).toBe(420);
+  });
+
+  it("mostra o valor integral do vale/adiantamento de origem", () => {
+    expect(valorOriginalParcela(2, null, "e1", totais)).toBe(400);
+  });
+
+  it("não marca valor original em lançamento avulso", () => {
+    expect(valorOriginalParcela(1, null, "e1", totais)).toBeUndefined();
+    expect(valorOriginalParcela(null, null, null, totais)).toBeUndefined();
+  });
+});
 
 describe("montarPrevisao", () => {
   it("agrupa parcelas futuras mês a mês com salário", () => {

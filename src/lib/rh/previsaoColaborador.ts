@@ -5,11 +5,48 @@ import { printBrandFooterHtml } from "@/lib/printBrand";
 import { getCurrentTenantLogoUrl } from "@/lib/tenantLogo";
 import { quintoDiaUtilMesSeguinte } from "./quintoDiaUtil";
 
-export type PrevisaoItem = { data: string; tipo: string; descricao: string; valor: number; parcela?: string };
+export type PrevisaoItem = { data: string; tipo: string; descricao: string; valor: number; parcela?: string; valorOriginal?: number };
 export type PrevisaoMes = { mes: string; salario: number; descontos: PrevisaoItem[]; totalDescontos: number; liquido: number };
 
 const TIPOS: Record<string, string> = { adiantamento: "Adiantamento", vale: "Vale", inss: "INSS", irrf: "IRRF", faltas: "Faltas", multas: "Multas", outros: "Outros", combustivel: "Combustível", credito_trabalhador: "Crédito do Trabalhador", avaria: "Avaria" };
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+type TotaisOrigem = { planos: Map<string, number>; despesas: Map<string, number> };
+
+/**
+ * Valor total de um lançamento parcelado: soma das parcelas do plano de desconto
+ * ou o valor integral da despesa de origem (vale/adiantamento).
+ * Retorna undefined quando o lançamento não é parcelado.
+ */
+export function valorOriginalParcela(
+  parcelasTotal: number | null | undefined,
+  planoDescontoId: string | null | undefined,
+  origemId: string | null | undefined,
+  totais: TotaisOrigem,
+): number | undefined {
+  if (!parcelasTotal || parcelasTotal <= 1) return undefined;
+  const total = (planoDescontoId ? totais.planos.get(planoDescontoId) : undefined) ?? (origemId ? totais.despesas.get(origemId) : undefined) ?? 0;
+  return total > 0 ? r2(total) : undefined;
+}
+
+/** Totais originais dos lançamentos parcelados: soma das parcelas de cada plano e valor integral de cada despesa de origem. */
+async function carregarTotaisOrigem(rows: any[]): Promise<TotaisOrigem> {
+  const planos = new Map<string, number>();
+  const despesas = new Map<string, number>();
+  const planoIds = [...new Set(rows.map((r) => r.plano_desconto_id).filter(Boolean))] as string[];
+  const expIds = [...new Set(rows.map((r) => r.adiantamento_origem_id).filter(Boolean))] as string[];
+  if (planoIds.length) {
+    const { data, error } = await (supabase.from("descontos_folha" as any) as any).select("plano_desconto_id, valor").in("plano_desconto_id", planoIds);
+    if (error) throw error;
+    for (const r of (data || []) as any[]) planos.set(r.plano_desconto_id, (planos.get(r.plano_desconto_id) || 0) + Number(r.valor || 0));
+  }
+  if (expIds.length) {
+    const { data, error } = await (supabase.from("expenses" as any) as any).select("id, valor_total").in("id", expIds);
+    if (error) throw error;
+    for (const r of (data || []) as any[]) despesas.set(r.id, Number(r.valor_total || 0));
+  }
+  return { planos, despesas };
+}
 
 /** Agrupa os descontos futuros por mês (a partir de `mesInicial`, AAAA-MM) e projeta o salário a receber em cada mês. */
 export function montarPrevisao(mesInicial: string, salario: number, itens: PrevisaoItem[]): PrevisaoMes[] {
@@ -31,7 +68,7 @@ export function montarPrevisao(mesInicial: string, salario: number, itens: Previ
 /** Parcelas/descontos ainda não usados em nenhum acerto nem folha. */
 export async function carregarDescontosFuturos(colabId: string, desde: string): Promise<PrevisaoItem[]> {
   const { data, error } = await (supabase.from("descontos_folha" as any) as any)
-    .select("id, tipo, valor, descricao, data_referencia, parcela_numero, parcelas_total")
+    .select("id, tipo, valor, descricao, data_referencia, parcela_numero, parcelas_total, plano_desconto_id, adiantamento_origem_id")
     .eq("colaborador_id", colabId).is("folha_pagamento_id", null).gte("data_referencia", desde).order("data_referencia");
   if (error) throw error;
   const rows = (data || []) as any[];
@@ -41,9 +78,11 @@ export async function carregarDescontosFuturos(colabId: string, desde: string): 
     if (e2) throw e2;
     (v || []).forEach((x: any) => usados.add(x.origem_id));
   }
+  const totais = await carregarTotaisOrigem(rows);
   const livres: PrevisaoItem[] = rows.filter((r) => !usados.has(r.id)).map((r) => ({
     data: r.data_referencia, tipo: TIPOS[r.tipo] || r.tipo, descricao: r.descricao || "", valor: Number(r.valor || 0),
     parcela: r.parcela_numero && r.parcelas_total ? `${r.parcela_numero}/${r.parcelas_total}` : undefined,
+    valorOriginal: valorOriginalParcela(r.parcelas_total, r.plano_desconto_id, r.adiantamento_origem_id, totais),
   }));
   return [...livres, ...(await carregarDebitosDosAcertos(colabId, desde))];
 }
@@ -59,24 +98,28 @@ async function carregarDebitosDosAcertos(colabId: string, desde: string): Promis
   const expIds = movs.filter((m) => m.origem_tipo === "expense").map((m) => m.origem_id);
   const descs = new Map<string, any>(); const exps = new Map<string, any>();
   if (descIds.length) {
-    const { data: d, error: e } = await (supabase.from("descontos_folha" as any) as any).select("id, tipo, valor, descricao, parcela_numero, parcelas_total").in("id", descIds);
+    const { data: d, error: e } = await (supabase.from("descontos_folha" as any) as any).select("id, tipo, valor, descricao, parcela_numero, parcelas_total, plano_desconto_id, adiantamento_origem_id").in("id", descIds);
     if (e) throw e; (d || []).forEach((x: any) => descs.set(x.id, x));
   }
   if (expIds.length) {
     const { data: d, error: e } = await (supabase.from("expenses" as any) as any).select("id, descricao, valor_total").in("id", expIds);
     if (e) throw e; (d || []).forEach((x: any) => exps.set(x.id, x));
   }
+  const totais = await carregarTotaisOrigem([...descs.values()]);
+  exps.forEach((x, id) => { if (!totais.despesas.has(id)) totais.despesas.set(id, Number(x.valor_total || 0)); });
   const out: PrevisaoItem[] = [];
   for (const m of movs) {
     if (m.origem_tipo === "desconto") {
       const d = descs.get(m.origem_id); if (!d) continue;
       out.push({ data: m.periodo_inicio, tipo: TIPOS[d.tipo] || d.tipo, descricao: d.descricao || "", valor: Number(m.valor_desconto ?? d.valor ?? 0),
-        parcela: d.parcela_numero && d.parcelas_total ? `${d.parcela_numero}/${d.parcelas_total}` : undefined });
+        parcela: d.parcela_numero && d.parcelas_total ? `${d.parcela_numero}/${d.parcelas_total}` : undefined,
+        valorOriginal: valorOriginalParcela(d.parcelas_total, d.plano_desconto_id, d.adiantamento_origem_id, totais) });
     } else if (m.origem_tipo === "expense") {
       const x = exps.get(m.origem_id); if (!x) continue;
       const tot = Number(m.parcelas_total || 1);
       out.push({ data: m.periodo_inicio, tipo: m.natureza === "vale" ? "Adiantamento" : "Outros", descricao: x.descricao || "",
-        valor: Number(m.valor_desconto ?? x.valor_total ?? 0), parcela: tot > 1 ? `1/${tot}` : undefined });
+        valor: Number(m.valor_desconto ?? x.valor_total ?? 0), parcela: tot > 1 ? `1/${tot}` : undefined,
+        valorOriginal: valorOriginalParcela(tot, null, m.origem_id, totais) });
     }
   }
   return out;
@@ -91,11 +134,12 @@ const nomeMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]}/${m.slice(0,
 export async function baixarPrevisaoColaboradorPdf(nome: string, meses: PrevisaoMes[]) {
   const totDesc = r2(meses.reduce((s, m) => s + m.totalDescontos, 0));
   const totSal = r2(meses.reduce((s, m) => s + m.salario, 0));
-  const blocos = meses.map((m) => { const pg = dt(quintoDiaUtilMesSeguinte(`${m.mes}-01`)); return `<div class="mes"><h3>${nomeMes(m.mes)} <small style="font-weight:normal;color:#5b6b7f">· pagamento previsto ${pg}</small></h3><table class="mov"><colgroup><col style="width:14%"><col style="width:20%"><col style="width:44%"><col style="width:22%"></colgroup>
-    <thead><tr><th>Pagamento</th><th>Tipo</th><th>Descrição</th><th class="r">Valor</th></tr></thead><tbody>
-    <tr><td>${pg}</td><td>Salário base</td><td>Valor a receber no mês</td><td class="r pos">R$ ${brl(m.salario)}</td></tr>
-    ${m.descontos.map((d) => `<tr><td>${pg}</td><td>${esc(d.tipo)}</td><td>${esc(d.descricao)}${d.parcela && !/parcela\s*\d/i.test(d.descricao) ? ` — parcela ${d.parcela}` : ""}</td><td class="r neg">R$ ${brl(d.valor)}</td></tr>`).join("")}
-    </tbody><tfoot><tr><td colspan="3">Débitos R$ ${brl(m.totalDescontos)} · Previsão líquida</td><td class="r liq">R$ ${brl(m.liquido)}</td></tr></tfoot></table></div>`; }).join("");
+  const orig = (v?: number) => (v ? `R$ ${brl(v)}` : "—");
+  const blocos = meses.map((m) => { const pg = dt(quintoDiaUtilMesSeguinte(`${m.mes}-01`)); return `<div class="mes"><h3>${nomeMes(m.mes)} <small style="font-weight:normal;color:#5b6b7f">· pagamento previsto ${pg}</small></h3><table class="mov"><colgroup><col style="width:12%"><col style="width:16%"><col style="width:34%"><col style="width:19%"><col style="width:19%"></colgroup>
+    <thead><tr><th>Pagamento</th><th>Tipo</th><th>Descrição</th><th class="r">Valor original</th><th class="r">Valor</th></tr></thead><tbody>
+    <tr><td>${pg}</td><td>Salário base</td><td>Valor a receber no mês</td><td class="r orig">—</td><td class="r pos">R$ ${brl(m.salario)}</td></tr>
+    ${m.descontos.map((d) => `<tr><td>${pg}</td><td>${esc(d.tipo)}</td><td>${esc(d.descricao)}${d.parcela && !/parcela\s*\d/i.test(d.descricao) ? ` — parcela ${d.parcela}` : ""}</td><td class="r orig">${orig(d.valorOriginal)}</td><td class="r neg">R$ ${brl(d.valor)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="4">Débitos R$ ${brl(m.totalDescontos)} · Previsão líquida</td><td class="r liq">R$ ${brl(m.liquido)}</td></tr></tfoot></table></div>`; }).join("");
   let html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Previsões ${esc(nome)}</title><style>
     *{box-sizing:border-box}body{font:9px Arial,Helvetica,sans-serif;color:#1c2733;margin:0}.doc-page{width:190mm}
     p{margin:6px 0 10px;font-size:9.5px;color:#5b6b7f}h3{font-size:11px;color:#2B4C7E;margin:12px 0 4px}.mes{break-inside:avoid}
@@ -103,7 +147,7 @@ export async function baixarPrevisaoColaboradorPdf(nome: string, meses: Previsao
     table.mov th{background:#f1f4f9;color:#5b6b7f;text-align:left;padding:5px 4px;font-size:7.5px;text-transform:uppercase;border-bottom:1px solid #dfe4ec}
     table.mov td{padding:4px;border-bottom:1px solid #e7ebf1;overflow-wrap:anywhere}
     table.mov tfoot td{background:#f8fafc;border-top:2px solid #2B4C7E;font-weight:bold}
-    .r{text-align:right;white-space:nowrap}.pos{color:#1e7e38}.neg{color:#dc2626}.liq{color:#2B4C7E}
+    .r{text-align:right;white-space:nowrap}table.mov th.r{text-align:right}.pos{color:#1e7e38}.neg{color:#dc2626}.liq{color:#2B4C7E}.orig{color:#5b6b7f}
     .resumo{margin-top:14px;width:60%;margin-left:auto;border-collapse:collapse;font-size:11px}.resumo td{padding:4px 6px;border-bottom:1px solid #e5e7eb}
     .saldo td{font-size:13px;font-weight:bold;color:#2B4C7E;border-top:2px solid #2B4C7E}
   </style></head><body><section class="doc-page">
