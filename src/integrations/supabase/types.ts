@@ -6483,6 +6483,14 @@ export type Database = {
         }
       }
       current_tenant_id: { Args: never; Returns: string }
+      delete_payroll_item_with_reversal: {
+        Args: {
+          _execute?: boolean
+          _expected_payment_ids?: string[]
+          _item_id: string
+        }
+        Returns: Json
+      }
       fn_contract_city_from_address: {
         Args: { _addr: string }
         Returns: string

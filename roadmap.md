@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Excluir folha individual com prévia e estorno atômico dos pagamentos do colaborador selecionado, preservando os demais e liberando o acerto para edição; seis testes aprovados e folha temporária paga excluída pela tela com baixa removida e saldo conferido, sem alterar folhas reais.
 - [x] Parcelas de descontos, vales e adiantamentos preservam a data original sem alterar competência; fontes vinculadas recuperadas e testes aprovados. Parcelas antigas sem origem não exibem o mês da parcela como data do débito.
 - [x] Corrigir a segunda parcela duplicada de agosto da Cristhiana: removida somente a cópia não utilizada, preservada uma parcela de R$ 200 ligada ao vale de R$ 400 da folha de julho, data original 19/07/2026 e competência agosto conferidas no banco; fechamento de julho preservado. Conferência pela tela bloqueada por erro de carregamento das configurações na sessão disponível.
 - [x] Plano de contas por motivo na linha do grid do Portal do Motorista: salvamento/releitura e remoção conferidos, aplicação aos novos reembolsos publicada e 12 testes aprovados; configuração do teste restaurada.

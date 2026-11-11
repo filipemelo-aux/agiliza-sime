@@ -46,6 +46,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { imprimirRecibosPagamento, type HoleriteItem } from "@/lib/folhaPagamentoPrint";
 import { cn } from "@/lib/utils";
 import { getLocalDateISO } from "@/lib/date";
+import { consultarEstornoFolha, excluirFolhaComEstorno } from "@/services/rh/folhaEstornoService";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
@@ -323,19 +324,23 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   };
 
   const handleDeleteItem = async (folha: FolhaPagamento, item: FolhaItem) => {
-    const ok = await confirm({
-      title: `Excluir ${tipoPorColab.get(item.colaborador_id) === "motorista" ? "acerto" : "folha"} de ${item.colaborador_nome}?`,
-      description: tipoPorColab.get(item.colaborador_id) === "motorista"
-        ? "O acerto sai da folha e volta a ficar editável na tela Motoristas. A conta gerada no Contas a Pagar, se houver, é removida."
-        : "O colaborador sai da folha e volta a ficar editável em Administrativo / Operacional. A conta gerada no Contas a Pagar, se houver, é removida.",
-      confirmLabel: "Excluir",
-      variant: "destructive",
-    });
-    if (!ok) return;
-    setActing(item.id);
+    setActing("excluir-folha");
     try {
-      if (folha.status === "confirmada") await reabrirFolhaConfirmada(folha.id);
-      await excluirItemFolhaEmAberto(folha.id, item.id);
+      const previa = await consultarEstornoFolha(item.id);
+      setActing(null);
+      const pagamentos = previa.pagamentos.map(p => `${fmtData(p.data)} · ${p.descricao} · ${formatBRL(Number(p.valor))} (${p.forma})`).join("\n");
+      const ok = await confirm({
+        title: `Excluir ${tipoPorColab.get(item.colaborador_id) === "motorista" ? "acerto" : "folha"} de ${item.colaborador_nome}?`,
+        description: (previa.pagamentos.length
+          ? `Pagamentos que serão estornados:\n${pagamentos}\n\nTotal do estorno: ${formatBRL(Number(previa.total))}.\n\n`
+          : "Não há pagamentos deste colaborador para estornar.\n\n") +
+          "O estorno será refletido em Contas Pagas e no Fluxo de Caixa. A conta gerada pela folha será removida e o fechamento voltará a ficar editável. Reembolsos originais e adiantamentos serão preservados. Os pagamentos dos demais colaboradores não serão alterados.",
+        confirmLabel: previa.pagamentos.length ? "Estornar e excluir" : "Excluir",
+        variant: "destructive",
+      });
+      if (!ok) return;
+      setActing("excluir-folha");
+      await excluirFolhaComEstorno(previa);
       toast.success(`Folha de ${item.colaborador_nome} excluída.`);
       await load();
       onChanged();
@@ -411,7 +416,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     { key: "visualizar", label: "Visualizar", icon: Eye, mode: "single", onClick: () => one && (one.motorista ? setFechamento(one) : setVisualizarFolha(one)), disabled: !one },
     { key: "imprimir-acerto", label: "Imprimir acerto", icon: Printer, mode: "single", onClick: imprimirAcerto, disabled: acting === "acerto-pdf" || !one?.motorista },
     { key: "imprimir-folha", label: "Imprimir folha de pagamento", icon: FileText, mode: "batch", onClick: handleSelectedReceipts, disabled: acting === "recibos" || sel.length === 0 || sel.some((l) => l.motorista) },
-    { key: "excluir", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => one && handleDeleteItem(one.folha, one.item), disabled: !one || one.pago || one.sit === "cancelada" },
+    { key: "excluir", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => one && handleDeleteItem(one.folha, one.item), disabled: !one || !!acting || one.sit === "cancelada" },
   ];
 
   const money = (v: number, cls = "") => <span className={cn("tabular-nums", cls)}>{formatBRL(v)}</span>;
@@ -432,7 +437,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   return (
     <>
-      <ProcessingOverlay open={acting === "acerto-pdf" || acting === "recibos" || acting === "resumo-pdf"} label={acting === "resumo-pdf" ? "Gerando resumo da folha para download..." : acting === "recibos" ? "Gerando folha de pagamento para download..." : "Gerando fechamento do motorista para download..."} />
+      <ProcessingOverlay open={acting === "excluir-folha" || acting === "acerto-pdf" || acting === "recibos" || acting === "resumo-pdf"} label={acting === "excluir-folha" ? "Processando exclusão e estorno da folha..." : acting === "resumo-pdf" ? "Gerando resumo da folha para download..." : acting === "recibos" ? "Gerando folha de pagamento para download..." : "Gerando fechamento do motorista para download..."} />
       <div className="space-y-3">
         <GlobalToolbar actions={actions} selectedCount={selecionados.size} />
         <DataGrid
