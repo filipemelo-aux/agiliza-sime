@@ -250,6 +250,19 @@
       max-width: 32px !important;
     }
 
+    /* Folha de Pagamento: as larguras declaradas somam ~1650px. Sem esta
+       exceção a grade é espremida à janela e "Tipo"/"Período" quebram. */
+    .folha-grid .data-grid-table {
+      min-width: var(--data-grid-min-width) !important;
+      max-width: none !important;
+    }
+
+    /* A regra global de "tipo" (68px) cortaria "Acerto motorista" nesta grade. */
+    .folha-grid .data-grid-table th[data-column-key="tipo"],
+    .folha-grid .data-grid-table td[data-column-key="tipo"] {
+      width: 142px !important;
+    }
+
     /* Filial: cabeçalho "FILIAL" + seta de ordenação */
     .data-grid-table th[data-column-key="empresa"],
     .data-grid-table td[data-column-key="empresa"] {

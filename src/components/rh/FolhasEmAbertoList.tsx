@@ -436,17 +436,17 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const money = (v: number, cls = "") => <span className={cn("tabular-nums", cls)}>{formatBRL(v)}</span>;
   const tot = (f: (i: FolhaItem) => number) => linhas.reduce((s, l) => s + f(l.item), 0);
   const columns: DataGridColumn<Linha>[] = [
-    { key: "nome", header: "Colaborador", cell: (l) => <span className="font-medium">{l.item.colaborador_nome}</span>, sortValue: (l) => l.item.colaborador_nome },
-    { key: "tipo", header: "Tipo", cell: (l) => l.motorista ? "Acerto motorista" : "Folha adm./oper.", sortValue: (l) => (l.motorista ? 1 : 0) },
-    { key: "periodo", header: "Período", cell: (l) => `${fmtData(l.folha.data_inicio)} a ${fmtData(l.folha.data_fim)}`, sortValue: (l) => l.folha.data_inicio },
-    { key: "venc", header: "Vencimento", cell: (l) => fmtData(l.folha.data_vencimento), sortValue: (l) => l.folha.data_vencimento },
-    { key: "base", header: "Base", align: "right", cell: (l) => money(Number(l.item.salario_base)), sortValue: (l) => Number(l.item.salario_base) },
-    { key: "com", header: "Comissões", align: "right", cell: (l) => money(Number(l.item.comissoes)), sortValue: (l) => Number(l.item.comissoes), footer: linhas.length ? money(tot((i) => Number(i.comissoes))) : undefined },
-    { key: "reemb", header: "Reembolsos", align: "right", cell: (l) => money(Number(l.item.reembolsos || 0)), sortValue: (l) => Number(l.item.reembolsos || 0), footer: linhas.length ? money(tot((i) => Number(i.reembolsos || 0))) : undefined },
-    { key: "adiant", header: "Adiant. / Vales", align: "right", cell: (l) => money(Number(l.item.adiantamentos), "text-destructive"), sortValue: (l) => Number(l.item.adiantamentos), footer: linhas.length ? money(tot((i) => Number(i.adiantamentos)), "text-destructive") : undefined },
-    { key: "desc", header: "Descontos", align: "right", cell: (l) => money(Number(l.item.descontos), "text-destructive"), sortValue: (l) => Number(l.item.descontos), footer: linhas.length ? money(tot((i) => Number(i.descontos)), "text-destructive") : undefined },
-    { key: "liq", header: "Líquido", align: "right", cell: (l) => money(Number(l.item.liquido), "font-semibold"), sortValue: (l) => Number(l.item.liquido), footer: linhas.length ? money(tot((i) => Number(i.liquido))) : undefined },
-    { key: "sit", header: "Situação", cell: (l) => l.pago ? "Pago" : SITUACAO_UI[l.sit].label, sortValue: (l) => (l.pago ? "Pago" : SITUACAO_UI[l.sit].label) },
+    { key: "nome", header: "Colaborador", width: "200px", cell: (l) => <span className="font-medium block truncate" title={l.item.colaborador_nome}>{l.item.colaborador_nome}</span>, sortValue: (l) => l.item.colaborador_nome },
+    { key: "tipo", header: "Tipo", width: "142px", className: "whitespace-nowrap", cell: (l) => l.motorista ? "Acerto motorista" : "Folha adm./oper.", sortValue: (l) => (l.motorista ? 1 : 0) },
+    { key: "periodo", header: "Período", width: "200px", className: "whitespace-nowrap", cell: (l) => `${fmtData(l.folha.data_inicio)} a ${fmtData(l.folha.data_fim)}`, sortValue: (l) => l.folha.data_inicio },
+    { key: "venc", header: "Vencimento", width: "136px", className: "whitespace-nowrap", cell: (l) => fmtData(l.folha.data_vencimento), sortValue: (l) => l.folha.data_vencimento },
+    { key: "base", header: "Base", align: "right", width: "99px", className: "whitespace-nowrap", cell: (l) => money(Number(l.item.salario_base)), sortValue: (l) => Number(l.item.salario_base) },
+    { key: "com", header: "Comissões", align: "right", width: "124px", className: "whitespace-nowrap", cell: (l) => money(Number(l.item.comissoes)), sortValue: (l) => Number(l.item.comissoes), footer: linhas.length ? money(tot((i) => Number(i.comissoes))) : undefined },
+    { key: "reemb", header: "Reembolsos", align: "right", width: "137px", className: "whitespace-nowrap", cell: (l) => money(Number(l.item.reembolsos || 0)), sortValue: (l) => Number(l.item.reembolsos || 0), footer: linhas.length ? money(tot((i) => Number(i.reembolsos || 0))) : undefined },
+    { key: "adiant", header: "Adiant. / Vales", align: "right", width: "158px", className: "whitespace-nowrap", cell: (l) => money(Number(l.item.adiantamentos), "text-destructive"), sortValue: (l) => Number(l.item.adiantamentos), footer: linhas.length ? money(tot((i) => Number(i.adiantamentos)), "text-destructive") : undefined },
+    { key: "desc", header: "Descontos", align: "right", width: "128px", className: "whitespace-nowrap", cell: (l) => money(Number(l.item.descontos), "text-destructive"), sortValue: (l) => Number(l.item.descontos), footer: linhas.length ? money(tot((i) => Number(i.descontos)), "text-destructive") : undefined },
+    { key: "liq", header: "Líquido", align: "right", width: "113px", className: "whitespace-nowrap", cell: (l) => money(Number(l.item.liquido), "font-semibold"), sortValue: (l) => Number(l.item.liquido), footer: linhas.length ? money(tot((i) => Number(i.liquido))) : undefined },
+    { key: "sit", header: "Situação", width: "110px", className: "whitespace-nowrap", cell: (l) => l.pago ? "Pago" : SITUACAO_UI[l.sit].label, sortValue: (l) => (l.pago ? "Pago" : SITUACAO_UI[l.sit].label) },
   ];
 
   return (
@@ -454,17 +454,19 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
       <ProcessingOverlay open={acting === "excluir-folha" || acting === "acerto-pdf" || acting === "recibos" || acting === "resumo-pdf"} label={acting === "excluir-folha" ? "Processando exclusão e estorno da folha..." : acting === "resumo-pdf" ? "Gerando resumo da folha para download..." : acting === "recibos" ? "Gerando folha de pagamento para download..." : "Gerando fechamento do motorista para download..."} />
       <div className="space-y-3">
         <GlobalToolbar actions={actions} selectedCount={selecionados.size} />
-        <DataGrid
-          rows={linhas}
-          columns={columns}
-          rowId={(l) => l.item.id}
-          selected={selecionados}
-          onSelectedChange={setSelecionados}
-          loading={loading}
-          minWidth={1100}
-          rowClassName={(l) => rowToneClass(l.pago ? "resolved" : l.sit === "cancelada" ? "neutral" : "pending")}
-          emptyMessage="Nenhuma folha ou acerto neste mês. Gere a folha dos administrativos aqui; o acerto dos motoristas é gerado na tela Motoristas."
-        />
+        <div className="folha-grid">
+          <DataGrid
+            rows={linhas}
+            columns={columns}
+            rowId={(l) => l.item.id}
+            selected={selecionados}
+            onSelectedChange={setSelecionados}
+            loading={loading}
+            minWidth={1579}
+            rowClassName={(l) => rowToneClass(l.pago ? "resolved" : l.sit === "cancelada" ? "neutral" : "pending")}
+            emptyMessage="Nenhuma folha ou acerto neste mês. Gere a folha dos administrativos aqui; o acerto dos motoristas é gerado na tela Motoristas."
+          />
+        </div>
         <StatusLegend items={[{ tone: "pending", label: "A pagar" }, { tone: "resolved", label: "Pago" }]} />
       </div>
 
