@@ -1,6 +1,6 @@
 # Roadmap
 - [x] Parcelas de descontos, vales e adiantamentos preservam a data original sem alterar competência; fontes vinculadas recuperadas e testes aprovados. Parcelas antigas sem origem não exibem o mês da parcela como data do débito.
-- [ ] Recuperar a data exata das duas parcelas antigas de agosto da Cristhiana: despesas de origem não existem mais; aguarda informação do usuário. Conferência pela tela bloqueada pelo erro de carregamento das configurações na sessão disponível.
+- [x] Corrigir a segunda parcela duplicada de agosto da Cristhiana: removida somente a cópia não utilizada, preservada uma parcela de R$ 200 ligada ao vale de R$ 400 da folha de julho, data original 19/07/2026 e competência agosto conferidas no banco; fechamento de julho preservado. Conferência pela tela bloqueada por erro de carregamento das configurações na sessão disponível.
 - [x] Plano de contas por motivo na linha do grid do Portal do Motorista: salvamento/releitura e remoção conferidos, aplicação aos novos reembolsos publicada e 12 testes aprovados; configuração do teste restaurada.
 - [x] Gerenciar motivos de reembolso na aba Portal do Motorista: adicionar, editar e remover por empresa; dois testes aprovados e salvamento/releitura/seleção/remoção conferidos no portal autenticado; motivo temporário removido.
 - [x] Portal: “Placa:” e logo exclusiva do cadastro global; logo existente da Sime cadastrada, troca de CPF e login real com placa conferidos no computador e celular; dois testes aprovados.
