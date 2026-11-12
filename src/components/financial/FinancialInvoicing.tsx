@@ -259,9 +259,9 @@ export function FinancialInvoicing() {
   }
   const [batchReceiveContas, setBatchReceiveContas] = useState<BatchReceiveConta[]>([]);
   const [batchReceiveSelected, setBatchReceiveSelected] = useState<Set<string>>(new Set());
-  const [batchReceiveDate, setBatchReceiveDate] = useState<string>(getLocalDateISO());
   const [batchReceiveForma, setBatchReceiveForma] = useState("pix");
   const [batchReceiveValores, setBatchReceiveValores] = useState<Record<string, string>>({});
+  const [batchReceiveDatas, setBatchReceiveDatas] = useState<Record<string, string>>({});
   const [batchReceiveSaving, setBatchReceiveSaving] = useState(false);
 
   useEffect(() => {
@@ -1104,7 +1104,7 @@ export function FinancialInvoicing() {
     setBatchReceiveContas(items);
     setBatchReceiveSelected(new Set(items.map((i) => i.id)));
     setBatchReceiveValores(Object.fromEntries(items.map((i) => [i.id, String(i.saldo)])));
-    setBatchReceiveDate(getLocalDateISO());
+    setBatchReceiveDatas(Object.fromEntries(items.map((i) => [i.id, i.data_vencimento])));
     setBatchReceiveForma("pix");
     setBatchReceiveOpen(true);
   };
@@ -1119,7 +1119,6 @@ export function FinancialInvoicing() {
   const handleBatchReceiveConfirm = async () => {
     const selected = batchReceiveContas.filter((c) => batchReceiveSelected.has(c.id));
     if (selected.length === 0) return toast.error("Selecione ao menos um título");
-    if (!batchReceiveDate) return toast.error("Informe a data do recebimento");
     if (!batchReceiveForma) return toast.error("Informe a forma de recebimento");
     if (!user?.id) return toast.error("Sessão inválida");
 
@@ -1127,6 +1126,7 @@ export function FinancialInvoicing() {
       const v = getBatchReceiveValor(it.id, it.saldo);
       if (v <= 0.005) return toast.error(`Valor inválido para título #${it.fatura_numero}`);
       if (v > it.saldo + 0.005) return toast.error(`Valor maior que o saldo de ${formatCurrency(it.saldo)}`);
+      if (!batchReceiveDatas[it.id]) return toast.error(`Informe a data de quitação do título #${it.fatura_numero}`);
     }
 
     setBatchReceiveSaving(true);
@@ -1137,7 +1137,7 @@ export function FinancialInvoicing() {
           conta_receber_id: it.id,
           valor,
           forma_recebimento: batchReceiveForma,
-          data_recebimento: batchReceiveDate,
+          data_recebimento: batchReceiveDatas[it.id],
           observacoes: "Recebimento em lote",
           created_by: user.id,
         });
@@ -2886,7 +2886,7 @@ ${hasRecebimentos ? `
 
           <div className="space-y-3">
             <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
-              Selecione os títulos a receber. O mesmo valor, data e forma serão aplicados a todos.
+              Selecione os títulos a receber. A data de quitação de cada título começa com o próprio vencimento e pode ser ajustada individualmente.
             </div>
 
             <div className="border rounded-md overflow-hidden">
@@ -2906,6 +2906,7 @@ ${hasRecebimentos ? `
                     <TableHead className="text-xs h-8">Vencimento</TableHead>
                     <TableHead className="text-xs h-8 text-right">Saldo</TableHead>
                     <TableHead className="text-xs h-8 text-right">Valor recebido</TableHead>
+                    <TableHead className="text-xs h-8">Quitação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -2949,6 +2950,15 @@ ${hasRecebimentos ? `
                             }}
                           />
                         </TableCell>
+                        <TableCell className="text-xs py-1.5">
+                          <Input
+                            type="date"
+                            className="h-7 w-32 text-xs"
+                            disabled={!checked}
+                            value={batchReceiveDatas[c.id] || ""}
+                            onChange={(e) => setBatchReceiveDatas((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                          />
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -2970,10 +2980,6 @@ ${hasRecebimentos ? `
             })()}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Data do recebimento</Label>
-                <Input type="date" className="h-9 text-xs" value={batchReceiveDate} onChange={(e) => setBatchReceiveDate(e.target.value)} />
-              </div>
               <div>
                 <Label className="text-xs">Forma de recebimento</Label>
                 <Select value={batchReceiveForma} onValueChange={setBatchReceiveForma}>
