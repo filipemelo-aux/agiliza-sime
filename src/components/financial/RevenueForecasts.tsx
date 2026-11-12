@@ -553,6 +553,8 @@ export function RevenueForecasts() {
       icon: Files,
       mode: "single+batch",
       disabled: selectedItems.length === 0,
+      // com apenas uma previsão selecionada, "Gerar Fatura" já cria a única fatura possível
+      hidden: selectedItems.length <= 1,
       onClick: openIndividualDialog,
     },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDeleteSelected },
