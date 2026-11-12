@@ -237,8 +237,6 @@ export function FinancialInvoicing() {
   const [filterStatusFatura, setFilterStatusFatura] = useMemoryState<string>("fi:filterStatusFatura", "todos");
   const [filterVencInicio, setFilterVencInicio] = useMemoryState<string>("fi:filterVencInicio", "");
   const [filterVencFim, setFilterVencFim] = useMemoryState<string>("fi:filterVencFim", "");
-  const [filterEmissaoInicio, setFilterEmissaoInicio] = useMemoryState<string>("fi:filterEmissaoInicio", "");
-  const [filterEmissaoFim, setFilterEmissaoFim] = useMemoryState<string>("fi:filterEmissaoFim", "");
   const [filterNumero, setFilterNumero] = useMemoryState<string>("fi:filterNumero", "");
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
@@ -1831,7 +1829,7 @@ ${hasRecebimentos ? `
 
   const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao_real" | "data_vencimento_ref" | "cliente_nome" | "valor_total" | "condicao_label" | "status">(
     faturas,
-    { key: "numero", direction: "desc" },
+    { key: "data_vencimento_ref", direction: "desc" },
     {
       numero: (r) => r.numero,
       data_emissao_real: (r) => (r as any).data_emissao_real || r.data_emissao,
@@ -1867,9 +1865,6 @@ ${hasRecebimentos ? `
         const venc = String((f as any).data_vencimento_ref || f.data_emissao).slice(0, 10);
         if (filterVencInicio && venc < filterVencInicio) return false;
         if (filterVencFim && venc > filterVencFim) return false;
-        const emissao = String((f as any).data_emissao_real || f.data_emissao).slice(0, 10);
-        if (filterEmissaoInicio && emissao < filterEmissaoInicio) return false;
-        if (filterEmissaoFim && emissao > filterEmissaoFim) return false;
         if (filterNumero.trim()) {
           const q = filterNumero.trim();
           const digits = q.replace(/\D/g, "");
@@ -1881,7 +1876,7 @@ ${hasRecebimentos ? `
         }
         return true;
       }),
-    [faturasSorted, filterEmpresa, filterCliente, filterCondicao, filterStatusFatura, filterVencInicio, filterVencFim, filterEmissaoInicio, filterEmissaoFim, filterNumero],
+    [faturasSorted, filterEmpresa, filterCliente, filterCondicao, filterStatusFatura, filterVencInicio, filterVencFim, filterNumero],
   );
 
   const hasFaturaFilters =
@@ -1890,8 +1885,6 @@ ${hasRecebimentos ? `
     filterStatusFatura !== "todos" ||
     !!filterVencInicio ||
     !!filterVencFim ||
-    !!filterEmissaoInicio ||
-    !!filterEmissaoFim ||
     !!filterNumero;
 
   const clearFaturaFilters = () => {
@@ -1900,8 +1893,6 @@ ${hasRecebimentos ? `
     setFilterStatusFatura("todos");
     setFilterVencInicio("");
     setFilterVencFim("");
-    setFilterEmissaoInicio("");
-    setFilterEmissaoFim("");
     setFilterNumero("");
   };
 
@@ -2013,23 +2004,16 @@ ${hasRecebimentos ? `
 
       <SearchFilterCard contentClassName="block space-y-2">
         <FilterPrimaryRow>
-          <FilterField label="Emissão">
-            <PeriodFilter
-              size="sm"
-              allowClear
-              inicio={filterEmissaoInicio}
-              fim={filterEmissaoFim}
-              onChange={(i, f) => { setFilterEmissaoInicio(i); setFilterEmissaoFim(f); }}
-            />
-          </FilterField>
-          <FilterField label="Vencimento" className="mr-auto">
-            <PeriodFilter
-              size="sm"
-              allowClear
-              inicio={filterVencInicio}
-              fim={filterVencFim}
-              onChange={(i, f) => { setFilterVencInicio(i); setFilterVencFim(f); }}
-            />
+          <FilterField label="Período (vencimento)" className="mr-auto shrink-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <PeriodFilter
+                size="sm"
+                allowClear
+                inicio={filterVencInicio}
+                fim={filterVencFim}
+                onChange={(i, f) => { setFilterVencInicio(i); setFilterVencFim(f); }}
+              />
+            </div>
           </FilterField>
           <FilterField label="Empresa" className="shrink-0">
             <EmpresaFilter value={filterEmpresa} onChange={setFilterEmpresa} />
