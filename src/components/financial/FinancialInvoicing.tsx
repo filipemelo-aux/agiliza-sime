@@ -1912,12 +1912,12 @@ ${hasRecebimentos ? `
       cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
-      key: "numero", header: <span className="whitespace-normal leading-tight">Fatura Nº</span>, width: "104px",
+      key: "numero", header: "Fatura", width: "88px",
       sortValue: (f) => f.numero,
-      cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">#{String(f.numero).padStart(4, "0")}</span>,
+      cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">{String(f.numero).padStart(4, "0")}</span>,
     },
     {
-      key: "documento", header: "CT-e Nº", width: "104px",
+      key: "documento", header: "CT-e", width: "104px",
       sortValue: (f) => (f as any).documentos_sort ?? "",
       cell: (f) => (
         <span
