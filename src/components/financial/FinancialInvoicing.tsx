@@ -1917,11 +1917,6 @@ ${hasRecebimentos ? `
       cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">{String(f.numero).padStart(4, "0")}</span>,
     },
     {
-      key: "empresa", header: "Agência", width: "80px", align: "center",
-      sortValue: (f) => f.empresa_id || "",
-      cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
-    },
-    {
       key: "documento", header: "CT-e", width: "104px",
       sortValue: (f) => (f as any).documentos_sort ?? "",
       cell: (f) => (
@@ -1958,6 +1953,11 @@ ${hasRecebimentos ? `
           {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
         </span>
       ),
+    },
+    {
+      key: "empresa", header: "Agência", width: "80px", align: "center",
+      sortValue: (f) => f.empresa_id || "",
+      cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
       key: "status", header: "Status", width: "80px", align: "center",
