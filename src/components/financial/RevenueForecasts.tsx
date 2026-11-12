@@ -350,10 +350,15 @@ export function RevenueForecasts() {
     setIndividualDialogOpen(true);
   };
 
+  // Vencimento retroativo ou hoje: emissão = vencimento (à vista). Futuro: emissão = hoje.
+  const emissaoIndividual = (venc: string) => {
+    const hoje = getLocalDateISO();
+    return venc && venc <= hoje ? venc : hoje;
+  };
+
   const handleCreateIndividualInvoices = async () => {
     if (selectedItems.length === 0) return;
     if (!individualForma) return toast.error("Selecione a forma de pagamento das faturas");
-    if (!individualEmissao) return toast.error("Informe a data de emissão");
     for (const p of selectedItems) {
       if (!individualVencimentos[p.id]) return toast.error("Defina o vencimento de todas as previsões");
     }
@@ -376,7 +381,7 @@ export function RevenueForecasts() {
             valor_total: Number(p.valor),
             num_parcelas: 1,
             intervalo_dias: 0,
-            data_emissao: individualEmissao,
+            data_emissao: emissaoIndividual(venc),
             data_vencimento_base: venc,
             forma_pagamento: individualForma,
             status: "faturada" as any,
@@ -947,11 +952,10 @@ export function RevenueForecasts() {
             <p className="text-xs text-muted-foreground">
               Será gerada uma fatura para cada previsão, inclusive de clientes diferentes. Defina o vencimento de cada uma.
             </p>
+            <p className="text-xs text-muted-foreground">
+              Emissão automática: vencimento até hoje usa a própria data do vencimento (à vista); vencimento futuro usa a data de hoje.
+            </p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Emissão</Label>
-                <Input type="date" className="h-9" value={individualEmissao} onChange={(e) => setIndividualEmissao(e.target.value)} />
-              </div>
               <div>
                 <Label className="text-xs">Forma de pagamento</Label>
                 <Select value={individualForma} onValueChange={setIndividualForma}>
@@ -973,6 +977,7 @@ export function RevenueForecasts() {
                     <TableHead className="text-xs">Origem</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs">Vencimento</TableHead>
+                    <TableHead className="text-xs">Emissão</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -991,6 +996,7 @@ export function RevenueForecasts() {
                           }
                         />
                       </TableCell>
+                      <TableCell className="text-xs tabular-nums">{formatDateBR(emissaoIndividual(individualVencimentos[p.id] || ""))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

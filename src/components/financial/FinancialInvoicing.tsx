@@ -322,8 +322,8 @@ export function FinancialInvoicing() {
       faturasList.forEach((f: any) => {
         f.valor_recebido_total = sums[f.id] || 0;
         f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
-        // Data de emissão real = data de criação do registro
-        f.data_emissao_real = String(f.created_at).slice(0, 10);
+        // Data de emissão = a gravada na fatura (editável); fallback criação do registro
+        f.data_emissao_real = f.data_emissao ? String(f.data_emissao).slice(0, 10) : String(f.created_at).slice(0, 10);
         // Vencimento: primeira parcela (fallback para o campo legado data_emissao)
         f.data_vencimento_ref = vencMin[f.id] || f.data_emissao;
         f.data_vencimento_max = vencMax[f.id] || f.data_vencimento_ref;
@@ -368,7 +368,7 @@ export function FinancialInvoicing() {
       const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
       faturasList.forEach((f: any) => {
         // Emissão real = data do documento de origem (CT-e/colheita), fallback data_emissao da fatura
-        if (emissaoMap[f.id]) {
+        if (emissaoMap[f.id] && !f.data_emissao) {
           f.data_emissao_real = emissaoMap[f.id];
           if (f.data_vencimento_ref && f.data_vencimento_ref > f.data_emissao_real && Number(f.num_parcelas) === 1) {
             const dias = Math.round(
