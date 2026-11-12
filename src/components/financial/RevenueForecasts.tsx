@@ -127,18 +127,22 @@ export function RevenueForecasts() {
 
     setPrevisoes(mapped);
     setSelected(new Set());
+    setLoading(false);
 
     const cteIds = mapped
       .filter((p: any) => p.origem_tipo === "cte" && p.origem_id)
       .map((p: any) => p.origem_id);
 
     if (cteIds.length > 0) {
-      const { data: ctes } = await supabase
-        .from("ctes")
-        .select("id, numero, numero_interno")
-        .in("id", cteIds);
+      const unique = Array.from(new Set(cteIds));
+      const chunks: string[][] = [];
+      for (let i = 0; i < unique.length; i += 150) chunks.push(unique.slice(i, i + 150));
+      const results = await Promise.all(
+        chunks.map((ids) => supabase.from("ctes").select("id, numero, numero_interno").in("id", ids)),
+      );
+      const ctes = results.flatMap((r) => r.data || []);
       const map: Record<string, number> = {};
-      (ctes || []).forEach((c: any) => {
+      ctes.forEach((c: any) => {
         map[c.id] = c.numero ?? c.numero_interno;
       });
       setCteMap(map);
