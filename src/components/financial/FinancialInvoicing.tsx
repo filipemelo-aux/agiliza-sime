@@ -1917,7 +1917,7 @@ ${hasRecebimentos ? `
       cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">#{String(f.numero).padStart(4, "0")}</span>,
     },
     {
-      key: "documento", header: "Documento", width: "104px",
+      key: "documento", header: "CT-e Nº", width: "104px",
       sortValue: (f) => (f as any).documentos_sort ?? "",
       cell: (f) => (
         <span
