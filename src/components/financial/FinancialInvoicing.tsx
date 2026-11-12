@@ -217,7 +217,7 @@ export function FinancialInvoicing() {
   const [acrescimoStr, setAcrescimoStr] = useState("");
   const [descontoStr, setDescontoStr] = useState("");
   const [observacoesFatura, setObservacoesFatura] = useState("");
-  const [formaPagamentoFatura, setFormaPagamentoFatura] = useState("boleto");
+  const [formaPagamentoFatura, setFormaPagamentoFatura] = useState("");
   const [parcelasCustomOn, setParcelasCustomOn] = useState(false);
   const [parcelasCustom, setParcelasCustom] = useState<{ valor: string; data_vencimento: string }[]>([]);
 
@@ -455,7 +455,7 @@ export function FinancialInvoicing() {
     setAcrescimoStr("");
     setDescontoStr("");
     setObservacoesFatura("");
-    setFormaPagamentoFatura("boleto");
+    setFormaPagamentoFatura("");
     setParcelasCustomOn(false);
     setParcelasCustom([]);
 
@@ -665,6 +665,7 @@ export function FinancialInvoicing() {
   const handleCreateOrUpdateInvoice = async (opts?: { keepOpen?: boolean }): Promise<boolean> => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
     if (selectedItems.length === 0) { toast.error("Selecione ao menos uma previsão"); return false; }
+    if (!formaPagamentoFatura) { toast.error("Selecione a forma de pagamento da fatura"); return false; }
     if (descontoValor > selectedPrevTotal + acrescimoValor) { toast.error("Desconto maior que o valor da fatura"); return false; }
     if (parcelasCustomAtivo) {
       if (parcelasCustom.length === 0) { toast.error("Defina as parcelas personalizadas"); return false; }
@@ -2383,7 +2384,7 @@ ${hasRecebimentos ? `
                 <div>
                   <Label className="text-xs">Forma de pagamento</Label>
                   <Select value={formaPagamentoFatura} onValueChange={setFormaPagamentoFatura}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
                       <SelectItem value="pix">Pix</SelectItem>

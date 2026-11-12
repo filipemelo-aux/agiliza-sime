@@ -32,7 +32,8 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { FilterPrimaryRow, SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { EmpresaFilter } from "./EmpresaControls";
-import { Search, X } from "lucide-react";
+import { Search, X, Files } from "lucide-react";
+import { gerarRemessaCnab } from "@/lib/boleto/remessaService";
 
 
 interface Previsao {
@@ -82,6 +83,8 @@ export function RevenueForecasts() {
   // Individual invoice dialog: per-previsao due dates
   const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
+  const [individualForma, setIndividualForma] = useState("");
+  const [individualEmissao, setIndividualEmissao] = useState(getLocalDateISO());
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
@@ -342,20 +345,28 @@ export function RevenueForecasts() {
       initial[p.id] = p.data_prevista;
     });
     setIndividualVencimentos(initial);
+    setIndividualForma("");
+    setIndividualEmissao(getLocalDateISO());
     setIndividualDialogOpen(true);
   };
 
   const handleCreateIndividualInvoices = async () => {
     if (selectedItems.length === 0) return;
-    // Validate all dates set
+    if (!individualForma) return toast.error("Selecione a forma de pagamento das faturas");
+    if (!individualEmissao) return toast.error("Informe a data de emissão");
     for (const p of selectedItems) {
-      if (!individualVencimentos[p.id]) {
-        return toast.error("Defina o vencimento de todas as previsões");
-      }
+      if (!individualVencimentos[p.id]) return toast.error("Defina o vencimento de todas as previsões");
     }
     setSaving(true);
+    const criadas: { id: string; numero: any }[] = [];
     try {
-      let created = 0;
+      // Revalida: só previsões ainda pendentes (evita faturar duas vezes)
+      const { data: atuais, error: chkErr } = await supabase
+        .from("previsoes_recebimento").select("id, status").in("id", selectedItems.map((p) => p.id));
+      if (chkErr) throw chkErr;
+      const jaFaturadas = (atuais || []).filter((a: any) => a.status !== "pendente");
+      if (jaFaturadas.length) throw new Error(`${jaFaturadas.length} previsão(ões) já foram faturadas. Atualize a lista.`);
+
       for (const p of selectedItems) {
         const venc = individualVencimentos[p.id];
         const { data: fatura, error: faturaErr } = await supabase
@@ -365,24 +376,41 @@ export function RevenueForecasts() {
             valor_total: Number(p.valor),
             num_parcelas: 1,
             intervalo_dias: 0,
-            data_emissao: venc,
+            data_emissao: individualEmissao,
+            data_vencimento_base: venc,
+            forma_pagamento: individualForma,
             status: "faturada" as any,
             ...(p.empresa_id ? { empresa_id: p.empresa_id } : {}),
-          })
+          } as any)
           .select()
           .single();
         if (faturaErr) throw faturaErr;
         const { error: linkErr } = await supabase
           .from("fatura_previsoes")
           .insert({ fatura_id: fatura.id, previsao_id: p.id });
-        if (linkErr) throw linkErr;
-        created++;
+        if (linkErr) {
+          await supabase.from("faturas_recebimento").delete().eq("id", fatura.id);
+          throw linkErr;
+        }
+        criadas.push({ id: fatura.id, numero: (fatura as any).numero });
       }
-      toast.success(`${created} fatura(s) individual(is) criada(s)!`);
+      if (individualForma === "boleto") {
+        try {
+          const r = await gerarRemessaCnab(criadas.map((c) => c.id));
+          toast.success(`${criadas.length} fatura(s) criada(s). Remessa ${r.nsa} gerada com ${r.titulos} boleto(s) em Remessas de Boletos.`);
+        } catch (e: any) {
+          toast.error(`${criadas.length} fatura(s) criada(s), mas a remessa não foi gerada: ${e?.message || "erro"}. Use o botão Remessa de boletos em Faturas.`);
+        }
+      } else {
+        toast.success(`${criadas.length} fatura(s) individual(is) criada(s)!`);
+      }
       setIndividualDialogOpen(false);
+      setSelected(new Set());
       fetchPrevisoes();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar faturas");
+      const parcial = criadas.length ? ` ${criadas.length} fatura(s) já tinham sido criadas.` : "";
+      toast.error((err.message || "Erro ao criar faturas") + parcial);
+      if (criadas.length) { setIndividualDialogOpen(false); setSelected(new Set()); fetchPrevisoes(); }
     } finally {
       setSaving(false);
     }
@@ -518,6 +546,14 @@ export function RevenueForecasts() {
       mode: "single+batch",
       disabled: selectedItems.length === 0 || !sameClient,
       onClick: goToInvoice,
+    },
+    {
+      key: "individual",
+      label: "Faturas individuais (uma por previsão)",
+      icon: Files,
+      mode: "single+batch",
+      disabled: selectedItems.length === 0,
+      onClick: openIndividualDialog,
     },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single+batch", variant: "destructive", onClick: handleDeleteSelected },
   ];
@@ -907,8 +943,27 @@ export function RevenueForecasts() {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Será gerada uma fatura para cada previsão. Defina o vencimento de cada uma.
+              Será gerada uma fatura para cada previsão, inclusive de clientes diferentes. Defina o vencimento de cada uma.
             </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Emissão</Label>
+                <Input type="date" className="h-9" value={individualEmissao} onChange={(e) => setIndividualEmissao(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Forma de pagamento</Label>
+                <Select value={individualForma} onValueChange={setIndividualForma}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="transferencia">Transferência / Depósito</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="max-h-[50vh] overflow-y-auto border rounded-md">
               <Table>
                 <TableHeader>
