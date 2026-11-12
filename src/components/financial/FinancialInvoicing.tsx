@@ -1907,9 +1907,16 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "emissao", header: "Emissão", width: "80px",
-      sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
-      cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
+      key: "vencimento", header: "Vencimento", width: "105px",
+      sortValue: (f) => (f as any).data_vencimento_ref || f.data_emissao,
+      cell: (f) => (
+        <span className="tabular-nums whitespace-nowrap inline-flex flex-col items-start leading-tight">
+          <span>{formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}</span>
+          {f.num_parcelas > 1 && (f as any).data_vencimento_max !== (f as any).data_vencimento_ref && (
+            <span className="text-[10px] text-muted-foreground">até {formatDateBR((f as any).data_vencimento_max)}</span>
+          )}
+        </span>
+      ),
     },
     {
       key: "numero", header: "Fatura", width: "88px",
@@ -1934,16 +1941,9 @@ ${hasRecebimentos ? `
       cell: (f) => <span className="font-medium block truncate whitespace-nowrap" title={f.cliente_nome || ""}>{limitDisplayText(f.cliente_nome)}</span>,
     },
     {
-      key: "vencimento", header: "Vencimento", width: "105px",
-      sortValue: (f) => (f as any).data_vencimento_ref || f.data_emissao,
-      cell: (f) => (
-        <span className="tabular-nums whitespace-nowrap inline-flex flex-col items-start leading-tight">
-          <span>{formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}</span>
-          {f.num_parcelas > 1 && (f as any).data_vencimento_max !== (f as any).data_vencimento_ref && (
-            <span className="text-[10px] text-muted-foreground">até {formatDateBR((f as any).data_vencimento_max)}</span>
-          )}
-        </span>
-      ),
+      key: "emissao", header: "Emissão", width: "80px",
+      sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
+      cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
     },
     {
       key: "condicao", header: "Condição", width: "90px", align: "center",
