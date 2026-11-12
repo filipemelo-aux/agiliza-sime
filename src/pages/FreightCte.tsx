@@ -24,6 +24,7 @@ import { FreightContractDialog } from "@/components/freight/FreightContractDialo
 import { INACTIVE_CTE_STATUSES } from "@/components/freight/ContractCtePickerDialog";
 import { SefazIcon } from "@/components/icons/SefazIcon";
 import { resolveCloneSource } from "@/lib/cteCloneSource";
+import { cteNfeNumeros } from "@/lib/cteNfeNumbers";
 import { MdfeIcon } from "@/components/icons/MdfeIcon";
 import { XmlUploadIcon } from "@/components/icons/XmlUploadIcon";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -248,13 +249,13 @@ export default function FreightCte() {
     const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
     const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const total = list.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
-    const rows = list.map((c) => `<tr><td>${esc(c.tipo_talao === "servico" ? c.numero_interno : c.numero)}</td><td>${c.tipo_talao === "servico" ? "Serviço" : "Produção"}</td><td>${esc(formatDateBR(getEmissaoDate(c)))}</td><td>${esc(getClienteTomador(c))}</td><td>${esc(c.municipio_origem_nome || "")}${c.uf_origem ? "/" + esc(c.uf_origem) : ""} → ${esc(c.municipio_destino_nome || "")}${c.uf_destino ? "/" + esc(c.uf_destino) : ""}</td><td>${esc(c.placa_veiculo || "—")}</td><td class="r">${brl(Number(c.valor_frete || 0))}</td><td>${esc(c.tipo_talao === "servico" ? "Interno" : statusLabels[c.status] || c.status)}</td></tr>`).join("");
+    const rows = list.map((c) => `<tr><td>${esc(c.tipo_talao === "servico" ? c.numero_interno : c.numero)}</td><td>${c.tipo_talao === "servico" ? "Serviço" : "Produção"}</td><td>${esc(formatDateBR(getEmissaoDate(c)))}</td><td>${esc(getClienteTomador(c))}</td><td>${esc(cteNfeNumeros(c as any).join(", ") || "—")}</td><td>${esc(c.placa_veiculo || "—")}</td><td class="r">${brl(Number(c.valor_frete || 0))}</td><td>${esc(c.tipo_talao === "servico" ? "Interno" : statusLabels[c.status] || c.status)}</td></tr>`).join("");
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Relação de CT-es</title><style>
 @page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;font-size:10px;color:#111}h1{font-size:14px;margin:0 0 4px}
 p{margin:0 0 8px;color:#555}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px 5px;text-align:left}
 th{background:#eee}.r{text-align:right}tfoot td{font-weight:bold}</style></head><body>
 <h1>Relação de CT-es</h1><p>${list.length} CT-e(s) · Emitido em ${new Date().toLocaleString("pt-BR")}</p>
-<table><thead><tr><th>Nº</th><th>Talão</th><th>Emissão</th><th>Cliente</th><th>Rota</th><th>Placa</th><th class="r">Valor</th><th>Status</th></tr></thead>
+<table><thead><tr><th>Nº</th><th>Talão</th><th>Emissão</th><th>Cliente</th><th>Nº Nota Fiscal</th><th>Placa</th><th class="r">Valor</th><th>Status</th></tr></thead>
 <tbody>${rows}</tbody><tfoot><tr><td colspan="6">Total</td><td class="r">${brl(total)}</td><td></td></tr></tfoot></table></body></html>`;
     openPrintWindow(html);
   };
