@@ -1907,14 +1907,14 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "empresa", header: "Agência", width: "80px", align: "center",
-      sortValue: (f) => f.empresa_id || "",
-      cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
-    },
-    {
       key: "numero", header: "Fatura", width: "88px",
       sortValue: (f) => f.numero,
       cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">{String(f.numero).padStart(4, "0")}</span>,
+    },
+    {
+      key: "empresa", header: "Agência", width: "80px", align: "center",
+      sortValue: (f) => f.empresa_id || "",
+      cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
       key: "documento", header: "CT-e", width: "104px",
