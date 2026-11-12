@@ -1907,6 +1907,11 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
+      key: "emissao", header: "Emissão", width: "80px",
+      sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
+      cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
+    },
+    {
       key: "numero", header: "Fatura", width: "88px",
       sortValue: (f) => f.numero,
       cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">{String(f.numero).padStart(4, "0")}</span>,
@@ -1927,11 +1932,6 @@ ${hasRecebimentos ? `
           {(f as any).documentos_label || "—"}
         </span>
       ),
-    },
-    {
-      key: "emissao", header: "Emissão", width: "80px",
-      sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
-      cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
     },
     {
       key: "cliente", header: "Cliente", width: "180px",
