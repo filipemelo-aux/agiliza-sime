@@ -693,3 +693,12 @@
 .page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):has(> section[aria-label="Filtrar"]) { display: flex; flex-direction: column; gap: 0.75rem; }
 .page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8):has(> section[aria-label="Filtrar"]) > * { margin-top: 0 !important; }
 .page-content :is(.space-y-3,.space-y-4,.space-y-5,.space-y-6,.space-y-8) > section[aria-label="Filtrar"] { order: -1; }
+
+/* Grades com muitas colunas (ex.: Faturas) preservam a largura mínima e usam a
+   barra de rolagem do contêiner, em vez de espremer as colunas no desktop. */
+@media (min-width: 1280px) {
+  .data-grid-table--minw {
+    min-width: var(--data-grid-min-width, 900px) !important;
+    max-width: none !important;
+  }
+}

@@ -350,10 +350,12 @@ export function FinancialInvoicing() {
       // Origem + data de emissão real (via fatura_previsoes -> previsoes_recebimento)
       const { data: links } = await supabase
         .from("fatura_previsoes")
-        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo, data_prevista)")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo, origem_id, data_prevista, metadata)")
         .in("fatura_id", ids);
       const origemMap: Record<string, Set<string>> = {};
       const emissaoMap: Record<string, string> = {};
+      const cteIds: string[] = [];
+      const colheitaIds: string[] = [];
       (links || []).forEach((l: any) => {
         const p = l.previsoes_recebimento;
         if (!p) return;
@@ -364,6 +366,53 @@ export function FinancialInvoicing() {
         if (!tipo) return;
         if (!origemMap[l.fatura_id]) origemMap[l.fatura_id] = new Set();
         origemMap[l.fatura_id].add(tipo);
+        if (p.origem_id) {
+          if (tipo === "cte") cteIds.push(p.origem_id);
+          if (tipo === "colheita") colheitaIds.push(p.origem_id);
+        }
+      });
+
+      // Nº do documento que originou cada fatura (CT-e / colheita), em blocos para o
+      // pedido não estourar quando há muitas origens.
+      const docById: Record<string, string> = {};
+      const chunk = (arr: string[]) => {
+        const unique = Array.from(new Set(arr));
+        const out: string[][] = [];
+        for (let i = 0; i < unique.length; i += 150) out.push(unique.slice(i, i + 150));
+        return out;
+      };
+      const cteChunks = chunk(cteIds);
+      if (cteChunks.length) {
+        const results = await Promise.all(
+          cteChunks.map((c) => supabase.from("ctes").select("id, numero, numero_interno").in("id", c)),
+        );
+        results.flatMap((r) => r.data || []).forEach((c: any) => {
+          const n = c.numero ?? c.numero_interno;
+          if (n != null) docById[c.id] = String(n);
+        });
+      }
+      const colheitaChunks = chunk(colheitaIds);
+      if (colheitaChunks.length) {
+        const results = await Promise.all(
+          colheitaChunks.map((c) => supabase.from("harvest_jobs").select("id, farm_name").in("id", c)),
+        );
+        results.flatMap((r) => r.data || []).forEach((hj: any) => {
+          if (hj.farm_name) docById[hj.id] = String(hj.farm_name);
+        });
+      }
+      const docsByFatura: Record<string, string[]> = {};
+      (links || []).forEach((l: any) => {
+        const p = l.previsoes_recebimento;
+        if (!p) return;
+        let doc = p.origem_id ? docById[p.origem_id] : undefined;
+        if (!doc) {
+          const meta: any = p.metadata || {};
+          const metaDoc = meta.documento || meta.numero_documento || meta.numero;
+          if (metaDoc) doc = String(metaDoc);
+        }
+        if (!doc) return;
+        if (!docsByFatura[l.fatura_id]) docsByFatura[l.fatura_id] = [];
+        if (!docsByFatura[l.fatura_id].includes(doc)) docsByFatura[l.fatura_id].push(doc);
       });
       const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
       faturasList.forEach((f: any) => {
@@ -379,6 +428,22 @@ export function FinancialInvoicing() {
           } else if (Number(f.num_parcelas) === 1) {
             f.condicao_label = "À vista";
           }
+        }
+        const docs = docsByFatura[f.id];
+        if (docs && docs.length) {
+          const sorted = [...docs].sort((a, b) => {
+            const na = Number(a);
+            const nb = Number(b);
+            if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+            return String(a).localeCompare(String(b));
+          });
+          f.documentos = sorted;
+          f.documentos_label = sorted.join(", ");
+          const firstNum = sorted.map((d) => Number(d)).find((n) => Number.isFinite(n));
+          f.documentos_sort = firstNum ?? sorted[0];
+        } else {
+          f.documentos_label = "—";
+          f.documentos_sort = "";
         }
         const set = origemMap[f.id];
         if (!set || set.size === 0) { f.origem_label = "—"; f.origem_sort = "zzz"; return; }
@@ -1806,11 +1871,13 @@ ${hasRecebimentos ? `
         if (filterEmissaoInicio && emissao < filterEmissaoInicio) return false;
         if (filterEmissaoFim && emissao > filterEmissaoFim) return false;
         if (filterNumero.trim()) {
-          const digits = filterNumero.replace(/\D/g, "");
-          if (digits) {
-            const numStr = String(f.numero);
-            if (!numStr.includes(digits) && !numStr.padStart(4, "0").includes(digits)) return false;
-          }
+          const q = filterNumero.trim();
+          const digits = q.replace(/\D/g, "");
+          const numStr = String(f.numero);
+          const docLabel = String((f as any).documentos_label || "");
+          const byNumber = !!digits && (numStr.includes(digits) || numStr.padStart(4, "0").includes(digits));
+          const byDocument = docLabel.toLowerCase().includes(q.toLowerCase());
+          if (!byNumber && !byDocument) return false;
         }
         return true;
       }),
@@ -1840,27 +1907,39 @@ ${hasRecebimentos ? `
 
   const faturaColumns: DataGridColumn<Fatura>[] = useMemo(() => [
     {
-      key: "empresa", header: "Agência", width: "72px", align: "center",
+      key: "empresa", header: "Agência", width: "80px", align: "center",
       sortValue: (f) => f.empresa_id || "",
       cell: (f) => <EmpresaUf empresaId={f.empresa_id} />,
     },
     {
-      key: "numero", header: "Nº", width: "56px",
+      key: "numero", header: <span className="whitespace-normal leading-tight">Fatura Nº</span>, width: "104px",
       sortValue: (f) => f.numero,
-      cell: (f) => <span className="font-mono text-muted-foreground">#{String(f.numero).padStart(4, "0")}</span>,
+      cell: (f) => <span className="font-mono text-muted-foreground whitespace-nowrap">#{String(f.numero).padStart(4, "0")}</span>,
     },
     {
-      key: "emissao", header: "Emissão", width: "76px",
+      key: "documento", header: "Documento", width: "104px",
+      sortValue: (f) => (f as any).documentos_sort ?? "",
+      cell: (f) => (
+        <span
+          className="font-mono text-muted-foreground block truncate whitespace-nowrap"
+          title={(f as any).documentos_label || ""}
+        >
+          {(f as any).documentos_label || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "emissao", header: "Emissão", width: "80px",
       sortValue: (f) => (f as any).data_emissao_real || f.data_emissao,
       cell: (f) => <span className="tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</span>,
     },
     {
-      key: "cliente", header: "Cliente",
+      key: "cliente", header: "Cliente", width: "180px",
       sortValue: (f) => f.cliente_nome || "",
       cell: (f) => <span className="font-medium block truncate whitespace-nowrap" title={f.cliente_nome || ""}>{limitDisplayText(f.cliente_nome)}</span>,
     },
     {
-      key: "vencimento", header: "Vencimento", width: "98px",
+      key: "vencimento", header: "Vencimento", width: "105px",
       sortValue: (f) => (f as any).data_vencimento_ref || f.data_emissao,
       cell: (f) => (
         <span className="tabular-nums whitespace-nowrap inline-flex flex-col items-start leading-tight">
@@ -1872,7 +1951,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "condicao", header: "Condição", width: "84px", align: "center",
+      key: "condicao", header: "Condição", width: "90px", align: "center",
       sortValue: (f) => (f as any).condicao_label || "",
       cell: (f) => (
         <span className="text-muted-foreground whitespace-nowrap">
@@ -1881,7 +1960,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "status", header: "Status", width: "92px", align: "center",
+      key: "status", header: "Status", width: "80px", align: "center",
       sortValue: (f) => (f.has_partial ? "parcial" : f.status),
       cell: (f) => {
         const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
@@ -1893,7 +1972,7 @@ ${hasRecebimentos ? `
       },
     },
     {
-      key: "valor", header: "Valor", width: "92px", align: "right",
+      key: "valor", header: "Valor", width: "70px", align: "right",
       sortValue: (f) => Number(f.valor_total),
       cell: (f) => (
         <span className="font-mono font-semibold whitespace-nowrap">
@@ -1902,7 +1981,7 @@ ${hasRecebimentos ? `
       ),
     },
     {
-      key: "saldo", header: "Saldo a Receber", width: "132px", align: "right",
+      key: "saldo", header: "Saldo a Receber", width: "133px", align: "right",
       sortValue: (f) => receivableBalance(f),
       cell: (f) => {
         const saldo = receivableBalance(f);
@@ -2060,7 +2139,8 @@ ${hasRecebimentos ? `
         rowClassName={(f) => rowToneClass(f.status === "paga" ? "resolved" : "pending")}
         onSelectedChange={setSelectedFaturaIds}
         loading={loading}
-        minWidth={1150}
+        minWidth={1064}
+        tableClassName="data-grid-table--minw"
         emptyMessage='Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.'
         footer={
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">

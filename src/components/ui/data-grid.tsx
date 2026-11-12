@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export interface DataGridColumn<T> {
   key: string;
-  header: string;
+  header: React.ReactNode;
   /** conteúdo da célula */
   cell: (row: T) => React.ReactNode;
   /** valor usado na ordenação (se omitido, coluna não ordena) */
@@ -75,6 +75,8 @@ interface DataGridProps<T> {
   minWidth?: number;
   /** "fixed" respeita exatamente a largura declarada em cada coluna */
   tableLayout?: "auto" | "fixed";
+  /** classe extra na <table>; "data-grid-table--minw" preserva a largura mínima e rola o grid */
+  tableClassName?: string;
   footer?: React.ReactNode;
   rowClassName?: (row: T) => string;
   maxHeight?: string;
@@ -92,6 +94,7 @@ export function DataGrid<T>({
   emptyMessage = "Nenhum registro encontrado",
   minWidth = 900,
   tableLayout = "auto",
+  tableClassName,
   footer,
   rowClassName,
   maxHeight,
@@ -161,7 +164,7 @@ export function DataGrid<T>({
         style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
       >
         <table
-          className={cn("data-grid-table w-full border-collapse text-xs", tableLayout === "fixed" ? "table-fixed" : "table-auto")}
+          className={cn("data-grid-table w-full border-collapse text-xs", tableLayout === "fixed" ? "table-fixed" : "table-auto", tableClassName)}
           style={{ "--data-grid-min-width": `${minWidth}px` } as React.CSSProperties}
         >
           <thead className="sticky top-0 z-10 bg-muted">
