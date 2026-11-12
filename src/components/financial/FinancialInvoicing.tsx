@@ -503,7 +503,7 @@ export function FinancialInvoicing() {
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
     setObservacoesFatura(fatura.observacoes || "");
-    setFormaPagamentoFatura((fatura as any).forma_pagamento || "outros");
+    setFormaPagamentoFatura((fatura as any).forma_pagamento || "");
     const custom = (fatura as any).parcelas_custom;
     if (Array.isArray(custom) && custom.length > 0) {
       setParcelasCustomOn(true);
@@ -2386,11 +2386,10 @@ ${hasRecebimentos ? `
                   <Select value={formaPagamentoFatura} onValueChange={setFormaPagamentoFatura}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
                       <SelectItem value="pix">Pix</SelectItem>
                       <SelectItem value="transferencia">Transferência / Depósito</SelectItem>
                       <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
+                      <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
                     </SelectContent>
                   </Select>
                   {formaPagamentoFatura === "boleto" && !editingFaturaId && (

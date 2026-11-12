@@ -957,11 +957,10 @@ export function RevenueForecasts() {
                 <Select value={individualForma} onValueChange={setIndividualForma}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
                     <SelectItem value="pix">Pix</SelectItem>
                     <SelectItem value="transferencia">Transferência / Depósito</SelectItem>
                     <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="outros">Outros</SelectItem>
+                    <SelectItem value="boleto">Boleto bancário (gera remessa)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
