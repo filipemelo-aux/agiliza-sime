@@ -87,6 +87,7 @@ export const allMenuItems = [
       { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
+      { title: "Documentos e Multas", url: "/admin/fleet/documents", icon: FileText },
       { title: "Métricas por Veículo", url: "/admin/fleet/metrics", icon: FileSpreadsheet },
     ],
   },

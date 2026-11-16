@@ -36,6 +36,7 @@ const AdminMaintenances = lazy(() => import("./pages/AdminMaintenances"));
 const AdminReports = lazy(() => import("./pages/AdminReports"));
 const AdminTransportReports = lazy(() => import("./pages/AdminTransportReports"));
 const AdminFleetMetrics = lazy(() => import("./pages/AdminFleetMetrics"));
+const AdminFleetDocuments = lazy(() => import("./pages/AdminFleetDocuments"));
 const AdminRH = lazy(() => import("./pages/AdminRH"));
 const ContabilidadeFechamento = lazy(() => import("./pages/ContabilidadeFechamento"));
 import NotFound from "./pages/NotFound";
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/admin/fuelings" element={<AdminFuelings />} />
             <Route path="/admin/maintenances" element={<AdminMaintenances />} />
             <Route path="/admin/fleet/metrics" element={<AdminFleetMetrics />} />
+            <Route path="/admin/fleet/documents" element={<AdminFleetDocuments />} />
             <Route path="/admin/people" element={<AdminPeople />} />
             <Route path="/admin/vehicles" element={<AdminVehicles />} />
             <Route path="/admin/vehicle-assignments" element={<AdminVehicleAssignments />} />

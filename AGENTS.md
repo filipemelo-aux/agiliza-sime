@@ -40,3 +40,4 @@
 - DataGrid column footers render in the same table tracks as body cells for exact total alignment, preserving legacy full-width footers otherwise.
 - Driver portal: CPF login via synthetic email; drivers lack tenant roles and use the service-role `driver-portal` function; unapproved `portal_status` blocks payment. Portal logos use global tenant branding via `branding`/`context`, not `useTenant` or CNPJ-specific assets; clear branding on CPF changes to avoid stale company logos.
 - CPF is canonical in `profiles.cnpj`; `driver_documents.cpf` is a trigger mirror, so read CPF from profiles.
+- Fleet document/fine status (vencido, a vencer em 30 dias, em dia) is derived from due date by `src/lib/fleet/fleetDocumentStatus.ts`, never from the stored status alone, so stale records still surface as overdue; the Frota → Documentos e Multas page lists own-fleet vehicles and reuses VehicleDocumentsTab for entry.
