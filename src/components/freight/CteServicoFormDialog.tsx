@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { lookupDriverByPlate } from "@/lib/vehicleDriverLookup";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
+import { cteNfeNumeros, parseNfeNumeros, aplicarNfeNumeros } from "@/lib/cteNfeNumbers";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
 import { unmaskCNPJ, maskCNPJ } from "@/lib/masks";
@@ -58,6 +59,7 @@ interface FormState {
   recebedor_nome: string; recebedor_cnpj: string; recebedor_ie: string; recebedor_endereco: string; recebedor_municipio_ibge: string; recebedor_uf: string;
   // Carga
   natureza_carga: string;
+  nota_fiscal: string;
   // Datas
   data_emissao: string;
   data_carregamento: string;
@@ -80,6 +82,7 @@ const empty: FormState = {
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
   recebedor_nome: "", recebedor_cnpj: "", recebedor_ie: "", recebedor_endereco: "", recebedor_municipio_ibge: "", recebedor_uf: "",
   natureza_carga: "",
+  nota_fiscal: "",
   data_emissao: "",
   data_carregamento: "",
   motorista_id: null,
@@ -171,6 +174,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
         [`${p}_uf`]: src[`${p}_uf`] || "",
       }), {}),
       natureza_carga: src.produto_predominante || src.natureza_operacao || "",
+      nota_fiscal: cteNfeNumeros(src).join(", "),
       motorista_id: src.motorista_id ?? null,
       motorista_nome: src.motorista_nome || "",
       placa_veiculo: src.placa_veiculo || "",
@@ -255,6 +259,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
         recebedor_municipio_ibge: c.recebedor_municipio_ibge || "",
         recebedor_uf: c.recebedor_uf || "",
         natureza_carga: cte.produto_predominante || cte.natureza_operacao || "",
+        nota_fiscal: cteNfeNumeros(c).join(", "),
         data_emissao: (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         data_carregamento:
           c.data_carregamento ||
@@ -495,6 +500,11 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
         payload.chaves_nfe_ref = cf.chaves_nfe_ref ?? [];
         payload.nfe_detalhes = cf.nfe_detalhes ?? [];
         payload.outros_documentos = cf.outros_documentos ?? [];
+      }
+      // Número(s) da nota fiscal digitados no formulário.
+      {
+        const baseDocs = payload.nfe_detalhes !== undefined ? payload : ((cte as any) || {});
+        Object.assign(payload, aplicarNfeNumeros(baseDocs, parseNfeNumeros(form.nota_fiscal)));
       }
 
       let savedId: string;
@@ -781,6 +791,14 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved, cloneFr
                 <NaturezaCargaSearchInput
                   value={form.natureza_carga || ""}
                   onChange={(v) => setForm((f) => ({ ...f, natureza_carga: v }))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Nº da nota fiscal</Label>
+                <Input
+                  value={form.nota_fiscal}
+                  placeholder="Ex.: 175296 (separe várias por vírgula)"
+                  onChange={(e) => setForm((f) => ({ ...f, nota_fiscal: e.target.value.replace(/[^\d,;\s]/g, "") }))}
                 />
               </div>
               <div>

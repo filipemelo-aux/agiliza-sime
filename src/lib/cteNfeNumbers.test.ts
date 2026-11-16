@@ -54,3 +54,14 @@ describe("cteNfeNumeros", () => {
     expect(cteNfeNumeros(null)).toEqual([]);
   });
 });
+
+import { parseNfeNumeros, aplicarNfeNumeros } from "./cteNfeNumbers";
+describe("nota fiscal no CT-e de serviço", () => {
+  it("lê números digitados", () => {
+    expect(parseNfeNumeros("00123, 456;123")).toEqual(["123", "456"]);
+  });
+  it("adiciona novo número e remove os retirados", () => {
+    const r = aplicarNfeNumeros({ nfe_detalhes: [{ numero: "10", chave: "x" }, { numero: "20" }] }, ["10", "30"]);
+    expect(r.nfe_detalhes).toEqual([{ numero: "10", chave: "x" }, { numero: "30" }]);
+  });
+});

@@ -26,3 +26,31 @@ export function cteNfeNumeros(cte: Record<string, unknown> | null | undefined): 
 
   return out;
 }
+
+/** Converte o texto digitado ("123, 456") em lista de números normalizados. */
+export function parseNfeNumeros(texto: string): string[] {
+  const out: string[] = [];
+  String(texto || "").split(/[,;\s]+/).forEach((p) => {
+    const n = digits(p).replace(/^0+/, "");
+    if (n && !out.includes(n)) out.push(n);
+  });
+  return out;
+}
+
+/**
+ * Aplica os números informados no formulário aos documentos do CT-e,
+ * preservando chaves/detalhes já existentes dos números mantidos.
+ */
+export function aplicarNfeNumeros(
+  base: { nfe_detalhes?: unknown; chaves_nfe_ref?: unknown },
+  numeros: string[],
+): { nfe_detalhes: any[]; chaves_nfe_ref: string[] } {
+  const keep = new Set(numeros);
+  const details = (Array.isArray(base.nfe_detalhes) ? (base.nfe_detalhes as any[]) : [])
+    .filter((d) => keep.has(String(d?.numero || numeroNfeDaChave(d?.chave)).replace(/^0+/, "")));
+  const keys = (Array.isArray(base.chaves_nfe_ref) ? (base.chaves_nfe_ref as string[]) : [])
+    .filter((k) => keep.has(numeroNfeDaChave(k)));
+  const covered = new Set(cteNfeNumeros({ nfe_detalhes: details, chaves_nfe_ref: keys }));
+  numeros.forEach((n) => { if (!covered.has(n)) details.push({ numero: n }); });
+  return { nfe_detalhes: details, chaves_nfe_ref: keys };
+}
