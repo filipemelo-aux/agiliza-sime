@@ -358,6 +358,13 @@
       "when": 1794417835270,
       "tag": "0050_undo_installment_plan_on_unlink",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1794862068694,
+      "tag": "0051_delete_commission_on_cte_delete",
+      "breakpoints": true
     }
   ]
 }
