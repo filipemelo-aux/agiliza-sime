@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,13 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
   const [documento, setDocumento] = useState("");
   const [loginCpf, setLoginCpf] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
+  const [chassi, setChassi] = useState("");
+  const [info, setInfo] = useState<{ renavam: string | null; chassis: string | null } | null>(null);
+  useEffect(() => {
+    if (!open || !vehicle) return;
+    setInfo(null); setChassi("");
+    supabase.from("vehicles").select("renavam, chassis").eq("id", vehicle.id).maybeSingle().then(({ data }) => { setInfo(data as any); setChassi((data as any)?.chassis ?? ""); });
+  }, [open, vehicle?.id]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [res, setRes] = useState<{ data: unknown[]; price: string | null } | null>(null);
@@ -46,7 +53,7 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
     if (!vehicle) return;
     setLoading(true); setErro(null); setRes(null);
     const { data, error } = await supabase.functions.invoke("vehicle-debts-sync", {
-      body: { vehicle_id: vehicle.id, uf, documento: documento || undefined, login_cpf: loginCpf || undefined, login_senha: loginSenha || undefined },
+      body: { vehicle_id: vehicle.id, uf, chassi: chassi.trim() || undefined, documento: documento || undefined, login_cpf: loginCpf || undefined, login_senha: loginSenha || undefined },
     });
     setLoading(false);
     if (error) {
@@ -70,6 +77,9 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
           <div><Label className="text-xs">UF do veículo</Label>
             <Select value={uf} onValueChange={setUf}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>{UFS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label className="text-xs">RENAVAM</Label><Input className="h-8 text-xs font-mono" value={info?.renavam ?? ""} readOnly /></div>
+          <div className="sm:col-span-2"><Label className="text-xs">Chassi {info && !info.chassis && <span className="text-destructive">(não cadastrado — informe aqui, será salvo no veículo)</span>}</Label>
+            <Input className="h-8 text-xs font-mono uppercase" maxLength={17} value={chassi} onChange={(e) => setChassi(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} /></div>
           {uf === "TO" && <div className="sm:col-span-3"><Label className="text-xs">CPF/CNPJ do proprietário</Label>
             <Input className="h-8 text-xs" value={documento} onChange={(e) => setDocumento(e.target.value)} /></div>}
           {LOGIN_UFS.includes(uf) && <>
@@ -79,8 +89,8 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
               <Input type="password" className="h-8 text-xs" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} autoComplete="off" /></div>
           </>}
         </div>
-        <p className="text-[11px] text-muted-foreground">Usa placa, RENAVAM e chassi do cadastro. Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
-        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle}>Consultar</Button></div>
+        <p className="text-[11px] text-muted-foreground">A consulta exige placa, RENAVAM e chassi. Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
+        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || !chassi.trim()}>Consultar</Button></div>
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
         {res && <div className="max-h-[50vh] overflow-y-auto text-xs space-y-2">
           {res.price && <div className="text-muted-foreground">Custo da consulta: R$ {res.price}</div>}

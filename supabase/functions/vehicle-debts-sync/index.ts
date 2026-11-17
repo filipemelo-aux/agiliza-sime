@@ -9,6 +9,7 @@ const Body = z.object({
   documento: z.string().max(20).optional(),
   login_cpf: z.string().max(20).optional(),
   login_senha: z.string().max(200).optional(),
+  chassi: z.string().max(30).optional(),
 })
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -26,7 +27,14 @@ Deno.serve(async (req) => {
     // RLS garante que o veículo é do tenant do usuário
     const { data: v } = await sb.from('vehicles').select('plate, renavam, chassis').eq('id', p.data.vehicle_id).maybeSingle()
     if (!v) return json({ error: 'Veículo não encontrado' }, 404)
-    if (!v.renavam || !v.chassis) return json({ error: 'Cadastre RENAVAM e chassi do veículo antes de consultar.' }, 400)
+    const novoChassi = (p.data.chassi || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+    if (novoChassi && novoChassi !== v.chassis) {
+      const { error: upErr } = await sb.from('vehicles').update({ chassis: novoChassi }).eq('id', p.data.vehicle_id)
+      if (upErr) return json({ error: 'Não foi possível salvar o chassi: ' + upErr.message }, 400)
+      v.chassis = novoChassi
+    }
+    const faltam = [!v.renavam && 'RENAVAM', !v.chassis && 'chassi'].filter(Boolean)
+    if (faltam.length) return json({ error: `Falta no cadastro do veículo: ${faltam.join(' e ')}.`, missing: faltam }, 400)
 
     const lov = Deno.env.get('LOVABLE_API_KEY'), key = Deno.env.get('UDC_INFOSIMPLES_API_KEY')
     if (!lov || !key) return json({ error: 'Conexão InfoSimples não configurada' }, 500)
