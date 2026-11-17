@@ -241,3 +241,30 @@ export function parseNfeXml(xmlString: string): NfeData {
     xml_original: xmlString,
   };
 }
+
+/**
+ * Junta várias NF-es do mesmo fornecedor numa só despesa: soma valores, concatena itens,
+ * agrupa duplicatas pelo vencimento e usa a emissão mais recente. A chave da primeira nota
+ * fica como chave principal (as demais vão nas observações).
+ */
+export function mergeNfeData(list: NfeData[]): NfeData {
+  if (list.length === 0) throw new Error("Nenhuma nota para importar.");
+  if (list.length === 1) return list[0];
+  const cents = (n: number) => Math.round((Number(n) || 0) * 100);
+  const venc = new Map<string, number>();
+  for (const p of list) for (const d of p.duplicatas) venc.set(d.vencimento, (venc.get(d.vencimento) || 0) + cents(d.valor));
+  const duplicatas = [...venc.entries()].sort(([a], [b]) => a.localeCompare(b))
+    .map(([vencimento, c], i) => ({ numero: String(i + 1).padStart(3, "0"), vencimento, valor: c / 100 }));
+  const totalCents = list.reduce((s, p) => s + cents(p.valor_total), 0);
+  // Notas sem duplicata: o restante fica numa parcela no vencimento mais próximo das outras
+  const dupCents = duplicatas.reduce((s, d) => s + cents(d.valor), 0);
+  if (duplicatas.length && dupCents !== totalCents) duplicatas[0].valor = (cents(duplicatas[0].valor) + totalCents - dupCents) / 100;
+  return {
+    ...list[0],
+    numero_nota: list.map((p) => p.numero_nota).join(", "),
+    data_emissao: list.map((p) => p.data_emissao).filter(Boolean).sort().pop() || list[0].data_emissao,
+    valor_total: totalCents / 100,
+    itens: list.flatMap((p) => p.itens),
+    duplicatas,
+  };
+}

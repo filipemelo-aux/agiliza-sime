@@ -20,7 +20,7 @@ import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, M
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
+import { parseNfeXml, mergeNfeData, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ, maskDocument } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
@@ -130,9 +130,11 @@ interface Props {
   initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string; favorecidoId?: string | null; favorecidoNome?: string | null; planoContasCodigo?: string; veiculoId?: string | null } | null;
   /** XML de NF-e para pré-importar ao abrir (ex.: vindo da consulta de notas recebidas). */
   initialXml?: string | null;
+  /** Vários XMLs de NF-e do mesmo fornecedor importados numa única despesa */
+  initialXmls?: string[] | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues, initialXml }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues, initialXml, initialXmls }: Props) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
@@ -624,23 +626,31 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   };
 
   useEffect(() => {
-    if (!open || expense || !initialXml) return;
+    const list = initialXmls?.length ? initialXmls : (initialXml ? [initialXml] : []);
+    if (!open || expense || !list.length) return;
     const t = setTimeout(() => {
-      const file = new File([initialXml], "nfe.xml", { type: "text/xml" });
-      handleXmlImport({ target: { files: [file], value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>);
+      const files = list.map((x, i) => new File([x], `nfe-${i + 1}.xml`, { type: "text/xml" }));
+      handleXmlImport({ target: { files, value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>);
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialXml]);
+  }, [open, initialXml, initialXmls]);
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    (async () => {
       try {
-        const xmlStr = ev.target?.result as string;
-        const parsed = parseNfeXml(xmlStr);
+        const parsedList = (await Promise.all(files.map((f) => f.text()))).map((x) => parseNfeXml(x));
+        const seen = new Set<string>();
+        const unique = parsedList.filter((p) => { const k = p.chave_nfe.replace(/\D/g, "") || p.numero_nota; if (seen.has(k)) return false; seen.add(k); return true; });
+        const cnpjs = new Set(unique.map((p) => p.fornecedor_cnpj.replace(/\D/g, "")));
+        if (cnpjs.size > 1) throw new Error("As notas selecionadas são de fornecedores diferentes. Uma despesa só pode juntar notas do mesmo fornecedor.");
+        const parsed = mergeNfeData(unique);
+        if (unique.length > 1) {
+          const chaves = unique.map((p) => `NF ${p.numero_nota}: ${p.chave_nfe.replace(/\D/g, "")}`).join("\n");
+          setObservacoes((prev) => [prev, `Notas fiscais desta despesa:\n${chaves}`].filter(Boolean).join("\n"));
+        }
         // Auto-fill description with item summaries
         const itemSummary = parsed.itens.length > 0
           ? parsed.itens.map(i => i.descricao).join(", ")
@@ -733,8 +743,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
       }
-    };
-    reader.readAsText(file);
+    })();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -1322,8 +1331,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           {inputMode === "xml" && (
             <div className="border-2 border-dashed rounded-lg p-4 text-center space-y-1.5">
               <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">XML da NF-e de peças</p>
-              <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
+              <p className="text-xs text-muted-foreground">XML da NF-e de peças (pode selecionar várias notas do mesmo fornecedor)</p>
+              <input ref={fileInputRef} type="file" accept=".xml" multiple onChange={handleXmlImport} className="hidden" />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>{isEditing ? "Reimportar XML" : "Selecionar XML"}</Button>
               {documentoImportado && <Badge variant="default" className="ml-2">Importado ✓</Badge>}
             </div>

@@ -45,7 +45,7 @@ export default function NotasFiscaisConsulta() {
   const [busca, setBusca] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
-  const [expenseXml, setExpenseXml] = useState<{ xml: string; nota: NfeRecebida } | null>(null);
+  const [expenseXml, setExpenseXml] = useState<{ xmls: string[]; notas: NfeRecebida[] } | null>(null);
   const [cteXml, setCteXml] = useState<{ xml: string; nota: NfeRecebida } | null>(null);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
 
@@ -116,10 +116,16 @@ export default function NotasFiscaisConsulta() {
   };
 
   const openExpense = async () => {
-    if (!single) return;
-    if (isUsed(single)) { toast({ title: "Nota já utilizada", description: "Esta nota já foi lançada como despesa ou CT-e." }); return; }
-    setBusy("Baixando XML da nota...");
-    try { setExpenseXml({ xml: await ensureNfeXml(single, estCnpj(single.establishment_id)), nota: single }); }
+    if (!selectedRows.length) return;
+    const usadas = selectedRows.filter(isUsed);
+    if (usadas.length) { toast({ title: "Nota já utilizada", description: `NF ${usadas.map((r) => r.numero).join(", ")} já lançada como despesa ou CT-e.` }); return; }
+    if (new Set(selectedRows.map((r) => (r.emitente_cnpj || "").replace(/\D/g, ""))).size > 1) { toast({ title: "Fornecedores diferentes", description: "Uma despesa só junta notas do mesmo fornecedor.", variant: "destructive" }); return; }
+    setBusy("Baixando XML das notas...");
+    try {
+      const xmls = [];
+      for (const r of selectedRows) xmls.push(await ensureNfeXml(r, estCnpj(r.establishment_id)));
+      setExpenseXml({ xmls, notas: selectedRows });
+    }
     catch (e: any) { toast({ title: "XML indisponível", description: e.message, variant: "destructive" }); }
     finally { setBusy(null); }
   };
@@ -180,7 +186,7 @@ export default function NotasFiscaisConsulta() {
     { key: "pdf", label: "Baixar PDF (DANFE)", icon: FileDown, onClick: downloadPdf, mode: "batch" },
     { key: "xml", label: "Baixar XML", icon: Download, onClick: downloadXml, mode: "batch" },
     { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, onClick: printList, mode: "batch" },
-    { key: "expense", label: "Gerar despesa (nota de entrada)", icon: Receipt, onClick: openExpense, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "destinatario" || single.situacao === "cancelada" },
+    { key: "expense", label: "Gerar despesa (nota de entrada)", icon: Receipt, onClick: openExpense, mode: "batch", hidden: isConsultor, disabled: !selectedRows.length || selectedRows.some((r) => r.ator !== "destinatario" || r.situacao === "cancelada") },
     { key: "cte", label: "Emitir CT-e (nota como transportadora)", icon: FileText, onClick: openCte, mode: "single", hidden: isConsultor, disabled: !single || single.ator !== "transportadora" || single.situacao === "cancelada" },
   ];
 
@@ -283,11 +289,11 @@ export default function NotasFiscaisConsulta() {
           open={!!expenseXml}
           onOpenChange={(o) => { if (!o) setExpenseXml(null); }}
           expense={null}
-          empresaId={expenseXml.nota.establishment_id || ""}
+          empresaId={expenseXml.notas[0].establishment_id || ""}
           chartAccounts={chartAccounts}
-          initialXml={expenseXml.xml}
+          initialXmls={expenseXml.xmls}
           onSaved={async (id) => {
-            if (id) await supabase.from("nfes_recebidas" as any).update({ expense_id: id } as any).eq("id", expenseXml.nota.id);
+            if (id) await supabase.from("nfes_recebidas" as any).update({ expense_id: id } as any).in("id", expenseXml.notas.map((n) => n.id));
             setExpenseXml(null); load();
           }}
         />
