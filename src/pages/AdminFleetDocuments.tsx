@@ -135,7 +135,7 @@ export default function AdminFleetDocuments() {
   const anoAtual = Number(hojeIso().slice(0, 4));
   const anos = Array.from({ length: Math.max(0, anoAtual - ANO_INICIAL_ABERTOS + 1) }, (_, i) => ANO_INICIAL_ABERTOS + i);
   const colunasAno: DataGridColumn<Linha>[] = anos.map((a) => ({
-    key: `ano${a}`, header: `Aberto ${a}`, width: "105px", align: "right" as const,
+    key: `ano${a}`, header: `Aberto ${a}`, width: "95px", align: "right" as const,
     cell: (l: Linha) => l.porAno[a] ? <span className="font-mono">{formatCurrency(l.porAno[a])}</span> : <span className="text-muted-foreground">—</span>,
     sortValue: (l: Linha) => l.porAno[a] || 0,
     footer: <span className="font-mono font-semibold">{formatCurrency(filtradas.reduce((t, l) => t + (l.porAno[a] || 0), 0))}</span>,
@@ -143,8 +143,7 @@ export default function AdminFleetDocuments() {
 
   const columns: DataGridColumn<Linha>[] = [
     { key: "plate", header: "Placa", width: "100px", cell: (l) => <span className="font-mono font-semibold">{l.plate}</span>, sortValue: (l) => l.plate },
-    { key: "veiculo", header: "Veículo", width: "180px", cell: (l) => <span className="truncate">{[l.brand, l.model].filter(Boolean).join(" ")}</span>, sortValue: (l) => `${l.brand} ${l.model}` },
-    { key: "renavam", header: "RENAVAM", width: "120px", cell: (l) => <span className="font-mono">{l.renavam || "—"}</span> },
+    { key: "veiculo", header: "Veículo", width: "150px", cell: (l) => <span className="truncate">{[l.brand, l.model].filter(Boolean).join(" ")}</span>, sortValue: (l) => `${l.brand} ${l.model}` },
     { key: "ipva", header: "IPVA", width: "110px", cell: (l) => <CelulaDoc r={l.ipva} />, sortValue: (l) => l.ipva.vencimento },
     { key: "lic", header: "Licenciamento", width: "120px", cell: (l) => <CelulaDoc r={l.licenciamento} />, sortValue: (l) => l.licenciamento.vencimento },
     { key: "seguro", header: "Seguro", width: "110px", cell: (l) => <CelulaDoc r={l.seguro} />, sortValue: (l) => l.seguro.vencimento },
@@ -208,7 +207,7 @@ export default function AdminFleetDocuments() {
           onSelectedChange={setSelected}
           singleSelection
           loading={loading}
-          minWidth={1180 + anos.length * 105}
+          minWidth={760 + anos.length * 95}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
           emptyMessage="Nenhum veículo da frota própria encontrado"
         />
