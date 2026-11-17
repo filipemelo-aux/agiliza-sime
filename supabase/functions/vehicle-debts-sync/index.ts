@@ -33,21 +33,22 @@ Deno.serve(async (req) => {
       if (upErr) return json({ error: 'Não foi possível salvar o chassi: ' + upErr.message }, 400)
       v.chassis = novoChassi
     }
-    const faltam = [!v.renavam && 'RENAVAM', !v.chassis && 'chassi'].filter(Boolean)
+    const uf = p.data.uf.toUpperCase()
+    // MA não está na consulta unificada: usa a API própria do Detran-MA (só placa + RENAVAM)
+    const isMA = uf === 'MA'
+    const faltam = [!v.renavam && 'RENAVAM', !isMA && !v.chassis && 'chassi'].filter(Boolean)
     if (faltam.length) return json({ error: `Falta no cadastro do veículo: ${faltam.join(' e ')}.`, missing: faltam }, 400)
 
     const lov = Deno.env.get('LOVABLE_API_KEY'), key = Deno.env.get('UDC_INFOSIMPLES_API_KEY')
     if (!lov || !key) return json({ error: 'Conexão InfoSimples não configurada' }, 500)
-    const form = new URLSearchParams({
-      uf: p.data.uf.toUpperCase(), placa: v.plate.replace(/[^A-Z0-9]/gi, ''),
-      renavam: String(v.renavam).replace(/\D/g, ''), chassi: v.chassis, timeout: '300',
-    })
+    const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '300' }
+    const form = new URLSearchParams(isMA ? base : { ...base, uf, chassi: v.chassis })
     const doc = (p.data.documento || '').replace(/\D/g, '')
-    if (doc) form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
+    if (doc && !isMA) form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
     if (p.data.login_cpf) form.set('login_cpf', p.data.login_cpf.replace(/\D/g, ''))
     if (p.data.login_senha) form.set('login_senha', p.data.login_senha)
 
-    const r = await fetch(`${GATEWAY}/api/v2/consultas/detran/restricoes`, {
+    const r = await fetch(`${GATEWAY}/api/v2/consultas/${isMA ? 'detran/ma/licenciamento' : 'detran/restricoes'}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${lov}`, 'X-Connection-Api-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form,

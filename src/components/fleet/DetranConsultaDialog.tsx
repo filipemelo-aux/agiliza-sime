@@ -89,8 +89,8 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
               <Input type="password" className="h-8 text-xs" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} autoComplete="off" /></div>
           </>}
         </div>
-        <p className="text-[11px] text-muted-foreground">A consulta exige placa, RENAVAM e chassi. Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
-        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || !chassi.trim()}>Consultar</Button></div>
+        <p className="text-[11px] text-muted-foreground">A consulta exige placa, RENAVAM e chassi (no Maranhão, só placa e RENAVAM). Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
+        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || (uf !== "MA" && !chassi.trim())}>Consultar</Button></div>
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
         {res && <div className="max-h-[50vh] overflow-y-auto text-xs space-y-2">
           {res.price && <div className="text-muted-foreground">Custo da consulta: R$ {res.price}</div>}
