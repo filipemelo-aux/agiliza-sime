@@ -35,7 +35,10 @@ interface Linha extends VehicleRow {
   seguro: ResumoTipo;
   multas: ResumoTipo;
   situacao: FleetSituacao;
-  porAno: Record<number, number>;
+  ipvaAno: Record<number, number>;
+  licAno: Record<number, number>;
+  multasTotal: number;
+  total: number;
 }
 
 const hojeIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -110,7 +113,13 @@ export default function AdminFleetDocuments() {
       const ds = porVeiculo.get(v.id) || [];
       const r = (t: FleetDocTipo) => resumoPorTipo(ds, t, hoje);
       const ipva = r("IPVA"), licenciamento = r("Licenciamento"), seguro = r("Seguro"), multas = r("Multa");
-      return { ...v, ipva, licenciamento, seguro, multas, situacao: situacaoVeiculo([ipva, licenciamento, seguro, multas]), porAno: abertoPorAno(ds as any) };
+      return { ...v, ipva, licenciamento, seguro, multas, situacao: situacaoVeiculo([ipva, licenciamento, seguro, multas]), ...(() => {
+        const ipvaAno = abertoPorAno(ds as any, "IPVA"), licAno = abertoPorAno(ds as any, "Licenciamento");
+        const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);
+        const soma = (o: Record<number, number>) => Object.values(o).reduce((t, x) => t + x, 0);
+        const total = Math.round((soma(ipvaAno) + soma(licAno) + multasTotal) * 100) / 100;
+        return { ipvaAno, licAno, multasTotal: Math.round(multasTotal * 100) / 100, total };
+      })() };
     });
   }, [vehicles, docs]);
 
@@ -134,28 +143,22 @@ export default function AdminFleetDocuments() {
 
   const anoAtual = Number(hojeIso().slice(0, 4));
   const anos = Array.from({ length: Math.max(0, anoAtual - ANO_INICIAL_ABERTOS + 1) }, (_, i) => ANO_INICIAL_ABERTOS + i);
-  const colunasAno: DataGridColumn<Linha>[] = anos.map((a) => ({
-    key: `ano${a}`, header: `Aberto ${a}`, width: "95px", align: "right" as const,
-    cell: (l: Linha) => l.porAno[a] ? <span className="font-mono">{formatCurrency(l.porAno[a])}</span> : <span className="text-muted-foreground">—</span>,
-    sortValue: (l: Linha) => l.porAno[a] || 0,
-    footer: <span className="font-mono font-semibold">{formatCurrency(filtradas.reduce((t, l) => t + (l.porAno[a] || 0), 0))}</span>,
-  }));
+  const moeda = (v: number) => v ? <span className="font-mono">{formatCurrency(v)}</span> : <span className="text-muted-foreground">—</span>;
+  const rodape = (f: (l: Linha) => number) => <span className="font-mono font-semibold">{formatCurrency(filtradas.reduce((t, l) => t + f(l), 0))}</span>;
+  const colValor = (key: string, header: string, f: (l: Linha) => number, width = "100px"): DataGridColumn<Linha> => ({
+    key, header, width, align: "right", cell: (l) => moeda(f(l)), sortValue: f, footer: rodape(f),
+  });
+  const colunasAno: DataGridColumn<Linha>[] = [...anos].reverse().flatMap((a) => [
+    colValor(`ipva${a}`, `IPVA ${a}`, (l) => l.ipvaAno[a] || 0),
+    colValor(`lic${a}`, `Licenciamento ${a}`, (l) => l.licAno[a] || 0, "155px"),
+  ]);
 
   const columns: DataGridColumn<Linha>[] = [
     { key: "plate", header: "Placa", width: "100px", cell: (l) => <span className="font-mono font-semibold">{l.plate}</span>, sortValue: (l) => l.plate },
     { key: "veiculo", header: "Veículo", width: "150px", cell: (l) => <span className="truncate">{[l.brand, l.model].filter(Boolean).join(" ")}</span>, sortValue: (l) => `${l.brand} ${l.model}` },
-    { key: "ipva", header: "IPVA", width: "110px", cell: (l) => <CelulaDoc r={l.ipva} />, sortValue: (l) => l.ipva.vencimento },
-    { key: "lic", header: "Licenciamento", width: "120px", cell: (l) => <CelulaDoc r={l.licenciamento} />, sortValue: (l) => l.licenciamento.vencimento },
-    { key: "seguro", header: "Seguro", width: "110px", cell: (l) => <CelulaDoc r={l.seguro} />, sortValue: (l) => l.seguro.vencimento },
-    { key: "multas", header: "Multas em aberto", width: "130px", align: "right", sortValue: (l) => l.multas.valorAberto,
-      cell: (l) => l.multas.abertos === 0 ? <span className="text-muted-foreground">—</span> : (
-        <div className="leading-tight text-right">
-          <div className="font-mono font-medium">{formatCurrency(l.multas.valorAberto)}</div>
-          <div className="text-[10px] opacity-80">{l.multas.abertos} {l.multas.abertos === 1 ? "multa" : "multas"}</div>
-        </div>
-      ) },
     ...colunasAno,
-    { key: "sit", header: "Situação", width: "110px", cell: (l) => <span className="font-medium">{LABEL[l.situacao]}</span>, sortValue: (l) => l.situacao },
+    colValor("multas", "Multas", (l) => l.multasTotal),
+    colValor("total", "Total", (l) => l.total, "110px"),
   ];
 
   return (
@@ -207,7 +210,7 @@ export default function AdminFleetDocuments() {
           onSelectedChange={setSelected}
           singleSelection
           loading={loading}
-          minWidth={760 + anos.length * 95}
+          minWidth={260 + anos.length * 255 + 210}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
           emptyMessage="Nenhum veículo da frota própria encontrado"
         />

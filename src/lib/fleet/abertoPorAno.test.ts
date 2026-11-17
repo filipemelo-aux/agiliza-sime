@@ -11,4 +11,12 @@ describe("abertoPorAno", () => {
     ]);
     expect(r).toEqual({ 2022: 150.3 });
   });
+  it("filtra por tipo", () => {
+    const docs = [
+      { tipo_documento: "IPVA" as const, data_vencimento: "2026-03-10", status_pagamento: "Vencido" as const, valor_total: 900 },
+      { tipo_documento: "Licenciamento" as const, data_vencimento: "2026-08-10", status_pagamento: "Vencido" as const, valor_total: 150 },
+    ];
+    expect(abertoPorAno(docs, "IPVA")).toEqual({ 2026: 900 });
+    expect(abertoPorAno(docs, "Licenciamento")).toEqual({ 2026: 150 });
+  });
 });

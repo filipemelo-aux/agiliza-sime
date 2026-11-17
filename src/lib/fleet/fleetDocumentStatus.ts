@@ -72,10 +72,12 @@ export const ANO_INICIAL_ABERTOS = 2022;
  */
 export function abertoPorAno(
   docs: (FleetDocLike & { ano_exercicio?: number | null })[],
+  tipo?: FleetDocTipo,
 ): Record<number, number> {
   const out: Record<number, number> = {};
   for (const d of docs) {
     if (d.status_pagamento === "Pago") continue;
+    if (tipo && d.tipo_documento !== tipo) continue;
     const ano = d.ano_exercicio || Number(String(d.data_vencimento || "").slice(0, 4));
     if (!ano || ano < ANO_INICIAL_ABERTOS) continue;
     out[ano] = Math.round(((out[ano] || 0) + (Number(d.valor_total) || 0)) * 100) / 100;
