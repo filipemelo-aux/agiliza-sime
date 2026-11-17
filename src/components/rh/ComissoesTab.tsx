@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PeriodFilter } from "@/components/PeriodFilter";
-import { inAcertoPeriod, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
+import { inAcertoPeriod, inJanelaComissao, type AcertoPeriod } from "@/lib/rhAcertoPeriod";
 import { formatDateBR, normalizeDateInput, getLocalDateISO } from "@/lib/date";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -105,7 +105,7 @@ export function ComissoesTab({ colaboradores, periodo, onAdicionar }: ComissoesT
       try {
         const data = await fetchCtesElegiveisComissao(colaboradorId);
         if (!cancelled) {
-          setCtes(periodo ? data.filter((c: any) => inAcertoPeriod(c.data_emissao, periodo)) : data);
+          setCtes(periodo ? data.filter((c: any) => inJanelaComissao(c.data_emissao, periodo)) : data);
           setSelecionados(new Set());
         }
       } catch (err: any) {
@@ -214,7 +214,7 @@ export function ComissoesTab({ colaboradores, periodo, onAdicionar }: ComissoesT
       else toast.success(`${okCount} comissão(ões) gerada(s) — pendentes para folha`);
       // Recarrega lista (CT-es processados ficam marcados como já comissionados)
       const data = await fetchCtesElegiveisComissao(colaboradorId);
-      setCtes(periodo ? data.filter((c) => inAcertoPeriod(c.data_emissao, periodo)) : data);
+      setCtes(periodo ? data.filter((c) => inJanelaComissao(c.data_emissao, periodo)) : data);
       setSelecionados(new Set());
     } catch (err: any) {
       toast.error("Erro ao gerar comissões: " + err.message);

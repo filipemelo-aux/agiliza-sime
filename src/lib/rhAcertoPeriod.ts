@@ -83,3 +83,17 @@ export const formatAcertoPeriod = (p: AcertoPeriod) => {
   const f = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
   return `${f(p.inicio)} a ${f(p.fim)}`;
 };
+
+/**
+ * Fim da janela de comissões do acerto: inclui CT-es emitidos até o prazo de fechamento
+ * (1ª quinzena → dia de pagamento do mesmo mês; 2ª → dia de pagamento do mês seguinte).
+ */
+export function fimJanelaComissao(p: AcertoPeriod, config: RHPeriodConfig = DEFAULT_RH_PERIOD_CONFIG): string {
+  const [y, m] = p.month.split("-").map(Number);
+  if (p.inicio.endsWith("-01")) return `${p.month}-${pad(config.firstPayDay)}`;
+  const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(config.secondPayDay)}`;
+}
+
+export const inJanelaComissao = (d: string | null | undefined, p: AcertoPeriod, config: RHPeriodConfig = DEFAULT_RH_PERIOD_CONFIG) =>
+  inAcertoPeriod(d, { ...p, fim: fimJanelaComissao(p, config) });

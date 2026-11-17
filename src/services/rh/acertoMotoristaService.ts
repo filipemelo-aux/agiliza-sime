@@ -1,4 +1,5 @@
 import { limiteValesAcerto } from "@/lib/rh/quintoDiaUtil";
+import { fimJanelaComissao } from "@/lib/rhAcertoPeriod";
 /**
  * Acerto quinzenal do motorista.
  *  - Movimentações (entradas/saídas) do motorista na quinzena escolhida na grade.
@@ -38,11 +39,14 @@ const formatBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 
 interface Fontes { comissoes: Comissao[]; descontos: DescontoFolha[]; reembolsos: ReembolsoExpense[]; vales: Expense[] }
 
+/** Quinzena (não mês completo): só ela estende as comissões até o prazo de fechamento. */
+const ehQuinzena = (p: PeriodoAcerto) => p.inicio.slice(8) !== "01" || p.fim.slice(8) === "15";
+
 async function carregarFontes(colabId: string, p: PeriodoAcerto, adiantExpenses: Expense[]): Promise<Fontes> {
   const limVales = limiteValesAcerto(p.inicio, p.fim);
   const accountId = rhSettings.get().adiantamentoAccountId || adiantExpenses.find(e => e.plano_contas_id)?.plano_contas_id;
   const [comissoes, descontos, reembolsos, historicoVales] = await Promise.all([
-    fetchComissoes({ colaboradorId: colabId, dataInicio: p.inicio, dataFim: p.fim }),
+    fetchComissoes({ colaboradorId: colabId, dataInicio: p.inicio, dataFim: ehQuinzena(p) ? fimJanelaComissao(p) : p.fim }),
     fetchDescontosPendentesNoPeriodo([colabId], p.inicio, p.fim),
     fetchReembolsosPendentesNoPeriodo([colabId], p.inicio, p.fim),
     accountId ? fetchValesAtePeriodo(colabId, accountId, limVales) : Promise.resolve(adiantExpenses),
