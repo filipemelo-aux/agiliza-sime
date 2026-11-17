@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can view check layouts" ON public.check_layouts FOR SELECT TO authenticated USING ((SELECT public.has_role((SELECT auth.uid()), 'admin'::app_role)) OR (SELECT public.has_role((SELECT auth.uid()), 'moderator'::app_role)));
