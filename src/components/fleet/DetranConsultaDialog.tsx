@@ -17,7 +17,7 @@ type Imp = { gravados: number; quitados: number; debitos: { tipo: string; ano: n
 
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
-function Valor({ v }: { v: unknown }) {
+export function Valor({ v }: { v: unknown }) {
   if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
   if (Array.isArray(v)) {
     if (!v.length) return <span className="text-muted-foreground">Nenhum</span>;

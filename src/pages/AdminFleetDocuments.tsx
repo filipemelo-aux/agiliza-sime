@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle } from "lucide-react";
+import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -12,6 +12,7 @@ import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-car
 import { rowToneClass, StatusLegend, RowTone } from "@/components/ui/status-row";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
 import { DetranConsultaDialog } from "@/components/fleet/DetranConsultaDialog";
+import { DetranDetalhesDialog } from "@/components/fleet/DetranDetalhesDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { formatCurrency } from "@/lib/masks";
@@ -69,6 +70,7 @@ export default function AdminFleetDocuments() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [manageOpen, setManageOpen] = useState(false);
   const [detranOpen, setDetranOpen] = useState(false);
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,10 +150,13 @@ export default function AdminFleetDocuments() {
   const colValor = (key: string, header: string, f: (l: Linha) => number, width = "100px"): DataGridColumn<Linha> => ({
     key, header, width, align: "right", cell: (l) => moeda(f(l)), sortValue: f, footer: rodape(f),
   });
-  const colunasAno: DataGridColumn<Linha>[] = [...anos].reverse().flatMap((a) => [
-    colValor(`ipva${a}`, `IPVA ${a}`, (l) => l.ipvaAno[a] || 0),
-    colValor(`lic${a}`, `Licenciamento ${a}`, (l) => l.licAno[a] || 0, "155px"),
-  ]);
+  // IPVA e licenciamento juntos por ano (o Detran costuma cobrar os dois na mesma guia)
+  const colunasAno: DataGridColumn<Linha>[] = [...anos].reverse().map((a) => {
+    const f = (l: Linha) => Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
+    const rot = (l: Linha) => { const i = l.ipvaAno[a] || 0, c = l.licAno[a] || 0; return i && c ? "IPVA + Licenc." : i ? "IPVA" : c ? "Licenc." : ""; };
+    return { key: `il${a}`, header: `IPVA/Licenc. ${a}`, width: "140px", align: "right", sortValue: f, footer: rodape(f),
+      cell: (l) => f(l) ? <span className="flex flex-col items-end leading-tight" title={`IPVA ${formatCurrency(l.ipvaAno[a] || 0)} · Licenciamento ${formatCurrency(l.licAno[a] || 0)}`}>{moeda(f(l))}<span className="text-[10px] text-muted-foreground">{rot(l)}</span></span> : moeda(0) };
+  });
 
   const columns: DataGridColumn<Linha>[] = [
     { key: "plate", header: "Placa", width: "100px", cell: (l) => <span className="font-mono font-semibold">{l.plate}</span>, sortValue: (l) => l.plate },
@@ -198,6 +203,7 @@ export default function AdminFleetDocuments() {
           actions={[
             { key: "manage", label: "Documentos e multas da placa", icon: FolderOpen, mode: "single", variant: "default", disabled: !single, onClick: () => single && setManageOpen(true) },
             { key: "sync", label: "Consultar débitos no Detran", icon: RefreshCw, mode: "single", disabled: !single, onClick: () => single && setDetranOpen(true) },
+            { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
           ]}
           selectedCount={selected.size}
         />
@@ -210,7 +216,7 @@ export default function AdminFleetDocuments() {
           onSelectedChange={setSelected}
           singleSelection
           loading={loading}
-          minWidth={260 + anos.length * 255 + 210}
+          minWidth={260 + anos.length * 140 + 210}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
           emptyMessage="Nenhum veículo da frota própria encontrado"
         />
@@ -231,6 +237,7 @@ export default function AdminFleetDocuments() {
           </DialogContent>
         </Dialog>
         <DetranConsultaDialog open={detranOpen} onOpenChange={setDetranOpen} vehicle={single ?? null} onSaved={load} />
+        <DetranDetalhesDialog open={detalhesOpen} onOpenChange={setDetalhesOpen} vehicle={single ?? null} />
       </div>
     </AdminLayout>
   );

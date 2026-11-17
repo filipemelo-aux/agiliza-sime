@@ -29,4 +29,11 @@ describe("normalizar débitos do Detran", () => {
     expect(endpointDebitos("PA")).toBe("detran/pa/veiculo");
     expect(endpointDebitos("GO")).toBeNull();
   });
+  it("MA: auto de infração da SEFAZ é IPVA por ano", () => {
+    const r = normalizar("MA", { outros_debitos_sefaz: [
+      { ano: "2023", tipo: "AUTO DE INFRACAO", numero_documento: "1", normalizado_saldo_devedor: 900 },
+      { ano: "2024", tipo: "AUTO DE INFRACAO", numero_documento: "2", normalizado_saldo_devedor: 1000.5 },
+    ] }, "2026-11-17");
+    expect(r.map((d) => [d.tipo, d.ano, d.valor])).toEqual([["IPVA", 2023, 900], ["IPVA", 2024, 1000.5]]);
+  });
 });

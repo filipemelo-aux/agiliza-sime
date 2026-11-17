@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
       }
       importacao = { gravados, quitados, debitos }
     }
+    await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: out.data ?? [], importacao, price: out.header?.price ?? null, created_by: u.user.id })
     return json({ ok: true, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
   } catch (e) {
     console.error(e); return json({ error: String((e as Error).message ?? e) }, 500)

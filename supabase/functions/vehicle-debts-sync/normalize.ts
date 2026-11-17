@@ -53,6 +53,23 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
       lic.set(ano, { valor: r2(cur.valor + v), venc: cur.venc < venc ? cur.venc : venc, desc: [...cur.desc, desc] })
     }
     for (const [ano, x] of lic) out.push({ tipo: 'Licenciamento', ano, valor: x.valor, vencimento: x.venc, chave: `LIC-${ano}`, descricao: `Licenciamento ${ano}: ${x.desc.join('; ')}`.slice(0, 300) })
+    // SEFAZ-MA: IPVA não pago vira "Auto de Infração" (lançamento de ofício) por ano — é IPVA, não multa de trânsito
+    const sefaz = new Map<number, { valor: number; venc: string; docs: string[] }>()
+    for (const s of item?.outros_debitos_sefaz ?? []) {
+      const ano = Number(s?.ano); const v = num(s?.normalizado_saldo_devedor ?? s?.saldo_devedor ?? s?.normalizado_valor_principal ?? s?.valor_principal)
+      if (!ano || v <= 0) continue
+      const venc = br(s?.data_vencimento) ?? `${ano}-12-31`
+      const cur = sefaz.get(ano) ?? { valor: 0, venc, docs: [] }
+      sefaz.set(ano, { valor: r2(cur.valor + v), venc: cur.venc < venc ? cur.venc : venc, docs: [...cur.docs, `${s?.tipo ?? 'Auto de Infração'} ${s?.numero_documento ?? ''}`.trim()] })
+    }
+    for (const [ano, x] of sefaz) out.push({ tipo: 'IPVA', ano, valor: x.valor, vencimento: x.venc, chave: `IPVA-SEFAZ-${ano}`, descricao: `IPVA ${ano} — SEFAZ-MA: ${x.docs.join('; ')}`.slice(0, 300) })
+    // Autuações (notificações ainda sem auto de penalidade)
+    for (const d of item?.debitos_autuacao ?? []) {
+      const v = num(d?.normalizado_valor_atual ?? d?.valor_atual ?? d?.normalizado_valor_nominal); if (v <= 0) continue
+      const venc = br(d?.vencimento) ?? hoje; const desc = String(d?.descricao ?? 'Autuação')
+      const auto = (desc.match(/[A-Z]{0,3}\d{6,}/)?.[0]) ?? `${venc}-${desc.replace(/\W+/g, '').slice(0, 30)}`
+      multa(auto, v, venc, desc)
+    }
     for (const f of [...(item?.penalidades_multas ?? []), ...(item?.infracoes_autuacao ?? [])]) {
       multa(String(f?.auto ?? '').trim(), num(f?.normalizado_valor ?? f?.valor), br(f?.local_complemento), `${f?.descricao ?? ''}`)
     }
