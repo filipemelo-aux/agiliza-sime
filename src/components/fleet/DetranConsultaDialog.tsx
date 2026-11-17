@@ -10,6 +10,10 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 
 const UFS = "AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
 const LOGIN_UFS = ["MG", "RS", "SC", "SP"];
+// UFs cujos débitos (IPVA, licenciamento, multas) são gravados na tabela; usam só placa e RENAVAM
+const UFS_DEBITOS = ["MA", "PA"];
+const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+type Imp = { gravados: number; quitados: number; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
 
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -31,8 +35,8 @@ function Valor({ v }: { v: unknown }) {
   return <span>{String(v)}</span>;
 }
 
-export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
-  open: boolean; onOpenChange: (o: boolean) => void; vehicle: { id: string; plate: string } | null;
+export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
+  open: boolean; onOpenChange: (o: boolean) => void; vehicle: { id: string; plate: string } | null; onSaved?: () => void;
 }) {
   const [uf, setUf] = useState("GO");
   const [documento, setDocumento] = useState("");
@@ -47,7 +51,7 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
   }, [open, vehicle?.id]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [res, setRes] = useState<{ data: unknown[]; price: string | null } | null>(null);
+  const [res, setRes] = useState<{ data: unknown[]; price: string | null; importacao: Imp } | null>(null);
 
   const consultar = async () => {
     if (!vehicle) return;
@@ -65,7 +69,8 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
       const extra = Array.isArray(data?.errors) && data.errors.length ? ` — ${data.errors.join("; ")}` : "";
       setErro(`${data?.error ?? "Consulta não concluída"}${extra}`); return;
     }
-    setRes({ data: data.data, price: data.price });
+    setRes({ data: data.data, price: data.price, importacao: data.importacao ?? null });
+    if (data.importacao) onSaved?.();
   };
 
   return (
@@ -89,12 +94,17 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle }: {
               <Input type="password" className="h-8 text-xs" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} autoComplete="off" /></div>
           </>}
         </div>
-        <p className="text-[11px] text-muted-foreground">A consulta exige placa, RENAVAM e chassi (no Maranhão, só placa e RENAVAM). Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
-        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || (uf !== "MA" && !chassi.trim())}>Consultar</Button></div>
+        <p className="text-[11px] text-muted-foreground">A consulta exige placa, RENAVAM e chassi (no Maranhão e no Pará, só placa e RENAVAM). Por enquanto só MA e PA gravam IPVA, licenciamento e multas na tabela; nas demais UFs a consulta mostra apenas restrições. Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
+        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || (!UFS_DEBITOS.includes(uf) && !chassi.trim())}>Consultar</Button></div>
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
         {res && <div className="max-h-[50vh] overflow-y-auto text-xs space-y-2">
           {res.price && <div className="text-muted-foreground">Custo da consulta: R$ {res.price}</div>}
-          <Valor v={res.data} />
+          {res.importacao ? <div className="rounded border p-2 space-y-1">
+            <div className="font-medium">Gravado na tabela: {res.importacao.gravados} débito(s){res.importacao.quitados ? ` · ${res.importacao.quitados} marcado(s) como pago (não constam mais no Detran)` : ""}</div>
+            {res.importacao.debitos.length ? res.importacao.debitos.map((d, i) => <div key={i} className="flex justify-between gap-2"><span>{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono">{fmt(d.valor)}</span></div>)
+              : <div className="text-muted-foreground">Nenhum débito em aberto no Detran.</div>}
+          </div> : <div className="rounded border p-2 text-muted-foreground">Esta UF retorna só restrições; nada foi gravado na tabela.</div>}
+          <details><summary className="cursor-pointer text-muted-foreground">Resposta completa do Detran</summary><Valor v={res.data} /></details>
         </div>}
       </DialogContent>
     </Dialog>

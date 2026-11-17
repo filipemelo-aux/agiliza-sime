@@ -1,6 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
+import { endpointDebitos, normalizar, type Debito } from './normalize.ts'
 
 const GATEWAY = 'https://connector-gateway.lovable.dev/udc_infosimples'
 const Body = z.object({
@@ -36,19 +37,21 @@ Deno.serve(async (req) => {
     const uf = p.data.uf.toUpperCase()
     // MA não está na consulta unificada: usa a API própria do Detran-MA (só placa + RENAVAM)
     const isMA = uf === 'MA'
-    const faltam = [!v.renavam && 'RENAVAM', !isMA && !v.chassis && 'chassi'].filter(Boolean)
+    const endpoint = endpointDebitos(uf) ?? 'detran/restricoes'
+    const soPlacaRenavam = endpoint !== 'detran/restricoes'
+    const faltam = [!v.renavam && 'RENAVAM', !soPlacaRenavam && !v.chassis && 'chassi'].filter(Boolean)
     if (faltam.length) return json({ error: `Falta no cadastro do veículo: ${faltam.join(' e ')}.`, missing: faltam }, 400)
 
     const lov = Deno.env.get('LOVABLE_API_KEY'), key = Deno.env.get('UDC_INFOSIMPLES_API_KEY')
     if (!lov || !key) return json({ error: 'Conexão InfoSimples não configurada' }, 500)
     const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '50' }
-    const form = new URLSearchParams(isMA ? base : { ...base, uf, chassi: v.chassis })
+    const form = new URLSearchParams(soPlacaRenavam ? base : { ...base, uf, chassi: v.chassis })
     const doc = (p.data.documento || '').replace(/\D/g, '')
-    if (doc && !isMA) form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
-    if (p.data.login_cpf) form.set('login_cpf', p.data.login_cpf.replace(/\D/g, ''))
-    if (p.data.login_senha) form.set('login_senha', p.data.login_senha)
+    if (doc && !soPlacaRenavam) form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
+    if (p.data.login_cpf && !soPlacaRenavam) form.set('login_cpf', p.data.login_cpf.replace(/\D/g, ''))
+    if (p.data.login_senha && !soPlacaRenavam) form.set('login_senha', p.data.login_senha)
 
-    const r = await fetch(`${GATEWAY}/api/v2/consultas/${isMA ? 'detran/ma/licenciamento' : 'detran/restricoes'}`, {
+    const r = await fetch(`${GATEWAY}/api/v2/consultas/${endpoint}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${lov}`, 'X-Connection-Api-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form,
@@ -59,7 +62,40 @@ Deno.serve(async (req) => {
       return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder (instabilidade do Detran). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
     const out = JSON.parse(text)
     if (out.code !== 200) return json({ error: out.code_message || 'Consulta não concluída', code: out.code, errors: out.errors ?? [] }, 200)
-    return json({ ok: true, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
+    let importacao: { gravados: number; quitados: number; debitos: Debito[] } | null = null
+    if (soPlacaRenavam) {
+      const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
+      const debitos = (out.data ?? []).flatMap((it: unknown) => normalizar(uf, it, hoje))
+      const { data: atuais, error: e1 } = await sb.from('veiculo_documentos')
+        .select('id, observacoes, status_pagamento').eq('veiculo_id', p.data.vehicle_id).like('observacoes', '%[detran:%')
+      if (e1) return json({ error: 'Consulta feita, mas não foi possível ler os documentos: ' + e1.message }, 200)
+      const tag = (c: string) => `[detran:${c}]`
+      let gravados = 0, quitados = 0
+      for (const d of debitos) {
+        const row = {
+          veiculo_id: p.data.vehicle_id, tipo_documento: d.tipo, ano_exercicio: d.ano, valor_total: d.valor,
+          data_vencimento: d.vencimento, status_pagamento: d.vencimento < hoje ? 'Vencido' : 'A Vencer',
+          observacoes: `${d.descricao} ${tag(d.chave)}`,
+        }
+        const ex = (atuais ?? []).find((a: any) => String(a.observacoes ?? '').includes(tag(d.chave)))
+        const { error } = ex
+          ? await sb.from('veiculo_documentos').update(row).eq('id', ex.id)
+          : await sb.from('veiculo_documentos').insert({ ...row, created_by: u.user.id })
+        if (error) return json({ error: `Consulta feita, mas falhou ao gravar ${d.tipo} ${d.ano}: ${error.message}` }, 200)
+        gravados++
+      }
+      // Débitos importados antes que o Detran não lista mais foram quitados
+      const chaves = new Set(debitos.map((d) => tag(d.chave)))
+      for (const a of atuais ?? []) {
+        const m = String((a as any).observacoes ?? '').match(/\[detran:[^\]]+\]/)
+        if (m && !chaves.has(m[0]) && (a as any).status_pagamento !== 'Pago') {
+          const { error } = await sb.from('veiculo_documentos').update({ status_pagamento: 'Pago' }).eq('id', (a as any).id)
+          if (!error) quitados++
+        }
+      }
+      importacao = { gravados, quitados, debitos }
+    }
+    return json({ ok: true, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
   } catch (e) {
     console.error(e); return json({ error: String((e as Error).message ?? e) }, 500)
   }

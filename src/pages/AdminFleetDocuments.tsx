@@ -230,7 +230,7 @@ export default function AdminFleetDocuments() {
             {single && <VehicleDocumentsTab vehicleId={single.id} vehiclePlate={single.plate} />}
           </DialogContent>
         </Dialog>
-        <DetranConsultaDialog open={detranOpen} onOpenChange={setDetranOpen} vehicle={single ?? null} />
+        <DetranConsultaDialog open={detranOpen} onOpenChange={setDetranOpen} vehicle={single ?? null} onSaved={load} />
       </div>
     </AdminLayout>
   );
