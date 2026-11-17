@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     const lov = Deno.env.get('LOVABLE_API_KEY'), key = Deno.env.get('UDC_INFOSIMPLES_API_KEY')
     if (!lov || !key) return json({ error: 'Conexão InfoSimples não configurada' }, 500)
-    const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '300' }
+    const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '50' }
     const form = new URLSearchParams(isMA ? base : { ...base, uf, chassi: v.chassis })
     const doc = (p.data.documento || '').replace(/\D/g, '')
     if (doc && !isMA) form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
@@ -54,7 +54,9 @@ Deno.serve(async (req) => {
       body: form,
     })
     const text = await r.text()
-    if (!r.ok) { console.error(`InfoSimples [${r.status}]: ${text}`); return json({ error: 'Falha na InfoSimples', status: r.status, details: text }, 502) }
+    if (!r.ok) { console.error(`InfoSimples [${r.status}]: ${text}`); 
+      const lento = r.status === 502 || r.status === 504 || text.includes('timeout')
+      return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder (instabilidade do Detran). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
     const out = JSON.parse(text)
     if (out.code !== 200) return json({ error: out.code_message || 'Consulta não concluída', code: out.code, errors: out.errors ?? [] }, 200)
     return json({ ok: true, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
