@@ -60,7 +60,7 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
       if (!ano || v <= 0) continue
       const venc = br(s?.data_vencimento) ?? `${ano}-12-31`
       const cur = sefaz.get(ano) ?? { valor: 0, venc, docs: [] }
-      sefaz.set(ano, { valor: r2(cur.valor + v), venc: cur.venc < venc ? cur.venc : venc, docs: [...cur.docs, `${s?.tipo ?? 'Auto de Infração'} ${s?.numero_documento ?? ''}`.trim()] })
+      sefaz.set(ano, { valor: r2(cur.valor + v), venc: cur.venc < venc ? cur.venc : venc, docs: [...cur.docs, `${/HONOR/i.test(String(s?.tipo)) ? 'Honorários' : (s?.tipo ?? 'Auto de Infração')} ${s?.numero_documento ?? ''} R$ ${v.toFixed(2).replace('.', ',')}`.trim()] })
     }
     for (const [ano, x] of sefaz) out.push({ tipo: 'IPVA', ano, valor: x.valor, vencimento: x.venc, chave: `IPVA-SEFAZ-${ano}`, descricao: `IPVA ${ano} — SEFAZ-MA: ${x.docs.join('; ')}`.slice(0, 300) })
     // Autuações (notificações ainda sem auto de penalidade)
