@@ -11,6 +11,7 @@ import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
 import { rowToneClass, StatusLegend, RowTone } from "@/components/ui/status-row";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
+import { DetranConsultaDialog } from "@/components/fleet/DetranConsultaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
 import { formatCurrency } from "@/lib/masks";
@@ -63,6 +64,7 @@ export default function AdminFleetDocuments() {
   const [filtroSituacao, setFiltroSituacao] = useState<"all" | FleetSituacao>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [manageOpen, setManageOpen] = useState(false);
+  const [detranOpen, setDetranOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -182,7 +184,7 @@ export default function AdminFleetDocuments() {
         <GlobalToolbar
           actions={[
             { key: "manage", label: "Documentos e multas da placa", icon: FolderOpen, mode: "single", variant: "default", disabled: !single, onClick: () => single && setManageOpen(true) },
-            { key: "sync", label: "Consultar débitos no Detran (em breve)", icon: RefreshCw, mode: "single", disabled: true, onClick: () => {} },
+            { key: "sync", label: "Consultar débitos no Detran", icon: RefreshCw, mode: "single", disabled: !single, onClick: () => single && setDetranOpen(true) },
           ]}
           selectedCount={selected.size}
         />
@@ -215,6 +217,7 @@ export default function AdminFleetDocuments() {
             {single && <VehicleDocumentsTab vehicleId={single.id} vehiclePlate={single.plate} />}
           </DialogContent>
         </Dialog>
+        <DetranConsultaDialog open={detranOpen} onOpenChange={setDetranOpen} vehicle={single ?? null} />
       </div>
     </AdminLayout>
   );
