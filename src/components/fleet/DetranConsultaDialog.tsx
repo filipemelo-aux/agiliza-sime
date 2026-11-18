@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
+import { ExternalLink } from "lucide-react";
 import { documentoDoProprietario } from "../../../supabase/functions/vehicle-debts-sync/proprietario";
 
 const UFS = "AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
@@ -18,6 +19,10 @@ type Imp = { gravados: number; quitados: number; aviso?: string | null; debitos:
 
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
+/** Campos de link (ex.: boleto_debitos_html_url) viram botão que abre a página em nova aba. */
+const linkField = (k: string, x: unknown): string | null =>
+  /_url$/.test(k) && typeof x === "string" && /^https?:\/\//i.test(x) ? x : null;
+
 export function Valor({ v }: { v: unknown }) {
   if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
   if (Array.isArray(v)) {
@@ -27,9 +32,14 @@ export function Valor({ v }: { v: unknown }) {
   if (typeof v === "object") {
     return (
       <div className="grid gap-x-3 gap-y-1 min-w-0 sm:grid-cols-[160px_minmax(0,1fr)]">
-        {Object.entries(v as Record<string, unknown>).filter(([k]) => !k.startsWith("normalizado_") && k !== "site_receipt").map(([k, x]) => (
-          <div key={k} className="contents"><div className="text-muted-foreground">{rotulo(k)}</div><div className="min-w-0 break-words [overflow-wrap:anywhere]"><Valor v={x} /></div></div>
-        ))}
+        {Object.entries(v as Record<string, unknown>).filter(([k]) => !k.startsWith("normalizado_") && k !== "site_receipt").map(([k, x]) => {
+          const href = linkField(k, x);
+          return (
+            <div key={k} className="contents"><div className="text-muted-foreground">{rotulo(k)}</div><div className="min-w-0 break-words [overflow-wrap:anywhere]">{href
+              ? <Button asChild variant="outline" size="sm"><a href={href} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" />{k.includes("boleto") ? "Abrir boleto" : "Abrir link"}</a></Button>
+              : <Valor v={x} />}</div></div>
+          );
+        })}
       </div>
     );
   }
