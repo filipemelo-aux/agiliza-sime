@@ -85,11 +85,15 @@ Deno.serve(async (req) => {
       return json({ error: lento ? `O site do ${uf === 'GO' ? 'SEFAZ' : 'Detran'}-${uf} demorou demais para responder (instabilidade do órgão). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
     const out = principal.out
     // SEFAZ-GO: 612 = nenhum IPVA em aberto.
-    if (uf === 'GO' && out.code === 612) { out.code = 200; out.data = [] }
+    let avisoGo: string | null = null
+    if (uf === 'GO' && out.code === 612) {
+      avisoGo = `SEFAZ-GO: nenhum IPVA em aberto para esta placa${(out.errors ?? []).length ? ` (${out.errors.join('; ')})` : ''}. Licenciamento e multas do Detran-GO não fazem parte desta consulta.`
+      out.code = 200; out.data = [{ _resultado: avisoGo, site_receipt: out.site_receipts?.[0] ?? null }]
+    }
     if (out.code !== 200) return json({ error: lento ? `O site do ${uf === 'GO' ? 'SEFAZ' : 'Detran'}-${uf} demorou demais para responder. Tente novamente em alguns minutos.` : (out.code_message || 'Consulta não concluída'), code: out.code, errors: out.errors ?? [] }, 200)
     // IPVA source is optional: code 612 = nothing found (no open IPVA), others = unavailable.
     const ipvaOk = !!ipvaRes && ipvaRes.r.ok && (ipvaRes.out?.code === 200 || ipvaRes.out?.code === 612)
-    const avisoIpva = ipvaRes && !ipvaOk ? `A SEFAZ-${uf} não respondeu a consulta de IPVA (${ipvaRes.lento ? 'instabilidade/tempo esgotado' : ipvaRes.out?.code_message ?? 'falha'}). O licenciamento foi atualizado; consulte de novo mais tarde para o IPVA.` : null
+    const avisoIpva = avisoGo ?? (ipvaRes && !ipvaOk ? `A SEFAZ-${uf} não respondeu a consulta de IPVA (${ipvaRes.lento ? 'instabilidade/tempo esgotado' : ipvaRes.out?.code_message ?? 'falha'}). O licenciamento foi atualizado; consulte de novo mais tarde para o IPVA.` : null)
     const dadosIpva = ipvaOk ? (ipvaRes!.out.data ?? []) : []
     let importacao: { gravados: number; quitados: number; debitos: Debito[]; aviso?: string | null } | null = null
     if (soPlacaRenavam) {
