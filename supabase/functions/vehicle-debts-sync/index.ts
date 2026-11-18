@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     const t0 = Date.now()
     // One retry when the state site times out, while staying under the function time limit.
-    const chamar = async (ep: string, body: URLSearchParams) => {
+    const chamar = async (ep: string, body: URLSearchParams, repetir = true) => {
       for (let tentativa = 0; ; tentativa++) {
         const r = await fetch(`${GATEWAY}/api/v2/consultas/${ep}`, {
           method: 'POST',
@@ -73,13 +73,13 @@ Deno.serve(async (req) => {
         const text = await r.text()
         let out: any = null; try { out = JSON.parse(text) } catch { /* gateway error */ }
         const lento = r.status === 502 || r.status === 504 || out?.code === 605 || text.includes('timeout')
-        if (lento && tentativa === 0 && Date.now() - t0 < 60000) continue
+        if (repetir && lento && tentativa === 0 && Date.now() - t0 < 40000) continue
         return { r, text, out, lento }
       }
     }
     const epIpva = endpointIpvaComplementar(uf)
-    const formIpva = new URLSearchParams({ ...base, ...(doc ? { [doc.length > 11 ? 'cnpj' : 'cpf']: doc } : {}) })
-    const [principal, ipvaRes] = await Promise.all([chamar(endpoint, form), epIpva ? chamar(epIpva, formIpva) : Promise.resolve(null)])
+    const formIpva = new URLSearchParams({ ...base, timeout: '35', ...(doc ? { [doc.length > 11 ? 'cnpj' : 'cpf']: doc } : {}) })
+    const [principal, ipvaRes] = await Promise.all([chamar(endpoint, form), epIpva ? chamar(epIpva, formIpva, false) : Promise.resolve(null)])
     const { r, text, lento } = principal
     if (!r.ok || !principal.out) { console.error(`InfoSimples [${r.status}]: ${text}`)
       return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder (instabilidade do Detran). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
