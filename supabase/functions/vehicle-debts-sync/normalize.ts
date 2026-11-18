@@ -148,8 +148,16 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
       const auto = (desc.match(/[A-Z]{0,3}\d{6,}/)?.[0]) ?? `${venc}-${desc.replace(/\W+/g, '').slice(0, 30)}`
       multa(auto, v, venc, desc)
     }
+    // Penalidades bring only the nominal value; the matching entry in debitos has valor_atual (nominal + juros + multa).
+    const atualDoAuto = (auto: string) => {
+      const id = auto.match(/N\d{6,}/)?.[0] ?? auto.slice(0, 40)
+      const d = (item?.debitos ?? []).find((x: any) => id && String(x?.descricao ?? '').includes(id))
+      return d ? num(d?.normalizado_valor_atual ?? d?.valor_atual) : 0
+    }
     for (const f of [...(item?.penalidades_multas ?? []), ...(item?.infracoes_autuacao ?? [])]) {
-      multa(String(f?.auto ?? '').trim(), num(f?.normalizado_valor ?? f?.valor), br(f?.local_complemento), `${f?.descricao ?? ''}`)
+      const auto = String(f?.auto ?? '').trim()
+      const nominal = num(f?.normalizado_valor ?? f?.valor)
+      multa(auto, Math.max(nominal, atualDoAuto(auto)), br(f?.local_complemento), `${f?.descricao ?? ''}`)
     }
   }
   return out
