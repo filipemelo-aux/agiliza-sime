@@ -63,3 +63,18 @@ describe("normalizar débitos do Detran", () => {
     expect(r.map((d) => [d.tipo, d.ano, d.valor])).toEqual([["IPVA", 2023, 900], ["IPVA", 2024, 1000.5]]);
   });
 });
+
+describe('SEFAZ-TO IPVA', () => {
+  it('cota única prevalece sobre parcelas e agrupa por exercício', async () => {
+    const { normalizarSefazTO } = await import('../../../supabase/functions/vehicle-debts-sync/normalize.ts')
+    const d = normalizarSefazTO({ pagamentos: [
+      { descricao: 'IPVA 2026 COTA ÚNICA', normalizado_valor: 3000, vencimento: '20/03/2026' },
+      { descricao: 'IPVA 2026 PARCELA 1/3', normalizado_valor: 1100, vencimento: '20/03/2026' },
+      { descricao: 'IPVA 2025 PARCELA 1/2', valor: 'R$ 1.500,00', vencimento: '20/03/2025' },
+      { descricao: 'IPVA 2025 PARCELA 2/2', valor: 'R$ 1.500,00', vencimento: '20/04/2025' },
+    ] }, '2026-11-18')
+    expect(d.find((x) => x.ano === 2026)?.valor).toBe(3000)
+    expect(d.find((x) => x.ano === 2025)?.valor).toBe(3000)
+    expect(d.every((x) => x.tipo === 'IPVA')).toBe(true)
+  })
+})

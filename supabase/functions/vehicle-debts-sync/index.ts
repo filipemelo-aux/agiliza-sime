@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
-import { endpointDebitos, documentoObrigatorio, normalizar, type Debito } from './normalize.ts'
+import { endpointDebitos, endpointIpvaComplementar, normalizarSefazTO, documentoObrigatorio, normalizar, type Debito } from './normalize.ts'
 import { documentoDoProprietario } from './proprietario.ts'
 
 const GATEWAY = 'https://connector-gateway.lovable.dev/udc_infosimples'
@@ -61,21 +61,38 @@ Deno.serve(async (req) => {
     if (p.data.login_cpf && !soPlacaRenavam) form.set('login_cpf', p.data.login_cpf.replace(/\D/g, ''))
     if (p.data.login_senha && !soPlacaRenavam) form.set('login_senha', p.data.login_senha)
 
-    const r = await fetch(`${GATEWAY}/api/v2/consultas/${endpoint}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${lov}`, 'X-Connection-Api-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form,
-    })
-    const text = await r.text()
-    if (!r.ok) { console.error(`InfoSimples [${r.status}]: ${text}`); 
-      const lento = r.status === 502 || r.status === 504 || text.includes('timeout')
+    const t0 = Date.now()
+    // One retry when the state site times out, while staying under the function time limit.
+    const chamar = async (ep: string, body: URLSearchParams) => {
+      for (let tentativa = 0; ; tentativa++) {
+        const r = await fetch(`${GATEWAY}/api/v2/consultas/${ep}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${lov}`, 'X-Connection-Api-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        })
+        const text = await r.text()
+        let out: any = null; try { out = JSON.parse(text) } catch { /* gateway error */ }
+        const lento = r.status === 502 || r.status === 504 || out?.code === 605 || text.includes('timeout')
+        if (lento && tentativa === 0 && Date.now() - t0 < 60000) continue
+        return { r, text, out, lento }
+      }
+    }
+    const epIpva = endpointIpvaComplementar(uf)
+    const formIpva = new URLSearchParams({ ...base, ...(doc ? { [doc.length > 11 ? 'cnpj' : 'cpf']: doc } : {}) })
+    const [principal, ipvaRes] = await Promise.all([chamar(endpoint, form), epIpva ? chamar(epIpva, formIpva) : Promise.resolve(null)])
+    const { r, text, lento } = principal
+    if (!r.ok || !principal.out) { console.error(`InfoSimples [${r.status}]: ${text}`)
       return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder (instabilidade do Detran). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
-    const out = JSON.parse(text)
-    if (out.code !== 200) return json({ error: out.code_message || 'Consulta não concluída', code: out.code, errors: out.errors ?? [] }, 200)
-    let importacao: { gravados: number; quitados: number; debitos: Debito[] } | null = null
+    const out = principal.out
+    if (out.code !== 200) return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder. Tente novamente em alguns minutos.` : (out.code_message || 'Consulta não concluída'), code: out.code, errors: out.errors ?? [] }, 200)
+    // IPVA source is optional: code 612 = nothing found (no open IPVA), others = unavailable.
+    const ipvaOk = !!ipvaRes && ipvaRes.r.ok && (ipvaRes.out?.code === 200 || ipvaRes.out?.code === 612)
+    const avisoIpva = ipvaRes && !ipvaOk ? `A SEFAZ-${uf} não respondeu a consulta de IPVA (${ipvaRes.lento ? 'instabilidade/tempo esgotado' : ipvaRes.out?.code_message ?? 'falha'}). O licenciamento foi atualizado; consulte de novo mais tarde para o IPVA.` : null
+    const dadosIpva = ipvaOk ? (ipvaRes!.out.data ?? []) : []
+    let importacao: { gravados: number; quitados: number; debitos: Debito[]; aviso?: string | null } | null = null
     if (soPlacaRenavam) {
       const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
-      const debitos = (out.data ?? []).flatMap((it: unknown) => normalizar(uf, it, hoje))
+      const debitos = [...(out.data ?? []).flatMap((it: unknown) => normalizar(uf, it, hoje)), ...dadosIpva.flatMap((it: unknown) => normalizarSefazTO(it, hoje))]
       const { data: atuais, error: e1 } = await sb.from('veiculo_documentos')
         .select('id, observacoes, status_pagamento').eq('veiculo_id', p.data.vehicle_id).like('observacoes', '%[detran:%')
       if (e1) return json({ error: 'Consulta feita, mas não foi possível ler os documentos: ' + e1.message }, 200)
@@ -97,18 +114,20 @@ Deno.serve(async (req) => {
       // Débitos importados antes que o Detran não lista mais foram quitados
       const chaves = new Set(debitos.map((d) => tag(d.chave)))
       // TO can omit unsupported debt descriptions: absence alone is not proof of payment.
-      for (const a of uf === 'TO' ? [] : atuais ?? []) {
+      // TO: only SEFAZ IPVA guides are trusted for payment when that query succeeded.
+      const elegiveis = uf === 'TO' ? (ipvaOk ? (atuais ?? []).filter((a: any) => String(a.observacoes ?? '').includes('[detran:IPVA-SEFAZTO-')) : []) : atuais ?? []
+      for (const a of elegiveis) {
         const m = String((a as any).observacoes ?? '').match(/\[detran:[^\]]+\]/)
         if (m && !chaves.has(m[0]) && (a as any).status_pagamento !== 'Pago') {
           const { error } = await sb.from('veiculo_documentos').update({ status_pagamento: 'Pago' }).eq('id', (a as any).id)
           if (!error) quitados++
         }
       }
-      importacao = { gravados, quitados, debitos }
+      importacao = { gravados, quitados, debitos, aviso: avisoIpva }
     }
-    const { error: historyError } = await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: out.data ?? [], importacao, price: out.header?.price ?? null, created_by: u.user.id })
+    const { error: historyError } = await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: [...(out.data ?? []), ...dadosIpva.map((d: any) => ({ _fonte: epIpva, ...d }))], importacao, price: out.header?.price ?? null, created_by: u.user.id })
     if (historyError) return json({ error: 'Débitos consultados, mas não foi possível guardar os detalhes: ' + historyError.message }, 200)
-    return json({ ok: true, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
+    return json({ ok: true, aviso: avisoIpva, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
   } catch (e) {
     console.error(e); return json({ error: String((e as Error).message ?? e) }, 500)
   }

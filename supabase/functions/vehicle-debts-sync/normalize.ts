@@ -13,6 +13,39 @@ export function endpointDebitos(uf: string): string | null {
   return null
 }
 
+/** Consulta complementar de IPVA (o Detran da UF não traz o imposto). */
+export function endpointIpvaComplementar(uf: string): string | null {
+  return uf === 'TO' ? 'sefaz/to/ipva' : null
+}
+
+/** SEFAZ-TO: guias de IPVA em aberto (pagamentos[]), agrupadas por exercício; cota única prevalece sobre parcelas. */
+export function normalizarSefazTO(item: any, hoje: string): Debito[] {
+  const anoHoje = Number(hoje.slice(0, 4))
+  const grupos = new Map<number, { unica: any[]; outras: any[] }>()
+  const lista = [...(item?.pagamentos ?? []), ...(item?.debitos ?? []), ...(item?.parcelas ?? [])]
+  for (const p of lista) {
+    const txt = Object.values(p ?? {}).filter((x) => typeof x === 'string').join(' ')
+    if (/\bPAG[AO]\b|QUITAD|CANCELAD/i.test(String(p?.situacao ?? p?.status ?? ''))) continue
+    const valor = num(p?.normalizado_valor ?? p?.valor_atualizado ?? p?.valor)
+    if (valor <= 0) continue
+    const venc = br(p?.vencimento ?? p?.data_vencimento)
+    const ano = Number(p?.exercicio ?? p?.ano) || Number(txt.match(/(?:EXERC[IÍ]CIO|IPVA)\D{0,5}(20\d{2})/i)?.[1]) || Number(venc?.slice(0, 4)) || anoHoje
+    const g = grupos.get(ano) ?? { unica: [], outras: [] }
+    ;(/[UÚ]NICA/i.test(txt) ? g.unica : g.outras).push({ valor, venc: venc ?? `${ano}-12-31`, linha: p?.linha_digitavel })
+    grupos.set(ano, g)
+  }
+  const out: Debito[] = []
+  for (const [ano, g] of grupos) {
+    const usar = g.unica.length ? [g.unica.sort((a, b) => a.venc.localeCompare(b.venc))[0]] : g.outras
+    const valor = r2(usar.reduce((s, x) => s + x.valor, 0))
+    const venc = usar.map((x) => x.venc).sort()[0]
+    const linha = usar[0]?.linha ? ` — linha ${usar[0].linha}` : ''
+    out.push({ tipo: 'IPVA', ano, valor, vencimento: venc, chave: `IPVA-SEFAZTO-${ano}`,
+      descricao: `IPVA ${ano} (SEFAZ-TO${g.unica.length ? ', cota única' : `, ${usar.length} guia(s)`})${linha}`.slice(0, 300) })
+  }
+  return out
+}
+
 export function documentoObrigatorio(uf: string): boolean {
   return uf === 'TO'
 }

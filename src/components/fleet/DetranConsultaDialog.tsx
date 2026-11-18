@@ -14,7 +14,7 @@ const LOGIN_UFS = ["MG", "RS", "SC", "SP"];
 // UFs cujos débitos (IPVA, licenciamento, multas) são gravados na tabela; usam só placa e RENAVAM
 const UFS_DEBITOS = ["MA", "PA", "TO"];
 const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-type Imp = { gravados: number; quitados: number; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
+type Imp = { gravados: number; quitados: number; aviso?: string | null; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
 
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -119,6 +119,7 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
         {res && <div className="max-h-[50vh] overflow-y-auto text-xs space-y-2">
           {res.price && <div className="text-muted-foreground">Custo da consulta: R$ {res.price}</div>}
+          {res.importacao?.aviso && <div className="rounded border border-warning/40 bg-warning/10 p-2">{res.importacao.aviso}</div>}
           {res.importacao ? <div className="rounded border p-2 space-y-1">
             <div className="font-medium">Gravado na tabela: {res.importacao.gravados} débito(s){res.importacao.quitados ? ` · ${res.importacao.quitados} marcado(s) como pago (não constam mais no Detran)` : ""}</div>
             {res.importacao.debitos.length ? res.importacao.debitos.map((d, i) => <div key={i} className="flex justify-between gap-2"><span>{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono">{fmt(d.valor)}</span></div>)
