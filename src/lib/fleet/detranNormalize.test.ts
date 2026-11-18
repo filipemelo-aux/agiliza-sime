@@ -33,7 +33,7 @@ describe("normalizar débitos do Detran", () => {
   it("MA, PA e TO usam consultas dedicadas de débitos", () => {
     expect(endpointDebitos("TO")).toBe("detran/to/veiculo");
     expect(endpointDebitos("PA")).toBe("detran/pa/veiculo");
-    expect(endpointDebitos("GO")).toBeNull();
+    expect(endpointDebitos("GO")).toBe("sefaz/go/ipva");
   });
   it("TO: soma parcelas por exercício e usa valor atual sem somar juros novamente", () => {
     const r = normalizar("TO", { debitos: [

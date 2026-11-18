@@ -10,6 +10,7 @@ export function endpointDebitos(uf: string): string | null {
   if (uf === 'MA') return 'detran/ma/licenciamento'
   if (uf === 'PA') return 'detran/pa/veiculo'
   if (uf === 'TO') return 'detran/to/veiculo'
+  if (uf === 'GO') return 'sefaz/go/ipva' // Detran-GO exige gov.br; SEFAZ-GO só placa+RENAVAM
   return null
 }
 
@@ -106,6 +107,21 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
       const auto = numero.split(/\s+Renainf:|\s+Em aberto/i)[0].trim()
       multa(auto, valorTO(f.normalizado_valor ?? f.valor), br(f.normalizado_data) ?? br(f.descricao), String(f.descricao ?? 'Multa Detran-TO'))
     }
+  }
+  if (uf === 'GO') {
+    // SEFAZ-GO: guias por processo/exercício (a resposta pode repetir a mesma guia).
+    const vistas = new Set<string>(); const porAno = new Map<number, { valor: number; procs: string[] }>()
+    for (const g of item?.guias ?? []) {
+      const ano = Number(g?.exercicio); const v = num(g?.normalizado_valor ?? g?.valor)
+      if (!ano || v <= 0) continue
+      const k = `${g?.numero_processo ?? ''}|${ano}|${v}`
+      if (vistas.has(k)) continue
+      vistas.add(k)
+      const cur = porAno.get(ano) ?? { valor: 0, procs: [] }
+      porAno.set(ano, { valor: r2(cur.valor + v), procs: [...cur.procs, String(g?.numero_processo ?? '').trim()].filter(Boolean) })
+    }
+    for (const [ano, x] of porAno) out.push({ tipo: 'IPVA', ano, valor: x.valor, vencimento: `${ano}-12-31` < hoje ? `${ano}-12-31` : hoje, chave: `IPVA-SEFAZGO-${ano}`,
+      descricao: `IPVA ${ano} (SEFAZ-GO)${x.procs.length ? ` — processo ${x.procs.join(', ')}` : ''}`.slice(0, 300) })
   }
   if (uf === 'MA') {
     const porAno = new Map<number, { valor: number; venc: string }>()

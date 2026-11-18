@@ -82,9 +82,11 @@ Deno.serve(async (req) => {
     const [principal, ipvaRes] = await Promise.all([chamar(endpoint, form), epIpva ? chamar(epIpva, formIpva, false) : Promise.resolve(null)])
     const { r, text, lento } = principal
     if (!r.ok || !principal.out) { console.error(`InfoSimples [${r.status}]: ${text}`)
-      return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder (instabilidade do Detran). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
+      return json({ error: lento ? `O site do ${uf === 'GO' ? 'SEFAZ' : 'Detran'}-${uf} demorou demais para responder (instabilidade do órgão). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
     const out = principal.out
-    if (out.code !== 200) return json({ error: lento ? `O site do Detran-${uf} demorou demais para responder. Tente novamente em alguns minutos.` : (out.code_message || 'Consulta não concluída'), code: out.code, errors: out.errors ?? [] }, 200)
+    // SEFAZ-GO: 612 = nenhum IPVA em aberto.
+    if (uf === 'GO' && out.code === 612) { out.code = 200; out.data = [] }
+    if (out.code !== 200) return json({ error: lento ? `O site do ${uf === 'GO' ? 'SEFAZ' : 'Detran'}-${uf} demorou demais para responder. Tente novamente em alguns minutos.` : (out.code_message || 'Consulta não concluída'), code: out.code, errors: out.errors ?? [] }, 200)
     // IPVA source is optional: code 612 = nothing found (no open IPVA), others = unavailable.
     const ipvaOk = !!ipvaRes && ipvaRes.r.ok && (ipvaRes.out?.code === 200 || ipvaRes.out?.code === 612)
     const avisoIpva = ipvaRes && !ipvaOk ? `A SEFAZ-${uf} não respondeu a consulta de IPVA (${ipvaRes.lento ? 'instabilidade/tempo esgotado' : ipvaRes.out?.code_message ?? 'falha'}). O licenciamento foi atualizado; consulte de novo mais tarde para o IPVA.` : null
@@ -115,7 +117,7 @@ Deno.serve(async (req) => {
       const chaves = new Set(debitos.map((d) => tag(d.chave)))
       // TO can omit unsupported debt descriptions: absence alone is not proof of payment.
       // TO: only SEFAZ IPVA guides are trusted for payment when that query succeeded.
-      const elegiveis = uf === 'TO' ? (ipvaOk ? (atuais ?? []).filter((a: any) => String(a.observacoes ?? '').includes('[detran:IPVA-SEFAZTO-')) : []) : atuais ?? []
+      const elegiveis = uf === 'GO' ? (atuais ?? []).filter((a: any) => String(a.observacoes ?? '').includes('[detran:IPVA-SEFAZGO-')) : uf === 'TO' ? (ipvaOk ? (atuais ?? []).filter((a: any) => String(a.observacoes ?? '').includes('[detran:IPVA-SEFAZTO-')) : []) : atuais ?? []
       for (const a of elegiveis) {
         const m = String((a as any).observacoes ?? '').match(/\[detran:[^\]]+\]/)
         if (m && !chaves.has(m[0]) && (a as any).status_pagamento !== 'Pago') {
