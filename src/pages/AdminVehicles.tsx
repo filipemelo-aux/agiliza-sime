@@ -1,7 +1,7 @@
 import { PageTitle } from "@/components/PageTitle";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel } from "lucide-react";
+import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel, ListChecks } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
+import { VehicleBatchEditDialog } from "@/components/fleet/VehicleBatchEditDialog";
 import { GlobalToolbar, ToolbarAction } from "@/components/ui/global-toolbar";
 import { DataGrid, DataGridColumn } from "@/components/ui/data-grid";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
@@ -128,6 +129,7 @@ export default function AdminVehicles() {
   const [editVehicleId, setEditVehicleId] = useState<string | null>(null);
   const [deleteVehicle, setDeleteVehicle] = useState<VehicleRow | null>(null);
   const [viewVehicle, setViewVehicle] = useState<VehicleRow | null>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !hasAdminAccess) {
@@ -295,6 +297,7 @@ export default function AdminVehicles() {
     { key: "assignments", label: "Vinculações", icon: Truck, mode: "create", onClick: () => navigate("/admin/vehicle-assignments") },
     { key: "view", label: "Visualizar", icon: Eye, mode: "single", onClick: () => selectedRows[0] && setViewVehicle(selectedRows[0]) },
     { key: "edit", label: "Editar", icon: Pencil, mode: "single", onClick: () => { if (selectedRows[0]) { setEditVehicleId(selectedRows[0].id); setVehicleModalOpen(true); } } },
+    { key: "batch-edit", label: "Edição em lote", icon: ListChecks, mode: "batch", onClick: () => selectedRows.length && setBatchOpen(true) },
     { key: "delete", label: "Excluir", icon: Trash2, mode: "single", variant: "destructive", onClick: () => selectedRows[0] && setDeleteVehicle(selectedRows[0]) },
   ];
 
@@ -364,6 +367,7 @@ export default function AdminVehicles() {
           </FilterField>
         </SearchFilterCard>
         <GlobalToolbar actions={toolbarActions} selectedCount={selected.size} />
+        <VehicleBatchEditDialog open={batchOpen} onOpenChange={setBatchOpen} vehicleIds={selectedRows.map(v => v.id)} plates={selectedRows.map(v => v.plate)} onSaved={fetchVehicles} />
 
         <DataGrid
           rows={filteredVehicles}
