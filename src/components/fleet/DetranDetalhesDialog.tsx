@@ -45,9 +45,9 @@ export function DetranDetalhesDialog({ open, onOpenChange, vehicle }: { open: bo
             </div>
             {c?.importacao?.debitos?.length ? <div className="rounded border p-2 space-y-1">
               <div className="font-medium">Débitos identificados</div>
-              {c.importacao.debitos.map((d: any, i: number) => <div key={i} className="flex justify-between gap-2"><span>{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono">{formatCurrency(d.valor)}</span></div>)}
+              {c.importacao.debitos.map((d: any, i: number) => <div key={i} className="flex justify-between gap-2 min-w-0"><span className="min-w-0 break-words [overflow-wrap:anywhere]">{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono shrink-0 whitespace-nowrap">{formatCurrency(d.valor)}</span></div>)}
             </div> : null}
-            <div className="rounded border p-2"><Valor v={c?.response} /></div>
+            <div className="rounded border p-2 min-w-0 overflow-hidden"><Valor v={c?.response} /></div>
           </div>}
         <ProcessingOverlay open={gerando} label="Gerando PDF…" />
       </DialogContent>

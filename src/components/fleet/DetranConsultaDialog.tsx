@@ -22,13 +22,13 @@ export function Valor({ v }: { v: unknown }) {
   if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
   if (Array.isArray(v)) {
     if (!v.length) return <span className="text-muted-foreground">Nenhum</span>;
-    return <div className="space-y-1">{v.map((x, i) => <div key={i} className="rounded border p-2"><Valor v={x} /></div>)}</div>;
+    return <div className="space-y-1">{v.map((x, i) => <div key={i} className="rounded border p-2 min-w-0"><Valor v={x} /></div>)}</div>;
   }
   if (typeof v === "object") {
     return (
-      <div className="grid gap-x-3 gap-y-1 sm:grid-cols-[160px_1fr]">
+      <div className="grid gap-x-3 gap-y-1 min-w-0 sm:grid-cols-[160px_minmax(0,1fr)]">
         {Object.entries(v as Record<string, unknown>).filter(([k]) => !k.startsWith("normalizado_") && k !== "site_receipt").map(([k, x]) => (
-          <div key={k} className="contents"><div className="text-muted-foreground">{rotulo(k)}</div><div className="break-words"><Valor v={x} /></div></div>
+          <div key={k} className="contents"><div className="text-muted-foreground">{rotulo(k)}</div><div className="min-w-0 break-words [overflow-wrap:anywhere]"><Valor v={x} /></div></div>
         ))}
       </div>
     );
@@ -122,7 +122,7 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
           {res.importacao?.aviso && <div className="rounded border border-warning/40 bg-warning/10 p-2">{res.importacao.aviso}</div>}
           {res.importacao ? <div className="rounded border p-2 space-y-1">
             <div className="font-medium">Gravado na tabela: {res.importacao.gravados} débito(s){res.importacao.quitados ? ` · ${res.importacao.quitados} marcado(s) como pago (não constam mais no Detran)` : ""}</div>
-            {res.importacao.debitos.length ? res.importacao.debitos.map((d, i) => <div key={i} className="flex justify-between gap-2"><span>{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono">{fmt(d.valor)}</span></div>)
+            {res.importacao.debitos.length ? res.importacao.debitos.map((d, i) => <div key={i} className="flex justify-between gap-2 min-w-0"><span className="min-w-0 break-words [overflow-wrap:anywhere]">{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono shrink-0 whitespace-nowrap">{fmt(d.valor)}</span></div>)
               : <div className="text-muted-foreground">Nenhum débito em aberto no Detran.</div>}
           </div> : <div className="rounded border p-2 text-muted-foreground">Esta UF retorna só restrições; nada foi gravado na tabela.</div>}
           <details><summary className="cursor-pointer text-muted-foreground">Resposta completa do Detran</summary><Valor v={res.data} /></details>

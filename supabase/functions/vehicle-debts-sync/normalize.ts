@@ -121,6 +121,8 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
     for (const d of item?.debitos ?? []) {
       const desc = String(d?.descricao ?? '')
       if (/IPVA|MULTA|INFRA|AUTUA/i.test(desc)) continue
+      // Only explicit licensing items; traffic fines (e.g. "01/07/2025-UF:TO-...-TRANSITAR...") come via penalidades.
+      if (!/LICENCIAMENTO|LICENC|CRLV|DPVAT|SEGURO OBRIGAT|TAXA/i.test(desc)) continue
       const v = num(d?.normalizado_valor_atual ?? d?.valor_atual); if (v <= 0) continue
       const venc = br(d?.vencimento) ?? hoje; const ano = Number(venc.slice(0, 4))
       const cur = lic.get(ano) ?? { valor: 0, venc, desc: [] }

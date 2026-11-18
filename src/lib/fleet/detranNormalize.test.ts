@@ -78,3 +78,13 @@ describe('SEFAZ-TO IPVA', () => {
     expect(d.every((x) => x.tipo === 'IPVA')).toBe(true)
   })
 })
+
+describe('MA licenciamento sem multas', () => {
+  it('não soma multas de trânsito listadas em débitos ao licenciamento', () => {
+    const r = normalizar('MA', { debitos: [
+      { descricao: 'LICENCIAMENTO DO VEICULO 2025', vencimento: '16/06/2025', normalizado_valor_atual: 157.33 },
+      { descricao: '01/07/2025-UF:TO-128200-FL00285286-7455-0-TRANSITAR/VELOCIDADE SUPERIOR A MAXIMA EM ATE 20% Venc. 27/10/2025', vencimento: '27/10/2025', normalizado_valor_atual: 148.87 },
+    ] }, '2026-11-18')
+    expect(r.find((d) => d.chave === 'LIC-2025')?.valor).toBe(157.33)
+  })
+})
