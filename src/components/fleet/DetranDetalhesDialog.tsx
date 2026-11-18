@@ -43,6 +43,7 @@ export function DetranDetalhesDialog({ open, onOpenChange, vehicle }: { open: bo
               try { await exportDetranDetalhesPdf({ ...c, plate: vehicle.plate }); } catch (e) { toast.error("Não foi possível gerar o PDF: " + (e as Error).message); } finally { setGerando(false); }
             }}><FileDown className="h-4 w-4 mr-1" />Exportar PDF</Button>
             </div>
+            {c?.importacao?.aviso && <div className="rounded border border-warning/40 bg-warning/10 p-2 break-words">{c.importacao.aviso}</div>}
             {c?.importacao?.debitos?.length ? <div className="rounded border p-2 space-y-1">
               <div className="font-medium">Débitos identificados</div>
               {c.importacao.debitos.map((d: any, i: number) => <div key={i} className="flex justify-between gap-2 min-w-0"><span className="min-w-0 break-words [overflow-wrap:anywhere]">{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono shrink-0 whitespace-nowrap">{formatCurrency(d.valor)}</span></div>)}
