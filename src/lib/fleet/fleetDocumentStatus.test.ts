@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { situacaoDocumento, resumoPorTipo, situacaoVeiculo } from "./fleetDocumentStatus";
+import { situacaoDocumento, resumoPorTipo, situacaoVeiculo, situacaoComConsulta } from "./fleetDocumentStatus";
 
 const hoje = "2026-11-16";
 const doc = (o: any) => ({ tipo_documento: "IPVA", status_pagamento: "A Vencer", valor_total: 100, ...o });
@@ -31,5 +31,14 @@ describe("situação de documentos da frota", () => {
       { situacao: "a_vencer", vencimento: null, abertos: 1, valorAberto: 0 },
       { situacao: "sem_registro", vencimento: null, abertos: 0, valorAberto: 0 },
     ])).toBe("a_vencer");
+  });
+  it("consulta ao Detran sem débitos deixa veículo sem registro em dia", () => {
+    expect(situacaoComConsulta("sem_registro", true)).toBe("em_dia");
+  });
+  it("consulta sem débitos não esconde documento vencido", () => {
+    expect(situacaoComConsulta("vencido", true)).toBe("vencido");
+  });
+  it("sem consulta limpa, sem registro continua sem registro", () => {
+    expect(situacaoComConsulta("sem_registro", false)).toBe("sem_registro");
   });
 });

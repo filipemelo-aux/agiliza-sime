@@ -63,6 +63,15 @@ export function situacaoVeiculo(resumos: ResumoTipo[]): FleetSituacao {
   return pior;
 }
 
+/**
+ * Ajusta a situação com o resultado da última consulta ao Detran:
+ * consulta concluída sem débitos em aberto e sem documentos registrados = em dia (linha verde).
+ */
+export function situacaoComConsulta(situacao: FleetSituacao, consultaSemDebitos: boolean): FleetSituacao {
+  if (situacao === "sem_registro" && consultaSemDebitos) return "em_dia";
+  return situacao;
+}
+
 /** Primeiro ano exibido nas colunas de valores em aberto por ano. */
 export const ANO_INICIAL_ABERTOS = 2022;
 

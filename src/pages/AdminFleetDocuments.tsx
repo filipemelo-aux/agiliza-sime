@@ -18,7 +18,7 @@ import { toast } from "@/lib/notice";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import {
-  FleetDocLike, FleetDocTipo, abertoPorAno, ANO_INICIAL_ABERTOS, FleetSituacao, ResumoTipo, resumoPorTipo, situacaoVeiculo,
+  FleetDocLike, FleetDocTipo, abertoPorAno, ANO_INICIAL_ABERTOS, FleetSituacao, ResumoTipo, resumoPorTipo, situacaoComConsulta, situacaoVeiculo,
 } from "@/lib/fleet/fleetDocumentStatus";
 
 interface VehicleRow {
@@ -64,6 +64,7 @@ function CelulaDoc({ r }: { r: ResumoTipo }) {
 export default function AdminFleetDocuments() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [docs, setDocs] = useState<(FleetDocLike & { veiculo_id: string })[]>([]);
+  const [consultasLimpas, setConsultasLimpas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState<"all" | FleetSituacao>("all");
@@ -88,6 +89,7 @@ export default function AdminFleetDocuments() {
     const vs = (vRes.data || []) as VehicleRow[];
     const ids = vs.map((v) => v.id);
     let ds: any[] = [];
+    const limpas = new Set<string>();
     if (ids.length) {
       const dRes = await supabase
         .from("veiculo_documentos")
@@ -95,9 +97,24 @@ export default function AdminFleetDocuments() {
         .in("veiculo_id", ids);
       if (dRes.error) toast.error("Erro ao carregar documentos: " + dRes.error.message);
       ds = dRes.data || [];
+      // Última consulta ao Detran por veículo: sem débitos em aberto = documentos em dia
+      const cRes = await supabase
+        .from("vehicle_debt_consultas" as any)
+        .select("vehicle_id, importacao, created_at")
+        .in("vehicle_id", ids)
+        .order("created_at", { ascending: false });
+      const vistos = new Set<string>();
+      for (const c of (cRes.data || []) as any[]) {
+        if (vistos.has(c.vehicle_id)) continue; // já é a mais recente deste veículo
+        const debitos = c.importacao?.debitos;
+        if (!Array.isArray(debitos)) continue; // consulta unificada não lista débitos
+        vistos.add(c.vehicle_id);
+        if (debitos.length === 0) limpas.add(c.vehicle_id);
+      }
     }
     setVehicles(vs);
     setDocs(ds);
+    setConsultasLimpas(limpas);
     setLoading(false);
   }, []);
 
@@ -115,7 +132,8 @@ export default function AdminFleetDocuments() {
       const ds = porVeiculo.get(v.id) || [];
       const r = (t: FleetDocTipo) => resumoPorTipo(ds, t, hoje);
       const ipva = r("IPVA"), licenciamento = r("Licenciamento"), seguro = r("Seguro"), multas = r("Multa");
-      return { ...v, ipva, licenciamento, seguro, multas, situacao: situacaoVeiculo([ipva, licenciamento, seguro, multas]), ...(() => {
+      const situacao = situacaoComConsulta(situacaoVeiculo([ipva, licenciamento, seguro, multas]), consultasLimpas.has(v.id));
+      return { ...v, ipva, licenciamento, seguro, multas, situacao, ...(() => {
         const ipvaAno = abertoPorAno(ds as any, "IPVA"), licAno = abertoPorAno(ds as any, "Licenciamento");
         const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);
         const soma = (o: Record<number, number>) => Object.values(o).reduce((t, x) => t + x, 0);
@@ -123,7 +141,7 @@ export default function AdminFleetDocuments() {
         return { ipvaAno, licAno, multasTotal: Math.round(multasTotal * 100) / 100, total };
       })() };
     });
-  }, [vehicles, docs]);
+  }, [vehicles, docs, consultasLimpas]);
 
   const filtradas = useMemo(() => {
     const q = search.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, "");
