@@ -56,9 +56,12 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
       if (!active || !data) return;
       setInfo(data); setChassi(data.chassis ?? "");
       if (data.owner_id) {
-        const { data: owners, error: ownerError } = await supabase.from("profiles").select("id, user_id, cnpj").or(`id.eq.${data.owner_id},user_id.eq.${data.owner_id}`);
+        const { data: owners, error: ownerError } = await supabase.from("profiles").select("id, user_id, cnpj, address_state").or(`id.eq.${data.owner_id},user_id.eq.${data.owner_id}`);
         if (ownerError) throw ownerError;
         if (active) setDocumento(documentoDoProprietario(data.owner_id, owners ?? []));
+        const dono = (owners ?? []).find((p: any) => p.id === data.owner_id) ?? (owners ?? []).find((p: any) => p.user_id === data.owner_id);
+        const ufDono = String((dono as any)?.address_state ?? "").trim().toUpperCase();
+        if (active && UFS.includes(ufDono)) setUf(ufDono);
       }
       } catch (error) {
         if (active) setErro(error instanceof Error ? error.message : "Não foi possível carregar o cadastro do proprietário.");
