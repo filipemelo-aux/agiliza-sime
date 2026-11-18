@@ -13,7 +13,7 @@ import { documentoDoProprietario } from "../../../supabase/functions/vehicle-deb
 const UFS = "AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
 const LOGIN_UFS = ["MG", "RS", "SC", "SP"];
 // UFs cujos débitos (IPVA, licenciamento, multas) são gravados na tabela; usam só placa e RENAVAM
-const UFS_DEBITOS = ["MA", "PA", "TO"];
+const UFS_DEBITOS = ["MA", "PA", "TO", "GO"];
 const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 type Imp = { gravados: number; quitados: number; aviso?: string | null; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
 
@@ -124,6 +124,7 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
               <Input type="password" className="h-8 text-xs" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} autoComplete="off" /></div>
           </>}
         </div>
+        {uf === "GO" && <p className="text-[11px] text-muted-foreground">Goiás: consulta o IPVA na SEFAZ-GO só com placa e RENAVAM. Licenciamento e multas do Detran-GO exigem gov.br do proprietário e não vêm nesta consulta.</p>}
         <p className="text-[11px] text-muted-foreground">Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
         <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || !info?.renavam || (uf === "TO" && ![11, 14].includes(documento.replace(/\D/g, "").length)) || (!UFS_DEBITOS.includes(uf) && !chassi.trim())}>Consultar</Button></div>
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
