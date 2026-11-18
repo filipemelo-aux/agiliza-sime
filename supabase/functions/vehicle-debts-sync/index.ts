@@ -2,6 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
 import { endpointDebitos, documentoObrigatorio, normalizar, type Debito } from './normalize.ts'
+import { documentoDoProprietario } from './proprietario.ts'
 
 const GATEWAY = 'https://connector-gateway.lovable.dev/udc_infosimples'
 const Body = z.object({
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
     const p = Body.safeParse(await req.json())
     if (!p.success) return json({ error: p.error.flatten().fieldErrors }, 400)
     // RLS garante que o veículo é do tenant do usuário
-    const { data: v } = await sb.from('vehicles').select('plate, renavam, chassis').eq('id', p.data.vehicle_id).maybeSingle()
+    const { data: v } = await sb.from('vehicles').select('plate, renavam, chassis, owner_id').eq('id', p.data.vehicle_id).maybeSingle()
     if (!v) return json({ error: 'Veículo não encontrado' }, 404)
     const novoChassi = (p.data.chassi || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
     if (novoChassi && novoChassi !== v.chassis) {
@@ -45,7 +46,13 @@ Deno.serve(async (req) => {
     if (!lov || !key) return json({ error: 'Conexão InfoSimples não configurada' }, 500)
     const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '50' }
     const form = new URLSearchParams(soPlacaRenavam ? base : { ...base, uf, chassi: v.chassis })
-    const doc = (p.data.documento || '').replace(/\D/g, '')
+    let documentoCadastro = ''
+    if (v.owner_id && (!soPlacaRenavam || uf === 'TO')) {
+      const { data: owners, error: ownerError } = await sb.from('profiles').select('id, user_id, cnpj').or(`id.eq.${v.owner_id},user_id.eq.${v.owner_id}`)
+      if (ownerError) return json({ error: 'Não foi possível ler o cadastro do proprietário: ' + ownerError.message }, 400)
+      documentoCadastro = documentoDoProprietario(v.owner_id, owners ?? [])
+    }
+    const doc = (documentoCadastro || p.data.documento || '').replace(/\D/g, '')
     if (documentoObrigatorio(uf) && !doc) return json({ error: 'O Detran-TO exige CPF ou CNPJ do proprietário. Informe o documento antes de consultar.' }, 400)
     if (doc && (!soPlacaRenavam || uf === 'TO')) {
       if (doc.length !== 11 && doc.length !== 14) return json({ error: 'Informe CPF com 11 dígitos ou CNPJ com 14 dígitos do proprietário.' }, 400)

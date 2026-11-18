@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
+import { documentoDoProprietario } from "../../../supabase/functions/vehicle-debts-sync/proprietario";
 
 const UFS = "AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
 const LOGIN_UFS = ["MG", "RS", "SC", "SP"];
@@ -49,12 +50,18 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
     let active = true;
     setInfo(null); setChassi(""); setDocumento(""); setRes(null); setErro(null);
     void (async () => {
-      const { data } = await supabase.from("vehicles").select("renavam, chassis, owner_id").eq("id", vehicle.id).maybeSingle();
+      try {
+      const { data, error } = await supabase.from("vehicles").select("renavam, chassis, owner_id").eq("id", vehicle.id).maybeSingle();
+      if (error) throw error;
       if (!active || !data) return;
       setInfo(data); setChassi(data.chassis ?? "");
       if (data.owner_id) {
-        const { data: owner } = await supabase.from("profiles").select("cnpj").eq("id", data.owner_id).maybeSingle();
-        if (active) setDocumento(owner?.cnpj ?? "");
+        const { data: owners, error: ownerError } = await supabase.from("profiles").select("id, user_id, cnpj").or(`id.eq.${data.owner_id},user_id.eq.${data.owner_id}`);
+        if (ownerError) throw ownerError;
+        if (active) setDocumento(documentoDoProprietario(data.owner_id, owners ?? []));
+      }
+      } catch (error) {
+        if (active) setErro(error instanceof Error ? error.message : "Não foi possível carregar o cadastro do proprietário.");
       }
     })();
     return () => { active = false; };
