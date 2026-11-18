@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
-import { endpointDebitos, normalizar, type Debito } from './normalize.ts'
+import { endpointDebitos, documentoObrigatorio, normalizar, type Debito } from './normalize.ts'
 
 const GATEWAY = 'https://connector-gateway.lovable.dev/udc_infosimples'
 const Body = z.object({
@@ -35,8 +35,7 @@ Deno.serve(async (req) => {
       v.chassis = novoChassi
     }
     const uf = p.data.uf.toUpperCase()
-    // MA não está na consulta unificada: usa a API própria do Detran-MA (só placa + RENAVAM)
-    const isMA = uf === 'MA'
+    // Dedicated debt endpoints do not require chassis.
     const endpoint = endpointDebitos(uf) ?? 'detran/restricoes'
     const soPlacaRenavam = endpoint !== 'detran/restricoes'
     const faltam = [!v.renavam && 'RENAVAM', !soPlacaRenavam && !v.chassis && 'chassi'].filter(Boolean)
@@ -47,7 +46,11 @@ Deno.serve(async (req) => {
     const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '50' }
     const form = new URLSearchParams(soPlacaRenavam ? base : { ...base, uf, chassi: v.chassis })
     const doc = (p.data.documento || '').replace(/\D/g, '')
-    if (doc && !soPlacaRenavam) form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
+    if (documentoObrigatorio(uf) && !doc) return json({ error: 'O Detran-TO exige CPF ou CNPJ do proprietário. Informe o documento antes de consultar.' }, 400)
+    if (doc && (!soPlacaRenavam || uf === 'TO')) {
+      if (doc.length !== 11 && doc.length !== 14) return json({ error: 'Informe CPF com 11 dígitos ou CNPJ com 14 dígitos do proprietário.' }, 400)
+      form.set(doc.length > 11 ? 'cnpj' : 'cpf', doc)
+    }
     if (p.data.login_cpf && !soPlacaRenavam) form.set('login_cpf', p.data.login_cpf.replace(/\D/g, ''))
     if (p.data.login_senha && !soPlacaRenavam) form.set('login_senha', p.data.login_senha)
 
@@ -86,7 +89,8 @@ Deno.serve(async (req) => {
       }
       // Débitos importados antes que o Detran não lista mais foram quitados
       const chaves = new Set(debitos.map((d) => tag(d.chave)))
-      for (const a of atuais ?? []) {
+      // TO can omit unsupported debt descriptions: absence alone is not proof of payment.
+      for (const a of uf === 'TO' ? [] : atuais ?? []) {
         const m = String((a as any).observacoes ?? '').match(/\[detran:[^\]]+\]/)
         if (m && !chaves.has(m[0]) && (a as any).status_pagamento !== 'Pago') {
           const { error } = await sb.from('veiculo_documentos').update({ status_pagamento: 'Pago' }).eq('id', (a as any).id)
@@ -95,7 +99,8 @@ Deno.serve(async (req) => {
       }
       importacao = { gravados, quitados, debitos }
     }
-    await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: out.data ?? [], importacao, price: out.header?.price ?? null, created_by: u.user.id })
+    const { error: historyError } = await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: out.data ?? [], importacao, price: out.header?.price ?? null, created_by: u.user.id })
+    if (historyError) return json({ error: 'Débitos consultados, mas não foi possível guardar os detalhes: ' + historyError.message }, 200)
     return json({ ok: true, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
   } catch (e) {
     console.error(e); return json({ error: String((e as Error).message ?? e) }, 500)

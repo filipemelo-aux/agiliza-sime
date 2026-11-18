@@ -11,7 +11,7 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 const UFS = "AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
 const LOGIN_UFS = ["MG", "RS", "SC", "SP"];
 // UFs cujos débitos (IPVA, licenciamento, multas) são gravados na tabela; usam só placa e RENAVAM
-const UFS_DEBITOS = ["MA", "PA"];
+const UFS_DEBITOS = ["MA", "PA", "TO"];
 const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 type Imp = { gravados: number; quitados: number; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
 
@@ -46,8 +46,18 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
   const [info, setInfo] = useState<{ renavam: string | null; chassis: string | null } | null>(null);
   useEffect(() => {
     if (!open || !vehicle) return;
-    setInfo(null); setChassi("");
-    supabase.from("vehicles").select("renavam, chassis").eq("id", vehicle.id).maybeSingle().then(({ data }) => { setInfo(data as any); setChassi((data as any)?.chassis ?? ""); });
+    let active = true;
+    setInfo(null); setChassi(""); setDocumento(""); setRes(null); setErro(null);
+    void (async () => {
+      const { data } = await supabase.from("vehicles").select("renavam, chassis, owner_id").eq("id", vehicle.id).maybeSingle();
+      if (!active || !data) return;
+      setInfo(data); setChassi(data.chassis ?? "");
+      if (data.owner_id) {
+        const { data: owner } = await supabase.from("profiles").select("cnpj").eq("id", data.owner_id).maybeSingle();
+        if (active) setDocumento(owner?.cnpj ?? "");
+      }
+    })();
+    return () => { active = false; };
   }, [open, vehicle?.id]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -83,9 +93,9 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
             <Select value={uf} onValueChange={setUf}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>{UFS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select></div>
           <div><Label className="text-xs">RENAVAM</Label><Input className="h-8 text-xs font-mono" value={info?.renavam ?? ""} readOnly /></div>
-          <div className="sm:col-span-2"><Label className="text-xs">Chassi {info && !info.chassis && <span className="text-destructive">(não cadastrado — informe aqui, será salvo no veículo)</span>}</Label>
+          <div className="sm:col-span-2"><Label className="text-xs">Chassi {UFS_DEBITOS.includes(uf) ? "(opcional)" : info && !info.chassis && <span className="text-destructive">(não cadastrado — informe aqui, será salvo no veículo)</span>}</Label>
             <Input className="h-8 text-xs font-mono uppercase" maxLength={17} value={chassi} onChange={(e) => setChassi(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} /></div>
-          {uf === "TO" && <div className="sm:col-span-3"><Label className="text-xs">CPF/CNPJ do proprietário</Label>
+          {uf === "TO" && <div className="sm:col-span-3"><Label className="text-xs">CPF/CNPJ do proprietário *</Label>
             <Input className="h-8 text-xs" value={documento} onChange={(e) => setDocumento(e.target.value)} /></div>}
           {LOGIN_UFS.includes(uf) && <>
             <div className="sm:col-span-1"><Label className="text-xs">{uf === "SP" ? "CPF login Detran-SP" : "CPF login gov.br"}</Label>
@@ -94,8 +104,8 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
               <Input type="password" className="h-8 text-xs" value={loginSenha} onChange={(e) => setLoginSenha(e.target.value)} autoComplete="off" /></div>
           </>}
         </div>
-        <p className="text-[11px] text-muted-foreground">A consulta exige placa, RENAVAM e chassi (no Maranhão e no Pará, só placa e RENAVAM). Por enquanto só MA e PA gravam IPVA, licenciamento e multas na tabela; nas demais UFs a consulta mostra apenas restrições. Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
-        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || (!UFS_DEBITOS.includes(uf) && !chassi.trim())}>Consultar</Button></div>
+        <p className="text-[11px] text-muted-foreground">Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
+        <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || !info?.renavam || (uf === "TO" && ![11, 14].includes(documento.replace(/\D/g, "").length)) || (!UFS_DEBITOS.includes(uf) && !chassi.trim())}>Consultar</Button></div>
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
         {res && <div className="max-h-[50vh] overflow-y-auto text-xs space-y-2">
           {res.price && <div className="text-muted-foreground">Custo da consulta: R$ {res.price}</div>}

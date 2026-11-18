@@ -9,7 +9,12 @@ const r2 = (n: number) => Math.round(n * 100) / 100
 export function endpointDebitos(uf: string): string | null {
   if (uf === 'MA') return 'detran/ma/licenciamento'
   if (uf === 'PA') return 'detran/pa/veiculo'
+  if (uf === 'TO') return 'detran/to/veiculo'
   return null
+}
+
+export function documentoObrigatorio(uf: string): boolean {
+  return uf === 'TO'
 }
 
 export function normalizar(uf: string, item: any, hoje: string): Debito[] {
@@ -31,6 +36,42 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
     for (const f of item?.infracoes ?? []) {
       if (f?.status && !/PAGAR|ABERT|VENC/i.test(f.status)) continue
       multa(String(f.auto_infracao ?? '').trim(), num(f.normalizado_valor ?? f.valor), br(f.data_hora), `${f.descricao ?? ''} (${f.municipio ?? ''})`)
+    }
+  }
+  if (uf === 'TO') {
+    // TO supplies decimal-dot amounts as well as normalized numbers.
+    const valorTO = (v: unknown) => {
+      if (typeof v === 'number') return r2(v)
+      const text = String(v ?? '').replace(/[^\d,.-]/g, '')
+      const parsed = Number(text.includes(',') ? text.replace(/\./g, '').replace(',', '.') : text)
+      return Number.isFinite(parsed) ? r2(parsed) : 0
+    }
+    const tributos = new Map<string, Debito>()
+    for (const d of item?.debitos ?? []) {
+      const desc = String(d?.descricao ?? '')
+      const texto = desc.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      if (/MULTA|INFRA|AUTUA/i.test(texto) && !/IPVA|LICENCIAMENTO/i.test(texto)) continue
+      const tipo = /IPVA/i.test(texto) ? 'IPVA' : /LICENCIAMENTO|LICENC|CRLV|DPVAT|SEGURO OBRIGATORIO/i.test(texto) ? 'Licenciamento' : null
+      if (!tipo) continue // Preserve unknown debts in saved details, never guess their category.
+      const valor = valorTO(d.normalizado_valor_atual ?? d.valor_atual)
+      if (valor <= 0) continue
+      const data = br(d.normalizado_data_vencimento ?? d.data_vencimento)
+      const ano = Number(texto.match(/\b(20\d{2})\b/)?.[1] ?? data?.slice(0, 4))
+      if (!ano) continue
+      const vencimento = data ?? `${ano}-12-31`
+      const chave = `${tipo === 'IPVA' ? 'IPVA' : 'LIC'}-${ano}`
+      const anterior = tributos.get(chave)
+      tributos.set(chave, { tipo, ano, chave, valor: r2((anterior?.valor ?? 0) + valor),
+        vencimento: anterior && anterior.vencimento < vencimento ? anterior.vencimento : vencimento,
+        descricao: anterior ? `${anterior.descricao}; ${desc}`.slice(0, 300) : desc.slice(0, 300) })
+    }
+    out.push(...tributos.values())
+    for (const f of [...(item?.multas ?? []), ...(item?.infracoes_em_autuacao ?? [])]) {
+      const numero = String(f?.numero_autuacao ?? '').trim()
+      if (!numero || /\bPAG[AO]|QUITAD|CANCELAD/i.test(numero)) continue
+      // The same auto can appear both as a fine and as a pending notification.
+      const auto = numero.split(/\s+Renainf:|\s+Em aberto/i)[0].trim()
+      multa(auto, valorTO(f.normalizado_valor ?? f.valor), br(f.normalizado_data) ?? br(f.descricao), String(f.descricao ?? 'Multa Detran-TO'))
     }
   }
   if (uf === 'MA') {
