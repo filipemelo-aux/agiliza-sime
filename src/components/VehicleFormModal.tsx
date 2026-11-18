@@ -34,10 +34,11 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
  const [errors, setErrors] = useState<Record<string,string>>({});
  const [form, setForm] = useState(emptyVehicle);
  const [ownerName, setOwnerName] = useState("");
+ const [ownerDocument, setOwnerDocument] = useState<string | null>(null);
  const [personCreateOpen, setPersonCreateOpen] = useState(false);
  useEffect(() => {
   if (!open) return;
-  setErrors({}); setOwnerName(""); setForm(emptyVehicle);
+  setErrors({}); setOwnerName(""); setOwnerDocument(null); setForm(emptyVehicle);
   if (!vehicleId) return;
   let cancelled=false; setFetching(true);
   (async () => {
@@ -52,9 +53,9 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
      alienado:data.alienado,tipoAlienacao:data.tipo_alienacao || "",instituicaoFinanceira:data.instituicao_financeira || "",instituicaoFinanceiraId:data.instituicao_financeira_id || "",
      observacoesAlienacao:data.observacoes_alienacao || "",registrationPending:data.registration_pending });
     if(data.owner_id){
-     const {data:names,error:err}=await supabase.from("profiles").select("id,full_name,razao_social").or(`id.eq.${data.owner_id},user_id.eq.${data.owner_id}`).limit(1);
+     const {data:names,error:err}=await supabase.from("profiles").select("id,full_name,razao_social,cnpj").or(`id.eq.${data.owner_id},user_id.eq.${data.owner_id}`).limit(1);
      if(err) throw err;
-     if(!cancelled) setOwnerName(names?.[0]?.razao_social || names?.[0]?.full_name || "");
+     if(!cancelled) { setOwnerName(names?.[0]?.razao_social || names?.[0]?.full_name || ""); setOwnerDocument(names?.[0]?.cnpj ?? null); }
     }
    }catch(e){if(!cancelled) toast.error(e instanceof Error ? e.message : "Erro ao carregar veículo");}
    finally{if(!cancelled) setFetching(false);}
@@ -97,11 +98,8 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   finally{setLoading(false);lock.current=false;}
  };
  const changeCategory=(category:string)=>setForm(p=>p.category===category?p:{...p,category,vehicleType:category==="cavalo"?"carreta":category==="rigido"?"truck":["utilitario","passeio"].includes(category)?category:"carreta"});
- const selectOwner=async(id:string,name:string)=>{
-  setForm(f=>({...f,ownerId:id}));setOwnerName(name);
-  const {data,error}=await supabase.from("fiscal_establishments").select("id").eq("profile_id",id).limit(1);
-  if(error){toast.error(error.message);return;}
-  setForm(f=>f.ownerId===id?{...f,fleetType:data?.length?"propria":"terceiros"}:f);
+ const selectOwner=(id:string,name:string,document?:string|null)=>{
+  setForm(f=>({...f,ownerId:id}));setOwnerName(name);setOwnerDocument(document ?? null);
  };
  return <>
  <Dialog open={open} onOpenChange={v=>!loading && onOpenChange(v)}>
@@ -122,7 +120,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
  <div className="space-y-1"><Label className="text-xs">Capacidade (kg)</Label><Input name="capacity" type="number" min="0" value={form.capacity} onChange={handleChange}/></div>
  </div>{errors.weights && <p className="text-xs text-destructive">{errors.weights}</p>}
  <Separator/>
- <div className="space-y-1"><Label className="text-xs">Proprietário</Label><PersonSearchInput categories={["proprietario"]} placeholder="Buscar proprietário..." selectedName={ownerName || undefined} onSelect={p=>void selectOwner(p.id,personDisplayName(p))} onClear={()=>{setForm(f=>({...f,ownerId:""}));setOwnerName("");}} endAction={<Button type="button" size="icon" variant="ghost" className="h-6 w-6" aria-label="Cadastrar proprietário" title="Cadastrar proprietário" onClick={()=>setPersonCreateOpen(true)}><Plus className="h-4 w-4"/></Button>}/></div>
+ <div className="space-y-1"><Label className="text-xs">Proprietário</Label><PersonSearchInput categories={["proprietario"]} placeholder="Buscar proprietário..." editableSelection selectedName={ownerName || undefined} selectedDocument={ownerDocument} onSelect={p=>selectOwner(p.id,personDisplayName(p),p.cnpj)} onClear={()=>{setForm(f=>({...f,ownerId:""}));setOwnerName("");setOwnerDocument(null);}} endAction={<Button type="button" size="icon" variant="ghost" className="h-6 w-6" aria-label="Cadastrar proprietário" title="Cadastrar proprietário" onClick={()=>setPersonCreateOpen(true)}><Plus className="h-4 w-4"/></Button>}/></div>
  <div className="space-y-1"><Label className="text-xs">Tipo de Frota</Label><RadioGroup value={form.fleetType} onValueChange={fleetType=>setForm(p=>({...p,fleetType}))} className="flex gap-4">{[{value:"propria",label:"Frota Própria"},{value:"terceiros",label:"Frota Terceiros"}].map(f=><div key={f.value} className="flex items-center gap-2"><RadioGroupItem id={`fleet-${f.value}`} value={f.value}/><Label htmlFor={`fleet-${f.value}`} className="text-xs">{f.label}</Label></div>)}</RadioGroup></div>
  {form.fleetType==="propria" && <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Intervalo de Revisão (KM)</Label><Input type="number" name="intervaloRevisaoKm" value={form.intervaloRevisaoKm} onChange={handleChange}/></div><div><Label className="text-xs">Próxima Revisão (KM)</Label><Input type="number" name="proximaRevisaoKm" value={form.proximaRevisaoKm} onChange={handleChange}/></div></div>}
  </TabsContent>
@@ -209,9 +207,9 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
  </DialogContent></Dialog>
  <PersonCreateDialog open={personCreateOpen} onOpenChange={setPersonCreateOpen} defaultCategory="proprietario" onCreated={async uid=>{
   if(!uid) return;
-  const {data,error}=await supabase.from("profiles").select("id,full_name,razao_social").or(`id.eq.${uid},user_id.eq.${uid}`).limit(1);
+  const {data,error}=await supabase.from("profiles").select("id,full_name,razao_social,cnpj").or(`id.eq.${uid},user_id.eq.${uid}`).limit(1);
   if(error || !data?.[0]){toast.error("Não foi possível selecionar o proprietário criado.");return;}
-  await selectOwner(data[0].id,data[0].razao_social || data[0].full_name);
+  selectOwner(data[0].id,data[0].razao_social || data[0].full_name,data[0].cnpj);
  }}/>
  </>;
 }

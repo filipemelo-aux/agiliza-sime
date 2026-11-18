@@ -34,6 +34,9 @@ interface PersonSearchInputProps {
   onClear?: () => void;
   /** Currently selected person name (controlled) */
   selectedName?: string;
+  selectedDocument?: string | null;
+  /** Keep the search field available while a person is selected. */
+  editableSelection?: boolean;
   /** Optional action element rendered inside the input (e.g. a "new" button) */
   endAction?: ReactNode;
   /** Buscar também por telefone (dígitos) e e-mail — fluxo de fornecedor informal. */
@@ -77,6 +80,8 @@ export function PersonSearchInput({
   onSelect,
   onClear,
   selectedName,
+  selectedDocument,
+  editableSelection,
   endAction,
   searchContacts,
 }: PersonSearchInputProps) {
@@ -91,7 +96,9 @@ export function PersonSearchInput({
 
   useEffect(() => {
     setSelected(selectedName || null);
-  }, [selectedName]);
+    const doc = personDocInfo({ cnpj: selectedDocument });
+    setSelectedDoc(doc ? `${doc.label} ${doc.value}` : null);
+  }, [selectedName, selectedDocument]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -173,7 +180,7 @@ export function PersonSearchInput({
     onClear?.();
   };
 
-  if (selected) {
+  if (selected && !editableSelection) {
     return (
       <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/30 min-w-0">
         <div className="flex-1 min-w-0">
@@ -198,8 +205,13 @@ export function PersonSearchInput({
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          value={query}
+          value={query || (editableSelection ? selected ?? "" : "")}
           onChange={(e) => {
+            if (editableSelection && selected) {
+              setSelected(null);
+              setSelectedDoc(null);
+              onClear?.();
+            }
             setQuery(e.target.value);
             search(e.target.value);
           }}
@@ -212,6 +224,7 @@ export function PersonSearchInput({
           {!loading && endAction}
         </div>
       </div>
+      {editableSelection && selectedDoc && <div className="text-xs text-muted-foreground mt-1">{selectedDoc}</div>}
 
       {showDropdown && results.length > 0 && (
         <div className="absolute z-50 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto overflow-x-hidden">
