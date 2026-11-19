@@ -1,4 +1,5 @@
-// PDF da relação de veículos selecionados em Documentos e Multas.
+// PDF da relação de veículos selecionados em Documentos e Multas (A4 retrato).
+// As linhas são empacotadas em páginas (.doc-page) para nenhum veículo ser cortado na quebra.
 import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
 import { buildPrintHeaderHtml, fetchMatrizHeader } from "@/lib/printHeader";
 import { printBrandFooterHtml } from "@/lib/printBrand";
@@ -13,31 +14,161 @@ export interface RelacaoLinha {
 export interface RelacaoOpcoes { veiculo: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean }
 export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true };
 
+// ---------- Geometria da página (A4 retrato) ----------
+export const MARGIN_MM = 12;
+const PAGE_H_MM = 297;
+const BODY_W_PX = 700; // 700px ≈ 185,2mm, dentro da área útil de 186mm
+const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 8; // ≈ 1023px
+
+// Alturas estimadas (px) usadas para empacotar as linhas.
+// Valores medidos no HTML real: cabeçalho 88, barra de continuação 28, rodapé+paginação 59,
+// cabeçalho da tabela 20, bloco de totais 64, linha de identificação 18 (+13 por linha extra de texto),
+// linha de débitos 31.
+export const H_HEADER = 104, H_CONT = 38, H_FOOTER = 62, H_THEAD = 24, H_TOT = 78;
+export const H_ID = 18, H_LINHA_EXTRA = 13, H_DEB = 31;
+
+export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
+
+interface Col { key: keyof RelacaoOpcoes; label: string; width: string; get: (l: RelacaoLinha) => string }
+const COLS: Col[] = [
+  { key: "veiculo", label: "Veículo", width: "22%", get: (l) => l.veiculo },
+  { key: "renavam", label: "RENAVAM", width: "12%", get: (l) => l.renavam },
+  { key: "chassi", label: "Chassi", width: "17%", get: (l) => l.chassi },
+  { key: "alienacao", label: "Alienação", width: "28%", get: (l) => l.alienacao },
+  { key: "situacao", label: "Situação", width: "12%", get: (l) => l.situacao },
+];
+const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
+
+/** Um veículo só ganha a linha de débitos quando tem algo em aberto. */
+export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
+  if (!op.debitos) return false;
+  return l.total > 0 || l.multas > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
+}
+
+/** Linhas que o texto ocupa na coluna (aprox. 20 caracteres em Veículo, 26 em Alienação). */
+const linhasDeTexto = (t: string, chars: number) => Math.max(1, Math.ceil((t || "").trim().length / chars));
+
+const alturaLinha = (l: RelacaoLinha, op: RelacaoOpcoes): number => {
+  const li = Math.max(
+    op.veiculo ? linhasDeTexto(l.veiculo, 20) : 1,
+    op.alienacao ? linhasDeTexto(l.alienacao, 26) : 1,
+  );
+  return H_ID + H_LINHA_EXTRA * (li - 1) + (temDebitos(l, op) ? H_DEB : 0);
+};
+
+/** Altura disponível na página `i` (0 = primeira, com cabeçalho completo). */
+export function capacidadePagina(i: number): number {
+  return USABLE_H_PX - (i === 0 ? H_HEADER : H_CONT) - H_FOOTER - H_THEAD;
+}
+
+/** Distribui os veículos pelas páginas sem separar o bloco de identificação dos débitos. */
+export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): PaginaRelacao[] {
+  const cap = (i: number) => capacidadePagina(i);
+  const pages: PaginaRelacao[] = [];
+  let cur: RelacaoLinha[] = [];
+  let used = 0;
+  for (const l of linhas) {
+    const h = alturaLinha(l, op);
+    if (cur.length && used + h > cap(pages.length)) {
+      pages.push({ linhas: cur, altura: used });
+      cur = []; used = 0;
+    }
+    cur.push(l); used += h;
+  }
+  if (cur.length) pages.push({ linhas: cur, altura: used });
+  if (!pages.length) pages.push({ linhas: [], altura: 0 });
+
+  // O bloco de totais fecha a relação: se não couber na última página, ganha a sua.
+  if (linhas.some((l) => temDebitos(l, op))) {
+    const last = pages[pages.length - 1];
+    if (last.altura + H_TOT > cap(pages.length - 1)) pages.push({ linhas: [], altura: 0 });
+  }
+  return pages;
+}
+
+const rotulos = (anosDesc: number[]) => [...anosDesc.map((a) => `IPVA/Lic ${a}`), "Multas", "Total"];
+const valores = (l: RelacaoLinha, anosDesc: number[], m: (v: number) => string) =>
+  [...anosDesc.map((a) => m(l.porAno?.[a] || 0)), m(l.multas), m(l.total)];
+
+const mini = (labels: string[], vals: string[]) =>
+  `<table class="mini"><tr>${labels.map((x) => `<th>${x}</th>`).join("")}</tr><tr>${vals.map((v) => `<td class="r">${v}</td>`).join("")}</tr></table>`;
+
+/** Monta o HTML completo (uma div .doc-page por página). */
+export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes, company: { name: string; docLine: string; address: string }): string {
+  const ordenadas = [...linhas].sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
+  const anosDesc = op.debitos ? [...anos].sort((a, b) => b - a) : [];
+  const cols = COLS.filter((c) => op[c.key]);
+  const m = (v: number) => (v ? formatCurrency(v) : "—");
+  const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const nCols = 1 + cols.length;
+  const paginas = montarPaginas(ordenadas, op);
+  const comDebitos = ordenadas.some((l) => temDebitos(l, op));
+  const soma = (f: (l: RelacaoLinha) => number) => ordenadas.reduce((t, l) => t + f(l), 0);
+
+  const celula = (c: Col, v: string) => {
+    const t = (v || "").trim() || "—";
+    if (c.key === "situacao") return `<span class="${SITUACAO_CLASSE[t] || "st-n"}">${esc(t)}</span>`;
+    if (c.key === "alienacao") {
+      if (/^alienad/i.test(t)) return `<span class="al">${esc(t)}</span>`;
+      if (/^livre/i.test(t)) return `<span class="lv">${esc(t)}</span>`;
+    }
+    return esc(t);
+  };
+
+  const head = `<th class="pl" style="width:9%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}`;
+  const rowId = (l: RelacaoLinha) => `<tr><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}</tr>`;
+  const rowDeb = (l: RelacaoLinha) => `<tr class="db"><td colspan="${nCols}" class="dc">${mini(rotulos(anosDesc), valores(l, anosDesc, m))}</td></tr>`;
+
+  const totais = comDebitos ? `<div class="totbox">
+    <div class="tot-h">Totais da relação · ${ordenadas.length} veículo(s)</div>
+    ${mini(rotulos(anosDesc), rotulos(anosDesc).map((_, i) => (i < anosDesc.length
+      ? m(soma((l) => l.porAno?.[anosDesc[i]] || 0))
+      : m(soma((l) => (i === anosDesc.length ? l.multas : l.total))))))}
+    <div class="tot-g">Total geral: ${formatCurrency(soma((l) => l.total))}</div>
+  </div>` : "";
+
+  const corpo = (p: PaginaRelacao) => p.linhas.length
+    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l) => rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
+    : "";
+
+  const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
+    ${i === 0
+      ? buildPrintHeaderHtml({ company, title: "Relação de documentos e multas", subtitle: `${ordenadas.length} veículo(s) · ${quando}` })
+      : `<div class="cont"><b>Relação de documentos e multas</b><span>${ordenadas.length} veículo(s) · ${quando}</span></div>`}
+    ${corpo(p)}
+    ${i === paginas.length - 1 ? totais : ""}
+    ${printBrandFooterHtml()}
+    <div class="pg">Página ${i + 1} de ${paginas.length}</div>
+  </div>`;
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relação de documentos e multas</title><style>
+    *{box-sizing:border-box}html,body{margin:0;padding:0}
+    body{width:${BODY_W_PX}px;font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#111}
+    .doc-page{width:${BODY_W_PX}px;background:#fff}
+    .cont{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding:0 0 6px;margin-bottom:8px;font-size:9pt}
+    .cont span{font-size:7.5pt;color:#555;font-family:'Courier New',monospace}
+    table{border-collapse:collapse;table-layout:fixed}
+    .rel{width:100%}
+    .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:break-word}
+    .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
+    .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:9pt;white-space:nowrap}
+    .rel tr.db td{border-top:0;padding:1px 4px 3px;background:#fbfcfe}
+    .mini{width:100%;table-layout:fixed}
+    .mini th{background:none;border:0;font-size:6.5pt;font-weight:400;color:#6b7280;text-align:right;padding:0 4px}
+    .mini td{border:0;text-align:right;padding:0 4px;font-size:8pt;font-family:'Courier New',monospace}
+    .al,.st-v{color:#b91c1c;font-weight:600}.lv,.st-e{color:#15803d;font-weight:600}
+    .st-a{color:#b45309;font-weight:600}.st-n{color:#6b7280}
+    .totbox{border:1px solid #9ca3af;margin-top:10px;padding:4px 0 5px;break-inside:avoid}
+    .tot-h{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.2px;padding:0 6px 2px;color:#111}
+    .totbox .mini td{font-size:9pt;font-weight:700}
+    .tot-g{text-align:right;padding:3px 6px 0;margin-top:3px;border-top:1px solid #e5e7eb;font-size:9.5pt;font-weight:700}
+    .pg{text-align:center;font-size:7pt;color:#6b7280;margin-top:2px}
+  </style></head><body>${paginas.map(pagina).join("")}</body></html>`;
+  return html;
+}
+
 export async function exportFleetRelacaoPdf(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes = OPCOES_PADRAO) {
   const company = await fetchMatrizHeader();
-  const anosDesc = op.debitos ? [...anos].reverse() : [];
-  const m = (v: number) => (v ? formatCurrency(v) : "—");
-  const soma = (f: (l: RelacaoLinha) => number) => linhas.reduce((t, l) => t + f(l), 0);
-  const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  const info: [keyof RelacaoOpcoes, string, string, (l: RelacaoLinha) => string][] = ([
-    ["veiculo", "Veículo", "150px", (l) => l.veiculo],
-    ["renavam", "RENAVAM", "95px", (l) => l.renavam],
-    ["chassi", "Chassi", "135px", (l) => l.chassi || "—"],
-    ["alienacao", "Alienação", "130px", (l) => l.alienacao],
-    ["situacao", "Situação", "75px", (l) => l.situacao],
-  ] as [keyof RelacaoOpcoes, string, string, (l: RelacaoLinha) => string][]).filter((c) => op[c[0]]);
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relação de documentos e multas</title><style>
-    *{box-sizing:border-box}html,body{margin:0;padding:0}body{width:1080px;font-family:Arial,sans-serif;font-size:8pt;color:#111}
-    table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #d1d5db;padding:3px 4px;text-align:left;vertical-align:top;word-break:break-word}
-    th{background:#f3f4f6;font-weight:600}.r{text-align:right;white-space:nowrap}tfoot td{font-weight:700;background:#f9fafb}
-  </style></head><body>
-  ${buildPrintHeaderHtml({ company, title: "Relação de documentos e multas", subtitle: `${linhas.length} veículo(s) · ${quando}` })}
-  <table><thead><tr><th style="width:70px">Placa</th>${info.map((c) => `<th style="width:${c[2]}">${c[1]}</th>`).join("")}
-  ${op.debitos ? `${anosDesc.map((a) => `<th class="r">IPVA/Lic. ${a}</th>`).join("")}<th class="r">Multas</th><th class="r">Total</th>` : ""}</tr></thead><tbody>
-  ${linhas.map((l) => `<tr><td>${esc(l.plate)}</td>${info.map((c) => `<td>${esc(c[3](l))}</td>`).join("")}
-    ${op.debitos ? `${anosDesc.map((a) => `<td class="r">${m(l.porAno[a] || 0)}</td>`).join("")}<td class="r">${m(l.multas)}</td><td class="r">${m(l.total)}</td>` : ""}</tr>`).join("")}
-  </tbody>${op.debitos ? `<tfoot><tr><td colspan="${1 + info.length}">Total</td>${anosDesc.map((a) => `<td class="r">${formatCurrency(soma((l) => l.porAno[a] || 0))}</td>`).join("")}
-  <td class="r">${formatCurrency(soma((l) => l.multas))}</td><td class="r">${formatCurrency(soma((l) => l.total))}</td></tr></tfoot>` : ""}</table>
-  ${printBrandFooterHtml()}</body></html>`;
-  await downloadHtmlAsPdf(html, `Relacao documentos e multas ${new Date().toISOString().slice(0, 10)}.pdf`, { orientation: "landscape" });
+  const html = montarHtmlRelacao(linhas, anos, op, company);
+  await downloadHtmlAsPdf(html, `Relacao documentos e multas ${new Date().toISOString().slice(0, 10)}.pdf`, { orientation: "portrait", marginMm: MARGIN_MM });
 }
