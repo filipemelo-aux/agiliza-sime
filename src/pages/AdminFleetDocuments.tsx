@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch } from "lucide-react";
+import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch, Printer } from "lucide-react";
+import { ProcessingOverlay } from "@/components/ui/processing-overlay";
+import { exportFleetRelacaoPdf } from "@/lib/fleet/fleetRelacaoPdf";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -75,6 +77,7 @@ export default function AdminFleetDocuments() {
   const [manageOpen, setManageOpen] = useState(false);
   const [detranOpen, setDetranOpen] = useState(false);
   const [detalhesOpen, setDetalhesOpen] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -167,6 +170,22 @@ export default function AdminFleetDocuments() {
 
   const single = selected.size === 1 ? linhas.find((l) => selected.has(l.id)) : undefined;
 
+  const imprimirRelacao = async () => {
+    const sel = filtradas.filter((l) => selected.has(l.id));
+    if (!sel.length) return;
+    setPrinting(true);
+    try {
+      await exportFleetRelacaoPdf(sel.map((l) => {
+        const porAno: Record<number, number> = {};
+        for (const a of anos) porAno[a] = Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
+        return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "",
+          alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
+          situacao: LABEL[l.situacao], porAno, multas: l.multasTotal, total: l.total };
+      }), anos);
+    } catch (e: any) { toast.error("Erro ao gerar relação: " + (e?.message || e)); }
+    finally { setPrinting(false); }
+  };
+
   const anoAtual = Number(hojeIso().slice(0, 4));
   const anos = Array.from({ length: Math.max(0, anoAtual - ANO_INICIAL_ABERTOS + 1) }, (_, i) => ANO_INICIAL_ABERTOS + i);
   const moeda = (v: number) => v ? <span className="font-mono">{formatCurrency(v)}</span> : <span className="text-muted-foreground">—</span>;
@@ -232,6 +251,7 @@ export default function AdminFleetDocuments() {
             { key: "manage", label: "Documentos e multas da placa", icon: FolderOpen, mode: "single", variant: "default", disabled: !single, onClick: () => single && setManageOpen(true) },
             { key: "sync", label: "Consultar débitos no Detran", icon: RefreshCw, mode: "single", disabled: !single, onClick: () => single && setDetranOpen(true) },
             { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
+            { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "multi", disabled: selected.size === 0 || printing, onClick: imprimirRelacao },
           ]}
           selectedCount={selected.size}
         />
@@ -242,7 +262,6 @@ export default function AdminFleetDocuments() {
           rowId={(l) => l.id}
           selected={selected}
           onSelectedChange={setSelected}
-          singleSelection
           loading={loading}
           minWidth={260 + anos.length * 140 + 210}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
@@ -265,6 +284,7 @@ export default function AdminFleetDocuments() {
           </DialogContent>
         </Dialog>
         <DetranConsultaDialog open={detranOpen} onOpenChange={setDetranOpen} vehicle={single ?? null} onSaved={load} />
+        <ProcessingOverlay open={printing} label="Gerando relação..." />
         <DetranDetalhesDialog open={detalhesOpen} onOpenChange={setDetalhesOpen} vehicle={single ?? null} />
       </div>
     </AdminLayout>
