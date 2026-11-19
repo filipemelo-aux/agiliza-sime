@@ -31,6 +31,8 @@ import { CheckIssueDialog } from "./CheckIssueDialog";
 import VehicleRateioEditor from "./VehicleRateioEditor";
 import { type RateioRow, loadRateio, saveRateio, validateRateio } from "@/lib/rateio";
 import { EmpresaSelect } from "./EmpresaControls";
+import { DuplicateExpenseDialog } from "./DuplicateExpenseDialog";
+import { findDuplicateExpenses, type DuplicateMatch } from "@/lib/expenseDuplicates";
 import { type ExpenseComposition, expenseCompositionTotal, sumExpenseItems, compositionFromAccountCode } from "@/lib/expenseComposition";
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -303,6 +305,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [dupMatches, setDupMatches] = useState<DuplicateMatch[] | null>(null);
+  const dupResolver = useRef<((ok: boolean) => void) | null>(null);
+  const askDuplicate = (m: DuplicateMatch[]) => new Promise<boolean>((resolve) => { dupResolver.current = resolve; setDupMatches(m); });
+  const resolveDuplicate = (ok: boolean) => { setDupMatches(null); dupResolver.current?.(ok); dupResolver.current = null; };
   const [showHistory, setShowHistory] = useState(false);
 
   // Fuel linking
@@ -869,6 +875,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (trimmedChave) {
       const { data: existing } = await supabase.from("expenses").select("id").eq("chave_nfe", trimmedChave).is("deleted_at", null).maybeSingle();
       if (existing && existing.id !== expense?.id) return void toast.error("Já existe uma despesa com esta chave de NF-e.");
+    }
+
+    {
+      const dups = await findDuplicateExpenses({
+        selfId: expense?.id || autoSavedId || null,
+        favorecidoId, fornecedorCnpj, documento: docFiscal,
+        valor: Number(valorTotal) || null, vencimento: dataVencimento || null,
+      });
+      if (dups.length > 0 && !(await askDuplicate(dups))) return;
     }
 
     // Conta já paga parcialmente: trava e tratamento de desconto
@@ -2520,6 +2535,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       onSaved={handleChequeSaved}
     />
     {ConfirmDialog}
+    <DuplicateExpenseDialog matches={dupMatches} onContinue={() => resolveDuplicate(true)} onCancel={() => resolveDuplicate(false)} />
     {serviceDialogOpen && (
       <ExpenseFormDialog
         open={serviceDialogOpen}
