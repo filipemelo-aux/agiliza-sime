@@ -33,8 +33,8 @@ interface Col { key: keyof RelacaoOpcoes; label: string; width: string; get: (l:
 const COLS: Col[] = [
   { key: "veiculo", label: "Veículo", width: "22%", get: (l) => l.veiculo },
   { key: "renavam", label: "RENAVAM", width: "12%", get: (l) => l.renavam },
-  { key: "chassi", label: "Chassi", width: "17%", get: (l) => l.chassi },
-  { key: "alienacao", label: "Alienação", width: "28%", get: (l) => l.alienacao },
+  { key: "chassi", label: "Chassi", width: "19%", get: (l) => l.chassi },
+  { key: "alienacao", label: "Alienação", width: "26%", get: (l) => l.alienacao },
   { key: "situacao", label: "Situação", width: "12%", get: (l) => l.situacao },
 ];
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
@@ -45,13 +45,13 @@ export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
   return l.total > 0 || l.multas > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
 }
 
-/** Linhas que o texto ocupa na coluna (aprox. 20 caracteres em Veículo, 26 em Alienação). */
+/** Linhas que o texto ocupa na coluna (aprox. 20 caracteres em Veículo, 22 em Alienação). */
 const linhasDeTexto = (t: string, chars: number) => Math.max(1, Math.ceil((t || "").trim().length / chars));
 
 const alturaLinha = (l: RelacaoLinha, op: RelacaoOpcoes): number => {
   const li = Math.max(
     op.veiculo ? linhasDeTexto(l.veiculo, 20) : 1,
-    op.alienacao ? linhasDeTexto(l.alienacao, 26) : 1,
+    op.alienacao ? linhasDeTexto(l.alienacao, 22) : 1,
   );
   return H_ID + H_LINHA_EXTRA * (li - 1) + (temDebitos(l, op) ? H_DEB : 0);
 };
@@ -133,7 +133,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
 
   const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
     ${i === 0
-      ? buildPrintHeaderHtml({ company, title: "Relação de documentos e multas", subtitle: `${ordenadas.length} veículo(s) · ${quando}` })
+      ? `<div class="hdr">${buildPrintHeaderHtml({ company, title: "Relação de documentos e multas", subtitle: `${ordenadas.length} veículo(s) · ${quando}` })}</div>`
       : `<div class="cont"><b>Relação de documentos e multas</b><span>${ordenadas.length} veículo(s) · ${quando}</span></div>`}
     ${corpo(p)}
     ${i === paginas.length - 1 ? totais : ""}
@@ -145,6 +145,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     *{box-sizing:border-box}html,body{margin:0;padding:0}
     body{width:${BODY_W_PX}px;font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#111}
     .doc-page{width:${BODY_W_PX}px;background:#fff}
+    .hdr{padding-right:12px}
     .cont{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding:0 0 6px;margin-bottom:8px;font-size:9pt}
     .cont span{font-size:7.5pt;color:#555;font-family:'Courier New',monospace}
     table{border-collapse:collapse;table-layout:fixed}
