@@ -1,8 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
-  capacidadePagina, montarPaginas, H_DEB, OPCOES_PADRAO, temDebitos,
+  capacidadePagina, montarPaginas, H_DEB, MARGIN_MM, OPCOES_PADRAO, temDebitos,
   type RelacaoLinha, type RelacaoOpcoes,
 } from "./fleetRelacaoPdf";
+
+vi.mock("@/lib/htmlToPdf", () => ({ downloadHtmlAsPdf: vi.fn(async () => {}) }));
+vi.mock("@/lib/printHeader", () => ({
+  fetchMatrizHeader: vi.fn(async () => ({ name: "Sime Transporte Ltda", docLine: "CNPJ 00.000.000/0001-00", address: "Av. Brasil, 1000" })),
+  buildPrintHeaderHtml: () => "",
+}));
 
 const linha = (n: number, comDebito: boolean): RelacaoLinha => ({
   plate: `PTT${String(n).padStart(4, "0")}A`, veiculo: "SCANIA R 450 A6X2NA",
@@ -15,7 +21,7 @@ const linha = (n: number, comDebito: boolean): RelacaoLinha => ({
 
 const SEM_DEBITO: RelacaoOpcoes = { ...OPCOES_PADRAO, debitos: false };
 
-describe("montarPaginas (A4 retrato)", () => {
+describe("montarPaginas (A4 paisagem)", () => {
   it("mantém todos os veículos uma única vez e pagina quando não cabe", () => {
     const linhas = Array.from({ length: 40 }, (_, i) => linha(i, true));
     const pages = montarPaginas(linhas, OPCOES_PADRAO);
@@ -47,12 +53,28 @@ describe("montarPaginas (A4 retrato)", () => {
   });
 
   it("sem a opção de documentos atrasados, cada veículo perde a linha de débitos", () => {
-    const linhas = Array.from({ length: 10 }, (_, i) => linha(i, true));
+    const linhas = Array.from({ length: 8 }, (_, i) => linha(i, true));
     const com = montarPaginas(linhas, OPCOES_PADRAO);
     const sem = montarPaginas(linhas, SEM_DEBITO);
     expect(com.length).toBe(1); // com os totais ainda cabe na primeira página
     expect(sem.length).toBe(1);
-    expect(com[0].altura - sem[0].altura).toBe(10 * H_DEB);
+    expect(com[0].altura - sem[0].altura).toBe(8 * H_DEB);
+  });
+});
+
+describe("orientação do papel", () => {
+  it("baixa a relação em A4 paisagem", async () => {
+    const { exportFleetRelacaoPdf } = await import("./fleetRelacaoPdf");
+    const { downloadHtmlAsPdf } = await import("@/lib/htmlToPdf");
+    const linha: RelacaoLinha = {
+      plate: "PTT9D20", veiculo: "SCANIA R 450 A6X2NA", renavam: "01234567890", chassi: "98PTT47MSLB110598",
+      alienacao: "Livre", situacao: "Em dia", porAno: {}, multas: 0, total: 0,
+    };
+    await exportFleetRelacaoPdf([linha], [2026], OPCOES_PADRAO);
+    expect(downloadHtmlAsPdf).toHaveBeenCalledTimes(1);
+    const opts = (downloadHtmlAsPdf as unknown as { mock: { calls: [string, string, { orientation: string; marginMm: number }][] } }).mock.calls[0][2];
+    expect(opts.orientation).toBe("landscape");
+    expect(opts.marginMm).toBe(MARGIN_MM);
   });
 });
 

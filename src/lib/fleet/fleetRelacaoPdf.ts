@@ -1,4 +1,6 @@
-// PDF da relação de veículos selecionados em Documentos e Multas (A4 retrato).
+// PDF da relação de veículos selecionados em Documentos e Multas (A4 paisagem).
+// A largura grande comporta todas as colunas (placa, veículo, RENAVAM, chassi, alienação, situação
+// e os valores por ano), por isso o papel é paisagem.
 // As linhas são empacotadas em páginas (.doc-page) para nenhum veículo ser cortado na quebra.
 import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
 import { buildPrintHeaderHtml, fetchMatrizHeader } from "@/lib/printHeader";
@@ -53,28 +55,31 @@ export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, stri
 export interface RelacaoOpcoes { veiculo: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean }
 export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true };
 
-// ---------- Geometria da página (A4 retrato) ----------
+// ---------- Geometria da página (A4 paisagem: 297 x 210 mm) ----------
 export const MARGIN_MM = 12;
-const PAGE_H_MM = 297;
-const BODY_W_PX = 700; // 700px ≈ 185,2mm, dentro da área útil de 186mm
-const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 8; // ≈ 1023px
+const PAGE_W_MM = 297, PAGE_H_MM = 210;
+const BODY_W_PX = 1030; // 1030px ≈ 272,5mm, dentro da área útil de 273mm (297 - 2 x 12)
+const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 8; // ≈ 694px
 
 // Alturas estimadas (px) usadas para empacotar as linhas.
-// Valores medidos no HTML real: cabeçalho 88, barra de continuação 28, rodapé+paginação 59,
-// cabeçalho da tabela 20, bloco de totais 64, linha de identificação 18 (+13 por linha extra de texto),
-// linha de débitos 31.
-export const H_HEADER = 122, H_CONT = 38, H_FOOTER = 62, H_THEAD = 24, H_TOT = 78;
-export const H_ID = 18, H_LINHA_EXTRA = 13, H_DEB = 31;
+// Valores medidos no HTML real em paisagem: cabeçalho 66, barra de continuação 30, rodapé+paginação+marca 63,
+// cabeçalho da tabela 23, bloco de totais 78, linha de identificação 21 (+10 por linha extra de texto),
+// linha de débitos 31. Cada constante leva uma folga pequena.
+export const H_HEADER = 70, H_CONT = 34, H_FOOTER = 66, H_THEAD = 24, H_TOT = 80;
+export const H_ID = 22, H_LINHA_EXTRA = 11, H_DEB = 32;
 
 export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
 
-interface Col { key: keyof RelacaoOpcoes; label: string; width: string; get: (l: RelacaoLinha) => string }
+/** Largura útil de texto numa coluna: % da tabela (12px mais estreita que a página) menos o padding da célula. */
+const utilPx = (pct: number) => (BODY_W_PX - 12) * (pct / 100) - 10;
+
+interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: number; get: (l: RelacaoLinha) => string }
 const COLS: Col[] = [
-  { key: "veiculo", label: "Veículo", width: "22%", get: (l) => l.veiculo },
-  { key: "renavam", label: "RENAVAM", width: "12%", get: (l) => l.renavam },
-  { key: "chassi", label: "Chassi", width: "19%", get: (l) => l.chassi },
-  { key: "alienacao", label: "Alienação", width: "26%", get: (l) => l.alienacao },
-  { key: "situacao", label: "Situação", width: "12%", get: (l) => l.situacao },
+  { key: "veiculo", label: "Veículo", width: "20%", px: utilPx(20), get: (l) => l.veiculo },
+  { key: "renavam", label: "RENAVAM", width: "11%", px: utilPx(11), get: (l) => l.renavam },
+  { key: "chassi", label: "Chassi", width: "16%", px: utilPx(16), get: (l) => l.chassi },
+  { key: "alienacao", label: "Alienação", width: "33%", px: utilPx(33), get: (l) => l.alienacao },
+  { key: "situacao", label: "Situação", width: "12%", px: utilPx(12), get: (l) => l.situacao },
 ];
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
 
@@ -84,13 +89,42 @@ export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
   return l.total > 0 || l.multas > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
 }
 
-/** Linhas que o texto ocupa na coluna (aprox. 20 caracteres em Veículo, 22 em Alienação). */
-const linhasDeTexto = (t: string, chars: number) => Math.max(1, Math.ceil((t || "").trim().length / chars));
+// ---------- Medida de texto (prevê quantas linhas uma célula ocupa) ----------
+let _ctx: CanvasRenderingContext2D | null | undefined;
+const ctx2d = () => {
+  if (_ctx === undefined) {
+    // jsdom (ambiente de teste) não tem canvas: usa a estimativa por caractere.
+    if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "")) _ctx = null;
+    else try {
+      const c = document.createElement("canvas");
+      _ctx = c.getContext("2d");
+      if (_ctx) _ctx.font = "10.667px Arial"; // 8pt, a fonte da tabela
+    } catch { _ctx = null; }
+  }
+  return _ctx;
+};
+const _larguras = new Map<string, number>();
+const larguraTexto = (t: string): number => {
+  const s = (t || "").trim();
+  if (!s) return 0;
+  const hit = _larguras.get(s);
+  if (hit !== undefined) return hit;
+  const c = ctx2d();
+  // Sem canvas (ambiente de teste): 6,6px por caractere, o medido em textos de marca/modelo e alienação.
+  const w = c ? c.measureText(s).width : s.length * 6.6;
+  _larguras.set(s, w);
+  return w;
+};
+
+/** Linhas que o texto ocupa na coluna de `px` úteis. */
+const linhasDeTexto = (t: string, px: number) => Math.max(1, Math.ceil(larguraTexto(t) / Math.max(1, px)));
+
+const pxDe = (k: keyof RelacaoOpcoes) => COLS.find((c) => c.key === k)?.px ?? 100;
 
 const alturaLinha = (l: RelacaoLinha, op: RelacaoOpcoes): number => {
   const li = Math.max(
-    op.veiculo ? linhasDeTexto(l.veiculo, 20) : 1,
-    op.alienacao ? linhasDeTexto(l.alienacao, 22) : 1,
+    op.veiculo ? linhasDeTexto(l.veiculo, pxDe("veiculo")) : 1,
+    op.alienacao ? linhasDeTexto(l.alienacao, pxDe("alienacao")) : 1,
   );
   return H_ID + H_LINHA_EXTRA * (li - 1) + (temDebitos(l, op) ? H_DEB : 0);
 };
@@ -169,7 +203,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     return esc(t);
   };
 
-  const head = `<th class="pl" style="width:9%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}`;
+  const head = `<th class="pl" style="width:8%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}`;
   const rowId = (l: RelacaoLinha) => `<tr${l.conjunto ? ' class="cj"' : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}</tr>`;
   const rowDeb = (l: RelacaoLinha) => `<tr class="db${l.conjunto ? " cj" : ""}"><td colspan="${nCols}" class="dc">${mini(rotulos(anosDesc), valores(l, anosDesc, m))}</td></tr>`;
 
@@ -230,5 +264,5 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
 export async function exportFleetRelacaoPdf(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes = OPCOES_PADRAO) {
   const company = await fetchMatrizHeader();
   const html = montarHtmlRelacao(linhas, anos, op, company);
-  await downloadHtmlAsPdf(html, `Relacao documentos e multas ${new Date().toISOString().slice(0, 10)}.pdf`, { orientation: "portrait", marginMm: MARGIN_MM });
+  await downloadHtmlAsPdf(html, `Relacao documentos e multas ${new Date().toISOString().slice(0, 10)}.pdf`, { orientation: "landscape", marginMm: MARGIN_MM });
 }
