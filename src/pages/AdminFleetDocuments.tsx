@@ -20,6 +20,7 @@ import { formatDateBR } from "@/lib/date";
 import {
   FleetDocLike, FleetDocTipo, abertoPorAno, ANO_INICIAL_ABERTOS, FleetSituacao, ResumoTipo, resumoPorTipo, situacaoComConsulta, situacaoVeiculo,
 } from "@/lib/fleet/fleetDocumentStatus";
+import { extrairAlienacao, type Alienacao } from "@/lib/fleet/alienacao";
 
 interface VehicleRow {
   id: string;
@@ -40,6 +41,7 @@ interface Linha extends VehicleRow {
   licAno: Record<number, number>;
   multasTotal: number;
   total: number;
+  alienacao: Alienacao | null;
 }
 
 const hojeIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -65,6 +67,7 @@ export default function AdminFleetDocuments() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [docs, setDocs] = useState<(FleetDocLike & { veiculo_id: string })[]>([]);
   const [consultasLimpas, setConsultasLimpas] = useState<Set<string>>(new Set());
+  const [alienacoes, setAlienacoes] = useState<Map<string, Alienacao>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState<"all" | FleetSituacao>("all");
@@ -90,6 +93,7 @@ export default function AdminFleetDocuments() {
     const ids = vs.map((v) => v.id);
     let ds: any[] = [];
     const limpas = new Set<string>();
+    const alien = new Map<string, Alienacao>();
     if (ids.length) {
       const dRes = await supabase
         .from("veiculo_documentos")
@@ -100,11 +104,12 @@ export default function AdminFleetDocuments() {
       // Última consulta ao Detran por veículo: sem débitos em aberto = documentos em dia
       const cRes = await supabase
         .from("vehicle_debt_consultas" as any)
-        .select("vehicle_id, importacao, created_at")
+        .select("vehicle_id, importacao, response, created_at")
         .in("vehicle_id", ids)
         .order("created_at", { ascending: false });
       const vistos = new Set<string>();
       for (const c of (cRes.data || []) as any[]) {
+        if (!alien.has(c.vehicle_id)) { const a = extrairAlienacao(c.response); if (a) alien.set(c.vehicle_id, a); } // mais recente que informou gravame
         if (vistos.has(c.vehicle_id)) continue; // já é a mais recente deste veículo
         const debitos = c.importacao?.debitos;
         if (!Array.isArray(debitos)) continue; // consulta unificada não lista débitos
@@ -115,6 +120,7 @@ export default function AdminFleetDocuments() {
     setVehicles(vs);
     setDocs(ds);
     setConsultasLimpas(limpas);
+    setAlienacoes(alien);
     setLoading(false);
   }, []);
 
@@ -133,7 +139,7 @@ export default function AdminFleetDocuments() {
       const r = (t: FleetDocTipo) => resumoPorTipo(ds, t, hoje);
       const ipva = r("IPVA"), licenciamento = r("Licenciamento"), seguro = r("Seguro"), multas = r("Multa");
       const situacao = situacaoComConsulta(situacaoVeiculo([ipva, licenciamento, seguro, multas]), consultasLimpas.has(v.id));
-      return { ...v, ipva, licenciamento, seguro, multas, situacao, ...(() => {
+      return { ...v, alienacao: alienacoes.get(v.id) || null, ipva, licenciamento, seguro, multas, situacao, ...(() => {
         const ipvaAno = abertoPorAno(ds as any, "IPVA"), licAno = abertoPorAno(ds as any, "Licenciamento");
         const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);
         const soma = (o: Record<number, number>) => Object.values(o).reduce((t, x) => t + x, 0);
@@ -141,7 +147,7 @@ export default function AdminFleetDocuments() {
         return { ipvaAno, licAno, multasTotal: Math.round(multasTotal * 100) / 100, total };
       })() };
     });
-  }, [vehicles, docs, consultasLimpas]);
+  }, [vehicles, docs, consultasLimpas, alienacoes]);
 
   const filtradas = useMemo(() => {
     const q = search.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, "");
@@ -179,6 +185,10 @@ export default function AdminFleetDocuments() {
   const columns: DataGridColumn<Linha>[] = [
     { key: "plate", header: "Placa", width: "100px", cell: (l) => <span className="font-mono font-semibold">{l.plate}</span>, sortValue: (l) => l.plate },
     { key: "veiculo", header: "Veículo", width: "150px", cell: (l) => <span className="truncate">{[l.brand, l.model].filter(Boolean).join(" ")}</span>, sortValue: (l) => `${l.brand} ${l.model}` },
+    { key: "alienacao", header: "Alienação", width: "150px", sortValue: (l) => l.alienacao ? (l.alienacao.status === "alienado" ? `0${l.alienacao.texto}` : "1") : "2",
+      cell: (l) => !l.alienacao ? <span className="text-muted-foreground">—</span>
+        : l.alienacao.status === "livre" ? <span className="text-success font-medium">Livre</span>
+        : <span className="leading-tight block truncate" title={l.alienacao.texto}><span className="text-destructive font-semibold">Alienado</span><span className="block text-[10px] truncate">{l.alienacao.texto}</span></span> },
     ...colunasAno,
     colValor("multas", "Multas", (l) => l.multasTotal),
     colValor("total", "Total", (l) => l.total, "110px"),
