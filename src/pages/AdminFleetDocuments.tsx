@@ -251,7 +251,7 @@ export default function AdminFleetDocuments() {
             { key: "manage", label: "Documentos e multas da placa", icon: FolderOpen, mode: "single", variant: "default", disabled: !single, onClick: () => single && setManageOpen(true) },
             { key: "sync", label: "Consultar débitos no Detran", icon: RefreshCw, mode: "single", disabled: !single, onClick: () => single && setDetranOpen(true) },
             { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
-            { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "multi", disabled: selected.size === 0 || printing, onClick: imprimirRelacao },
+            { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: imprimirRelacao },
           ]}
           selectedCount={selected.size}
         />
