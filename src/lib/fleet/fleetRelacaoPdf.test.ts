@@ -100,3 +100,12 @@ describe("placas avulsas", () => {
     expect(r.slice(2).every((l) => !l.conjunto)).toBe(true);
   });
 });
+
+import { agruparPorTipo as _apt } from "./fleetRelacaoPdf";
+describe("relação por tipo", () => {
+  it("cavalos, depois reboques/semirreboques, depois dollys", () => {
+    const mk = (plate: string) => ({ plate, veiculo: "", renavam: "", chassi: "", alienacao: "", situacao: "", porAno: {}, multas: 0, total: 0 });
+    const cat = new Map([["D1", "dolly"], ["S1", "semirreboque"], ["C1", "cavalo"], ["R1", "reboque"]]);
+    expect(_apt(["D1", "S1", "C1", "R1"].map(mk), cat).map((l) => l.plate)).toEqual(["C1", "R1", "S1", "D1"]);
+  });
+});

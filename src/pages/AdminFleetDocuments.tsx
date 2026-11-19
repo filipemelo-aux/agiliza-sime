@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch, Printer } from "lucide-react";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
-import { agruparConjuntos, exportFleetRelacaoPdf, OPCOES_PADRAO, type RelacaoOpcoes } from "@/lib/fleet/fleetRelacaoPdf";
+import { agruparConjuntos, agruparPorTipo, type OrdemRelacao, exportFleetRelacaoPdf, OPCOES_PADRAO, type RelacaoOpcoes } from "@/lib/fleet/fleetRelacaoPdf";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -84,6 +84,7 @@ export default function AdminFleetDocuments() {
   const [printing, setPrinting] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [printOp, setPrintOp] = useState<RelacaoOpcoes>(OPCOES_PADRAO);
+  const [printOrdem, setPrintOrdem] = useState<OrdemRelacao>("conjuntos");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -200,13 +201,15 @@ export default function AdminFleetDocuments() {
         if (!["semirreboque", "dolly", "reboque"].includes(v.unit_category)) tracao.add(v.plate);
         for (const t of [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3]) if (t) vinculos.push([v.plate, t]);
       }
-      await exportFleetRelacaoPdf(agruparConjuntos(sel.map((l) => {
+      const categoriaPorPlaca = new Map<string, string>(((vRes.data || []) as any[]).map((v) => [v.plate, v.unit_category]));
+      const linhasRel = sel.map((l) => {
         const porAno: Record<number, number> = {};
         for (const a of anos) porAno[a] = Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
           situacao: LABEL[l.situacao], porAno, multas: l.multasTotal, total: l.total };
-      }), vinculos, tracao), anos, printOp);
+      });
+      await exportFleetRelacaoPdf(printOrdem === "tipo" ? agruparPorTipo(linhasRel, categoriaPorPlaca) : agruparConjuntos(linhasRel, vinculos, tracao), anos, printOp);
     } catch (e: any) { toast.error("Erro ao gerar relação: " + (e?.message || e)); }
     finally { setPrinting(false); }
   };
@@ -312,7 +315,16 @@ export default function AdminFleetDocuments() {
         <Dialog open={printOpen} onOpenChange={setPrintOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader><DialogTitle>O que imprimir na relação</DialogTitle></DialogHeader>
+            <div className="grid gap-1 text-xs">
+              <span className="font-medium">Organizar</span>
+              {([["conjuntos", "Por conjuntos (cavalo com seus implementos)"], ["tipo", "Por tipo (cavalos, depois reboques e semirreboques, depois dollys)"]] as [OrdemRelacao, string][]).map(([k, rot]) => (
+                <label key={k} className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="ordem-relacao" checked={printOrdem === k} onChange={() => setPrintOrdem(k)} />{rot}
+                </label>
+              ))}
+            </div>
             <div className="grid gap-2 text-xs">
+              <span className="font-medium">Colunas</span>
               {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA/Licenciamento por ano, multas e total)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}

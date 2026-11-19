@@ -14,6 +14,23 @@ export interface RelacaoLinha {
   porAno: Record<number, number>; multas: number; total: number;
   /** Rótulo do conjunto (placas vinculadas entre si); vazio quando avulso. */
   conjunto?: string;
+  /** Título da faixa do grupo (ex.: "Cavalos"); sem ele a faixa mostra "Conjunto: …". */
+  titulo?: string;
+}
+
+export type OrdemRelacao = "conjuntos" | "tipo";
+/** Categoria da unidade → grupo da relação por tipo: cavalos, depois reboques/semirreboques, depois dollys. */
+export function grupoTipo(categoria: string | null | undefined): 0 | 1 | 2 {
+  const c = String(categoria || "").toLowerCase();
+  if (c === "dolly") return 2;
+  if (c === "reboque" || c === "semirreboque") return 1;
+  return 0;
+}
+const TITULOS_TIPO = ["Cavalos", "Reboques e semirreboques", "Dollys"];
+export function agruparPorTipo(linhas: RelacaoLinha[], categoriaPorPlaca: Map<string, string>): RelacaoLinha[] {
+  return linhas.map((l) => ({ l, g: grupoTipo(categoriaPorPlaca.get(l.plate)) }))
+    .sort((a, b) => a.g - b.g || String(a.l.plate).localeCompare(String(b.l.plate)))
+    .map(({ l, g }) => ({ ...l, conjunto: TITULOS_TIPO[g], titulo: TITULOS_TIPO[g] }));
 }
 
 export const H_GRUPO = 20;
@@ -216,7 +233,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   </div>` : "";
 
   const corpo = (p: PaginaRelacao) => p.linhas.length
-    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">Conjunto: ${esc(l.conjunto)}</td></tr>` : "")
+    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
       + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto</td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
     : "";
 
