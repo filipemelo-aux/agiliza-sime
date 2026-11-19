@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch, Printer } from "lucide-react";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
-import { exportFleetRelacaoPdf, OPCOES_PADRAO, type RelacaoOpcoes } from "@/lib/fleet/fleetRelacaoPdf";
+import { agruparConjuntos, exportFleetRelacaoPdf, OPCOES_PADRAO, type RelacaoOpcoes } from "@/lib/fleet/fleetRelacaoPdf";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -181,13 +181,32 @@ export default function AdminFleetDocuments() {
     if (!sel.length) return;
     setPrintOpen(false); setPrinting(true);
     try {
-      await exportFleetRelacaoPdf(sel.map((l) => {
+      // Vínculos entre as placas: conjuntos ativos e placas de implemento do cadastro.
+      const ids = sel.map((l) => l.id);
+      const [aRes, vRes] = await Promise.all([
+        supabase.from("vehicle_assignments").select("vehicle_id, implement_ids").is("ended_at", null),
+        supabase.from("vehicles").select("id, plate, unit_category, trailer_plate_1, trailer_plate_2, trailer_plate_3").in("id", ids),
+      ]);
+      const placaPorId = new Map<string, string>(sel.map((l) => [l.id, l.plate]));
+      const vinculos: [string, string][] = [];
+      const tracao = new Set<string>();
+      for (const a of (aRes.data || []) as any[]) {
+        const p = placaPorId.get(a.vehicle_id);
+        for (const imp of a.implement_ids || []) { const q = placaPorId.get(imp); if (p && q) { vinculos.push([p, q]); tracao.add(p); } }
+        const imps = (a.implement_ids || []).map((x: string) => placaPorId.get(x)).filter(Boolean) as string[];
+        for (let i = 1; i < imps.length; i++) vinculos.push([imps[0], imps[i]]);
+      }
+      for (const v of (vRes.data || []) as any[]) {
+        if (!["semirreboque", "dolly", "reboque"].includes(v.unit_category)) tracao.add(v.plate);
+        for (const t of [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3]) if (t) vinculos.push([v.plate, t]);
+      }
+      await exportFleetRelacaoPdf(agruparConjuntos(sel.map((l) => {
         const porAno: Record<number, number> = {};
         for (const a of anos) porAno[a] = Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
           situacao: LABEL[l.situacao], porAno, multas: l.multasTotal, total: l.total };
-      }), anos, printOp);
+      }), vinculos, tracao), anos, printOp);
     } catch (e: any) { toast.error("Erro ao gerar relação: " + (e?.message || e)); }
     finally { setPrinting(false); }
   };

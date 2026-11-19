@@ -10,6 +10,43 @@ const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&
 export interface RelacaoLinha {
   plate: string; veiculo: string; renavam: string; chassi: string; alienacao: string; situacao: string;
   porAno: Record<number, number>; multas: number; total: number;
+  /** Rótulo do conjunto (placas vinculadas entre si); vazio quando avulso. */
+  conjunto?: string;
+}
+
+export const H_GRUPO = 20;
+
+/**
+ * Agrupa as placas vinculadas entre si (qualquer vínculo, direto ou indireto).
+ * `vinculos` são pares de placas; a ordem de `ordemTracao` (placas de tração) vem primeiro no grupo.
+ */
+export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, string][], tracao: Set<string> = new Set()): RelacaoLinha[] {
+  const norm = (p: string) => String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const sel = new Set(linhas.map((l) => norm(l.plate)));
+  const pai = new Map<string, string>();
+  const raiz = (x: string): string => { let r = x; while (pai.get(r) && pai.get(r) !== r) r = pai.get(r)!; return r; };
+  sel.forEach((p) => pai.set(p, p));
+  for (const [a0, b0] of vinculos) {
+    const a = norm(a0), b = norm(b0);
+    if (a === b || !sel.has(a) || !sel.has(b)) continue;
+    const ra = raiz(a), rb = raiz(b);
+    if (ra !== rb) pai.set(ra < rb ? rb : ra, ra < rb ? ra : rb);
+  }
+  const grupos = new Map<string, RelacaoLinha[]>();
+  for (const l of linhas) {
+    const r = raiz(norm(l.plate));
+    if (!grupos.has(r)) grupos.set(r, []);
+    grupos.get(r)!.push(l);
+  }
+  const tr = new Set([...tracao].map(norm));
+  const ordenar = (g: RelacaoLinha[]) => [...g].sort((a, b) =>
+    (tr.has(norm(b.plate)) ? 1 : 0) - (tr.has(norm(a.plate)) ? 1 : 0) || String(a.plate).localeCompare(String(b.plate)));
+  return [...grupos.values()].map(ordenar)
+    .sort((a, b) => String(a[0].plate).localeCompare(String(b[0].plate)))
+    .flatMap((g) => {
+      const rot = g.length > 1 ? g.map((l) => l.plate).join(" + ") : "";
+      return g.map((l) => ({ ...l, conjunto: rot }));
+    });
 }
 export interface RelacaoOpcoes { veiculo: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean }
 export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true };
@@ -67,13 +104,24 @@ export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): Pagina
   const pages: PaginaRelacao[] = [];
   let cur: RelacaoLinha[] = [];
   let used = 0;
+  // Blocos: um conjunto inteiro (com faixa de título) ou um veículo avulso.
+  const blocos: RelacaoLinha[][] = [];
   for (const l of linhas) {
-    const h = alturaLinha(l, op);
-    if (cur.length && used + h > cap(pages.length)) {
+    const ult = blocos[blocos.length - 1];
+    if (l.conjunto && ult && ult[0].conjunto === l.conjunto) ult.push(l); else blocos.push([l]);
+  }
+  for (const b of blocos) {
+    const hs = b.map((l) => alturaLinha(l, op));
+    const tot = hs.reduce((t, h) => t + h, 0) + (b[0].conjunto ? H_GRUPO : 0);
+    if (cur.length && used + tot > cap(pages.length) && tot <= cap(pages.length + 1)) {
       pages.push({ linhas: cur, altura: used });
       cur = []; used = 0;
     }
-    cur.push(l); used += h;
+    b.forEach((l, i) => {
+      const h = hs[i] + (i === 0 && l.conjunto ? H_GRUPO : 0);
+      if (cur.length && used + h > cap(pages.length)) { pages.push({ linhas: cur, altura: used }); cur = []; used = 0; }
+      cur.push(l); used += h;
+    });
   }
   if (cur.length) pages.push({ linhas: cur, altura: used });
   if (!pages.length) pages.push({ linhas: [], altura: 0 });
@@ -95,7 +143,7 @@ const mini = (labels: string[], vals: string[]) =>
 
 /** Monta o HTML completo (uma div .doc-page por página). */
 export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes, company: { name: string; docLine: string; address: string }): string {
-  const ordenadas = [...linhas].sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
+  const ordenadas = linhas.some((l) => l.conjunto) ? linhas : [...linhas].sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
   const anosDesc = op.debitos ? [...anos].sort((a, b) => b - a) : [];
   const cols = COLS.filter((c) => op[c.key]);
   const m = (v: number) => (v ? formatCurrency(v) : "—");
@@ -128,7 +176,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   </div>` : "";
 
   const corpo = (p: PaginaRelacao) => p.linhas.length
-    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l) => rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
+    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">Conjunto: ${esc(l.conjunto)}</td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
     : "";
 
   const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
@@ -153,6 +201,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:break-word}
     .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
     .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:9pt;white-space:nowrap}
+    .rel tr.gr td{background:#e8eef7;color:#2B4C7E;font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px;border-color:#c7d3e6}
     .rel tr.db td{border-top:0;padding:1px 4px 3px;background:#fbfcfe}
     .mini{width:100%;table-layout:fixed}
     .mini th{background:none;border:0;font-size:6.5pt;font-weight:400;color:#6b7280;text-align:right;padding:0 4px}

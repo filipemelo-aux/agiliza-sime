@@ -55,3 +55,14 @@ describe("montarPaginas (A4 retrato)", () => {
     expect(com[0].altura - sem[0].altura).toBe(10 * H_DEB);
   });
 });
+
+import { agruparConjuntos as _ag } from "./fleetRelacaoPdf";
+describe("agruparConjuntos", () => {
+  const L = (plate: string) => ({ plate, veiculo: "", renavam: "", chassi: "", alienacao: "", situacao: "", porAno: {}, multas: 0, total: 0 });
+  it("junta placas vinculadas direta ou indiretamente, tração primeiro", () => {
+    const r = _ag([L("ZZZ1A11"), L("AAA1A11"), L("BBB1B11"), L("CCC1C11")], [["CCC1C11", "AAA1A11"], ["CCC1C11", "BBB1B11"]], new Set(["CCC1C11"]));
+    expect(r.map((l) => l.plate)).toEqual(["CCC1C11", "AAA1A11", "BBB1B11", "ZZZ1A11"]);
+    expect(r[0].conjunto).toBe("CCC1C11 + AAA1A11 + BBB1B11");
+    expect(r[3].conjunto).toBe("");
+  });
+});
