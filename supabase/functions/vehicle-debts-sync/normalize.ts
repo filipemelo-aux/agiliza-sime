@@ -105,7 +105,11 @@ export function normalizar(uf: string, item: any, hoje: string): Debito[] {
       if (!numero || /\bPAG[AO]|QUITAD|CANCELAD/i.test(numero)) continue
       // The same auto can appear both as a fine and as a pending notification.
       const auto = numero.split(/\s+Renainf:|\s+Em aberto/i)[0].trim()
-      multa(auto, valorTO(f.normalizado_valor ?? f.valor), br(f.normalizado_data) ?? br(f.descricao), String(f.descricao ?? 'Multa Detran-TO'))
+      // InfoSimples' normalizado_valor for TO fines is off by 100x ('R$ 293.47' → 2.9347): use the
+      // debt's current amount (with interest) when listed, else the 'R$' text.
+      const deb = (item?.debitos ?? []).find((d: any) => String(d?.descricao ?? '').trim() === auto)
+      const valor = deb ? valorTO(deb.normalizado_valor_atual ?? deb.valor_atual) : valorTO(f.valor ?? f.normalizado_valor)
+      multa(auto, valor, br(f.normalizado_data) ?? br(f.descricao), String(f.descricao ?? 'Multa Detran-TO'))
     }
   }
   if (uf === 'GO') {

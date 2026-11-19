@@ -88,3 +88,16 @@ describe('MA licenciamento sem multas', () => {
     expect(r.find((d) => d.chave === 'LIC-2025')?.valor).toBe(157.33)
   })
 })
+
+describe("TO: valor das multas", () => {
+  it("usa o valor atual do débito (R$ 293,47 + juros = 333,72), não o normalizado 100x menor", async () => {
+    const { normalizar } = await import("../../../supabase/functions/vehicle-debts-sync/normalize");
+    const r = normalizar("TO", {
+      debitos: [{ descricao: "UF:RD-1/00", valor_atual: "333.72" }],
+      multas: [{ numero_autuacao: "UF:RD-1/00 Renainf: 1  Em aberto", valor: "R$ 293.47", normalizado_valor: 2.9347, normalizado_data: "29/01/2025 09:39:00" }],
+      infracoes_em_autuacao: [{ numero_autuacao: "UF:RD-2/01  Renainf: 2  Em aberto", valor: "R$ 195.23", normalizado_valor: 1.9523, normalizado_data: "10/10/2026 19:06:00" }],
+    }, "2026-11-18");
+    expect(r.find((d) => d.chave === "MULTA-UF:RD-1/00")?.valor).toBe(333.72);
+    expect(r.find((d) => d.chave === "MULTA-UF:RD-2/01")?.valor).toBe(195.23);
+  });
+});
