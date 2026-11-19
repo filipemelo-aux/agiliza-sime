@@ -234,7 +234,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
 
   const corpo = (p: PaginaRelacao) => p.linhas.length
     ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
-      + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto</td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
+      + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
     : "";
 
   const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
@@ -263,6 +263,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:9pt;white-space:nowrap}
     .rel tr.gr td{background:#e8eef7;color:#2B4C7E;font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px;border-color:#c7d3e6}
     .rel tr.gr.av td{background:#f3f4f6;color:#374151;border-color:#d1d5db}
+    .rel tr.gr.av .av-nota{font-weight:400;text-transform:none;letter-spacing:0;font-size:7pt;color:#6b7280}
     .rel tr.db td{border-top:0;padding:1px 4px 3px;background:#fbfcfe}
     .mini{width:100%;table-layout:fixed}
     .mini th{background:none;border:0;font-size:6.5pt;font-weight:400;color:#6b7280;text-align:right;padding:0 4px}
