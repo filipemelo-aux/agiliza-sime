@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch, Printer } from "lucide-react";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
-import { exportFleetRelacaoPdf } from "@/lib/fleet/fleetRelacaoPdf";
+import { exportFleetRelacaoPdf, OPCOES_PADRAO, type RelacaoOpcoes } from "@/lib/fleet/fleetRelacaoPdf";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { DialogFooter } from "@/components/ui/dialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { PageTitle } from "@/components/PageTitle";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -30,6 +33,7 @@ interface VehicleRow {
   brand: string;
   model: string;
   renavam: string;
+  chassis: string | null;
   unit_category: string | null;
 }
 
@@ -78,12 +82,14 @@ export default function AdminFleetDocuments() {
   const [detranOpen, setDetranOpen] = useState(false);
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printOp, setPrintOp] = useState<RelacaoOpcoes>(OPCOES_PADRAO);
 
   const load = useCallback(async () => {
     setLoading(true);
     const vRes = await supabase
       .from("vehicles")
-      .select("id, plate, brand, model, renavam, unit_category")
+      .select("id, plate, brand, model, renavam, chassis, unit_category")
       .eq("is_active", true)
       .eq("fleet_type", "propria")
       .order("plate");
@@ -173,15 +179,15 @@ export default function AdminFleetDocuments() {
   const imprimirRelacao = async () => {
     const sel = filtradas.filter((l) => selected.has(l.id));
     if (!sel.length) return;
-    setPrinting(true);
+    setPrintOpen(false); setPrinting(true);
     try {
       await exportFleetRelacaoPdf(sel.map((l) => {
         const porAno: Record<number, number> = {};
         for (const a of anos) porAno[a] = Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
-        return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "",
+        return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
           situacao: LABEL[l.situacao], porAno, multas: l.multasTotal, total: l.total };
-      }), anos);
+      }), anos, printOp);
     } catch (e: any) { toast.error("Erro ao gerar relação: " + (e?.message || e)); }
     finally { setPrinting(false); }
   };
@@ -251,7 +257,7 @@ export default function AdminFleetDocuments() {
             { key: "manage", label: "Documentos e multas da placa", icon: FolderOpen, mode: "single", variant: "default", disabled: !single, onClick: () => single && setManageOpen(true) },
             { key: "sync", label: "Consultar débitos no Detran", icon: RefreshCw, mode: "single", disabled: !single, onClick: () => single && setDetranOpen(true) },
             { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
-            { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: imprimirRelacao },
+            { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: () => setPrintOpen(true) },
           ]}
           selectedCount={selected.size}
         />
@@ -284,6 +290,22 @@ export default function AdminFleetDocuments() {
           </DialogContent>
         </Dialog>
         <DetranConsultaDialog open={detranOpen} onOpenChange={setDetranOpen} vehicle={single ?? null} onSaved={load} />
+        <Dialog open={printOpen} onOpenChange={setPrintOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader><DialogTitle>O que imprimir na relação</DialogTitle></DialogHeader>
+            <div className="grid gap-2 text-xs">
+              {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA/Licenciamento por ano, multas e total)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+                <label key={k} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
+                </label>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPrintOpen(false)}>Cancelar</Button>
+              <Button onClick={imprimirRelacao}>Imprimir</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <ProcessingOverlay open={printing} label="Gerando relação..." />
         <DetranDetalhesDialog open={detalhesOpen} onOpenChange={setDetalhesOpen} vehicle={single ?? null} />
       </div>
