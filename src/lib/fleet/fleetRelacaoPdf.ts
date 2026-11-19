@@ -61,7 +61,7 @@ const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 8; /
 // Valores medidos no HTML real: cabeçalho 88, barra de continuação 28, rodapé+paginação 59,
 // cabeçalho da tabela 20, bloco de totais 64, linha de identificação 18 (+13 por linha extra de texto),
 // linha de débitos 31.
-export const H_HEADER = 104, H_CONT = 38, H_FOOTER = 62, H_THEAD = 24, H_TOT = 78;
+export const H_HEADER = 122, H_CONT = 38, H_FOOTER = 62, H_THEAD = 24, H_TOT = 78;
 export const H_ID = 18, H_LINHA_EXTRA = 13, H_DEB = 31;
 
 export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
@@ -164,8 +164,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   };
 
   const head = `<th class="pl" style="width:9%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}`;
-  const rowId = (l: RelacaoLinha) => `<tr><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}</tr>`;
-  const rowDeb = (l: RelacaoLinha) => `<tr class="db"><td colspan="${nCols}" class="dc">${mini(rotulos(anosDesc), valores(l, anosDesc, m))}</td></tr>`;
+  const rowId = (l: RelacaoLinha) => `<tr${l.conjunto ? ' class="cj"' : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}</tr>`;
+  const rowDeb = (l: RelacaoLinha) => `<tr class="db${l.conjunto ? " cj" : ""}"><td colspan="${nCols}" class="dc">${mini(rotulos(anosDesc), valores(l, anosDesc, m))}</td></tr>`;
 
   const totais = comDebitos ? `<div class="totbox">
     <div class="tot-h">Totais da relação · ${ordenadas.length} veículo(s)</div>
@@ -185,19 +185,21 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
       : `<div class="cont"><b>Relação de documentos e multas</b><span>${ordenadas.length} veículo(s) · ${quando}</span></div>`}
     ${corpo(p)}
     ${i === paginas.length - 1 ? totais : ""}
-    ${printBrandFooterHtml()}
     <div class="pg">Página ${i + 1} de ${paginas.length}</div>
+    ${printBrandFooterHtml()}
   </div>`;
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relação de documentos e multas</title><style>
     *{box-sizing:border-box}html,body{margin:0;padding:0}
     body{width:${BODY_W_PX}px;font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#111}
     .doc-page{width:${BODY_W_PX}px;background:#fff}
+    .agiliza-brand-footer{box-sizing:content-box;height:24px;min-height:24px}
     .hdr{padding-right:12px}
     .cont{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding:0 0 6px;margin-bottom:8px;font-size:9pt}
     .cont span{font-size:7.5pt;color:#555;font-family:'Courier New',monospace}
     table{border-collapse:collapse;table-layout:fixed}
-    .rel{width:100%}
+    .rel{width:calc(100% - 12px)}
+    .rel tr.cj td:first-child{box-shadow:inset 3px 0 0 #2B4C7E}
     .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:break-word}
     .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
     .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:9pt;white-space:nowrap}
@@ -208,11 +210,11 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .mini td{border:0;text-align:right;padding:0 4px;font-size:8pt;font-family:'Courier New',monospace}
     .al,.st-v{color:#b91c1c;font-weight:600}.lv,.st-e{color:#15803d;font-weight:600}
     .st-a{color:#b45309;font-weight:600}.st-n{color:#6b7280}
-    .totbox{border:1px solid #9ca3af;margin-top:10px;padding:4px 0 5px;break-inside:avoid}
+    .totbox{margin-right:12px;border:1px solid #9ca3af;margin-top:10px;padding:4px 0 5px;break-inside:avoid}
     .tot-h{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.2px;padding:0 6px 2px;color:#111}
     .totbox .mini td{font-size:9pt;font-weight:700}
     .tot-g{text-align:right;padding:3px 6px 0;margin-top:3px;border-top:1px solid #e5e7eb;font-size:9.5pt;font-weight:700}
-    .pg{text-align:center;font-size:7pt;color:#6b7280;margin-top:2px}
+    .pg{text-align:center;font-size:7pt;color:#6b7280;margin-top:6px;padding-right:12px;position:relative;clear:both}
   </style></head><body>${paginas.map(pagina).join("")}</body></html>`;
   return html;
 }
