@@ -42,7 +42,8 @@ export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, stri
   const ordenar = (g: RelacaoLinha[]) => [...g].sort((a, b) =>
     (tr.has(norm(b.plate)) ? 1 : 0) - (tr.has(norm(a.plate)) ? 1 : 0) || String(a.plate).localeCompare(String(b.plate)));
   return [...grupos.values()].map(ordenar)
-    .sort((a, b) => (tr.has(norm(b[0].plate)) ? 1 : 0) - (tr.has(norm(a[0].plate)) ? 1 : 0)
+    .sort((a, b) => (b.length > 1 ? 1 : 0) - (a.length > 1 ? 1 : 0)
+      || (tr.has(norm(b[0].plate)) ? 1 : 0) - (tr.has(norm(a[0].plate)) ? 1 : 0)
       || String(a[0].plate).localeCompare(String(b[0].plate)))
     .flatMap((g) => {
       const rot = g.length > 1 ? g.map((l) => l.plate).join(" + ") : "";
@@ -111,15 +112,18 @@ export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): Pagina
     const ult = blocos[blocos.length - 1];
     if (l.conjunto && ult && ult[0].conjunto === l.conjunto) ult.push(l); else blocos.push([l]);
   }
+  let anteriorConj = false;
   for (const b of blocos) {
+    const faixa = b[0].conjunto || anteriorConj ? H_GRUPO : 0;
+    anteriorConj = !!b[0].conjunto;
     const hs = b.map((l) => alturaLinha(l, op));
-    const tot = hs.reduce((t, h) => t + h, 0) + (b[0].conjunto ? H_GRUPO : 0);
+    const tot = hs.reduce((t, h) => t + h, 0) + faixa;
     if (cur.length && used + tot > cap(pages.length) && tot <= cap(pages.length + 1)) {
       pages.push({ linhas: cur, altura: used });
       cur = []; used = 0;
     }
     b.forEach((l, i) => {
-      const h = hs[i] + (i === 0 && l.conjunto ? H_GRUPO : 0);
+      const h = hs[i] + (i === 0 ? faixa : 0);
       if (cur.length && used + h > cap(pages.length)) { pages.push({ linhas: cur, altura: used }); cur = []; used = 0; }
       cur.push(l); used += h;
     });
@@ -151,6 +155,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const nCols = 1 + cols.length;
   const paginas = montarPaginas(ordenadas, op);
+  const temConjuntos = ordenadas.some((l) => l.conjunto);
   const comDebitos = ordenadas.some((l) => temDebitos(l, op));
   const soma = (f: (l: RelacaoLinha) => number) => ordenadas.reduce((t, l) => t + f(l), 0);
 
@@ -177,7 +182,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   </div>` : "";
 
   const corpo = (p: PaginaRelacao) => p.linhas.length
-    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">Conjunto: ${esc(l.conjunto)}</td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
+    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">Conjunto: ${esc(l.conjunto)}</td></tr>` : "")
+      + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto</td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
     : "";
 
   const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
@@ -205,6 +211,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
     .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:9pt;white-space:nowrap}
     .rel tr.gr td{background:#e8eef7;color:#2B4C7E;font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px;border-color:#c7d3e6}
+    .rel tr.gr.av td{background:#f3f4f6;color:#374151;border-color:#d1d5db}
     .rel tr.db td{border-top:0;padding:1px 4px 3px;background:#fbfcfe}
     .mini{width:100%;table-layout:fixed}
     .mini th{background:none;border:0;font-size:6.5pt;font-weight:400;color:#6b7280;text-align:right;padding:0 4px}

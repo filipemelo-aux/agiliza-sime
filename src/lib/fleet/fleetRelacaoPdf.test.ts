@@ -69,3 +69,12 @@ describe("agruparConjuntos", () => {
 
   });
 });
+
+describe("placas avulsas", () => {
+  const L = (plate: string) => ({ plate, veiculo: "", renavam: "", chassi: "", alienacao: "", situacao: "", porAno: {}, multas: 0, total: 0 });
+  it("ficam depois de todos os conjuntos e sem rótulo de conjunto", () => {
+    const r = _ag([L("AAA0A00"), L("BBB0B00"), L("ZZZ9Z99"), L("YYY9Y99")], [["ZZZ9Z99", "YYY9Y99"]], new Set(["ZZZ9Z99", "AAA0A00"]));
+    expect(r.map((l) => l.plate)).toEqual(["ZZZ9Z99", "YYY9Y99", "AAA0A00", "BBB0B00"]);
+    expect(r.slice(2).every((l) => !l.conjunto)).toBe(true);
+  });
+});
