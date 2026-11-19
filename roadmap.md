@@ -100,5 +100,6 @@
 - [x] Acertos em edição zerados: reserva de reembolso (reembolso_folha_item_id) não era liberada ao excluir item da folha ("Editar acerto"); criado trigger release_payroll_reimbursements_on_item_delete (migração 0027) e acertos de Antonio Carlos e Jailan regenerados com os valores originais.
 - [x] Impressão do acerto: removida a linha repetitiva de créditos/débitos e saldo após os débitos, restando só a somatoria geral; PDF real do Antonio Jefferson baixado e conferido.
 - [ ] Tela de configuração de cobrança/boleto por empresa (novos clientes do SaaS)
-- [ ] Impressão do boleto (linha digitável e código de barras)
+- [x] Impressão do boleto (linha digitável e código de barras): `boletoPdf.ts` desenha o código de barras ITF e a linha digitável, anexado ao download e ao e-mail da fatura.
 - [x] Boleto em PDF junto do download e do e-mail da fatura (só quando há nosso número registrado).
+- [x] Relação dos selecionados de Documentos e Multas impressa em A4 retrato: empacotamento manual por página com alturas medidas, cabeçalho repetido, numeração de páginas e bloco de totais; 25 veículos em 2 páginas sem corte, PDF confirmado em retrato (595×842 pt) e 4 testes aprovados.
