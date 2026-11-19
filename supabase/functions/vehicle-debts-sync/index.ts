@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     const lov = Deno.env.get('LOVABLE_API_KEY'), key = Deno.env.get('UDC_INFOSIMPLES_API_KEY')
     if (!lov || !key) return json({ error: 'Conexão InfoSimples não configurada' }, 500)
-    const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: '50' }
+    const base = { placa: v.plate.replace(/[^A-Z0-9]/gi, ''), renavam: String(v.renavam).replace(/\D/g, ''), timeout: uf === 'MA' ? '55' : '50' }
     const form = new URLSearchParams(soPlacaRenavam ? base : { ...base, uf, chassi: v.chassis })
     let documentoCadastro = ''
     if (v.owner_id && (!soPlacaRenavam || uf === 'TO')) {
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
         const text = await r.text()
         let out: any = null; try { out = JSON.parse(text) } catch { /* gateway error */ }
         const lento = r.status === 502 || r.status === 504 || out?.code === 605 || text.includes('timeout')
-        if (repetir && lento && tentativa === 0 && Date.now() - t0 < 40000) continue
+        if (repetir && uf !== 'MA' && lento && tentativa === 0 && Date.now() - t0 < 40000) continue
         return { r, text, out, lento }
       }
     }
