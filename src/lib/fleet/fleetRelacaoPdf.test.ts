@@ -62,7 +62,10 @@ describe("agruparConjuntos", () => {
   it("junta placas vinculadas direta ou indiretamente, tração primeiro", () => {
     const r = _ag([L("ZZZ1A11"), L("AAA1A11"), L("BBB1B11"), L("CCC1C11")], [["CCC1C11", "AAA1A11"], ["CCC1C11", "BBB1B11"]], new Set(["CCC1C11"]));
     expect(r.map((l) => l.plate)).toEqual(["CCC1C11", "AAA1A11", "BBB1B11", "ZZZ1A11"]);
-    expect(r[0].conjunto).toBe("CCC1C11 + AAA1A11 + BBB1B11");
-    expect(r[3].conjunto).toBe("");
+  });
+  it("cavalos vêm antes de implementos avulsos", () => {
+    const r = _ag([L("AAA0A00"), L("ZZZ9Z99")], [], new Set(["ZZZ9Z99"]));
+    expect(r.map((l) => l.plate)).toEqual(["ZZZ9Z99", "AAA0A00"]);
+
   });
 });

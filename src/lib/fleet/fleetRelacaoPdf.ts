@@ -42,7 +42,8 @@ export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, stri
   const ordenar = (g: RelacaoLinha[]) => [...g].sort((a, b) =>
     (tr.has(norm(b.plate)) ? 1 : 0) - (tr.has(norm(a.plate)) ? 1 : 0) || String(a.plate).localeCompare(String(b.plate)));
   return [...grupos.values()].map(ordenar)
-    .sort((a, b) => String(a[0].plate).localeCompare(String(b[0].plate)))
+    .sort((a, b) => (tr.has(norm(b[0].plate)) ? 1 : 0) - (tr.has(norm(a[0].plate)) ? 1 : 0)
+      || String(a[0].plate).localeCompare(String(b[0].plate)))
     .flatMap((g) => {
       const rot = g.length > 1 ? g.map((l) => l.plate).join(" + ") : "";
       return g.map((l) => ({ ...l, conjunto: rot }));
