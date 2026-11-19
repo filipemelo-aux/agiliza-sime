@@ -102,4 +102,4 @@
 - [ ] Tela de configuração de cobrança/boleto por empresa (novos clientes do SaaS)
 - [x] Impressão do boleto (linha digitável e código de barras): `boletoPdf.ts` desenha o código de barras ITF e a linha digitável, anexado ao download e ao e-mail da fatura.
 - [x] Boleto em PDF junto do download e do e-mail da fatura (só quando há nosso número registrado).
-- [x] Relação dos selecionados de Documentos e Multas impressa em A4 retrato: empacotamento manual por página com alturas medidas, cabeçalho repetido, numeração de páginas e bloco de totais; 25 veículos em 2 páginas sem corte, PDF confirmado em retrato (595×842 pt) e 4 testes aprovados.
+- [x] Relação dos selecionados de Documentos e Multas impressa em A4 retrato: empacotamento manual por página com alturas medidas, cabeçalho repetido, numeração de páginas e bloco de totais; fluxo real da tela conferido no computador (33 veículos em 3 páginas, chassi e cabeçalho sem corte, página 2 sem linha órfã) e no celular (6 veículos em 1 página, janela com as seis opções), 4 testes aprovados.
