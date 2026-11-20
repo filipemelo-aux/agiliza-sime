@@ -46,6 +46,8 @@ interface Linha extends VehicleRow {
   ipvaAno: Record<number, number>;
   licAno: Record<number, number>;
   multasTotal: number;
+  ipvaAnteriores: number;
+  licTotal: number;
   total: number;
   alienacao: Alienacao | null;
 }
@@ -154,8 +156,10 @@ export default function AdminFleetDocuments() {
         const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);
         const soma = (o: Record<number, number>) => Object.values(o).reduce((t, x) => t + x, 0);
         const total = Math.round((soma(ipvaAno) + soma(licAno) + multasTotal) * 100) / 100;
-        // Licenciamentos de todos os anos entram junto com as multas (coluna "Multas e licenc.")
-        return { ipvaAno, licAno, multasTotal: Math.round((multasTotal + soma(licAno)) * 100) / 100, total };
+        const corte = Number(hojeIso().slice(0, 4)) - 2;
+        const r2 = (v: number) => Math.round(v * 100) / 100;
+        const ipvaAnteriores = r2(Object.entries(ipvaAno).reduce((t, [a, v]) => (Number(a) <= corte ? t + v : t), 0));
+        return { ipvaAno, licAno, ipvaAnteriores, licTotal: r2(soma(licAno)), multasTotal: r2(multasTotal), total };
       })() };
     });
   }, [vehicles, docs, consultasLimpas, alienacoes]);
@@ -205,25 +209,27 @@ export default function AdminFleetDocuments() {
       const categoriaPorPlaca = new Map<string, string>(((vRes.data || []) as any[]).map((v) => [v.plate, v.unit_category]));
       const linhasRel = sel.map((l) => {
         const porAno: Record<number, number> = {};
-        for (const a of anos) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
+        for (const a of anosCol) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
-          situacao: LABEL[l.situacao], porAno, multas: l.multasTotal, total: l.total };
+          situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total };
       });
-      await exportFleetRelacaoPdf(printOrdem === "tipo" ? agruparPorTipo(linhasRel, categoriaPorPlaca) : agruparConjuntos(linhasRel, vinculos, tracao), anos, printOp);
+      await exportFleetRelacaoPdf(printOrdem === "tipo" ? agruparPorTipo(linhasRel, categoriaPorPlaca) : agruparConjuntos(linhasRel, vinculos, tracao), anosCol, printOp);
     } catch (e: any) { toast.error("Erro ao gerar relação: " + (e?.message || e)); }
     finally { setPrinting(false); }
   };
 
   const anoAtual = Number(hojeIso().slice(0, 4));
   const anos = Array.from({ length: Math.max(0, anoAtual - ANO_INICIAL_ABERTOS + 1) }, (_, i) => ANO_INICIAL_ABERTOS + i);
+  // Colunas por ano só para os dois anos mais recentes; anteriores somam em "IPVA ant."
+  const anosCol = anos.filter((a) => a > anoAtual - 2);
   const moeda = (v: number) => v ? <span className="font-mono">{formatCurrency(v)}</span> : <span className="text-muted-foreground">—</span>;
   const rodape = (f: (l: Linha) => number) => <span className="font-mono font-semibold">{formatCurrency(filtradas.reduce((t, l) => t + f(l), 0))}</span>;
   const colValor = (key: string, header: string, f: (l: Linha) => number, width = "100px"): DataGridColumn<Linha> => ({
     key, header, width, align: "right", cell: (l) => moeda(f(l)), sortValue: f, footer: rodape(f),
   });
   // Colunas por ano só com IPVA (já com juros e multa de atraso); licenciamento vai para "Multas e licenc."
-  const colunasAno: DataGridColumn<Linha>[] = [...anos].reverse().map((a) =>
+  const colunasAno: DataGridColumn<Linha>[] = [...anosCol].reverse().map((a) =>
     colValor(`ipva${a}`, `IPVA ${a}`, (l) => Math.round((l.ipvaAno[a] || 0) * 100) / 100, "120px"));
 
   const columns: DataGridColumn<Linha>[] = [
@@ -234,7 +240,9 @@ export default function AdminFleetDocuments() {
         : l.alienacao.status === "livre" ? <span className="text-success font-medium">Livre</span>
         : <span className="leading-tight block truncate" title={l.alienacao.texto}><span className="text-destructive font-semibold">Alienado</span><span className="block text-[10px] truncate">{l.alienacao.texto}</span></span> },
     ...colunasAno,
-    colValor("multas", "Multas e licenc.", (l) => l.multasTotal, "130px"),
+    colValor("ipvaAnt", "IPVA ant.", (l) => l.ipvaAnteriores, "120px"),
+    colValor("licenc", "Licenc.", (l) => l.licTotal, "120px"),
+    colValor("multas", "Multas", (l) => l.multasTotal, "120px"),
     colValor("total", "Total", (l) => l.total, "110px"),
   ];
 
@@ -288,7 +296,7 @@ export default function AdminFleetDocuments() {
           selected={selected}
           onSelectedChange={setSelected}
           loading={loading}
-          minWidth={260 + anos.length * 140 + 210}
+          minWidth={260 + (anosCol.length + 3) * 130 + 210}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
           emptyMessage="Nenhum veículo da frota própria encontrado"
         />

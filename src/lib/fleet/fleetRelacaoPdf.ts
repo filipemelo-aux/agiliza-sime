@@ -12,6 +12,10 @@ const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&
 export interface RelacaoLinha {
   plate: string; veiculo: string; renavam: string; chassi: string; alienacao: string; situacao: string;
   porAno: Record<number, number>; multas: number; total: number;
+  /** IPVA somado dos anos anteriores às colunas por ano (coluna "IPVA ant."). */
+  ipvaAnteriores?: number;
+  /** Licenciamentos de todos os anos somados (separados das multas). */
+  licenciamento?: number;
   /** Rótulo do conjunto (placas vinculadas entre si); vazio quando avulso. */
   conjunto?: string;
   /** Título da faixa do grupo (ex.: "Cavalos"); sem ele a faixa mostra "Conjunto: …". */
@@ -109,7 +113,7 @@ const TOM_LINHA: Record<string, string> = { "Vencido": "ton-v", "A vencer": "ton
 /** Um veículo só ganha a linha de débitos quando tem algo em aberto. */
 export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
   if (!op.debitos) return false;
-  return l.total > 0 || l.multas > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
+  return l.total > 0 || l.multas > 0 || (l.licenciamento || 0) > 0 || (l.ipvaAnteriores || 0) > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
 }
 
 // ---------- Medida de texto (prevê quantas linhas uma célula ocupa) ----------
@@ -197,9 +201,10 @@ export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): Pagina
   return pages;
 }
 
-const rotulos = (anosDesc: number[]) => [...anosDesc.map((a) => `IPVA ${a}`), "Multas e licenc.", "Total"];
+const rotulos = (anosDesc: number[]) => anosDesc.length ? [...anosDesc.map((a) => `IPVA ${a}`), "IPVA ant.", "Licenc.", "Multas", "Total"] : [];
+const extras = (l: RelacaoLinha) => [l.ipvaAnteriores || 0, l.licenciamento || 0, l.multas, l.total];
 const valores = (l: RelacaoLinha, anosDesc: number[], m: (v: number) => string) =>
-  [...anosDesc.map((a) => m(l.porAno?.[a] || 0)), m(l.multas), m(l.total)];
+  anosDesc.length ? [...anosDesc.map((a) => m(l.porAno?.[a] || 0)), ...extras(l).map(m)] : [];
 
 /** Monta o HTML completo (uma div .doc-page por página). */
 export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes, company: { name: string; docLine: string; address: string }): string {
@@ -236,7 +241,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   // Totais no rodapé da tabela, alinhados com as colunas de valores (como o footer do grid da tela).
   const totais = comDebitos ? `<tfoot><tr><td colspan="${nCols - rot.length}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td>${rot.map((_, i) => `<td class="num">${i < anosDesc.length
       ? m(soma((l) => l.porAno?.[anosDesc[i]] || 0))
-      : m(soma((l) => (i === anosDesc.length ? l.multas : l.total)))}</td>`).join("")}</tr></tfoot>` : "";
+      : m(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}</tr></tfoot>` : "";
 
   const corpo = (p: PaginaRelacao, ultima: boolean) => p.linhas.length
     ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
