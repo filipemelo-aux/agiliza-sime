@@ -75,9 +75,21 @@ export function situacaoComConsulta(situacao: FleetSituacao, consultaSemDebitos:
 /** Primeiro ano exibido nas colunas de valores em aberto por ano. */
 export const ANO_INICIAL_ABERTOS = 2022;
 
+/** Bucket for historical exercises; original consultation years stay stored for audit. */
+export const ANO_EXERCICIO_ANTERIORES = 2024;
+export const EXERCICIOS_DOCUMENTO = [2026, 2025, ANO_EXERCICIO_ANTERIORES] as const;
+
+export function agruparExercicio(ano: number): number {
+  return ano <= ANO_EXERCICIO_ANTERIORES ? ANO_EXERCICIO_ANTERIORES : ano;
+}
+
+export function rotuloExercicio(ano: number): string {
+  return ano <= ANO_EXERCICIO_ANTERIORES ? "Anos anteriores" : String(ano);
+}
+
 /**
  * Soma dos valores não pagos por ano (exercício; sem exercício, ano do vencimento).
- * Anos anteriores a ANO_INICIAL_ABERTOS ficam de fora.
+ * Todos os exercícios até 2024 entram em Anos anteriores, inclusive antes de 2022.
  */
 export function abertoPorAno(
   docs: (FleetDocLike & { ano_exercicio?: number | null })[],
@@ -88,8 +100,9 @@ export function abertoPorAno(
     if (d.status_pagamento === "Pago") continue;
     if (tipo && d.tipo_documento !== tipo) continue;
     const ano = d.ano_exercicio || Number(String(d.data_vencimento || "").slice(0, 4));
-    if (!ano || ano < ANO_INICIAL_ABERTOS) continue;
-    out[ano] = Math.round(((out[ano] || 0) + (Number(d.valor_total) || 0)) * 100) / 100;
+    if (!ano) continue;
+    const grupo = agruparExercicio(ano);
+    out[grupo] = Math.round(((out[grupo] || 0) + (Number(d.valor_total) || 0)) * 100) / 100;
   }
   return out;
 }

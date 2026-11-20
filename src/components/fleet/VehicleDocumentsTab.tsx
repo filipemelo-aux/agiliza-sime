@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
+import { agruparExercicio, EXERCICIOS_DOCUMENTO, rotuloExercicio } from "@/lib/fleet/fleetDocumentStatus";
 
 export type TipoDocumentoVeiculo = "IPVA" | "Licenciamento" | "Multa" | "Seguro";
 export type StatusPagamentoDocumento = "A Vencer" | "Vencido" | "Pago";
@@ -64,7 +65,7 @@ interface Props {
 
 const emptyDoc = {
   tipo_documento: "IPVA" as TipoDocumentoVeiculo,
-  ano_exercicio: String(new Date().getFullYear()),
+  ano_exercicio: String(EXERCICIOS_DOCUMENTO[0]),
   valor_total: "",
   data_vencimento: "",
   status_pagamento: "A Vencer" as StatusPagamentoDocumento,
@@ -132,7 +133,7 @@ export function VehicleDocumentsTab({ vehicleId, vehiclePlate, readOnly = false 
     }
     setForm({
       tipo_documento: d.tipo_documento,
-      ano_exercicio: String(d.ano_exercicio),
+      ano_exercicio: String(agruparExercicio(d.ano_exercicio)),
       valor_total: maskCurrency(String(Math.round(Number(d.valor_total) * 100))),
       data_vencimento: d.data_vencimento || "",
       status_pagamento: d.status_pagamento,
@@ -145,7 +146,7 @@ export function VehicleDocumentsTab({ vehicleId, vehiclePlate, readOnly = false 
   };
 
   const buildDescricao = () =>
-    `${form.tipo_documento} ${form.ano_exercicio}${plate ? ` - ${plate}` : ""}`;
+    `${form.tipo_documento} ${rotuloExercicio(Number(form.ano_exercicio))}${plate ? ` - ${plate}` : ""}`;
 
   const handleSave = async () => {
     if (!vehicleId) return;
@@ -159,7 +160,9 @@ export function VehicleDocumentsTab({ vehicleId, vehiclePlate, readOnly = false 
       const payload = {
         veiculo_id: vehicleId,
         tipo_documento: form.tipo_documento,
-        ano_exercicio: Number(form.ano_exercicio) || new Date().getFullYear(),
+        // Preserve the source year when editing an imported historical debt without changing its bucket.
+        ano_exercicio: docs.find(d => d.id === editingId && String(agruparExercicio(d.ano_exercicio)) === form.ano_exercicio)?.ano_exercicio
+          ?? Number(form.ano_exercicio),
         valor_total: valor,
         data_vencimento: form.data_vencimento,
         status_pagamento: form.status_pagamento,
@@ -303,7 +306,7 @@ export function VehicleDocumentsTab({ vehicleId, vehiclePlate, readOnly = false 
                     )}
                   </span>
                 </td>
-                <td className="p-2">{d.ano_exercicio}</td>
+                <td className="p-2">{rotuloExercicio(d.ano_exercicio)}</td>
                 <td className="p-2 text-right">{formatCurrency(Number(d.valor_total))}</td>
                 <td className="p-2">{formatDateBR(d.data_vencimento)}</td>
                 <td className="p-2">
@@ -343,13 +346,13 @@ export function VehicleDocumentsTab({ vehicleId, vehiclePlate, readOnly = false 
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Ano de Exercício *</Label>
-              <Input
-                className="h-9"
-                maxLength={4}
-                value={form.ano_exercicio}
-                onChange={(e) => setForm(p => ({ ...p, ano_exercicio: e.target.value.replace(/\D/g, "") }))}
-              />
+              <Label htmlFor="doc-exercicio" className="text-xs">Ano de Exercício *</Label>
+              <Select value={form.ano_exercicio} onValueChange={(v) => setForm(p => ({ ...p, ano_exercicio: v }))}>
+                <SelectTrigger id="doc-exercicio" className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EXERCICIOS_DOCUMENTO.map(ano => <SelectItem key={ano} value={String(ano)}>{rotuloExercicio(ano)}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1 col-span-2">
               <Label className="text-xs">Favorecido / Órgão Autuador</Label>
