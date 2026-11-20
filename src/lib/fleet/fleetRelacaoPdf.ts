@@ -190,7 +190,7 @@ export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): Pagina
   return pages;
 }
 
-const rotulos = (anosDesc: number[]) => [...anosDesc.map((a) => `IPVA/Lic ${a}`), "Multas", "Total"];
+const rotulos = (anosDesc: number[]) => [...anosDesc.map((a) => `IPVA ${a}`), "Multas e licenc.", "Total"];
 const valores = (l: RelacaoLinha, anosDesc: number[], m: (v: number) => string) =>
   [...anosDesc.map((a) => m(l.porAno?.[a] || 0)), m(l.multas), m(l.total)];
 

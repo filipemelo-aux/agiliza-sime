@@ -154,7 +154,8 @@ export default function AdminFleetDocuments() {
         const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);
         const soma = (o: Record<number, number>) => Object.values(o).reduce((t, x) => t + x, 0);
         const total = Math.round((soma(ipvaAno) + soma(licAno) + multasTotal) * 100) / 100;
-        return { ipvaAno, licAno, multasTotal: Math.round(multasTotal * 100) / 100, total };
+        // Licenciamentos de todos os anos entram junto com as multas (coluna "Multas e licenc.")
+        return { ipvaAno, licAno, multasTotal: Math.round((multasTotal + soma(licAno)) * 100) / 100, total };
       })() };
     });
   }, [vehicles, docs, consultasLimpas, alienacoes]);
@@ -204,7 +205,7 @@ export default function AdminFleetDocuments() {
       const categoriaPorPlaca = new Map<string, string>(((vRes.data || []) as any[]).map((v) => [v.plate, v.unit_category]));
       const linhasRel = sel.map((l) => {
         const porAno: Record<number, number> = {};
-        for (const a of anos) porAno[a] = Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
+        for (const a of anos) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
           situacao: LABEL[l.situacao], porAno, multas: l.multasTotal, total: l.total };
@@ -221,13 +222,9 @@ export default function AdminFleetDocuments() {
   const colValor = (key: string, header: string, f: (l: Linha) => number, width = "100px"): DataGridColumn<Linha> => ({
     key, header, width, align: "right", cell: (l) => moeda(f(l)), sortValue: f, footer: rodape(f),
   });
-  // IPVA e licenciamento juntos por ano (o Detran costuma cobrar os dois na mesma guia)
-  const colunasAno: DataGridColumn<Linha>[] = [...anos].reverse().map((a) => {
-    const f = (l: Linha) => Math.round(((l.ipvaAno[a] || 0) + (l.licAno[a] || 0)) * 100) / 100;
-    const rot = (l: Linha) => { const i = l.ipvaAno[a] || 0, c = l.licAno[a] || 0; return i && c ? "IPVA + Licenc." : i ? "IPVA" : c ? "Licenc." : ""; };
-    return { key: `il${a}`, header: `IPVA/Licenc. ${a}`, width: "140px", align: "right", sortValue: f, footer: rodape(f),
-      cell: (l) => f(l) ? <span className="flex flex-col items-end leading-tight" title={`IPVA ${formatCurrency(l.ipvaAno[a] || 0)} · Licenciamento ${formatCurrency(l.licAno[a] || 0)}`}>{moeda(f(l))}<span className="text-[10px] text-muted-foreground">{rot(l)}</span></span> : moeda(0) };
-  });
+  // Colunas por ano só com IPVA (já com juros e multa de atraso); licenciamento vai para "Multas e licenc."
+  const colunasAno: DataGridColumn<Linha>[] = [...anos].reverse().map((a) =>
+    colValor(`ipva${a}`, `IPVA ${a}`, (l) => Math.round((l.ipvaAno[a] || 0) * 100) / 100, "120px"));
 
   const columns: DataGridColumn<Linha>[] = [
     { key: "plate", header: "Placa", width: "100px", cell: (l) => <span className="font-mono font-semibold">{l.plate}</span>, sortValue: (l) => l.plate },
@@ -237,7 +234,7 @@ export default function AdminFleetDocuments() {
         : l.alienacao.status === "livre" ? <span className="text-success font-medium">Livre</span>
         : <span className="leading-tight block truncate" title={l.alienacao.texto}><span className="text-destructive font-semibold">Alienado</span><span className="block text-[10px] truncate">{l.alienacao.texto}</span></span> },
     ...colunasAno,
-    colValor("multas", "Multas", (l) => l.multasTotal),
+    colValor("multas", "Multas e licenc.", (l) => l.multasTotal, "130px"),
     colValor("total", "Total", (l) => l.total, "110px"),
   ];
 
@@ -325,7 +322,7 @@ export default function AdminFleetDocuments() {
             </div>
             <div className="grid gap-2 text-xs">
               <span className="font-medium">Colunas</span>
-              {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA/Licenciamento por ano, multas e total)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+              {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, multas e licenciamentos, total)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
                 </label>
