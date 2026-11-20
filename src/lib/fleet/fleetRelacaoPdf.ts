@@ -253,15 +253,25 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     : (ultima && comDebitos ? `<table class="rel"><thead><tr>${head}</tr></thead>${totais}</table>` : "");
 
   // Resumo (opcional): página inicial com totais por ano de IPVA, licenciamento e multas, para cavalos e demais.
+  // Os anos que têm coluna própria (os dois mais recentes) saem um a um; de 2024 para trás somam em "Anos anteriores".
   const resumoTabela = (titulo: string, ls: RelacaoLinha[]) => {
     const anosR = new Set<number>();
     const add = (o?: Record<number, number>) => Object.entries(o || {}).forEach(([a, v]) => { if (v) anosR.add(Number(a)); });
     ls.forEach((l) => { add(l.ipvaPorAnoTodos); add(l.licPorAno); add(l.multasPorAno); });
     const f = (a: number, k: "ipvaPorAnoTodos" | "licPorAno" | "multasPorAno") => ls.reduce((t, l) => t + (l[k]?.[a] || 0), 0);
-    const linhasR = [...anosR].sort((a, b) => b - a).map((a) => {
-      const i = f(a, "ipvaPorAnoTodos"), li = f(a, "licPorAno"), mu = f(a, "multasPorAno");
-      return [String(a), i, li, mu, i + li + mu] as const;
-    });
+    // Uma linha do resumo: rótulo + soma dos anos pedidos em cada categoria.
+    const linha = (rotulo: string, anosU: number[]) => {
+      const i = anosU.reduce((t, a) => t + f(a, "ipvaPorAnoTodos"), 0);
+      const li = anosU.reduce((t, a) => t + f(a, "licPorAno"), 0);
+      const mu = anosU.reduce((t, a) => t + f(a, "multasPorAno"), 0);
+      return [rotulo, i, li, mu, i + li + mu] as const;
+    };
+    const comCorte = anosDesc.length > 0;
+    const todos = [...anosR].sort((a, b) => b - a);
+    const recentes = comCorte ? todos.filter((a) => anosDesc.includes(a)) : todos;
+    const antigos = comCorte ? todos.filter((a) => !anosDesc.includes(a)) : [];
+    const linhasR = recentes.map((a) => linha(String(a), [a]));
+    if (antigos.length) linhasR.push(linha("Anos anteriores", antigos));
     const tot = [1, 2, 3, 4].map((k) => linhasR.reduce((t, r) => t + (r[k] as number), 0));
     return `<div class="rs-t">${esc(titulo)} · ${ls.length} veículo(s)</div><table class="rel rs"><thead><tr><th>Ano</th><th class="num">IPVA</th><th class="num">Licenciamento</th><th class="num">Multas</th><th class="num">Total</th></tr></thead><tbody>${linhasR.length ? linhasR.map((r) => `<tr><td>${r[0]}</td>${r.slice(1).map((v) => `<td class="num">${m(v as number)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="5">Nenhum débito em aberto.</td></tr>`}</tbody><tfoot><tr><td class="tot-l">Total</td>${tot.map((v) => `<td class="num">${m(v)}</td>`).join("")}</tr></tfoot></table>`;
   };

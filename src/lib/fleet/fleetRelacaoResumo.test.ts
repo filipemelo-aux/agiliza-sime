@@ -18,4 +18,18 @@ describe("resumo da relação", () => {
   it("sem a opção não gera resumo", () => {
     expect(montarHtmlRelacao(linhas, [2026], OPCOES_PADRAO, company)).not.toContain("Cavalos ·");
   });
+  it("soma 2024 para trás numa linha só, chamada Anos anteriores", () => {
+    const c = [L("AAA1A11", true, { 2026: 1000, 2024: 400, 2022: 100 }, { 2023: 50 }, { 2024: 20 })];
+    const html = montarHtmlRelacao(c, [2026, 2025], { ...OPCOES_PADRAO, resumo: true }, company);
+    expect(html).not.toMatch(/<td>2024<\/td>/);
+    expect(html).not.toMatch(/<td>2022<\/td>/);
+    expect(html).not.toMatch(/<td>2023<\/td>/);
+    expect(html).toMatch(/<td>Anos anteriores<\/td><td class="num">R\$\s500,00<\/td><td class="num">R\$\s50,00<\/td><td class="num">R\$\s20,00<\/td><td class="num">R\$\s570,00<\/td>/);
+    // O ano com coluna própria continua saindo separado.
+    expect(html).toMatch(/<td>2026<\/td><td class="num">R\$\s1\.000,00<\/td>/);
+  });
+  it("não cria a linha Anos anteriores quando só há os anos das colunas", () => {
+    const html = montarHtmlRelacao(linhas, [2026, 2025], { ...OPCOES_PADRAO, resumo: true }, company);
+    expect(html).not.toContain("Anos anteriores");
+  });
 });
