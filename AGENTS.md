@@ -11,7 +11,7 @@
 - CT-e talões share DACTE and must open Other payer fields with inline person creation; service actors use CteActorSection.
 - DAMDFE uses only `damdfePdf.ts` vectors (A4 landscape, approved geometry), never HTML/canvas or Focus PDF, for identical prints.
 - SEFAZ operations on a CT-e (transmit, status, DACTE PDF, XML, CC-e, cancel) are grouped in one dialog opened by the toolbar SEFAZ button; the focus-nfe function exposes them per saved CT-e id keeping the environment consistent.
-- CT-e CFOP is derived centrally from the service origin/destination states, the issuer state (start outside it forces 5932/6932) and service type, so route changes cannot leave an inconsistent code.
+- CT-e CFOP is derived centrally from route states, issuer state (start outside it forces 5932/6932) and service type.
 - Official fiscal glyphs (SEFAZ, MDF-e) come from the Sime SVG set stored as CDN assets and are exposed only through wrapper components in `src/components/icons`, for reuse .
 - Operational tables use tenant_id and RESTRICTIVE tenant_isolation. Server has_role permits admin/moderator/operador operations, not admin equivalence; numbering and certificate reads scope tenant, and loading effects depend on resolved access.
 - App branding uses useTenant; login stays neutral. SuperAdmin has_role('admin') applies only in tenant-scoped support mode.
