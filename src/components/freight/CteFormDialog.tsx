@@ -74,6 +74,8 @@ const CFOPS = [
   { value: "6352", label: "6352 - Prest. serv. transp. estab. industrial (interestadual)" },
   { value: "5360", label: "5360 - Prest. serv. transp. subcontratado (mesma UF)" },
   { value: "6360", label: "6360 - Prest. serv. transp. subcontratado (interestadual)" },
+  { value: "5932", label: "5932 - Prest. serv. transp. iniciada em outra UF (mesma UF início/fim)" },
+  { value: "6932", label: "6932 - Prest. serv. transp. iniciada em outra UF (interestadual)" },
 ];
 
 const TP_CTE_OPTIONS = [
@@ -1478,7 +1480,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml, cl
     setSaving(true);
     try {
       const { tipo_carga: _tc, contratado_locked: _cl, ...formWithoutExtra } = form;
-      const routeCfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
+      const routeCfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv, ufEmitenteCfop);
       const payload: any = {
         ...formWithoutExtra,
         cfop: routeCfop || form.cfop,
@@ -1712,6 +1714,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml, cl
 
   // Frete mínimo ANTT
   const fm = form.frete_minimo;
+  // UF do emitente: prestação iniciada fora dela exige CFOP 5932/6932.
+  const ufEmitenteCfop: string = ((establishments.find((e) => e.id === selectedEstId) as any)?.endereco_uf || form.uf_envio || "") as string;
   const setFm = (patch: Partial<typeof defaultForm.frete_minimo>) => setForm((p) => ({ ...p, frete_minimo: { ...p.frete_minimo, ...patch } }));
   useEffect(() => {
     const t = TIPO_CARGA_TO_ANTT[form.tipo_carga];
@@ -1721,9 +1725,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved, initialXml, cl
   // A operação é interna quando origem e destino pertencem à mesma UF;
   // caso contrário, é interestadual. Mantém a finalidade atual do CFOP.
   useEffect(() => {
-    const cfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv);
+    const cfop = resolveCteCfop(form.uf_origem, form.uf_destino, form.cfop, form.tp_serv, ufEmitenteCfop);
     if (cfop && cfop !== form.cfop) setForm((p) => ({ ...p, cfop }));
-  }, [form.uf_origem, form.uf_destino, form.tp_serv, form.cfop]);
+  }, [form.uf_origem, form.uf_destino, form.tp_serv, form.cfop, ufEmitenteCfop]);
   // CST/alíquota automáticos pela rota (somente CT-e novo; usuário pode alterar depois)
   useEffect(() => {
     if (cte?.id || !form.uf_origem || !form.uf_destino) return;

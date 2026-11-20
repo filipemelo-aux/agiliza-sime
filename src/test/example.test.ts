@@ -43,3 +43,15 @@ describe("CFOP automático do CT-e", () => {
     expect(resolveCteCfop("TO", "", "6353", 0)).toBeNull();
   });
 });
+
+describe("CFOP prestação iniciada fora da UF do emitente", () => {
+  it("emitente MA, início PA e fim MA → 6932 (rejeição do CT-e 8830)", () => {
+    expect(resolveCteCfop("PA", "MA", "6360", 1, "MA")).toBe("6932");
+  });
+  it("emitente MA, início e fim no PA → 5932", () => {
+    expect(resolveCteCfop("PA", "PA", "5353", 0, "MA")).toBe("5932");
+  });
+  it("início na UF do emitente mantém 6360", () => {
+    expect(resolveCteCfop("MA", "TO", "6360", 1, "MA")).toBe("6360");
+  });
+});
