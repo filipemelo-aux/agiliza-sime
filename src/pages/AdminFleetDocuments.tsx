@@ -48,6 +48,7 @@ interface Linha extends VehicleRow {
   multasTotal: number;
   ipvaAnteriores: number;
   licTotal: number;
+  multasAno: Record<number, number>;
   total: number;
   alienacao: Alienacao | null;
 }
@@ -159,7 +160,7 @@ export default function AdminFleetDocuments() {
         const corte = Number(hojeIso().slice(0, 4)) - 2;
         const r2 = (v: number) => Math.round(v * 100) / 100;
         const ipvaAnteriores = r2(Object.entries(ipvaAno).reduce((t, [a, v]) => (Number(a) <= corte ? t + v : t), 0));
-        return { ipvaAno, licAno, ipvaAnteriores, licTotal: r2(soma(licAno)), multasTotal: r2(multasTotal), total };
+        return { ipvaAno, licAno, multasAno: abertoPorAno(ds as any, "Multa"), ipvaAnteriores, licTotal: r2(soma(licAno)), multasTotal: r2(multasTotal), total };
       })() };
     });
   }, [vehicles, docs, consultasLimpas, alienacoes]);
@@ -212,7 +213,9 @@ export default function AdminFleetDocuments() {
         for (const a of anosCol) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
-          situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total };
+          situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total,
+          cavalo: !!(vRes.data || []).find((v: any) => v.id === l.id && !['semirreboque', 'dolly', 'reboque'].includes(v.unit_category)),
+          ipvaPorAnoTodos: l.ipvaAno, licPorAno: l.licAno, multasPorAno: l.multasAno };
       });
       await exportFleetRelacaoPdf(printOrdem === "tipo" ? agruparPorTipo(linhasRel, categoriaPorPlaca) : agruparConjuntos(linhasRel, vinculos, tracao), anosCol, printOp);
     } catch (e: any) { toast.error("Erro ao gerar relação: " + (e?.message || e)); }
@@ -330,9 +333,9 @@ export default function AdminFleetDocuments() {
             </div>
             <div className="grid gap-2 text-xs">
               <span className="font-medium">Colunas</span>
-              {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, multas e licenciamentos, total)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+              {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox checked={printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
+                  <Checkbox checked={!!printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
                 </label>
               ))}
             </div>

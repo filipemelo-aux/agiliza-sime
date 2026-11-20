@@ -16,6 +16,10 @@ export interface RelacaoLinha {
   ipvaAnteriores?: number;
   /** Licenciamentos de todos os anos somados (separados das multas). */
   licenciamento?: number;
+  /** Unidade de tração (cavalo) — separa os grupos do resumo. */
+  cavalo?: boolean;
+  /** Débitos em aberto por ano (todos os anos), usados no resumo. */
+  ipvaPorAnoTodos?: Record<number, number>; licPorAno?: Record<number, number>; multasPorAno?: Record<number, number>;
   /** Rótulo do conjunto (placas vinculadas entre si); vazio quando avulso. */
   conjunto?: string;
   /** Título da faixa do grupo (ex.: "Cavalos"); sem ele a faixa mostra "Conjunto: …". */
@@ -73,8 +77,8 @@ export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, stri
       return g.map((l) => ({ ...l, conjunto: rot }));
     });
 }
-export interface RelacaoOpcoes { veiculo: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean }
-export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true };
+export interface RelacaoOpcoes { veiculo: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean; resumo?: boolean }
+export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true, resumo: false };
 
 // ---------- Geometria da página (A4 paisagem: 297 x 210 mm) ----------
 export const MARGIN_MM = 12;
@@ -248,12 +252,35 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
       + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l)).join("")}</tbody>${ultima ? totais : ""}</table>`
     : (ultima && comDebitos ? `<table class="rel"><thead><tr>${head}</tr></thead>${totais}</table>` : "");
 
+  // Resumo (opcional): página inicial com totais por ano de IPVA, licenciamento e multas, para cavalos e demais.
+  const resumoTabela = (titulo: string, ls: RelacaoLinha[]) => {
+    const anosR = new Set<number>();
+    const add = (o?: Record<number, number>) => Object.entries(o || {}).forEach(([a, v]) => { if (v) anosR.add(Number(a)); });
+    ls.forEach((l) => { add(l.ipvaPorAnoTodos); add(l.licPorAno); add(l.multasPorAno); });
+    const f = (a: number, k: "ipvaPorAnoTodos" | "licPorAno" | "multasPorAno") => ls.reduce((t, l) => t + (l[k]?.[a] || 0), 0);
+    const linhasR = [...anosR].sort((a, b) => b - a).map((a) => {
+      const i = f(a, "ipvaPorAnoTodos"), li = f(a, "licPorAno"), mu = f(a, "multasPorAno");
+      return [String(a), i, li, mu, i + li + mu] as const;
+    });
+    const tot = [1, 2, 3, 4].map((k) => linhasR.reduce((t, r) => t + (r[k] as number), 0));
+    return `<div class="rs-t">${esc(titulo)} · ${ls.length} veículo(s)</div><table class="rel rs"><thead><tr><th>Ano</th><th class="num">IPVA</th><th class="num">Licenciamento</th><th class="num">Multas</th><th class="num">Total</th></tr></thead><tbody>${linhasR.length ? linhasR.map((r) => `<tr><td>${r[0]}</td>${r.slice(1).map((v) => `<td class="num">${m(v as number)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="5">Nenhum débito em aberto.</td></tr>`}</tbody><tfoot><tr><td class="tot-l">Total</td>${tot.map((v) => `<td class="num">${m(v)}</td>`).join("")}</tr></tfoot></table>`;
+  };
+  const comResumo = !!op.resumo;
+  const totalPags = paginas.length + (comResumo ? 1 : 0);
+  const paginaResumo = comResumo ? `<div class="doc-page">
+    <div class="hdr">${buildPrintHeaderHtml({ company, title: "Relação de documentos e multas — Resumo", subtitle: `${ordenadas.length} veículo(s) · ${quando}` })}</div>
+    ${resumoTabela("Cavalos", ordenadas.filter((l) => l.cavalo))}
+    ${resumoTabela("Demais veículos (reboques, semirreboques e dollys)", ordenadas.filter((l) => !l.cavalo))}
+    <div class="pg">Página 1 de ${totalPags}</div>
+    ${printBrandFooterHtml()}
+  </div>` : "";
+
   const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
-    ${i === 0
+    ${i === 0 && !comResumo
       ? `<div class="hdr">${buildPrintHeaderHtml({ company, title: "Relação de documentos e multas", subtitle: `${ordenadas.length} veículo(s) · ${quando}` })}</div>`
       : `<div class="cont"><b>Relação de documentos e multas</b><span>${ordenadas.length} veículo(s) · ${quando}</span></div>`}
     ${corpo(p, i === paginas.length - 1)}
-    <div class="pg">Página ${i + 1} de ${paginas.length}</div>
+    <div class="pg">Página ${i + 1 + (comResumo ? 1 : 0)} de ${totalPags}</div>
     ${printBrandFooterHtml()}
   </div>`;
 
@@ -285,7 +312,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .al,.st-v{color:#b91c1c;font-weight:600}.lv,.st-e{color:#15803d;font-weight:600}
     .st-a{color:#b45309;font-weight:600}.st-n{color:#6b7280}
     .pg{text-align:center;font-size:7pt;color:#6b7280;margin-top:6px;padding-right:12px;position:relative;clear:both}
-  </style></head><body>${paginas.map(pagina).join("")}</body></html>`;
+    .rs-t{font-weight:700;font-size:9pt;margin:10px 0 4px;color:#2B4C7E}.rs{width:60%}
+  </style></head><body>${paginaResumo}${paginas.map(pagina).join("")}</body></html>`;
   return html;
 }
 
