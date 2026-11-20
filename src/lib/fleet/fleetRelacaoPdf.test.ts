@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  capacidadePagina, montarPaginas, H_DEB, MARGIN_MM, OPCOES_PADRAO, temDebitos,
+  capacidadePagina, montarPaginas, MARGIN_MM, OPCOES_PADRAO, temDebitos,
   type RelacaoLinha, type RelacaoOpcoes,
 } from "./fleetRelacaoPdf";
 
@@ -39,7 +39,7 @@ describe("montarPaginas (A4 paisagem)", () => {
     });
   });
 
-  it("veículo sem débitos ocupa uma linha só (mais compacto que com débitos)", () => {
+  it("cada veículo ocupa uma linha só, com ou sem débitos (modelo igual à tela)", () => {
     const base: RelacaoLinha = {
       plate: "PTT0001A", veiculo: "SCANIA R 450", renavam: "01234567890", chassi: "98PTT47MSLB110598",
       alienacao: "Livre", situacao: "Em dia", porAno: {}, multas: 0, total: 0,
@@ -49,16 +49,16 @@ describe("montarPaginas (A4 paisagem)", () => {
     expect(temDebitos(base, OPCOES_PADRAO)).toBe(false);
     const comPag = montarPaginas([comDebito], OPCOES_PADRAO);
     const semPag = montarPaginas([base], OPCOES_PADRAO);
-    expect(comPag[0].altura - semPag[0].altura).toBe(H_DEB);
+    expect(comPag[0].altura).toBe(semPag[0].altura);
   });
 
-  it("sem a opção de documentos atrasados, cada veículo perde a linha de débitos", () => {
+  it("a opção de documentos atrasados não muda a altura das linhas (valores ficam na mesma linha)", () => {
     const linhas = Array.from({ length: 8 }, (_, i) => linha(i, true));
     const com = montarPaginas(linhas, OPCOES_PADRAO);
     const sem = montarPaginas(linhas, SEM_DEBITO);
     expect(com.length).toBe(1); // com os totais ainda cabe na primeira página
     expect(sem.length).toBe(1);
-    expect(com[0].altura - sem[0].altura).toBe(8 * H_DEB);
+    expect(com[0].altura).toBe(sem[0].altura);
   });
 });
 

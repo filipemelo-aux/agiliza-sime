@@ -76,14 +76,16 @@ export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chas
 export const MARGIN_MM = 12;
 const PAGE_W_MM = 297, PAGE_H_MM = 210;
 const BODY_W_PX = 1030; // 1030px ≈ 272,5mm, dentro da área útil de 273mm (297 - 2 x 12)
-const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 8; // ≈ 694px
+// Folga de 24px: as linhas com texto quebrado (alienação longa) ficam um pouco mais altas
+// que a estimativa, e sem essa margem a página estourava e gerava uma folha em branco.
+const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 24; // ≈ 678px
 
 // Alturas estimadas (px) usadas para empacotar as linhas.
 // Valores medidos no HTML real em paisagem: cabeçalho 66, barra de continuação 30, rodapé+paginação+marca 63,
-// cabeçalho da tabela 23, bloco de totais 78, linha de identificação 21 (+10 por linha extra de texto),
-// linha de débitos 31. Cada constante leva uma folga pequena.
-export const H_HEADER = 70, H_CONT = 34, H_FOOTER = 66, H_THEAD = 24, H_TOT = 80;
-export const H_ID = 22, H_LINHA_EXTRA = 11, H_DEB = 32;
+// cabeçalho da tabela 23, linha de totais do rodapé 24, linha do veículo 21 (+10 por linha extra de texto).
+// Cada constante leva uma folga pequena. H_DEB ficou do modelo antigo (linha de débitos separada).
+export const H_HEADER = 70, H_CONT = 34, H_FOOTER = 66, H_THEAD = 24, H_TOT = 26;
+export const H_ID = 24, H_LINHA_EXTRA = 13, H_DEB = 32;
 
 export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
 
@@ -91,14 +93,18 @@ export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
 const utilPx = (pct: number) => (BODY_W_PX - 12) * (pct / 100) - 10;
 
 interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: number; get: (l: RelacaoLinha) => string }
+// Larguras pensadas para o modelo "igual à tela": as colunas de valores (IPVA por ano,
+// multas e total) ocupam a sobra à direita, então as de texto ficam mais estreitas.
 const COLS: Col[] = [
-  { key: "veiculo", label: "Veículo", width: "20%", px: utilPx(20), get: (l) => l.veiculo },
-  { key: "renavam", label: "RENAVAM", width: "11%", px: utilPx(11), get: (l) => l.renavam },
-  { key: "chassi", label: "Chassi", width: "16%", px: utilPx(16), get: (l) => l.chassi },
-  { key: "alienacao", label: "Alienação", width: "33%", px: utilPx(33), get: (l) => l.alienacao },
-  { key: "situacao", label: "Situação", width: "12%", px: utilPx(12), get: (l) => l.situacao },
+  { key: "veiculo", label: "Veículo", width: "12%", px: utilPx(12), get: (l) => l.veiculo },
+  { key: "renavam", label: "RENAVAM", width: "8%", px: utilPx(8), get: (l) => l.renavam },
+  { key: "chassi", label: "Chassi", width: "10%", px: utilPx(10), get: (l) => l.chassi },
+  { key: "alienacao", label: "Alienação", width: "15%", px: utilPx(15), get: (l) => l.alienacao },
+  { key: "situacao", label: "Situação", width: "7%", px: utilPx(7), get: (l) => l.situacao },
 ];
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
+// Tom de fundo da linha conforme a situação, como na tabela da tela (rowToneClass).
+const TOM_LINHA: Record<string, string> = { "Vencido": "ton-v", "A vencer": "ton-a", "Em dia": "ton-e" };
 
 /** Um veículo só ganha a linha de débitos quando tem algo em aberto. */
 export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
@@ -143,7 +149,8 @@ const alturaLinha = (l: RelacaoLinha, op: RelacaoOpcoes): number => {
     op.veiculo ? linhasDeTexto(l.veiculo, pxDe("veiculo")) : 1,
     op.alienacao ? linhasDeTexto(l.alienacao, pxDe("alienacao")) : 1,
   );
-  return H_ID + H_LINHA_EXTRA * (li - 1) + (temDebitos(l, op) ? H_DEB : 0);
+  // Uma linha por veículo (modelo da tela): sem a linha extra de débitos do modelo antigo.
+  return H_ID + H_LINHA_EXTRA * (li - 1);
 };
 
 /** Altura disponível na página `i` (0 = primeira, com cabeçalho completo). */
@@ -194,9 +201,6 @@ const rotulos = (anosDesc: number[]) => [...anosDesc.map((a) => `IPVA ${a}`), "M
 const valores = (l: RelacaoLinha, anosDesc: number[], m: (v: number) => string) =>
   [...anosDesc.map((a) => m(l.porAno?.[a] || 0)), m(l.multas), m(l.total)];
 
-const mini = (labels: string[], vals: string[]) =>
-  `<table class="mini"><tr>${labels.map((x) => `<th>${x}</th>`).join("")}</tr><tr>${vals.map((v) => `<td class="r">${v}</td>`).join("")}</tr></table>`;
-
 /** Monta o HTML completo (uma div .doc-page por página). */
 export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes, company: { name: string; docLine: string; address: string }): string {
   const ordenadas = linhas.some((l) => l.conjunto) ? linhas : [...linhas].sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
@@ -204,7 +208,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   const cols = COLS.filter((c) => op[c.key]);
   const m = (v: number) => (v ? formatCurrency(v) : "—");
   const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  const nCols = 1 + cols.length;
+  const nCols = 1 + cols.length + rotulos(anosDesc).length;
   const paginas = montarPaginas(ordenadas, op);
   const temConjuntos = ordenadas.some((l) => l.conjunto);
   const comDebitos = ordenadas.some((l) => temDebitos(l, op));
@@ -220,29 +224,30 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     return esc(t);
   };
 
-  const head = `<th class="pl" style="width:8%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}`;
-  const rowId = (l: RelacaoLinha) => `<tr${l.conjunto ? ' class="cj"' : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}</tr>`;
-  const rowDeb = (l: RelacaoLinha) => `<tr class="db${l.conjunto ? " cj" : ""}"><td colspan="${nCols}" class="dc">${mini(rotulos(anosDesc), valores(l, anosDesc, m))}</td></tr>`;
+  const rot = rotulos(anosDesc);
+  const head = `<th class="pl" style="width:6%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}${rot.map((r) => `<th class="num">${r}</th>`).join("")}`;
+  // Uma linha por veículo, como na tabela da tela: identificação + valores por ano + multas + total.
+  const rowId = (l: RelacaoLinha) => {
+    const tom = TOM_LINHA[(l.situacao || "").trim()] || "";
+    const cls = [l.conjunto ? "cj" : "", tom].filter(Boolean).join(" ");
+    return `<tr${cls ? ` class="${cls}"` : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}${valores(l, anosDesc, m).map((v) => `<td class="num">${v}</td>`).join("")}</tr>`;
+  };
 
-  const totais = comDebitos ? `<div class="totbox">
-    <div class="tot-h">Totais da relação · ${ordenadas.length} veículo(s)</div>
-    ${mini(rotulos(anosDesc), rotulos(anosDesc).map((_, i) => (i < anosDesc.length
+  // Totais no rodapé da tabela, alinhados com as colunas de valores (como o footer do grid da tela).
+  const totais = comDebitos ? `<tfoot><tr><td colspan="${nCols - rot.length}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td>${rot.map((_, i) => `<td class="num">${i < anosDesc.length
       ? m(soma((l) => l.porAno?.[anosDesc[i]] || 0))
-      : m(soma((l) => (i === anosDesc.length ? l.multas : l.total))))))}
-    <div class="tot-g">Total geral: ${formatCurrency(soma((l) => l.total))}</div>
-  </div>` : "";
+      : m(soma((l) => (i === anosDesc.length ? l.multas : l.total)))}</td>`).join("")}</tr></tfoot>` : "";
 
-  const corpo = (p: PaginaRelacao) => p.linhas.length
+  const corpo = (p: PaginaRelacao, ultima: boolean) => p.linhas.length
     ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
-      + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l) + (temDebitos(l, op) ? rowDeb(l) : "")).join("")}</tbody></table>`
-    : "";
+      + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l)).join("")}</tbody>${ultima ? totais : ""}</table>`
+    : (ultima && comDebitos ? `<table class="rel"><thead><tr>${head}</tr></thead>${totais}</table>` : "");
 
   const pagina = (p: PaginaRelacao, i: number) => `<div class="doc-page">
     ${i === 0
       ? `<div class="hdr">${buildPrintHeaderHtml({ company, title: "Relação de documentos e multas", subtitle: `${ordenadas.length} veículo(s) · ${quando}` })}</div>`
       : `<div class="cont"><b>Relação de documentos e multas</b><span>${ordenadas.length} veículo(s) · ${quando}</span></div>`}
-    ${corpo(p)}
-    ${i === paginas.length - 1 ? totais : ""}
+    ${corpo(p, i === paginas.length - 1)}
     <div class="pg">Página ${i + 1} de ${paginas.length}</div>
     ${printBrandFooterHtml()}
   </div>`;
@@ -260,20 +265,20 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .rel tr.cj td:first-child{box-shadow:inset 3px 0 0 #2B4C7E}
     .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:break-word}
     .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
-    .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:9pt;white-space:nowrap}
+    .rel thead th.num{text-align:right;font-size:6pt;white-space:nowrap;padding:4px 2px}
+    .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;white-space:nowrap}
+    .rel td.num{text-align:right;font-family:'Courier New',monospace;font-size:7pt;white-space:nowrap;vertical-align:middle;padding:3px 2px}
     .rel tr.gr td{background:#e8eef7;color:#2B4C7E;font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px;border-color:#c7d3e6}
     .rel tr.gr.av td{background:#f3f4f6;color:#374151;border-color:#d1d5db}
     .rel tr.gr.av .av-nota{font-weight:400;text-transform:none;letter-spacing:0;font-size:7pt;color:#6b7280}
-    .rel tr.db td{border-top:0;padding:1px 4px 3px;background:#fbfcfe}
-    .mini{width:100%;table-layout:fixed}
-    .mini th{background:none;border:0;font-size:6.5pt;font-weight:400;color:#6b7280;text-align:right;padding:0 4px}
-    .mini td{border:0;text-align:right;padding:0 4px;font-size:8pt;font-family:'Courier New',monospace}
+    .rel tr.ton-v td{background:#fef2f2}
+    .rel tr.ton-a td{background:#fffbeb}
+    .rel tr.ton-e td{background:#f0fdf4}
+    .rel tfoot td{background:#f3f4f6;font-weight:700;border:1px solid #d1d5db;padding:4px 5px;font-size:8pt}
+    .rel tfoot td.num{font-family:'Courier New',monospace;font-size:7pt;padding:4px 2px}
+    .rel tfoot .tot-l{text-transform:uppercase;font-size:7pt;letter-spacing:.2px}
     .al,.st-v{color:#b91c1c;font-weight:600}.lv,.st-e{color:#15803d;font-weight:600}
     .st-a{color:#b45309;font-weight:600}.st-n{color:#6b7280}
-    .totbox{margin-right:12px;border:1px solid #9ca3af;margin-top:10px;padding:4px 0 5px;break-inside:avoid}
-    .tot-h{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.2px;padding:0 6px 2px;color:#111}
-    .totbox .mini td{font-size:9pt;font-weight:700}
-    .tot-g{text-align:right;padding:3px 6px 0;margin-top:3px;border-top:1px solid #e5e7eb;font-size:9.5pt;font-weight:700}
     .pg{text-align:center;font-size:7pt;color:#6b7280;margin-top:6px;padding-right:12px;position:relative;clear:both}
   </style></head><body>${paginas.map(pagina).join("")}</body></html>`;
   return html;
