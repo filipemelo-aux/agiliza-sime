@@ -12,16 +12,16 @@ const valores = (l: ReturnType<typeof totalizarResumoFolha>) => {
   return [l.base, l.comissoes, l.reembolsos, l.adiantamentos, l.descontos, l.liquido].map((v, i) => `<td class="r mono ${cls[i]}">${brl(v)}</td>`).join("");
 };
 
-export async function baixarResumoFolhaPdf(mes: string, linhas: ResumoFolhaLinha[]) {
+export async function baixarResumoFolhaPdf(periodoLabel: string, linhas: ResumoFolhaLinha[]) {
   if (!linhas.length) return;
   const totais = totalizarResumoFolha(linhas);
-  const competencia = mes.split("-").reverse().join("/");
+  const competencia = periodoLabel;
   const paginas: string[] = [];
   for (let offset = 0; offset < linhas.length; offset += 16) {
     const lote = linhas.slice(offset, offset + 16);
     const ultima = offset + 16 >= linhas.length;
     paginas.push(`<section class="doc-page">
-      <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Resumo da Folha", subtitle: `Competência ${competencia}` }))}-->
+      <!--PRINT_HEADER:${encodeURIComponent(JSON.stringify({ title: "Resumo da Folha", subtitle: competencia }))}-->
       <p>Folhas administrativas / operacionais e acertos de motoristas · ${linhas.length} fechamento(s) · Página ${paginas.length + 1}/${Math.ceil(linhas.length / 16)}</p>
       <table class="mov"><colgroup><col style="width:24%"><col style="width:14%"><col style="width:8%">${Array.from({ length: 6 }, () => '<col style="width:9%">').join("")}</colgroup>
       <thead><tr><th>Colaborador / Tipo</th><th>Período / Venc.</th><th>Situação</th><th class="r">Base</th><th class="r">Comissões</th><th class="r">Reembolsos</th><th class="r">Adiant./Vales</th><th class="r">Descontos</th><th class="r">Líquido</th></tr></thead>
@@ -63,5 +63,6 @@ export async function baixarResumoFolhaPdf(mes: string, linhas: ResumoFolhaLinha
   </style></head><body>${paginas.join("")}</body></html>`;
   const logo = await getCurrentTenantLogoUrl();
   html = await resolvePrintHeaders(html, logo);
-  await downloadHtmlAsPdf(html, `Resumo_Folha_${mes}.pdf`, { orientation: "portrait", marginMm: 10 });
+  const slug = competencia.replace(/[^0-9]+/g, "-").replace(/^-|-$/g, "") || "periodo";
+  await downloadHtmlAsPdf(html, `Resumo_Folha_${slug}.pdf`, { orientation: "portrait", marginMm: 10 });
 }

@@ -160,12 +160,14 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     <AdminLayout>
       <div className="px-4 py-3 md:px-6 space-y-3">
         <PageTitle className="!mb-0">{{ motoristas: "Motoristas", administrativo: "Administrativo / Operacional", colaboradores: "Colaboradores", movimentacoes: "Movimentações", folha_pagamento: "Folha de Pagamento", config: "Configurações do RH" }[(forcedSection || "colaboradores") as RHSection]}</PageTitle>
-        {isPeopleSection ? (
+        {isPeopleSection || forcedSection === "folha_pagamento" ? (
           <div className="flex flex-wrap items-center gap-3">
+            {isPeopleSection && (
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input placeholder="Buscar por nome, cargo ou departamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
             </div>
+            )}
             {forcedSection === "administrativo" ? (
               <div className="flex items-center gap-2">
                 <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês de referência</Label>
@@ -732,6 +734,7 @@ function RHWorkspace(props: any) {
             {matrizId && user?.id && (
               <FolhasEmAbertoList
                 month={month}
+                periodo={{ inicio: acertoPeriod.inicio, fim: acertoPeriod.fim }}
                 empresaId={matrizId}
                 userId={user.id}
                 folhaAccountId={settings.folhaAccountId}

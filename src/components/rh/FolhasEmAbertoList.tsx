@@ -71,6 +71,8 @@ const SITUACAO_UI: Record<Situacao, { label: string; cls: string }> = {
 
 interface Props {
   month: string;
+  /** Período exibido (quinzena selecionada). Quando presente, a lista e o resumo ficam limitados a ele. */
+  periodo?: { inicio: string; fim: string };
   empresaId: string;
   userId: string;
   folhaAccountId?: string;
@@ -86,7 +88,7 @@ const fmtData = (d?: string | null) => (d ? new Date(`${String(d).slice(0, 10)}T
 
 type PagamentoAlvo = { grupos: { folha: FolhaPagamento; itens: FolhaItem[] }[]; label: string };
 
-export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged, colaboradores, adiantExpenses, onGerarFolha, gerarFolhaDisabled }: Props) {
+export function FolhasEmAbertoList({ month, periodo, empresaId, userId, folhaAccountId, onChanged, colaboradores, adiantExpenses, onGerarFolha, gerarFolhaDisabled }: Props) {
   const tipoPorColab = useMemo(() => new Map(colaboradores.map((c) => [c.id, c.tipo])), [colaboradores]);
   const [fechamento, setFechamento] = useState<Linha | null>(null);
   const [visualizarFolha, setVisualizarFolha] = useState<Linha | null>(null);
@@ -109,12 +111,18 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     setLoading(true);
     try {
       const all = await listarFolhas();
-      const data = all.filter(
-        (f) =>
+      const data = all.filter((f) => {
+        if (periodo) {
+          const ini = (f.data_inicio || "").slice(0, 10) || `${f.mes_referencia}-01`;
+          const fim = (f.data_fim || "").slice(0, 10) || ini;
+          return ini <= periodo.fim && fim >= periodo.inicio;
+        }
+        return (
           f.mes_referencia === month ||
           (f.data_vencimento || "").startsWith(month) ||
           (f.data_inicio || "").startsWith(month)
-      );
+        );
+      });
       setFolhas(data);
       const itensCarregados = await Promise.all(
         data.map(async (f) => ({ folhaId: f.id, itens: (await buscarFolhaComItens(f.id)).itens }))
@@ -157,7 +165,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [month]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [month, periodo?.inicio, periodo?.fim]);
 
   const itensVisiveis = useMemo(
     () => folhas.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
@@ -401,14 +409,17 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const imprimirResumo = async () => {
     setActing("resumo-pdf");
     try {
-      const ids = Array.from(new Set(linhas.filter((l) => !l.pago && l.sit !== "cancelada" && l.sit !== "paga").map((l) => l.item.colaborador_id)));
+      // Com seleção, o resumo sai só do(s) colaborador(es) marcado(s); sem seleção, cobre o período exibido.
+      const alvo = sel.length > 0 ? sel : linhas;
+      const ids = Array.from(new Set(alvo.filter((l) => !l.pago && l.sit !== "cancelada" && l.sit !== "paga").map((l) => l.item.colaborador_id)));
       const pixPorColaborador = new Map<string, string | null>();
       if (ids.length) {
         const { data, error } = await supabase.from("profiles").select("id, pix_key").in("id", ids);
         if (error) throw error;
         for (const perfil of data || []) pixPorColaborador.set(perfil.id, perfil.pix_key);
       }
-      await baixarResumoFolhaPdf(month, linhas.map((l) => ({
+      const tituloPeriodo = periodo ? `Período ${fmtData(periodo.inicio)} a ${fmtData(periodo.fim)}` : `Competência ${month.split("-").reverse().join("/")}`;
+      await baixarResumoFolhaPdf(tituloPeriodo, alvo.map((l) => ({
         nome: l.item.colaborador_nome, tipo: l.motorista ? "Acerto motorista" : "Folha administrativa / operacional",
         chavePix: chavePixResumoFolha(pixPorColaborador.get(l.item.colaborador_id), l.pago, l.sit),
         inicio: l.folha.data_inicio || "", fim: l.folha.data_fim || "", vencimento: l.folha.data_vencimento || "",
@@ -464,7 +475,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
             loading={loading}
             minWidth={1579}
             rowClassName={(l) => rowToneClass(l.pago ? "resolved" : l.sit === "cancelada" ? "neutral" : "pending")}
-            emptyMessage="Nenhuma folha ou acerto neste mês. Gere a folha dos administrativos aqui; o acerto dos motoristas é gerado na tela Motoristas."
+            emptyMessage="Nenhuma folha ou acerto neste período. Gere a folha dos administrativos aqui; o acerto dos motoristas é gerado na tela Motoristas."
           />
         </div>
         <StatusLegend items={[{ tone: "pending", label: "A pagar" }, { tone: "resolved", label: "Pago" }]} />
