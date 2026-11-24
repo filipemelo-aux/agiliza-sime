@@ -975,19 +975,21 @@ export function BankReconciliation() {
     if (expenseId) {
       const { data: pays } = await supabase
         .from("expense_payments" as any)
-        .select("id")
+        .select("id, lote_id")
         .eq("expense_id", expenseId)
         .order("created_at", { ascending: false })
         .limit(20);
       const payIds = (pays || []).map((p: any) => p.id);
+      const loteIds = Array.from(new Set((pays || []).map((p: any) => p.lote_id).filter(Boolean))) as string[];
       if (payIds.length > 0) {
         const { data: movs } = await supabase
           .from("movimentacoes_bancarias")
-          .select("id, valor, data_movimentacao")
-          .eq("origem", "pagamento_despesa")
-          .in("origem_id", payIds)
+          .select("id, valor, data_movimentacao, origem_id")
+          .in("origem", ["pagamento_despesa", "pagamento_agrupado"])
+          .in("origem_id", [...payIds, ...loteIds])
           .eq("tipo", tipo);
-        const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) <= RECON_TOLERANCE);
+        let cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) <= RECON_TOLERANCE);
+        if (cand.length === 0) cand = (movs || []).filter((m: any) => loteIds.includes(m.origem_id));
         if (cand.length > 0) {
           cand.sort((a: any, b: any) =>
             Math.abs(new Date(a.data_movimentacao).getTime() - new Date(referenceDate).getTime()) -
@@ -1378,15 +1380,38 @@ export function BankReconciliation() {
       }
 
       // ───────────── BUSCA DE DESPESAS (débitos) ─────────────
-      const textSearch = supabase
-        .from("expenses")
-        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
-        .is("deleted_at", null)
-        .or(
-          `descricao.ilike.%${accentLike(safe)}%,favorecido_nome.ilike.%${accentLike(safe)}%,documento_fiscal_numero.ilike.%${accentLike(safe)}%`
-        )
-        .order("data_vencimento", { ascending: false })
-        .limit(50);
+      // Busca por palavras: "jefferson folha" encontra contas que contenham todas as palavras.
+      const tokens = queryDate ? [] : safe.split(/\s+/).filter((t) => t.length >= 2);
+      const mainToken = tokens.slice().sort((a, b) => b.length - a.length)[0] || "";
+      const normTxt = (v: any) => String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const textSearch = mainToken
+        ? supabase
+            .from("expenses")
+            .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
+            .is("deleted_at", null)
+            .or(
+              `descricao.ilike.%${accentLike(mainToken)}%,favorecido_nome.ilike.%${accentLike(mainToken)}%,documento_fiscal_numero.ilike.%${accentLike(mainToken)}%`
+            )
+            .order("data_vencimento", { ascending: false })
+            .limit(300)
+            .then((res: any) => ({
+              ...res,
+              data: ((res.data as any[]) || []).filter((e) => {
+                const hay = normTxt(`${e.descricao} ${e.favorecido_nome} ${e.documento_fiscal_numero}`);
+                return tokens.every((t) => hay.includes(normTxt(t)));
+              }),
+            }))
+        : Promise.resolve({ data: [] as any[] });
+
+      // Data digitada também procura pela data de pagamento (quitação).
+      const datePaymentsSearch = queryDate
+        ? supabase
+            .from("expense_payments")
+            .select("expense_id")
+            .gte("data_pagamento", `${queryDate}T00:00:00-03:00`)
+            .lte("data_pagamento", `${queryDate}T23:59:59-03:00`)
+            .limit(300)
+        : Promise.resolve({ data: [] as any[] });
 
       const dateExpensesSearch = queryDate
         ? supabase
@@ -1405,19 +1430,21 @@ export function BankReconciliation() {
             .limit(100)
         : Promise.resolve({ data: [] as any[] });
 
-      const [{ data: expData }, { data: dateExpData }, { data: dateInstData }] = await Promise.all([
-        textSearch,
+      const [{ data: expData }, { data: dateExpData }, { data: dateInstData }, { data: datePayData }] = await Promise.all([
+        textSearch as any,
         dateExpensesSearch,
         dateInstallmentsSearch,
+        datePaymentsSearch,
       ]);
 
       const expensesMap = new Map<string, any>();
       for (const e of ((expData as any[]) || [])) expensesMap.set(e.id, e);
       for (const e of ((dateExpData as any[]) || [])) expensesMap.set(e.id, e);
 
-      const missingExpIds = ((dateInstData as any[]) || [])
-        .map((i: any) => i.expense_id)
-        .filter((id: string) => !expensesMap.has(id));
+      const missingExpIds = Array.from(new Set([
+        ...((dateInstData as any[]) || []).map((i: any) => i.expense_id),
+        ...((datePayData as any[]) || []).map((i: any) => i.expense_id),
+      ])).filter((id: string) => id && !expensesMap.has(id));
       if (missingExpIds.length > 0) {
         const { data: extraExp } = await supabase
           .from("expenses")
@@ -1454,7 +1481,7 @@ export function BankReconciliation() {
       if (expIds.length > 0) {
         const { data: payData } = await supabase
           .from("expense_payments")
-          .select("id, expense_id, installment_id, valor")
+          .select("id, expense_id, installment_id, valor, lote_id")
           .in("expense_id", expIds);
         for (const p of ((payData as any[]) || [])) {
           allPayments.push(p);
@@ -1474,12 +1501,23 @@ export function BankReconciliation() {
       const linkedMovIds = new Set<string>();
       if (allPayments.length > 0) {
         const paymentIds = allPayments.map((p) => p.id);
+        const loteIds = Array.from(new Set(allPayments.map((p) => p.lote_id).filter(Boolean)));
+        // Pagamentos em lote (ex.: folha + reembolsos) geram uma movimentação por lote.
         const { data: movData } = await supabase
           .from("movimentacoes_bancarias")
           .select("id, origem_id, valor")
-          .eq("origem", "pagamento_despesa")
-          .in("origem_id", paymentIds);
-        for (const m of ((movData as any[]) || [])) movsByPaymentId.set(m.origem_id, m);
+          .in("origem", ["pagamento_despesa", "pagamento_agrupado"])
+          .in("origem_id", [...paymentIds, ...loteIds]);
+        const movByOrigem = new Map<string, any>();
+        for (const m of ((movData as any[]) || [])) movByOrigem.set(m.origem_id, m);
+        for (const p of allPayments) {
+          const direct = movByOrigem.get(p.id);
+          if (direct) movsByPaymentId.set(p.id, direct);
+          else if (p.lote_id && movByOrigem.get(p.lote_id)) {
+            // Movimentação do lote cobre vários pagamentos: usa o valor do próprio pagamento.
+            movsByPaymentId.set(p.id, { ...movByOrigem.get(p.lote_id), valor: p.valor });
+          }
+        }
         const movIds = ((movData as any[]) || []).map((m) => m.id);
         if (movIds.length > 0) {
           const [{ data: linkData }, { data: principalData }] = await Promise.all([
@@ -3553,7 +3591,7 @@ export function BankReconciliation() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 autoFocus
-                placeholder="Buscar por descrição, favorecido, nota ou data de vencimento (dd/mm/aaaa)..."
+                placeholder="Nome, descrição, nota ou data de vencimento/pagamento (dd/mm/aaaa) — ex.: jefferson folha"
                 value={linkSearchText}
                 onChange={(e) => setLinkSearchText(e.target.value)}
                 className="h-9 pl-8 text-xs"

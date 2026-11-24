@@ -1,5 +1,5 @@
 import { useMemoryState, hasMemoryState } from "@/hooks/useMemoryState";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { PageTitle } from "@/components/PageTitle";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
@@ -56,6 +56,7 @@ interface PaidItem {
   installment?: InstallmentInfo | null;
   payment_id?: string | null;
   empresa_id?: string | null;
+  plano_contas_id?: string | null;
 }
 
 interface ExpenseDetail {
@@ -207,7 +208,8 @@ export function FinancialPaid() {
             data_vencimento,
             data_emissao,
             documento_fiscal_numero,
-            empresa_id
+            empresa_id,
+            plano_contas_id
           ),
           installment:installment_id (
             id,
@@ -328,6 +330,7 @@ export function FinancialPaid() {
         created_at: p.created_at || null,
         documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
         empresa_id: p.expenses?.empresa_id || null,
+        plano_contas_id: p.expenses?.plano_contas_id || null,
         payment_id: p.id,
         installment: resolvedInstallment
           ? {
@@ -365,6 +368,7 @@ export function FinancialPaid() {
         created_at: first.created_at || null,
         documento_fiscal_numero: null,
         empresa_id: first.expenses?.empresa_id || null,
+        plano_contas_id: (() => { const ids = Array.from(new Set(payments.map(p => p.expenses?.plano_contas_id).filter(Boolean))); return ids.length === 1 ? ids[0] as string : null; })(),
         lote_id: loteId,
         group_count: payments.length,
         group_payment_ids: payments.map(p => p.id),
@@ -448,6 +452,12 @@ export function FinancialPaid() {
     return () => { alive = false; };
   }, [selectedItems]);
 
+  const chartLabelById = useMemo(() => new Map((chartAccounts as ChartAccount[]).map(c => [c.id, `${c.codigo} ${c.nome}`])), [chartAccounts]);
+  const planoLabel = useCallback((r: PaidItem) => {
+    if (r.plano_contas_id) return chartLabelById.get(r.plano_contas_id) || "—";
+    return r.source === "group" ? "Vários" : "—";
+  }, [chartLabelById]);
+
   const paidColumns: DataGridColumn<PaidItem>[] = useMemo(() => [
     {
       key: "paid_at",
@@ -498,6 +508,13 @@ export function FinancialPaid() {
       cell: (r) => <span className="truncate block">{r.description}</span>,
     },
     {
+      key: "plano",
+      header: "Plano de Contas",
+      width: "16%",
+      sortValue: (r) => planoLabel(r),
+      cell: (r) => { const l = planoLabel(r); return <span className="truncate block" title={l}>{l}</span>; },
+    },
+    {
       key: "due_date",
       header: "Vencimento",
       width: "96px",
@@ -544,7 +561,7 @@ export function FinancialPaid() {
       sortValue: (r) => r.amount,
       cell: (r) => <span className="font-mono font-semibold text-success">{formatCurrency(r.amount)}</span>,
     },
-  ], []);
+  ], [planoLabel]);
 
 
   const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos" || filterEmpresa !== "";
