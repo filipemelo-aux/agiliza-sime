@@ -1774,6 +1774,66 @@ export function BankReconciliation() {
       }).filter((allocation) => allocation.amount > 0);
       const allocatedTotal = +allocations.reduce((sum, allocation) => sum + allocation.amount, 0).toFixed(2);
 
+      // Vários débitos do extrato para conta(s) já paga(s): concilia todos com a(s) movimentação(ões) existente(s).
+      if (targetItems.length > 1 && targetItems.every((t) => t.tipo === "saida")) {
+        if (!linkSelectedAccounts.length || !linkSelectedAccounts.every((a) => a.ja_paga)) {
+          throw new Error("Para vincular vários débitos do extrato, selecione apenas contas já pagas.");
+        }
+        if (targetItems.some((t) => !t.dbItemId)) throw new Error("O lançamento ainda não foi salvo no banco. Atualize a conciliação e tente novamente.");
+        const expIds = Array.from(new Set(linkSelectedAccounts.map((a) => a.expense_id || a.id)));
+        const { data: pays, error: payErr } = await supabase.from("expense_payments")
+          .select("id, lote_id").in("expense_id", expIds);
+        if (payErr) throw payErr;
+        const origemIds = Array.from(new Set(((pays as any[]) || []).flatMap((p) => [p.id, p.lote_id]).filter(Boolean)));
+        if (!origemIds.length) throw new Error("Não foi encontrado pagamento registrado para a(s) conta(s) selecionada(s).");
+        const { data: movData, error: mErr } = await supabase.from("movimentacoes_bancarias")
+          .select("id, valor").in("origem", ["pagamento_despesa", "pagamento_agrupado"]).in("origem_id", origemIds);
+        if (mErr) throw mErr;
+        const movs = (movData as any[]) || [];
+        if (!movs.length) throw new Error("A movimentação de caixa do pagamento não foi localizada.");
+        const movIds = movs.map((m) => m.id);
+        const [{ data: lk }, { data: pr }] = await Promise.all([
+          supabase.from("bank_reconciliation_item_links").select("movimentacao_id").in("movimentacao_id", movIds),
+          supabase.from("bank_reconciliation_items").select("matched_movimentacao_id").in("matched_movimentacao_id", movIds),
+        ]);
+        if (((lk as any[]) || []).length || ((pr as any[]) || []).length) {
+          throw new Error("O pagamento desta conta já foi conciliado com outro lançamento do extrato.");
+        }
+        const movTotal = +movs.reduce((s, m) => s + Math.abs(Number(m.valor || 0)), 0).toFixed(2);
+        const diffMulti = +(targetTotal - movTotal).toFixed(2);
+        if (Math.abs(diffMulti) > 0.10) {
+          throw new Error(`A soma dos débitos (${formatCurrency(targetTotal)}) difere do valor pago (${formatCurrency(movTotal)}).`);
+        }
+        const okMulti = await confirm({
+          title: "Confirmar vinculação",
+          description: `${targetItems.length} débitos do extrato (total ${formatCurrency(targetTotal)}) serão conciliados com o pagamento já registrado de ${formatCurrency(movTotal)}. Deseja finalizar?`,
+          confirmLabel: "Finalizar vinculação",
+          cancelLabel: "Revisar",
+        });
+        if (!okMulti) return;
+        const firstId = targetItems[0].dbItemId!;
+        const { error: u1 } = await supabase.from("bank_reconciliation_items")
+          .update({ status: "conciliado", matched_movimentacao_id: movIds[0] })
+          .in("id", targetItems.map((t) => t.dbItemId!));
+        if (u1) throw u1;
+        if (movIds.length > 1) {
+          const { error: lErr } = await supabase.from("bank_reconciliation_item_links" as any).insert(
+            movIds.slice(1).map((mid) => ({ reconciliation_item_id: firstId, movimentacao_id: mid })) as any,
+          );
+          if (lErr) throw lErr;
+        }
+        const targetSet = new Set(targetItems.map((t) => t.id));
+        setItems((prev) => prev.map((item) => targetSet.has(item.id) ? { ...item, status: "conciliado" as const, matchedMovId: movIds[0] } : item));
+        setSelectedIds((prev) => { const next = new Set(prev); targetSet.forEach((id) => next.delete(id)); return next; });
+        toast.success(`${targetItems.length} débitos conciliados com o pagamento.`);
+        setLinkAccountDialogOpen(false);
+        setLinkSelectedAccount(null);
+        setLinkSelectedAccounts([]);
+        setLinkTargetItemIds([]);
+        setTimeout(updateReconciliationCount, 500);
+        return;
+      }
+
       if (targetItems.length !== 1 || targetItems[0]?.tipo !== "saida") {
         throw new Error("A vinculação múltipla exige exatamente um débito do extrato.");
       }
