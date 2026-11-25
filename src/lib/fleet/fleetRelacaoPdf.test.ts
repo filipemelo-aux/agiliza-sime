@@ -119,8 +119,8 @@ describe("colunas ano e UF na relação impressa", () => {
   const company = { name: "X", docLine: "", address: "" };
   it("traz os rótulos e os valores das duas colunas por padrão", () => {
     const html = montarHtmlRelacao([L("AAA1A11", "2021", "MA")], [2026, 2025], OPCOES_PADRAO, company);
-    expect(html).toContain("<th class=\"nw\" style=\"width:3.8%\">Ano</th>");
-    expect(html).toContain("<th class=\"nw\" style=\"width:3%\">UF</th>");
+    expect(html).toMatch(/<th class="nw"[^>]*>Ano<\/th>/);
+    expect(html).toMatch(/<th class="nw"[^>]*>UF<\/th>/);
     expect(html).toMatch(/<td class="nw">2021<\/td><td class="nw">MA<\/td>/);
   });
   it("esconde as duas colunas quando desmarcadas", () => {

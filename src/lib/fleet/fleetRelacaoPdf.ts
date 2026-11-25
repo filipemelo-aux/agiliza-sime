@@ -107,10 +107,8 @@ export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
 const utilPx = (pct: number) => (BODY_W_PX - 12) * (pct / 100) - 10;
 
 interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: number; get: (l: RelacaoLinha) => string; /** Texto curto que nunca pode quebrar (ano, UF, RENAVAM). */ nw?: boolean }
-// Larguras pensadas para o modelo "igual à tela": as colunas de valores (IPVA por ano,
-// licenciamento, multas, total e valor de mercado) ocupam a sobra à direita, então as de
-// texto ficam estreitas e o texto longo quebra dentro da própria célula.
-// A soma abaixo deixa ~50% para as colunas de valores (ver PLACA_PCT e numPct em montarHtmlRelacao).
+// Pesos das colunas de identificação: recebem o espaço restante depois de reservar
+// somente a largura necessária para os valores, sem esticar as colunas de débitos.
 export const PLACA_PCT = 5.5;
 const COLS: Col[] = [
   { key: "veiculo", label: "Veículo", width: "9%", px: utilPx(9), get: (l) => l.veiculo },
@@ -121,7 +119,7 @@ const COLS: Col[] = [
   { key: "alienacao", label: "Alienação", width: "7.5%", px: utilPx(7.5), get: (l) => l.alienacao },
   { key: "situacao", label: "Situação", width: "6.5%", px: utilPx(6.5), get: (l) => l.situacao },
 ];
-/** Soma das larguras das colunas de texto realmente exibidas (usado para calcular a sobra dos valores). */
+/** Soma dos pesos das colunas de identificação exibidas. */
 export const textoPct = (cols: Col[]) => cols.reduce((t, c) => t + parseFloat(c.width), 0);
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
 // Tom de fundo da linha conforme a situação, como na tabela da tela (rowToneClass).
@@ -240,11 +238,17 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const colFipe = !!op.fipe;
   const rot = rotulos(anosDesc);
-  // A largura que sobra das colunas de texto é dividida igual entre as colunas de valores
-  // (IPVA por ano, IPVA ant., licenciamento, multas, total e valor de mercado).
-  const nNum = rot.length + (colFipe ? 1 : 0);
-  const numPct = nNum ? (100 - PLACA_PCT - textoPct(cols)) / nNum : 0;
-  const numStyle = `style="width:${numPct.toFixed(2)}%"`;
+  // 74px comportam "R$ 12.345,67" em Courier New 7pt, incluindo borda e padding.
+  // O símbolo continua no cabeçalho; a FIPE usa sua própria largura para valores maiores.
+  const debitoPx = 74;
+  const fipeTotal = ordenadas.reduce((t, l) => t + (l.fipe || 0), 0);
+  const fipeChars = Math.max(0, ...ordenadas.map((l) => mc(l.fipe || 0).length), mc(fipeTotal).length);
+  const fipePx = Math.max(88, Math.ceil(fipeChars * 5.6 + 6));
+  const identificacaoPx = BODY_W_PX - 12 - rot.length * debitoPx - (colFipe ? fipePx : 0);
+  const pesoTexto = PLACA_PCT + textoPct(cols);
+  const larguraIdentificacao = (peso: number) => (identificacaoPx * peso / pesoTexto).toFixed(2);
+  const numStyle = `style="width:${debitoPx}px"`;
+  const fipeStyle = `style="width:${fipePx}px"`;
   const nCols = 1 + cols.length + rot.length + (colFipe ? 1 : 0);
   const paginas = montarPaginas(ordenadas, op);
   const temConjuntos = ordenadas.some((l) => l.conjunto);
@@ -261,8 +265,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     return esc(t);
   };
 
-  const cabecalhoTexto = (cs: Col[]) => cs.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${c.width}">${c.label}</th>`).join("");
-  const head = `<th class="pl" style="width:${PLACA_PCT}%">Placa</th>${cabecalhoTexto(antesFipe)}${colFipe ? `<th class="num" ${numStyle}>Valor FIPE (R$)</th>` : ""}${cabecalhoTexto(depoisFipe)}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}`;
+  const cabecalhoTexto = (cs: Col[]) => cs.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${larguraIdentificacao(parseFloat(c.width))}px">${c.label}</th>`).join("");
+  const head = `<th class="pl" style="width:${larguraIdentificacao(PLACA_PCT)}px">Placa</th>${cabecalhoTexto(antesFipe)}${colFipe ? `<th class="num" ${fipeStyle}>Valor FIPE (R$)</th>` : ""}${cabecalhoTexto(depoisFipe)}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}`;
   // FIPE acompanha a identificação, logo após UF; débitos permanecem à direita.
   const rowId = (l: RelacaoLinha) => {
     const tom = TOM_LINHA[(l.situacao || "").trim()] || "";
