@@ -6153,6 +6153,14 @@ export type Database = {
           chassis: string | null
           created_at: string
           driver_id: string | null
+          fipe_ano_id: string | null
+          fipe_atualizado_em: string | null
+          fipe_codigo: string | null
+          fipe_descricao: string | null
+          fipe_marca_id: string | null
+          fipe_modelo_id: string | null
+          fipe_referencia: string | null
+          fipe_valor: number | null
           fleet_type: string
           id: string
           instituicao_financeira: string | null
@@ -6190,6 +6198,14 @@ export type Database = {
           chassis?: string | null
           created_at?: string
           driver_id?: string | null
+          fipe_ano_id?: string | null
+          fipe_atualizado_em?: string | null
+          fipe_codigo?: string | null
+          fipe_descricao?: string | null
+          fipe_marca_id?: string | null
+          fipe_modelo_id?: string | null
+          fipe_referencia?: string | null
+          fipe_valor?: number | null
           fleet_type?: string
           id?: string
           instituicao_financeira?: string | null
@@ -6227,6 +6243,14 @@ export type Database = {
           chassis?: string | null
           created_at?: string
           driver_id?: string | null
+          fipe_ano_id?: string | null
+          fipe_atualizado_em?: string | null
+          fipe_codigo?: string | null
+          fipe_descricao?: string | null
+          fipe_marca_id?: string | null
+          fipe_modelo_id?: string | null
+          fipe_referencia?: string | null
+          fipe_valor?: number | null
           fleet_type?: string
           id?: string
           instituicao_financeira?: string | null

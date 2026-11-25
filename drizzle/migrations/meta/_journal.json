@@ -393,6 +393,13 @@
       "when": 1795553541085,
       "tag": "0055_restrict_page_access_rules_read",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1795630466666,
+      "tag": "0056_vehicles_fipe",
+      "breakpoints": true
     }
   ]
 }

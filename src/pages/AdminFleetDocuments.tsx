@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch, Printer } from "lucide-react";
+import { FileWarning, FolderOpen, RefreshCw, Search, ShieldAlert, Truck, AlertTriangle, FileSearch, Printer, BadgeDollarSign } from "lucide-react";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { agruparConjuntos, agruparPorTipo, type OrdemRelacao, exportFleetRelacaoPdf, OPCOES_PADRAO, type RelacaoOpcoes } from "@/lib/fleet/fleetRelacaoPdf";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +17,7 @@ import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-car
 import { rowToneClass, StatusLegend, RowTone } from "@/components/ui/status-row";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
 import { DetranConsultaDialog } from "@/components/fleet/DetranConsultaDialog";
+import { FipeDialog } from "@/components/fleet/FipeDialog";
 import { DetranDetalhesDialog } from "@/components/fleet/DetranDetalhesDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/notice";
@@ -35,6 +36,12 @@ interface VehicleRow {
   renavam: string;
   chassis: string | null;
   unit_category: string | null;
+  fipe_marca_id: string | null;
+  fipe_modelo_id: string | null;
+  fipe_ano_id: string | null;
+  fipe_valor: number | null;
+  fipe_descricao: string | null;
+  fipe_referencia: string | null;
 }
 
 interface Linha extends VehicleRow {
@@ -83,6 +90,7 @@ export default function AdminFleetDocuments() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [manageOpen, setManageOpen] = useState(false);
   const [detranOpen, setDetranOpen] = useState(false);
+  const [fipeOpen, setFipeOpen] = useState(false);
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
@@ -93,7 +101,7 @@ export default function AdminFleetDocuments() {
     setLoading(true);
     const vRes = await supabase
       .from("vehicles")
-      .select("id, plate, brand, model, renavam, chassis, unit_category")
+      .select("id, plate, brand, model, renavam, chassis, unit_category, fipe_marca_id, fipe_modelo_id, fipe_ano_id, fipe_valor, fipe_descricao, fipe_referencia")
       .eq("is_active", true)
       .eq("fleet_type", "propria")
       .order("plate");
@@ -247,6 +255,8 @@ export default function AdminFleetDocuments() {
     colValor("licenc", "Licenc.", (l) => l.licTotal, "120px"),
     colValor("multas", "Multas", (l) => l.multasTotal, "120px"),
     colValor("total", "Total", (l) => l.total, "110px"),
+    { key: "fipe", header: "Valor FIPE", width: "130px", align: "right", sortValue: (l) => Number(l.fipe_valor || 0), footer: rodape((l) => Number(l.fipe_valor || 0)),
+      cell: (l) => <span title={[l.fipe_descricao, l.fipe_referencia && `Ref. ${l.fipe_referencia}`].filter(Boolean).join(" · ")}>{moeda(Number(l.fipe_valor || 0))}</span> },
   ];
 
   return (
@@ -287,6 +297,7 @@ export default function AdminFleetDocuments() {
             { key: "manage", label: "Documentos e multas da placa", icon: FolderOpen, mode: "single", variant: "default", disabled: !single, onClick: () => single && setManageOpen(true) },
             { key: "sync", label: "Consultar débitos no Detran", icon: RefreshCw, mode: "single", disabled: !single, onClick: () => single && setDetranOpen(true) },
             { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
+            { key: "fipe", label: "Valor FIPE / mercado", icon: BadgeDollarSign, mode: "single", disabled: !single, onClick: () => single && setFipeOpen(true) },
             { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: () => setPrintOpen(true) },
           ]}
           selectedCount={selected.size}
@@ -299,7 +310,7 @@ export default function AdminFleetDocuments() {
           selected={selected}
           onSelectedChange={setSelected}
           loading={loading}
-          minWidth={260 + (anosCol.length + 3) * 130 + 210}
+          minWidth={260 + (anosCol.length + 3) * 130 + 340}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
           emptyMessage="Nenhum veículo da frota própria encontrado"
         />
@@ -346,6 +357,7 @@ export default function AdminFleetDocuments() {
           </DialogContent>
         </Dialog>
         <ProcessingOverlay open={printing} label="Gerando relação..." />
+        <FipeDialog open={fipeOpen} onOpenChange={setFipeOpen} vehicle={single ?? null} onSaved={load} />
         <DetranDetalhesDialog open={detalhesOpen} onOpenChange={setDetalhesOpen} vehicle={single ?? null} />
       </div>
     </AdminLayout>
