@@ -33,6 +33,8 @@ interface VehicleRow {
   plate: string;
   brand: string;
   model: string;
+  year: number | null;
+  owner_id: string | null;
   renavam: string;
   chassis: string | null;
   unit_category: string | null;
@@ -58,6 +60,8 @@ interface Linha extends VehicleRow {
   multasAno: Record<number, number>;
   total: number;
   alienacao: Alienacao | null;
+  /** UF de registro: a da última consulta ao Detran, senão o estado do proprietário. */
+  uf: string | null;
 }
 
 const hojeIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -84,6 +88,7 @@ export default function AdminFleetDocuments() {
   const [docs, setDocs] = useState<(FleetDocLike & { veiculo_id: string })[]>([]);
   const [consultasLimpas, setConsultasLimpas] = useState<Set<string>>(new Set());
   const [alienacoes, setAlienacoes] = useState<Map<string, Alienacao>>(new Map());
+  const [ufPorVeiculo, setUfPorVeiculo] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState<"all" | FleetSituacao>("all");
@@ -101,7 +106,7 @@ export default function AdminFleetDocuments() {
     setLoading(true);
     const vRes = await supabase
       .from("vehicles")
-      .select("id, plate, brand, model, renavam, chassis, unit_category, fipe_marca_id, fipe_modelo_id, fipe_ano_id, fipe_valor, fipe_descricao, fipe_referencia")
+      .select("id, plate, brand, model, year, owner_id, renavam, chassis, unit_category, fipe_marca_id, fipe_modelo_id, fipe_ano_id, fipe_valor, fipe_descricao, fipe_referencia")
       .eq("is_active", true)
       .eq("fleet_type", "propria")
       .order("plate");
@@ -115,6 +120,8 @@ export default function AdminFleetDocuments() {
     let ds: any[] = [];
     const limpas = new Set<string>();
     const alien = new Map<string, Alienacao>();
+    const ufConsulta = new Map<string, string>();
+    const ufDono = new Map<string, string>();
     if (ids.length) {
       const dRes = await supabase
         .from("veiculo_documentos")
@@ -125,23 +132,41 @@ export default function AdminFleetDocuments() {
       // Última consulta ao Detran por veículo: sem débitos em aberto = documentos em dia
       const cRes = await supabase
         .from("vehicle_debt_consultas" as any)
-        .select("vehicle_id, importacao, response, created_at")
+        .select("vehicle_id, importacao, response, created_at, uf")
         .in("vehicle_id", ids)
         .order("created_at", { ascending: false });
       const vistos = new Set<string>();
       for (const c of (cRes.data || []) as any[]) {
         if (!alien.has(c.vehicle_id)) { const a = extrairAlienacao(c.response); if (a) alien.set(c.vehicle_id, a); } // mais recente que informou gravame
+        if (!ufConsulta.has(c.vehicle_id) && c.uf) ufConsulta.set(c.vehicle_id, String(c.uf).toUpperCase()); // UF da consulta mais recente
         if (vistos.has(c.vehicle_id)) continue; // já é a mais recente deste veículo
         const debitos = c.importacao?.debitos;
         if (!Array.isArray(debitos)) continue; // consulta unificada não lista débitos
         vistos.add(c.vehicle_id);
         if (debitos.length === 0) limpas.add(c.vehicle_id);
       }
+      // UF de registro do proprietário: o estado do cadastro da empresa/dono (mesma regra da consulta ao Detran).
+      const donos = [...new Set(vs.map((v) => v.owner_id).filter(Boolean))] as string[];
+      if (donos.length) {
+        const [pId, pUsr] = await Promise.all([
+          supabase.from("profiles").select("id, address_state").in("id", donos),
+          supabase.from("profiles").select("user_id, address_state").in("user_id", donos),
+        ]);
+        for (const p of [...(pId.data || []), ...(pUsr.data || [])] as any[]) {
+          const st = String(p.address_state ?? "").trim().toUpperCase();
+          if (!st) continue;
+          if (p.id) ufDono.set(p.id, st);
+          if (p.user_id) ufDono.set(p.user_id, st);
+        }
+      }
     }
+    const ufVec = new Map<string, string>();
+    for (const v of vs) ufVec.set(v.id, ufConsulta.get(v.id) || (v.owner_id ? ufDono.get(v.owner_id) : "") || "");
     setVehicles(vs);
     setDocs(ds);
     setConsultasLimpas(limpas);
     setAlienacoes(alien);
+    setUfPorVeiculo(ufVec);
     setLoading(false);
   }, []);
 
@@ -160,7 +185,7 @@ export default function AdminFleetDocuments() {
       const r = (t: FleetDocTipo) => resumoPorTipo(ds, t, hoje);
       const ipva = r("IPVA"), licenciamento = r("Licenciamento"), seguro = r("Seguro"), multas = r("Multa");
       const situacao = situacaoComConsulta(situacaoVeiculo([ipva, licenciamento, seguro, multas]), consultasLimpas.has(v.id));
-      return { ...v, alienacao: alienacoes.get(v.id) || null, ipva, licenciamento, seguro, multas, situacao, ...(() => {
+      return { ...v, alienacao: alienacoes.get(v.id) || null, uf: ufPorVeiculo.get(v.id) || null, ipva, licenciamento, seguro, multas, situacao, ...(() => {
         const ipvaAno = abertoPorAno(ds as any, "IPVA"), licAno = abertoPorAno(ds as any, "Licenciamento");
         const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);
         const soma = (o: Record<number, number>) => Object.values(o).reduce((t, x) => t + x, 0);
@@ -171,14 +196,14 @@ export default function AdminFleetDocuments() {
         return { ipvaAno, licAno, multasAno: abertoPorAno(ds as any, "Multa"), ipvaAnteriores, licTotal: r2(soma(licAno)), multasTotal: r2(multasTotal), total };
       })() };
     });
-  }, [vehicles, docs, consultasLimpas, alienacoes]);
+  }, [vehicles, docs, consultasLimpas, alienacoes, ufPorVeiculo]);
 
   const filtradas = useMemo(() => {
     const q = search.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, "");
     return linhas.filter((l) => {
       if (filtroSituacao !== "all" && l.situacao !== filtroSituacao) return false;
       if (!q) return true;
-      return `${l.plate} ${l.brand} ${l.model} ${l.renavam}`.toUpperCase().replace(/[^A-Z0-9 ]/g, "").includes(q);
+      return `${l.plate} ${l.brand} ${l.model} ${l.renavam} ${l.year ?? ""} ${l.uf ?? ""}`.toUpperCase().replace(/[^A-Z0-9 ]/g, "").includes(q);
     });
   }, [linhas, search, filtroSituacao]);
 
@@ -219,7 +244,7 @@ export default function AdminFleetDocuments() {
       const linhasRel = sel.map((l) => {
         const porAno: Record<number, number> = {};
         for (const a of anosCol) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
-        return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), renavam: l.renavam || "", chassi: l.chassis || "",
+        return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), ano: l.year ? String(l.year) : "", uf: l.uf || "", renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
           situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total,
           cavalo: !!(vRes.data || []).find((v: any) => v.id === l.id && !['semirreboque', 'dolly', 'reboque'].includes(v.unit_category)),
@@ -246,6 +271,8 @@ export default function AdminFleetDocuments() {
   const columns: DataGridColumn<Linha>[] = [
     { key: "plate", header: "Placa", width: "100px", cell: (l) => <span className="font-mono font-semibold">{l.plate}</span>, sortValue: (l) => l.plate },
     { key: "veiculo", header: "Veículo", width: "150px", cell: (l) => <span className="truncate">{[l.brand, l.model].filter(Boolean).join(" ")}</span>, sortValue: (l) => `${l.brand} ${l.model}` },
+    { key: "ano", header: "Ano", width: "60px", align: "center", cell: (l) => l.year ? <span className="font-mono">{l.year}</span> : <span className="text-muted-foreground">—</span>, sortValue: (l) => Number(l.year || 0) },
+    { key: "uf", header: "UF", width: "50px", align: "center", cell: (l) => l.uf ? <span className="font-mono font-medium">{l.uf}</span> : <span className="text-muted-foreground">—</span>, sortValue: (l) => l.uf || "zz" },
     { key: "alienacao", header: "Alienação", width: "150px", sortValue: (l) => l.alienacao ? (l.alienacao.status === "alienado" ? `0${l.alienacao.texto}` : "1") : "2",
       cell: (l) => !l.alienacao ? <span className="text-muted-foreground">—</span>
         : l.alienacao.status === "livre" ? <span className="text-success font-medium">Livre</span>
@@ -310,7 +337,7 @@ export default function AdminFleetDocuments() {
           selected={selected}
           onSelectedChange={setSelected}
           loading={loading}
-          minWidth={260 + (anosCol.length + 3) * 130 + 340}
+          minWidth={370 + (anosCol.length + 3) * 130 + 340}
           rowClassName={(l) => rowToneClass(TONE[l.situacao])}
           emptyMessage="Nenhum veículo da frota própria encontrado"
         />
@@ -344,7 +371,7 @@ export default function AdminFleetDocuments() {
             </div>
             <div className="grid gap-2 text-xs">
               <span className="font-medium">Colunas</span>
-              {([["veiculo", "Veículo (marca/modelo)"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={!!printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
                 </label>

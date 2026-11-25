@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  capacidadePagina, montarPaginas, MARGIN_MM, OPCOES_PADRAO, temDebitos,
+  capacidadePagina, montarPaginas, montarHtmlRelacao, MARGIN_MM, OPCOES_PADRAO, temDebitos,
   type RelacaoLinha, type RelacaoOpcoes,
 } from "./fleetRelacaoPdf";
 
@@ -12,6 +12,7 @@ vi.mock("@/lib/printHeader", () => ({
 
 const linha = (n: number, comDebito: boolean): RelacaoLinha => ({
   plate: `PTT${String(n).padStart(4, "0")}A`, veiculo: "SCANIA R 450 A6X2NA",
+  ano: "2021", uf: "MA",
   renavam: "01234567890", chassi: "98PTT47MSLB110598",
   alienacao: comDebito ? "Alienado – BANCO BRADESCO S/A" : "Livre",
   situacao: comDebito ? "Vencido" : "Em dia",
@@ -107,5 +108,25 @@ describe("relação por tipo", () => {
     const mk = (plate: string) => ({ plate, veiculo: "", renavam: "", chassi: "", alienacao: "", situacao: "", porAno: {}, multas: 0, total: 0 });
     const cat = new Map([["D1", "dolly"], ["S1", "semirreboque"], ["C1", "cavalo"], ["R1", "reboque"]]);
     expect(_apt(["D1", "S1", "C1", "R1"].map(mk), cat).map((l) => l.plate)).toEqual(["C1", "R1", "S1", "D1"]);
+  });
+});
+
+describe("colunas ano e UF na relação impressa", () => {
+  const L = (plate: string, ano: string, uf: string): RelacaoLinha => ({
+    plate, veiculo: "SCANIA R 450", ano, uf, renavam: "01234567890", chassi: "98PTT47MSLB110598",
+    alienacao: "Livre", situacao: "Em dia", porAno: {}, multas: 0, total: 0,
+  });
+  const company = { name: "X", docLine: "", address: "" };
+  it("traz os rótulos e os valores das duas colunas por padrão", () => {
+    const html = montarHtmlRelacao([L("AAA1A11", "2021", "MA")], [2026, 2025], OPCOES_PADRAO, company);
+    expect(html).toContain("<th style=\"width:4%\">Ano</th>");
+    expect(html).toContain("<th style=\"width:3.5%\">UF</th>");
+    expect(html).toMatch(/<td>2021<\/td><td>MA<\/td>/);
+  });
+  it("esconde as duas colunas quando desmarcadas", () => {
+    const html = montarHtmlRelacao([L("AAA1A11", "2021", "MA")], [2026, 2025], { ...OPCOES_PADRAO, ano: false, uf: false }, company);
+    expect(html).not.toContain(">Ano</th>");
+    expect(html).not.toContain(">UF</th>");
+    expect(html).not.toMatch(/<td>2021<\/td><td>MA<\/td>/);
   });
 });

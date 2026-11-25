@@ -11,6 +11,10 @@ const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&
 
 export interface RelacaoLinha {
   plate: string; veiculo: string; renavam: string; chassi: string; alienacao: string; situacao: string;
+  /** Ano de fabricação/modelo do veículo. */
+  ano?: string;
+  /** UF onde o veículo está registrado. */
+  uf?: string;
   porAno: Record<number, number>; multas: number; total: number;
   /** IPVA somado dos anos anteriores às colunas por ano (coluna "IPVA ant."). */
   ipvaAnteriores?: number;
@@ -77,8 +81,8 @@ export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, stri
       return g.map((l) => ({ ...l, conjunto: rot }));
     });
 }
-export interface RelacaoOpcoes { veiculo: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean; resumo?: boolean }
-export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true, resumo: false };
+export interface RelacaoOpcoes { veiculo: boolean; ano: boolean; uf: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean; resumo?: boolean }
+export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, ano: true, uf: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true, resumo: false };
 
 // ---------- Geometria da página (A4 paisagem: 297 x 210 mm) ----------
 export const MARGIN_MM = 12;
@@ -104,11 +108,13 @@ interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: numb
 // Larguras pensadas para o modelo "igual à tela": as colunas de valores (IPVA por ano,
 // multas e total) ocupam a sobra à direita, então as de texto ficam mais estreitas.
 const COLS: Col[] = [
-  { key: "veiculo", label: "Veículo", width: "12%", px: utilPx(12), get: (l) => l.veiculo },
+  { key: "veiculo", label: "Veículo", width: "11%", px: utilPx(11), get: (l) => l.veiculo },
+  { key: "ano", label: "Ano", width: "4%", px: utilPx(4), get: (l) => l.ano },
+  { key: "uf", label: "UF", width: "3.5%", px: utilPx(3.5), get: (l) => l.uf },
   { key: "renavam", label: "RENAVAM", width: "8%", px: utilPx(8), get: (l) => l.renavam },
   { key: "chassi", label: "Chassi", width: "10%", px: utilPx(10), get: (l) => l.chassi },
-  { key: "alienacao", label: "Alienação", width: "15%", px: utilPx(15), get: (l) => l.alienacao },
-  { key: "situacao", label: "Situação", width: "7%", px: utilPx(7), get: (l) => l.situacao },
+  { key: "alienacao", label: "Alienação", width: "13%", px: utilPx(13), get: (l) => l.alienacao },
+  { key: "situacao", label: "Situação", width: "6.5%", px: utilPx(6.5), get: (l) => l.situacao },
 ];
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
 // Tom de fundo da linha conforme a situação, como na tabela da tela (rowToneClass).
@@ -234,7 +240,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   };
 
   const rot = rotulos(anosDesc);
-  const head = `<th class="pl" style="width:6%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}${rot.map((r) => `<th class="num">${r}</th>`).join("")}`;
+  const head = `<th class="pl" style="width:5.5%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}${rot.map((r) => `<th class="num">${r}</th>`).join("")}`;
   // Uma linha por veículo, como na tabela da tela: identificação + valores por ano + multas + total.
   const rowId = (l: RelacaoLinha) => {
     const tom = TOM_LINHA[(l.situacao || "").trim()] || "";
