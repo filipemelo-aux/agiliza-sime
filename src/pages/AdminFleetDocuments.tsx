@@ -273,6 +273,8 @@ export default function AdminFleetDocuments() {
     { key: "veiculo", header: "Veículo", width: "150px", cell: (l) => <span className="truncate">{[l.brand, l.model].filter(Boolean).join(" ")}</span>, sortValue: (l) => `${l.brand} ${l.model}` },
     { key: "ano", header: "Ano", width: "60px", align: "center", cell: (l) => l.year ? <span className="font-mono">{l.year}</span> : <span className="text-muted-foreground">—</span>, sortValue: (l) => Number(l.year || 0) },
     { key: "uf", header: "UF", width: "50px", align: "center", cell: (l) => l.uf ? <span className="font-mono font-medium">{l.uf}</span> : <span className="text-muted-foreground">—</span>, sortValue: (l) => l.uf || "zz" },
+    { key: "fipe", header: "Valor FIPE", width: "130px", align: "right", sortValue: (l) => Number(l.fipe_valor || 0), footer: rodape((l) => Number(l.fipe_valor || 0)),
+      cell: (l) => <span title={[l.fipe_descricao, l.fipe_referencia && `Ref. ${l.fipe_referencia}`].filter(Boolean).join(" · ")}>{moeda(Number(l.fipe_valor || 0))}</span> },
     { key: "alienacao", header: "Alienação", width: "150px", sortValue: (l) => l.alienacao ? (l.alienacao.status === "alienado" ? `0${l.alienacao.texto}` : "1") : "2",
       cell: (l) => !l.alienacao ? <span className="text-muted-foreground">—</span>
         : l.alienacao.status === "livre" ? <span className="text-success font-medium">Livre</span>
@@ -282,8 +284,6 @@ export default function AdminFleetDocuments() {
     colValor("licenc", "Licenc.", (l) => l.licTotal, "120px"),
     colValor("multas", "Multas", (l) => l.multasTotal, "120px"),
     colValor("total", "Total", (l) => l.total, "110px"),
-    { key: "fipe", header: "Valor FIPE", width: "130px", align: "right", sortValue: (l) => Number(l.fipe_valor || 0), footer: rodape((l) => Number(l.fipe_valor || 0)),
-      cell: (l) => <span title={[l.fipe_descricao, l.fipe_referencia && `Ref. ${l.fipe_referencia}`].filter(Boolean).join(" · ")}>{moeda(Number(l.fipe_valor || 0))}</span> },
   ];
 
   return (

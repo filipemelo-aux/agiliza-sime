@@ -146,7 +146,7 @@ describe("coluna de valor de mercado na relação impressa", () => {
   it("soma o valor de mercado no rodapé, mesmo sem nenhum débito em aberto", () => {
     const html = montarHtmlRelacao([L("AAA1A11", 454433), L("BBB1B11", 128500)], [2026, 2025], OPCOES_PADRAO, company);
     expect(html).toContain("Totais · 2 veículo(s)");
-    expect(html).toMatch(/<td class="num">582\.933,00<\/td><\/tr><\/tfoot>/);
+    expect(html).toMatch(/<tfoot>.*<td class="num">582\.933,00<\/td>/);
   });
   it("esconde a coluna quando desmarcada", () => {
     const html = montarHtmlRelacao([L("AAA1A11", 454433)], [2026, 2025], { ...OPCOES_PADRAO, fipe: false }, company);

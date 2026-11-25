@@ -231,6 +231,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   const ordenadas = linhas.some((l) => l.conjunto) ? linhas : [...linhas].sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
   const anosDesc = op.debitos ? [...anos].sort((a, b) => b - a) : [];
   const cols = COLS.filter((c) => op[c.key]);
+  const antesFipe = cols.filter((c) => ["veiculo", "ano", "uf"].includes(c.key));
+  const depoisFipe = cols.filter((c) => !antesFipe.includes(c));
   const m = (v: number) => (v ? formatCurrency(v) : "—");
   // Nas células de valor não entra o símbolo "R$": ele aparece no rótulo de cada coluna, o que
   // libera largura para as colunas de números caberem no A4 paisagem sem encolher a fonte.
@@ -259,18 +261,23 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     return esc(t);
   };
 
-  const head = `<th class="pl" style="width:${PLACA_PCT}%">Placa</th>${cols.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${c.width}">${c.label}</th>`).join("")}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}${colFipe ? `<th class="num" ${numStyle}>Valor FIPE (R$)</th>` : ""}`;
-  // Uma linha por veículo, como na tabela da tela: identificação + valores por ano + multas + total + valor de mercado.
+  const cabecalhoTexto = (cs: Col[]) => cs.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${c.width}">${c.label}</th>`).join("");
+  const head = `<th class="pl" style="width:${PLACA_PCT}%">Placa</th>${cabecalhoTexto(antesFipe)}${colFipe ? `<th class="num" ${numStyle}>Valor FIPE (R$)</th>` : ""}${cabecalhoTexto(depoisFipe)}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}`;
+  // FIPE acompanha a identificação, logo após UF; débitos permanecem à direita.
   const rowId = (l: RelacaoLinha) => {
     const tom = TOM_LINHA[(l.situacao || "").trim()] || "";
     const cls = [l.conjunto ? "cj" : "", tom].filter(Boolean).join(" ");
-    return `<tr${cls ? ` class="${cls}"` : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td${c.nw ? ' class="nw"' : ""}>${celula(c, c.get(l))}</td>`).join("")}${valores(l, anosDesc, mc).map((v) => `<td class="num">${v}</td>`).join("")}${colFipe ? `<td class="num">${mc(l.fipe || 0)}</td>` : ""}</tr>`;
+    const celulasTexto = (cs: Col[]) => cs.map((c) => `<td${c.nw ? ' class="nw"' : ""}>${celula(c, c.get(l))}</td>`).join("");
+    return `<tr${cls ? ` class="${cls}"` : ""}><td class="pl">${esc(l.plate)}</td>${celulasTexto(antesFipe)}${colFipe ? `<td class="num">${mc(l.fipe || 0)}</td>` : ""}${celulasTexto(depoisFipe)}${valores(l, anosDesc, mc).map((v) => `<td class="num">${v}</td>`).join("")}</tr>`;
   };
 
-  // Totais no rodapé da tabela, alinhados com as colunas de valores (como o footer do grid da tela).
-  const totais = comTotais ? `<tfoot><tr><td colspan="${nCols - nNum}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td>${rot.map((_, i) => `<td class="num">${i < anosDesc.length
+  // Mantém a soma FIPE no mesmo trilho da coluna, antes dos demais totais.
+  const identificacaoTotais = colFipe
+    ? `<td colspan="${1 + antesFipe.length}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td><td class="num">${mc(soma((l) => l.fipe || 0))}</td>${depoisFipe.length ? `<td colspan="${depoisFipe.length}"></td>` : ""}`
+    : `<td colspan="${1 + cols.length}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td>`;
+  const totais = comTotais ? `<tfoot><tr>${identificacaoTotais}${rot.map((_, i) => `<td class="num">${i < anosDesc.length
       ? mc(soma((l) => l.porAno?.[anosDesc[i]] || 0))
-      : mc(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}${colFipe ? `<td class="num">${mc(soma((l) => l.fipe || 0))}</td>` : ""}</tr></tfoot>` : "";
+      : mc(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}</tr></tfoot>` : "";
 
   const corpo = (p: PaginaRelacao, ultima: boolean) => p.linhas.length
     ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
