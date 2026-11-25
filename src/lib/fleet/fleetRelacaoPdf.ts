@@ -244,9 +244,13 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   const fipeTotal = ordenadas.reduce((t, l) => t + (l.fipe || 0), 0);
   const fipeChars = Math.max(0, ...ordenadas.map((l) => mc(l.fipe || 0).length), mc(fipeTotal).length);
   const fipePx = Math.max(88, Math.ceil(fipeChars * 5.6 + 6));
-  const identificacaoPx = BODY_W_PX - 12 - rot.length * debitoPx - (colFipe ? fipePx : 0);
-  const pesoTexto = PLACA_PCT + textoPct(cols);
+  // Situação não participa da distribuição da sobra: 52px acomodam “Vencido”.
+  // As demais situações podem quebrar nos espaços, sem alargar a coluna.
+  const situacaoPx = 52;
+  const identificacaoPx = BODY_W_PX - 12 - rot.length * debitoPx - (colFipe ? fipePx : 0) - (op.situacao ? situacaoPx : 0);
+  const pesoTexto = PLACA_PCT + textoPct(cols.filter((c) => c.key !== "situacao"));
   const larguraIdentificacao = (peso: number) => (identificacaoPx * peso / pesoTexto).toFixed(2);
+  const larguraColuna = (c: Col) => c.key === "situacao" ? String(situacaoPx) : larguraIdentificacao(parseFloat(c.width));
   const numStyle = `style="width:${debitoPx}px"`;
   const fipeStyle = `style="width:${fipePx}px"`;
   const nCols = 1 + cols.length + rot.length + (colFipe ? 1 : 0);
@@ -265,7 +269,9 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     return esc(t);
   };
 
-  const cabecalhoTexto = (cs: Col[]) => cs.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${larguraIdentificacao(parseFloat(c.width))}px">${c.label}</th>`).join("");
+  const cabecalhoTexto = (cs: Col[]) => cs.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${larguraColuna(c)}px">${c.label}</th>`).join("");
+  // Colgroup fixa os trilhos independentemente do padding dos cabeçalhos e dos colspans.
+  const colgroup = `<colgroup><col style="width:${larguraIdentificacao(PLACA_PCT)}px">${antesFipe.map((c) => `<col style="width:${larguraColuna(c)}px">`).join("")}${colFipe ? `<col ${fipeStyle}>` : ""}${depoisFipe.map((c) => `<col style="width:${larguraColuna(c)}px">`).join("")}${rot.map(() => `<col ${numStyle}>`).join("")}</colgroup>`;
   const head = `<th class="pl" style="width:${larguraIdentificacao(PLACA_PCT)}px">Placa</th>${cabecalhoTexto(antesFipe)}${colFipe ? `<th class="num" ${fipeStyle}>Valor FIPE (R$)</th>` : ""}${cabecalhoTexto(depoisFipe)}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}`;
   // FIPE acompanha a identificação, logo após UF; débitos permanecem à direita.
   const rowId = (l: RelacaoLinha) => {
@@ -284,9 +290,9 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
       : mc(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}</tr></tfoot>` : "";
 
   const corpo = (p: PaginaRelacao, ultima: boolean) => p.linhas.length
-    ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
+    ? `<table class="rel">${colgroup}<thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
       + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l)).join("")}</tbody>${ultima ? totais : ""}</table>`
-    : (ultima && comTotais ? `<table class="rel"><thead><tr>${head}</tr></thead>${totais}</table>` : "");
+    : (ultima && comTotais ? `<table class="rel">${colgroup}<thead><tr>${head}</tr></thead>${totais}</table>` : "");
 
   // Resumo (opcional): página inicial com totais por ano de IPVA, licenciamento e multas, para cavalos e demais.
   // Os anos que têm coluna própria (os dois mais recentes) saem um a um; de 2024 para trás somam em "Anos anteriores".
