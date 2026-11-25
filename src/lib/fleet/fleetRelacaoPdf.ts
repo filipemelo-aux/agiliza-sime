@@ -28,6 +28,8 @@ export interface RelacaoLinha {
   conjunto?: string;
   /** Título da faixa do grupo (ex.: "Cavalos"); sem ele a faixa mostra "Conjunto: …". */
   titulo?: string;
+  /** Valor de mercado (Tabela FIPE ou preenchido à mão). */
+  fipe?: number;
 }
 
 export type OrdemRelacao = "conjuntos" | "tipo";
@@ -81,8 +83,8 @@ export function agruparConjuntos(linhas: RelacaoLinha[], vinculos: [string, stri
       return g.map((l) => ({ ...l, conjunto: rot }));
     });
 }
-export interface RelacaoOpcoes { veiculo: boolean; ano: boolean; uf: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean; resumo?: boolean }
-export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, ano: true, uf: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true, resumo: false };
+export interface RelacaoOpcoes { veiculo: boolean; ano: boolean; uf: boolean; renavam: boolean; chassi: boolean; alienacao: boolean; situacao: boolean; debitos: boolean; resumo?: boolean; fipe: boolean }
+export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, ano: true, uf: true, renavam: true, chassi: true, alienacao: true, situacao: true, debitos: true, resumo: false, fipe: true };
 
 // ---------- Geometria da página (A4 paisagem: 297 x 210 mm) ----------
 export const MARGIN_MM = 12;
@@ -104,18 +106,23 @@ export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
 /** Largura útil de texto numa coluna: % da tabela (12px mais estreita que a página) menos o padding da célula. */
 const utilPx = (pct: number) => (BODY_W_PX - 12) * (pct / 100) - 10;
 
-interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: number; get: (l: RelacaoLinha) => string }
+interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: number; get: (l: RelacaoLinha) => string; /** Texto curto que nunca pode quebrar (ano, UF, RENAVAM). */ nw?: boolean }
 // Larguras pensadas para o modelo "igual à tela": as colunas de valores (IPVA por ano,
-// multas e total) ocupam a sobra à direita, então as de texto ficam mais estreitas.
+// licenciamento, multas, total e valor de mercado) ocupam a sobra à direita, então as de
+// texto ficam estreitas e o texto longo quebra dentro da própria célula.
+// A soma abaixo deixa ~50% para as colunas de valores (ver PLACA_PCT e numPct em montarHtmlRelacao).
+export const PLACA_PCT = 5.5;
 const COLS: Col[] = [
-  { key: "veiculo", label: "Veículo", width: "11%", px: utilPx(11), get: (l) => l.veiculo },
-  { key: "ano", label: "Ano", width: "4%", px: utilPx(4), get: (l) => l.ano },
-  { key: "uf", label: "UF", width: "3.5%", px: utilPx(3.5), get: (l) => l.uf },
-  { key: "renavam", label: "RENAVAM", width: "8%", px: utilPx(8), get: (l) => l.renavam },
-  { key: "chassi", label: "Chassi", width: "10%", px: utilPx(10), get: (l) => l.chassi },
-  { key: "alienacao", label: "Alienação", width: "13%", px: utilPx(13), get: (l) => l.alienacao },
+  { key: "veiculo", label: "Veículo", width: "9%", px: utilPx(9), get: (l) => l.veiculo },
+  { key: "ano", label: "Ano", width: "3.8%", px: utilPx(3.8), get: (l) => l.ano, nw: true },
+  { key: "uf", label: "UF", width: "3%", px: utilPx(3), get: (l) => l.uf, nw: true },
+  { key: "renavam", label: "RENAVAM", width: "7.8%", px: utilPx(7.8), get: (l) => l.renavam, nw: true },
+  { key: "chassi", label: "Chassi", width: "7%", px: utilPx(7), get: (l) => l.chassi },
+  { key: "alienacao", label: "Alienação", width: "7.5%", px: utilPx(7.5), get: (l) => l.alienacao },
   { key: "situacao", label: "Situação", width: "6.5%", px: utilPx(6.5), get: (l) => l.situacao },
 ];
+/** Soma das larguras das colunas de texto realmente exibidas (usado para calcular a sobra dos valores). */
+export const textoPct = (cols: Col[]) => cols.reduce((t, c) => t + parseFloat(c.width), 0);
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
 // Tom de fundo da linha conforme a situação, como na tabela da tela (rowToneClass).
 const TOM_LINHA: Record<string, string> = { "Vencido": "ton-v", "A vencer": "ton-a", "Em dia": "ton-e" };
@@ -124,6 +131,11 @@ const TOM_LINHA: Record<string, string> = { "Vencido": "ton-v", "A vencer": "ton
 export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
   if (!op.debitos) return false;
   return l.total > 0 || l.multas > 0 || (l.licenciamento || 0) > 0 || (l.ipvaAnteriores || 0) > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
+}
+
+/** A relação fecha com a linha de totais quando há débitos ou a coluna de valor de mercado. */
+export function temTotais(linhas: RelacaoLinha[], op: RelacaoOpcoes): boolean {
+  return !!op.fipe || linhas.some((l) => temDebitos(l, op));
 }
 
 // ---------- Medida de texto (prevê quantas linhas uma célula ocupa) ----------
@@ -156,13 +168,11 @@ const larguraTexto = (t: string): number => {
 /** Linhas que o texto ocupa na coluna de `px` úteis. */
 const linhasDeTexto = (t: string, px: number) => Math.max(1, Math.ceil(larguraTexto(t) / Math.max(1, px)));
 
-const pxDe = (k: keyof RelacaoOpcoes) => COLS.find((c) => c.key === k)?.px ?? 100;
-
 const alturaLinha = (l: RelacaoLinha, op: RelacaoOpcoes): number => {
-  const li = Math.max(
-    op.veiculo ? linhasDeTexto(l.veiculo, pxDe("veiculo")) : 1,
-    op.alienacao ? linhasDeTexto(l.alienacao, pxDe("alienacao")) : 1,
-  );
+  // A linha cresce conforme a coluna de texto que precisar de mais linhas (marca/modelo,
+  // chassi, alienação, situação…), senão a página estoura quando uma coluna estreita quebra.
+  let li = 1;
+  for (const c of COLS) if (op[c.key]) li = Math.max(li, linhasDeTexto(c.get(l) || "—", c.px));
   // Uma linha por veículo (modelo da tela): sem a linha extra de débitos do modelo antigo.
   return H_ID + H_LINHA_EXTRA * (li - 1);
 };
@@ -204,7 +214,7 @@ export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): Pagina
   if (!pages.length) pages.push({ linhas: [], altura: 0 });
 
   // O bloco de totais fecha a relação: se não couber na última página, ganha a sua.
-  if (linhas.some((l) => temDebitos(l, op))) {
+  if (temTotais(linhas, op)) {
     const last = pages[pages.length - 1];
     if (last.altura + H_TOT > cap(pages.length - 1)) pages.push({ linhas: [], altura: 0 });
   }
@@ -222,11 +232,21 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
   const anosDesc = op.debitos ? [...anos].sort((a, b) => b - a) : [];
   const cols = COLS.filter((c) => op[c.key]);
   const m = (v: number) => (v ? formatCurrency(v) : "—");
+  // Nas células de valor não entra o símbolo "R$": ele aparece no rótulo de cada coluna, o que
+  // libera largura para as colunas de números caberem no A4 paisagem sem encolher a fonte.
+  const mc = (v: number) => (v ? v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—");
   const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  const nCols = 1 + cols.length + rotulos(anosDesc).length;
+  const colFipe = !!op.fipe;
+  const rot = rotulos(anosDesc);
+  // A largura que sobra das colunas de texto é dividida igual entre as colunas de valores
+  // (IPVA por ano, IPVA ant., licenciamento, multas, total e valor de mercado).
+  const nNum = rot.length + (colFipe ? 1 : 0);
+  const numPct = nNum ? (100 - PLACA_PCT - textoPct(cols)) / nNum : 0;
+  const numStyle = `style="width:${numPct.toFixed(2)}%"`;
+  const nCols = 1 + cols.length + rot.length + (colFipe ? 1 : 0);
   const paginas = montarPaginas(ordenadas, op);
   const temConjuntos = ordenadas.some((l) => l.conjunto);
-  const comDebitos = ordenadas.some((l) => temDebitos(l, op));
+  const comTotais = temTotais(ordenadas, op);
   const soma = (f: (l: RelacaoLinha) => number) => ordenadas.reduce((t, l) => t + f(l), 0);
 
   const celula = (c: Col, v: string) => {
@@ -239,24 +259,23 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     return esc(t);
   };
 
-  const rot = rotulos(anosDesc);
-  const head = `<th class="pl" style="width:5.5%">Placa</th>${cols.map((c) => `<th style="width:${c.width}">${c.label}</th>`).join("")}${rot.map((r) => `<th class="num">${r}</th>`).join("")}`;
-  // Uma linha por veículo, como na tabela da tela: identificação + valores por ano + multas + total.
+  const head = `<th class="pl" style="width:${PLACA_PCT}%">Placa</th>${cols.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${c.width}">${c.label}</th>`).join("")}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}${colFipe ? `<th class="num" ${numStyle}>Valor FIPE (R$)</th>` : ""}`;
+  // Uma linha por veículo, como na tabela da tela: identificação + valores por ano + multas + total + valor de mercado.
   const rowId = (l: RelacaoLinha) => {
     const tom = TOM_LINHA[(l.situacao || "").trim()] || "";
     const cls = [l.conjunto ? "cj" : "", tom].filter(Boolean).join(" ");
-    return `<tr${cls ? ` class="${cls}"` : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td>${celula(c, c.get(l))}</td>`).join("")}${valores(l, anosDesc, m).map((v) => `<td class="num">${v}</td>`).join("")}</tr>`;
+    return `<tr${cls ? ` class="${cls}"` : ""}><td class="pl">${esc(l.plate)}</td>${cols.map((c) => `<td${c.nw ? ' class="nw"' : ""}>${celula(c, c.get(l))}</td>`).join("")}${valores(l, anosDesc, mc).map((v) => `<td class="num">${v}</td>`).join("")}${colFipe ? `<td class="num">${mc(l.fipe || 0)}</td>` : ""}</tr>`;
   };
 
   // Totais no rodapé da tabela, alinhados com as colunas de valores (como o footer do grid da tela).
-  const totais = comDebitos ? `<tfoot><tr><td colspan="${nCols - rot.length}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td>${rot.map((_, i) => `<td class="num">${i < anosDesc.length
-      ? m(soma((l) => l.porAno?.[anosDesc[i]] || 0))
-      : m(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}</tr></tfoot>` : "";
+  const totais = comTotais ? `<tfoot><tr><td colspan="${nCols - nNum}" class="tot-l">Totais · ${ordenadas.length} veículo(s)</td>${rot.map((_, i) => `<td class="num">${i < anosDesc.length
+      ? mc(soma((l) => l.porAno?.[anosDesc[i]] || 0))
+      : mc(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}${colFipe ? `<td class="num">${mc(soma((l) => l.fipe || 0))}</td>` : ""}</tr></tfoot>` : "";
 
   const corpo = (p: PaginaRelacao, ultima: boolean) => p.linhas.length
     ? `<table class="rel"><thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
       + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l)).join("")}</tbody>${ultima ? totais : ""}</table>`
-    : (ultima && comDebitos ? `<table class="rel"><thead><tr>${head}</tr></thead>${totais}</table>` : "");
+    : (ultima && comTotais ? `<table class="rel"><thead><tr>${head}</tr></thead>${totais}</table>` : "");
 
   // Resumo (opcional): página inicial com totais por ano de IPVA, licenciamento e multas, para cavalos e demais.
   // Os anos que têm coluna própria (os dois mais recentes) saem um a um; de 2024 para trás somam em "Anos anteriores".
@@ -311,7 +330,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     table{border-collapse:collapse;table-layout:fixed}
     .rel{width:calc(100% - 12px)}
     .rel tr.cj td:first-child{box-shadow:inset 3px 0 0 #2B4C7E}
-    .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:break-word}
+    .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:normal;overflow-wrap:break-word}
+    .rel .nw{white-space:nowrap}
     .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
     .rel thead th.num{text-align:right;font-size:6pt;white-space:nowrap;padding:4px 2px}
     .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;white-space:nowrap}
@@ -323,7 +343,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     .rel tr.ton-a td{background:#fffbeb}
     .rel tr.ton-e td{background:#f0fdf4}
     .rel tfoot td{background:#f3f4f6;font-weight:700;border:1px solid #d1d5db;padding:4px 5px;font-size:8pt}
-    .rel tfoot td.num{font-family:'Courier New',monospace;font-size:7pt;padding:4px 2px}
+    .rel tfoot td.num{font-family:'Courier New',monospace;font-size:6.4pt;padding:4px 2px}
     .rel tfoot .tot-l{text-transform:uppercase;font-size:7pt;letter-spacing:.2px}
     .al,.st-v{color:#b91c1c;font-weight:600}.lv,.st-e{color:#15803d;font-weight:600}
     .st-a{color:#b45309;font-weight:600}.st-n{color:#6b7280}

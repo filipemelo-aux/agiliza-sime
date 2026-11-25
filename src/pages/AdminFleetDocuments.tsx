@@ -246,7 +246,7 @@ export default function AdminFleetDocuments() {
         for (const a of anosCol) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), ano: l.year ? String(l.year) : "", uf: l.uf || "", renavam: l.renavam || "", chassi: l.chassis || "",
           alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
-          situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total,
+          situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total, fipe: Number(l.fipe_valor || 0),
           cavalo: !!(vRes.data || []).find((v: any) => v.id === l.id && !['semirreboque', 'dolly', 'reboque'].includes(v.unit_category)),
           ipvaPorAnoTodos: l.ipvaAno, licPorAno: l.licAno, multasPorAno: l.multasAno };
       });
@@ -371,7 +371,7 @@ export default function AdminFleetDocuments() {
             </div>
             <div className="grid gap-2 text-xs">
               <span className="font-medium">Colunas</span>
-              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["fipe", "Valor de mercado (Tabela FIPE)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={!!printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
                 </label>

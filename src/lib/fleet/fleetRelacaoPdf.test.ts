@@ -119,14 +119,38 @@ describe("colunas ano e UF na relação impressa", () => {
   const company = { name: "X", docLine: "", address: "" };
   it("traz os rótulos e os valores das duas colunas por padrão", () => {
     const html = montarHtmlRelacao([L("AAA1A11", "2021", "MA")], [2026, 2025], OPCOES_PADRAO, company);
-    expect(html).toContain("<th style=\"width:4%\">Ano</th>");
-    expect(html).toContain("<th style=\"width:3.5%\">UF</th>");
-    expect(html).toMatch(/<td>2021<\/td><td>MA<\/td>/);
+    expect(html).toContain("<th class=\"nw\" style=\"width:3.8%\">Ano</th>");
+    expect(html).toContain("<th class=\"nw\" style=\"width:3%\">UF</th>");
+    expect(html).toMatch(/<td class="nw">2021<\/td><td class="nw">MA<\/td>/);
   });
   it("esconde as duas colunas quando desmarcadas", () => {
     const html = montarHtmlRelacao([L("AAA1A11", "2021", "MA")], [2026, 2025], { ...OPCOES_PADRAO, ano: false, uf: false }, company);
     expect(html).not.toContain(">Ano</th>");
     expect(html).not.toContain(">UF</th>");
-    expect(html).not.toMatch(/<td>2021<\/td><td>MA<\/td>/);
+    expect(html).not.toMatch(/<td class="nw">2021<\/td><td class="nw">MA<\/td>/);
+  });
+});
+
+describe("coluna de valor de mercado na relação impressa", () => {
+  const L = (plate: string, fipe: number): RelacaoLinha => ({
+    plate, veiculo: "SCANIA R 450", ano: "2021", uf: "MA", renavam: "01234567890", chassi: "98PTT47MSLB110598",
+    alienacao: "Livre", situacao: "Em dia", porAno: {}, multas: 0, total: 0, fipe,
+  });
+  const company = { name: "X", docLine: "", address: "" };
+
+  it("traz o rótulo e o valor de cada veículo por padrão", () => {
+    const html = montarHtmlRelacao([L("AAA1A11", 454433)], [2026, 2025], OPCOES_PADRAO, company);
+    expect(html).toContain(">Valor FIPE (R$)</th>");
+    expect(html).toMatch(/<td class="num">454\.433,00<\/td>/);
+  });
+  it("soma o valor de mercado no rodapé, mesmo sem nenhum débito em aberto", () => {
+    const html = montarHtmlRelacao([L("AAA1A11", 454433), L("BBB1B11", 128500)], [2026, 2025], OPCOES_PADRAO, company);
+    expect(html).toContain("Totais · 2 veículo(s)");
+    expect(html).toMatch(/<td class="num">582\.933,00<\/td><\/tr><\/tfoot>/);
+  });
+  it("esconde a coluna quando desmarcada", () => {
+    const html = montarHtmlRelacao([L("AAA1A11", 454433)], [2026, 2025], { ...OPCOES_PADRAO, fipe: false }, company);
+    expect(html).not.toContain("Valor FIPE");
+    expect(html).not.toMatch(/<td class="num">454\.433,00<\/td>/);
   });
 });
