@@ -27,7 +27,7 @@ export function FipeDialog({ open, onOpenChange, vehicle, onSaved }: Props) {
 
   useEffect(() => {
     if (!open || !vehicle) return;
-    setPreco(null); setModelos([]); setAnos([]); setManual("");
+    setPreco(null); setMarca(""); setModelo(""); setModelos([]); setAnos([]); setManual("");
     setFiltro(vehicle.fipe_modelo_id ? "" : (vehicle.model || "").split(" ")[0] || "");
     fipeMarcas("caminhoes").then((ms) => {
       setMarcas(ms);
