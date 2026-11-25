@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/lib/notice";
 import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-card";
+import { InfoSimplesPanel } from "@/components/superadmin/InfoSimplesPanel";
 
 const fmtCnpj = (c: string) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 
@@ -63,6 +64,7 @@ export default function SuperAdminTenants() {
 
   return (
     <SuperAdminLayout>
+      <InfoSimplesPanel />
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <div>
           <PageTitle>Empresas cadastradas</PageTitle>

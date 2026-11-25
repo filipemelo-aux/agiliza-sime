@@ -84,6 +84,58 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
+    if (body.action === "infosimples_account") {
+      const lov = Deno.env.get("LOVABLE_API_KEY");
+      const key = Deno.env.get("UDC_INFOSIMPLES_API_KEY");
+      if (!lov || !key) return json({ configured: false, active: false });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      try {
+        const response = await fetch("https://connector-gateway.lovable.dev/udc_infosimples/api/admin/account", {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${lov}`,
+            "X-Connection-Api-Key": key,
+            Accept: "application/json",
+          },
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result || result.code !== 200) {
+          return json({
+            configured: true,
+            active: false,
+            message: result?.code_message || `O InfoSimples respondeu com status ${response.status}.`,
+          });
+        }
+        const account = Array.isArray(result.data) ? result.data[0] : result.data;
+        if (!account) return json({ configured: true, active: false, message: "O InfoSimples não retornou os dados da conta." });
+        return json({
+          configured: true,
+          active: true,
+          checked_at: new Date().toISOString(),
+          account: {
+            name: account.name ?? null,
+            prepaid: account.prepaid === true,
+            balance: account.balance ?? null,
+            balance_threshold: account.balance_threshold ?? null,
+            current_bill: account.current_bill ?? null,
+            current_usage: account.current_usage ?? null,
+            min_bill: account.min_bill ?? null,
+          },
+        });
+      } catch (error) {
+        const timedOut = error instanceof Error && error.name === "AbortError";
+        return json({
+          configured: true,
+          active: false,
+          message: timedOut ? "O InfoSimples demorou para responder. Tente atualizar novamente." : "Não foi possível comunicar com o InfoSimples.",
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
     if (body.action === "open_finance_status" || body.action === "open_finance_sync") {
       const key = (Deno.env.get("OPEN_FINANCE_API_URL") || "").trim();
       if (!key) return json({ configured: false });
