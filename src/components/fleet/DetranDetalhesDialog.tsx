@@ -9,6 +9,7 @@ import { FileDown } from "lucide-react";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { toast } from "@/lib/notice";
 import { exportDetranDetalhesPdf } from "@/lib/fleet/detranDetalhesPdf";
+import { datasDebito } from "@/lib/fleet/multaDatas";
 
 type Consulta = { id: string; uf: string; created_at: string; price: string | null; response: unknown; importacao: any };
 
@@ -46,7 +47,7 @@ export function DetranDetalhesDialog({ open, onOpenChange, vehicle }: { open: bo
             {c?.importacao?.aviso && <div className="rounded border border-warning/40 bg-warning/10 p-2 break-words">{c.importacao.aviso}</div>}
             {c?.importacao?.debitos?.length ? <div className="rounded border p-2 space-y-1">
               <div className="font-medium">Débitos identificados</div>
-              {c.importacao.debitos.map((d: any, i: number) => <div key={i} className="flex justify-between gap-2 min-w-0"><span className="min-w-0 break-words [overflow-wrap:anywhere]">{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono shrink-0 whitespace-nowrap">{formatCurrency(d.valor)}</span></div>)}
+              {c.importacao.debitos.map((d: any, i: number) => { const dt = datasDebito(d, c.response); return <div key={i} className="flex justify-between gap-2 min-w-0"><span className="min-w-0 break-words [overflow-wrap:anywhere]">{d.tipo} {d.ano} — {d.descricao}<span className="flex flex-wrap gap-1 mt-0.5">{dt.infracao && <span className="rounded bg-warning/15 text-warning-foreground px-1.5 font-medium">Infração: {dt.infracao}</span>}<span className="rounded bg-destructive/10 text-destructive px-1.5 font-medium">Vencimento: {dt.vencimento ?? "não informado"}</span></span></span><span className="font-mono shrink-0 whitespace-nowrap">{formatCurrency(d.valor)}</span></div>; })}
             </div> : null}
             <div className="rounded border p-2 min-w-0 overflow-hidden"><Valor v={c?.response} /></div>
           </div>}

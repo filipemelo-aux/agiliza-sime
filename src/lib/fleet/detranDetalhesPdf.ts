@@ -3,6 +3,7 @@ import { downloadHtmlAsPdf } from "@/lib/htmlToPdf";
 import { buildPrintHeaderHtml, fetchMatrizHeader } from "@/lib/printHeader";
 import { printBrandFooterHtml } from "@/lib/printBrand";
 import { formatCurrency } from "@/lib/masks";
+import { datasDebito } from "./multaDatas";
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -34,9 +35,9 @@ export async function exportDetranDetalhesPdf(c: { plate: string; uf: string; cr
   </style></head><body>
   ${buildPrintHeaderHtml({ company, title: "Consulta de débitos — Detran", subtitle: `Placa ${esc(c.plate)} · ${esc(c.uf)} · ${quando}` })}
   <h2>Débitos identificados</h2>
-  ${debitos.length ? `<table><tr><th style="width:14%">Tipo</th><th style="width:8%">Ano</th><th style="width:12%">Vencimento</th><th>Descrição</th><th class="r" style="width:14%">Valor</th></tr>
-    ${debitos.map((d) => `<tr><td>${esc(d.tipo)}</td><td>${esc(d.ano)}</td><td>${esc(String(d.vencimento ?? "").split("-").reverse().join("/"))}</td><td>${esc(d.descricao)}</td><td class="r">${formatCurrency(d.valor)}</td></tr>`).join("")}
-    <tfoot><tr><td colspan="4">Total</td><td class="r">${formatCurrency(debitos.reduce((t, d) => t + Number(d.valor || 0), 0))}</td></tr></tfoot></table>` : "<p>Nenhum débito com valor identificado.</p>"}
+  ${debitos.length ? `<table><tr><th style="width:12%">Tipo</th><th style="width:7%">Ano</th><th style="width:13%">Data da infração</th><th style="width:11%">Vencimento</th><th>Descrição</th><th class="r" style="width:14%">Valor</th></tr>
+    ${debitos.map((d) => { const dt = datasDebito(d, c.response); return `<tr><td>${esc(d.tipo)}</td><td>${esc(d.ano)}</td><td>${esc(dt.infracao ?? "—")}</td><td>${esc(dt.vencimento ?? "—")}</td><td>${esc(d.descricao)}</td><td class="r">${formatCurrency(d.valor)}</td></tr>`; }).join("")}
+    <tfoot><tr><td colspan="5">Total</td><td class="r">${formatCurrency(debitos.reduce((t, d) => t + Number(d.valor || 0), 0))}</td></tr></tfoot></table>` : "<p>Nenhum débito com valor identificado.</p>"}
   <h2>Resposta do Detran</h2>${itens.map(bloco).join("<hr/>")}
   ${printBrandFooterHtml()}</body></html>`;
   await downloadHtmlAsPdf(html, `Consulta Detran ${c.plate} ${c.created_at.slice(0, 10)}.pdf`);
