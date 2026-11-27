@@ -320,8 +320,8 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
     .rel .nw{white-space:nowrap}
     .rel thead th{background:#f3f4f6;font-family:'Courier New',monospace;font-weight:700;font-size:6pt;text-transform:uppercase;letter-spacing:0;padding:4px 5px}
     .rel thead th.num{text-align:right;white-space:nowrap;padding:4px 2px}
-    .rel td.pl{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;white-space:nowrap}
-    .rel td.compact{font-size:7pt}
+    .rel tbody td{font-size:7pt}
+    .rel td.pl{font-family:'Courier New',monospace;font-weight:700;white-space:nowrap}
     .rel tbody tr:not(.gr){height:24px}
     .rel td.num{text-align:right;font-family:'Courier New',monospace;font-size:7pt;white-space:nowrap;vertical-align:middle;padding:3px 2px}
     .rel tr.gr td{background:#e8eef7;color:#2B4C7E;font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px;border-color:#c7d3e6}
