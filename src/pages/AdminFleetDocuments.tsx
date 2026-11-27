@@ -17,8 +17,6 @@ import { SearchFilterCard, FilterField } from "@/components/ui/search-filter-car
 import { rowToneClass, StatusLegend, RowTone } from "@/components/ui/status-row";
 import { VehicleDocumentsTab } from "@/components/fleet/VehicleDocumentsTab";
 import { DetranConsultaDialog } from "@/components/fleet/DetranConsultaDialog";
-import { DebtAutoConfigDialog } from "@/components/fleet/DebtAutoConfigDialog";
-import { Settings as SettingsIcon } from "lucide-react";
 import { FipeDialog } from "@/components/fleet/FipeDialog";
 import { DetranDetalhesDialog } from "@/components/fleet/DetranDetalhesDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,7 +99,6 @@ export default function AdminFleetDocuments() {
   const [detalhesOpen, setDetalhesOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
-  const [autoOpen, setAutoOpen] = useState(false);
   const [printOp, setPrintOp] = useState<RelacaoOpcoes>(OPCOES_PADRAO);
   const [printOrdem, setPrintOrdem] = useState<OrdemRelacao>("conjuntos");
 
@@ -329,11 +326,9 @@ export default function AdminFleetDocuments() {
             { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
             { key: "fipe", label: "Valor FIPE / mercado", icon: BadgeDollarSign, mode: "single", disabled: !single, onClick: () => single && setFipeOpen(true) },
             { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: () => setPrintOpen(true) },
-            { key: "auto", label: "Configurar consulta automática", icon: SettingsIcon, mode: "create", pinEnd: true, disabled: selected.size > 0, onClick: () => setAutoOpen(true) },
           ]}
           selectedCount={selected.size}
         />
-        <DebtAutoConfigDialog open={autoOpen} onOpenChange={setAutoOpen} />
 
         <DataGrid
           rows={filtradas}
