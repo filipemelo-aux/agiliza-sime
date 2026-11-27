@@ -111,7 +111,7 @@ const COLS: Col[] = [
   { key: "uf", label: "UF", fixed: 30, get: (l) => l.uf, nw: true },
   { key: "renavam", label: "RENAVAM", fixed: 90, get: (l) => l.renavam, nw: true },
   { key: "chassi", label: "Chassi", weight: 1.3, get: (l) => l.chassi },
-  { key: "alienacao", label: "Sit. veículo", weight: 1.5, get: (l) => l.alienacao },
+  { key: "alienacao", label: "Impedimentos", weight: 1.5, get: (l) => l.alienacao },
   { key: "situacao", label: "Situação", fixed: 76, get: (l) => l.situacao },
 ];
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
@@ -226,9 +226,9 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
     const t = (v || "").trim() || "—";
     if (c.key === "situacao") return `<span class="${SITUACAO_CLASSE[t] || "st-n"}">${esc(t)}</span>`;
     if (c.key === "alienacao") {
-      if (/^alienad/i.test(t)) return `<span class="al">${esc(t)}</span>`;
       if (/^inten/i.test(t)) return `<span class="al">${esc(t)}</span>`;
       if (/^livre/i.test(t)) return `<span class="lv">${esc(t)}</span>`;
+      if (t !== "—") return `<span class="al">${esc(t)}</span>`;
     }
     return esc(t);
   };
