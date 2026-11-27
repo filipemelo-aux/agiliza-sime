@@ -63,7 +63,9 @@ export function consolidarResultados(uf: string, resultados: ResultadoFonte[], h
   const uteis = resultados.filter(r => r.status !== 'falha')
   const status = !uteis.length ? 'falha' : resultados.some(r => r.status === 'falha' || r.status === 'parcial') ? 'parcial' : 'sucesso'
   const avisos = resultados.filter(r => r.status !== 'sucesso').map(r => `${r.orgao}: ${r.motivo}${r.erros.length ? ` ${r.erros.join('; ')}` : ''}`)
-  if (uf === 'MA' || uf === 'TO') avisos.push('Débitos anteriores ausentes nesta resposta foram preservados; ausência não comprova pagamento.')
+  if (uf === 'MA' || uf === 'TO') avisos.push(status === 'sucesso'
+    ? 'Débitos anteriores ausentes nesta resposta completa foram marcados como pagos.'
+    : 'Débitos anteriores ausentes nesta resposta incompleta foram preservados; ausência não comprova pagamento.')
   if (uf === 'GO') avisos.push('Licenciamento e multas do Detran-GO não fazem parte desta consulta.')
   const debitos: Debito[] = uteis.flatMap(r => r.dados.flatMap(item => r.endpoint === 'sefaz/to/ipva' ? normalizarSefazTO(item, hoje) : normalizar(uf, item, hoje)))
   const valores = resultados.map(r => r.custo).filter((n): n is number => n !== null)
@@ -73,9 +75,9 @@ export function consolidarResultados(uf: string, resultados: ResultadoFonte[], h
     receipt: uteis.flatMap(r => r.recibos) }
 }
 
-/** MA/TO: não inferir pagamento da ausência de um débito, inclusive em retorno parcial. */
+/** Quita ausentes somente quando todas as fontes necessárias responderam por completo. */
 export function podeQuitarAusente(uf: string, observacoes: string, status: string) {
-  if (status !== 'sucesso' || uf === 'MA' || uf === 'TO') return false
+  if (status !== 'sucesso') return false
   return uf !== 'GO' || observacoes.includes('[detran:IPVA-SEFAZGO-')
 }
 

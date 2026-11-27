@@ -1,4 +1,5 @@
 # Roadmap
+- [x] ROB4I08: resposta completa quita débitos ausentes e parcial/falha preserva; cinco débitos pagos corrigidos e somente a multa nova de R$ 260,32 permanece aberta. 34 testes aprovados, função publicada e tela autenticada conferida sem nova consulta paga.
 - [x] Melhorar consultas manuais MA/TO: cadastro validado, falhas por fonte no histórico/PDF, resultados parciais aproveitados e débitos anteriores preservados sem repetição automática; SEFAZ-MA confirmada no retorno existente. 48 testes aprovados, função publicada, resultados simulados conferidos na tela autenticada e histórico/PDF real MA conferidos sem consultas pagas; estabilidade dos órgãos não é garantida.
 - [x] Remover consulta automática da frota: desativar configurações e pedidos pendentes, excluir agendamento e função, remover botão/janela e preservar consultas manuais e histórico.
 - [x] Reconhecer CPF/CNPJ do proprietário em vínculos antigos e atuais, priorizando o cadastro da filial selecionada; ROA9H77 preencheu automaticamente o CNPJ da filial Tocantins e habilitou Consultar na tela autenticada, sem nova cobrança; 12 testes aprovados e função publicada.

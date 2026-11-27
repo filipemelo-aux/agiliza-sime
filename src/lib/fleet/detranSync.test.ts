@@ -59,6 +59,15 @@ describe('Handler de consulta e gravação de histórico', () => {
     expect(r.historico).toHaveLength(1); expect(r.historico[0].importacao).toMatchObject({ status: 'parcial', gravados: 1 })
     expect(r.pagamentos).toEqual([]); expect(r.fetchMock).toHaveBeenCalledTimes(2)
   })
+  it('MA completo grava a multa nova e marca como pago somente o débito antigo ausente', async () => {
+    const completo = { ipva: [], outros_debitos_sefaz: [], debitos: [], debitos_autuacao: [], infracoes_autuacao: [],
+      penalidades_multas: [{ auto: '19/08/2026-UF:DN-000300-N003324783-5002-0-Multa, por não identificação do condutor infrator, imposta à pessoa jurídica Renainf: 11699169969 Em Aberto', normalizado_valor: 260.32, local_complemento: '19/08/2026', descricao: 'Multa, por não identificação do condutor infrator' }] }
+    const r = await executar('MA', { 'detran/ma/licenciamento': { code: 200, data: [completo] } })
+    expect(r.body).toMatchObject({ ok: true, parcial: false, importacao: { status: 'sucesso', gravados: 1, quitados: 1 } })
+    expect(r.documentos[0]).toMatchObject({ id: 'antigo', status_pagamento: 'Pago' })
+    expect(r.documentos[1]).toMatchObject({ tipo_documento: 'Multa', valor_total: 260.32, status_pagamento: 'Vencido' })
+    expect(r.pagamentos).toHaveLength(1)
+  })
   it('MA bloqueado grava a tentativa no histórico e não altera documentos', async () => {
     const r = await executar('MA', { 'detran/ma/licenciamento': { code: 613, errors: ['Servidor bloqueou'] } })
     expect(r.body).toMatchObject({ ok: false, history_saved: true, importacao: { status: 'falha', gravados: 0 } })

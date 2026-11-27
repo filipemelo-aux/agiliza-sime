@@ -24,9 +24,10 @@ describe('Consultas manuais MA/TO por fonte', () => {
     expect(avaliarFonte('detran/ma/licenciamento', 200, { code: 200, data: [{ ipva: [] }] }, 10).status).toBe('parcial')
     expect(avaliarFonte('detran/ma/licenciamento', 200, { code: 200, data: [maCompleto] }, 10).status).toBe('sucesso')
   })
-  it.each(['MA', 'TO'])('%s não quita débitos ausentes nem após sucesso', uf => {
-    expect(podeQuitarAusente(uf, '[detran:IPVA-SEFAZTO-2025]', 'sucesso')).toBe(false)
+  it.each(['MA', 'TO'])('%s quita débitos ausentes somente após resposta completa', uf => {
+    expect(podeQuitarAusente(uf, '[detran:IPVA-SEFAZTO-2025]', 'sucesso')).toBe(true)
     expect(podeQuitarAusente(uf, '[detran:MULTA-123]', 'parcial')).toBe(false)
+    expect(podeQuitarAusente(uf, '[detran:MULTA-123]', 'falha')).toBe(false)
   })
   it('GO preserva restrição de quitação às suas tags IPVA', () => {
     expect(podeQuitarAusente('GO', '[detran:MULTA-123]', 'sucesso')).toBe(false)
