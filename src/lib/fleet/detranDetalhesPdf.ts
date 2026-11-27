@@ -5,7 +5,7 @@ import { printBrandFooterHtml } from "@/lib/printBrand";
 import { formatCurrency } from "@/lib/masks";
 import { datasDebito } from "./multaDatas";
 
-const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] ?? c));
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 const oculto = (k: string) => k.startsWith("normalizado_") || /url|receipt|codigo_verificacao/i.test(k);
 const vazio = (v: unknown) => v == null || v === "" || (Array.isArray(v) && !v.length);
@@ -34,10 +34,12 @@ export async function exportDetranDetalhesPdf(c: { plate: string; uf: string; cr
     th{background:#f3f4f6;font-weight:600}.kv th{width:32%}.r{text-align:right}tfoot td{font-weight:700}
   </style></head><body>
   ${buildPrintHeaderHtml({ company, title: "Consulta de débitos — Detran", subtitle: `Placa ${esc(c.plate)} · ${esc(c.uf)} · ${quando}` })}
+  ${c.importacao?.aviso ? `<p><strong>Aviso:</strong> ${esc(c.importacao.aviso)}</p>` : ""}
+  ${c.importacao?.fontes?.length ? `<h2>Resultado por órgão</h2><table><tr><th>Órgão</th><th>Situação / código</th><th>Detalhes</th></tr>${c.importacao.fontes.map((f: any) => `<tr><td>${esc(f.orgao)}</td><td>${esc(({ sucesso: "Concluída", parcial: "Dados parciais", falha: "Falhou", sem_debitos: "Sem IPVA retornado" } as Record<string, string>)[f.status] ?? f.status)}${f.codigo != null ? ` · ${esc(f.codigo)}` : ""}${f.http_status != null ? ` · HTTP ${esc(f.http_status)}` : ""}</td><td>${esc([f.motivo, ...(f.erros ?? [])].filter(Boolean).join(" "))}${f.custo != null ? ` · Custo: ${formatCurrency(f.custo)}` : ""}</td></tr>`).join("")}</table>` : ""}
   <h2>Débitos identificados</h2>
   ${debitos.length ? `<table><tr><th style="width:12%">Tipo</th><th style="width:7%">Ano</th><th style="width:13%">Data da infração</th><th style="width:11%">Vencimento</th><th>Descrição</th><th class="r" style="width:14%">Valor</th></tr>
     ${debitos.map((d) => { const dt = datasDebito(d, c.response); return `<tr><td>${esc(d.tipo)}</td><td>${esc(d.ano)}</td><td>${esc(dt.infracao ?? "—")}</td><td>${esc(dt.vencimento ?? "—")}</td><td>${esc(d.descricao)}</td><td class="r">${formatCurrency(d.valor)}</td></tr>`; }).join("")}
-    <tfoot><tr><td colspan="5">Total</td><td class="r">${formatCurrency(debitos.reduce((t, d) => t + Number(d.valor || 0), 0))}</td></tr></tfoot></table>` : "<p>Nenhum débito com valor identificado.</p>"}
+    <tfoot><tr><td colspan="5">Total</td><td class="r">${formatCurrency(debitos.reduce((t, d) => t + Number(d.valor || 0), 0))}</td></tr></tfoot></table>` : `<p>${c.importacao?.status === "falha" ? "Consulta não concluída; débitos anteriores preservados." : c.importacao?.status === "parcial" ? "Nenhum débito identificado nas fontes disponíveis; consulta incompleta." : "Nenhum débito com valor identificado."}</p>`}
   <h2>Resposta do Detran</h2>${itens.map(bloco).join("<hr/>")}
   ${printBrandFooterHtml()}</body></html>`;
   await downloadHtmlAsPdf(html, `Consulta Detran ${c.plate} ${c.created_at.slice(0, 10)}.pdf`);

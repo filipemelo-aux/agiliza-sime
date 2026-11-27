@@ -27,6 +27,7 @@ import {
   FleetDocLike, FleetDocTipo, abertoPorAno, ANO_INICIAL_ABERTOS, FleetSituacao, ResumoTipo, resumoPorTipo, situacaoComConsulta, situacaoVeiculo,
 } from "@/lib/fleet/fleetDocumentStatus";
 import { extrairAlienacao, type Alienacao } from "@/lib/fleet/alienacao";
+import { consultaSemDebitosConfirmados } from "../../supabase/functions/vehicle-debts-sync/resultado";
 
 interface VehicleRow {
   id: string;
@@ -143,7 +144,7 @@ export default function AdminFleetDocuments() {
         const debitos = c.importacao?.debitos;
         if (!Array.isArray(debitos)) continue; // consulta unificada não lista débitos
         vistos.add(c.vehicle_id);
-        if (debitos.length === 0) limpas.add(c.vehicle_id);
+        if (consultaSemDebitosConfirmados(c.importacao)) limpas.add(c.vehicle_id);
       }
       // UF de registro do proprietário: o estado do cadastro da empresa/dono (mesma regra da consulta ao Detran).
       const donos = [...new Set(vs.map((v) => v.owner_id).filter(Boolean))] as string[];

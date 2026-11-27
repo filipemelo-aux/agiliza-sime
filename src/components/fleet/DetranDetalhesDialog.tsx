@@ -10,6 +10,7 @@ import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { toast } from "@/lib/notice";
 import { exportDetranDetalhesPdf } from "@/lib/fleet/detranDetalhesPdf";
 import { datasDebito } from "@/lib/fleet/multaDatas";
+import { DetranFontes } from "./DetranFontes";
 
 type Consulta = { id: string; uf: string; created_at: string; price: string | null; response: unknown; importacao: any };
 
@@ -37,13 +38,14 @@ export function DetranDetalhesDialog({ open, onOpenChange, vehicle }: { open: bo
             <div className="flex items-center justify-between gap-2">
             <Select value={sel} onValueChange={setSel}>
               <SelectTrigger className="h-8 text-xs w-[280px]"><SelectValue /></SelectTrigger>
-              <SelectContent>{lista.map((x) => <SelectItem key={x.id} value={x.id}>{quando(x.created_at)} · {x.uf}</SelectItem>)}</SelectContent>
+               <SelectContent>{lista.map((x) => <SelectItem key={x.id} value={x.id}>{quando(x.created_at)} · {x.uf}{x.importacao?.status === "falha" ? " · Falhou" : x.importacao?.status === "parcial" ? " · Parcial" : ""}</SelectItem>)}</SelectContent>
             </Select>
             <Button variant="outline" size="sm" disabled={!c || gerando} onClick={async () => {
               if (!c || !vehicle) return; setGerando(true);
               try { await exportDetranDetalhesPdf({ ...c, plate: vehicle.plate }); } catch (e) { toast.error("Não foi possível gerar o PDF: " + (e as Error).message); } finally { setGerando(false); }
             }}><FileDown className="h-4 w-4 mr-1" />Exportar PDF</Button>
             </div>
+            <DetranFontes fontes={c?.importacao?.fontes} />
             {c?.importacao?.aviso && <div className="rounded border border-warning/40 bg-warning/10 p-2 break-words">{c.importacao.aviso}</div>}
             {c?.importacao?.debitos?.length ? <div className="rounded border p-2 space-y-1">
               <div className="font-medium">Débitos identificados</div>

@@ -1,13 +1,15 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@3'
-import { endpointDebitos, endpointIpvaComplementar, normalizarSefazTO, documentoObrigatorio, normalizar, type Debito } from './normalize.ts'
+import { endpointDebitos, endpointIpvaComplementar, documentoObrigatorio } from './normalize.ts'
 import { documentoDoProprietario } from './proprietario.ts'
+import { consolidarResultados, podeQuitarAusente, validarCadastroConsulta } from './resultado.ts'
+import { consultarFonte } from './transporte.ts'
 
 const GATEWAY = 'https://connector-gateway.lovable.dev/udc_infosimples'
 const Body = z.object({
   vehicle_id: z.string().uuid(),
-  uf: z.string().length(2),
+  uf: z.string().trim().toUpperCase().regex(/^(AC|AL|AM|AP|BA|CE|DF|ES|GO|MA|MG|MS|MT|PA|PB|PE|PI|PR|RJ|RN|RO|RR|RS|SC|SE|SP|TO)$/),
   documento: z.string().max(20).optional(),
   login_cpf: z.string().max(20).optional(),
   login_senha: z.string().max(200).optional(),
@@ -24,11 +26,13 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get('Authorization')
     if (!auth) return json({ error: 'Não autenticado' }, 401)
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const url = Deno.env.get('SUPABASE_URL'), anon = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!serviceKey || !url || !anon) return json({ error: 'Serviço indisponível' }, 500)
     const interno = auth === `Bearer ${serviceKey}`
     const sb = interno
-      ? createClient(Deno.env.get('SUPABASE_URL')!, serviceKey)
-      : createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } })
+      ? createClient(url, serviceKey)
+      : createClient(url, anon, { global: { headers: { Authorization: auth } } })
     const p = Body.safeParse(await req.json())
     if (!p.success) return json({ error: p.error.flatten().fieldErrors }, 400)
     let u: { user: { id: string | null } }
@@ -42,7 +46,7 @@ Deno.serve(async (req) => {
     }
     // RLS garante que o veículo é do tenant do usuário; no modo interno filtramos pelo tenant
     let vq = sb.from('vehicles').select('plate, renavam, chassis, owner_id').eq('id', p.data.vehicle_id)
-    if (interno) vq = vq.eq('tenant_id', p.data.tenant_id!)
+    if (interno && p.data.tenant_id) vq = vq.eq('tenant_id', p.data.tenant_id)
     const { data: v } = await vq.maybeSingle()
     if (!v) return json({ error: 'Veículo não encontrado' }, 404)
     const novoChassi = (p.data.chassi || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -69,6 +73,8 @@ Deno.serve(async (req) => {
       documentoCadastro = documentoDoProprietario(v.owner_id, owners ?? [])
     }
     const doc = (documentoCadastro || p.data.documento || '').replace(/\D/g, '')
+    const erroCadastro = validarCadastroConsulta(uf, base.placa.toUpperCase(), base.renavam, doc)
+    if (erroCadastro) return json({ error: erroCadastro }, 400)
     if (documentoObrigatorio(uf) && !doc) return json({ error: 'O Detran-TO exige CPF ou CNPJ do proprietário. Informe o documento antes de consultar.' }, 400)
     if (doc && (!soPlacaRenavam || uf === 'TO')) {
       if (doc.length !== 11 && doc.length !== 14) return json({ error: 'Informe CPF com 11 dígitos ou CNPJ com 14 dígitos do proprietário.' }, 400)
@@ -77,49 +83,31 @@ Deno.serve(async (req) => {
     if (p.data.login_cpf && !soPlacaRenavam) form.set('login_cpf', p.data.login_cpf.replace(/\D/g, ''))
     if (p.data.login_senha && !soPlacaRenavam) form.set('login_senha', p.data.login_senha)
 
-    const t0 = Date.now()
-    // One retry when the state site times out, while staying under the function time limit.
-    const chamar = async (ep: string, body: URLSearchParams, repetir = true) => {
-      for (let tentativa = 0; ; tentativa++) {
-        const r = await fetch(`${GATEWAY}/api/v2/consultas/${ep}`, {
+    const chamar = (ep: string, body: URLSearchParams, repetir = false) => consultarFonte(ep, () =>
+      fetch(`${GATEWAY}/api/v2/consultas/${ep}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${lov}`, 'X-Connection-Api-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body,
-        })
-        const text = await r.text()
-        let out: any = null; try { out = JSON.parse(text) } catch { /* gateway error */ }
-        const lento = r.status === 502 || r.status === 504 || out?.code === 605 || text.includes('timeout')
-        if (repetir && uf !== 'MA' && lento && tentativa === 0 && Date.now() - t0 < 40000) continue
-        return { r, text, out, lento }
-      }
-    }
+          body, signal: AbortSignal.timeout(70000),
+        }), [lov, key, serviceKey, p.data.login_senha ?? ''], repetir)
     const epIpva = endpointIpvaComplementar(uf)
     const formIpva = new URLSearchParams({ ...base, timeout: '35', ...(doc ? { [doc.length > 11 ? 'cnpj' : 'cpf']: doc } : {}) })
-    const [principal, ipvaRes] = await Promise.all([chamar(endpoint, form), epIpva ? chamar(epIpva, formIpva, false) : Promise.resolve(null)])
-    const { r, text, lento } = principal
-    if (!r.ok || !principal.out) { console.error(`InfoSimples [${r.status}]: ${text}`)
-      return json({ error: lento ? `O site do ${uf === 'GO' ? 'SEFAZ' : 'Detran'}-${uf} demorou demais para responder (instabilidade do órgão). Tente novamente em alguns minutos.` : `Falha na InfoSimples (${r.status})`, status: r.status, details: text }, 200) }
-    const out = principal.out
-    // SEFAZ-GO: 612 = nenhum IPVA em aberto.
-    let avisoGo: string | null = null
-    if (uf === 'GO' && out.code === 612) {
-      avisoGo = `SEFAZ-GO: nenhum IPVA em aberto para esta placa${(out.errors ?? []).length ? ` (${out.errors.join('; ')})` : ''}. Licenciamento e multas do Detran-GO não fazem parte desta consulta.`
-      out.code = 200; out.data = [{ _resultado: avisoGo, site_receipt: out.site_receipts?.[0] ?? null }]
+    // MA/TO: cada clique faz uma tentativa por fonte, sem repetição automática.
+    const resultados = await Promise.all([chamar(endpoint, form, uf !== 'MA' && uf !== 'TO'), ...(epIpva ? [chamar(epIpva, formIpva)] : [])])
+    const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
+    const resumo = consolidarResultados(uf, resultados, hoje)
+    for (const fonte of resumo.fontes) console.info(JSON.stringify({ evento: 'consulta_frota', uf, ...fonte }))
+    const importacao = { status: resumo.status, fontes: resumo.fontes, gravados: 0, quitados: 0, debitos: resumo.debitos, aviso: resumo.aviso }
+    const salvarHistorico = () => sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: resumo.response, importacao: soPlacaRenavam || resumo.status === 'falha' ? importacao : null, price: resumo.price, created_by: u.user.id, ...(interno ? { tenant_id: p.data.tenant_id } : {}) })
+    if (resumo.status === 'falha') {
+      const { error: historyError } = await salvarHistorico()
+      return json({ ok: false, error: `${resumo.aviso ?? 'Consulta não concluída.'}${historyError ? ' Não foi possível guardar a tentativa no histórico.' : ''}`, importacao, history_saved: !historyError, price: resumo.price }, 200)
     }
-    if (out.code !== 200) return json({ error: lento ? `O site do ${uf === 'GO' ? 'SEFAZ' : 'Detran'}-${uf} demorou demais para responder. Tente novamente em alguns minutos.` : (out.code_message || 'Consulta não concluída'), code: out.code, errors: out.errors ?? [] }, 200)
-    // IPVA source is optional: code 612 = nothing found (no open IPVA), others = unavailable.
-    const ipvaOk = !!ipvaRes && ipvaRes.r.ok && (ipvaRes.out?.code === 200 || ipvaRes.out?.code === 612)
-    const avisoIpva = avisoGo ?? (ipvaRes && !ipvaOk ? `A SEFAZ-${uf} não respondeu a consulta de IPVA (${ipvaRes.lento ? 'instabilidade/tempo esgotado' : ipvaRes.out?.code_message ?? 'falha'}). O licenciamento foi atualizado; consulte de novo mais tarde para o IPVA.` : null)
-    const dadosIpva = ipvaOk ? (ipvaRes!.out.data ?? []) : []
-    let importacao: { gravados: number; quitados: number; debitos: Debito[]; aviso?: string | null } | null = null
     if (soPlacaRenavam) {
-      const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
-      const debitos = [...(out.data ?? []).flatMap((it: unknown) => normalizar(uf, it, hoje)), ...dadosIpva.flatMap((it: unknown) => normalizarSefazTO(it, hoje))]
+      const debitos = resumo.debitos
       const { data: atuais, error: e1 } = await sb.from('veiculo_documentos')
         .select('id, observacoes, status_pagamento').eq('veiculo_id', p.data.vehicle_id).like('observacoes', '%[detran:%')
       if (e1) return json({ error: 'Consulta feita, mas não foi possível ler os documentos: ' + e1.message }, 200)
       const tag = (c: string) => `[detran:${c}]`
-      let gravados = 0, quitados = 0
       for (const d of debitos) {
         const row = {
           veiculo_id: p.data.vehicle_id, tipo_documento: d.tipo, ano_exercicio: d.ano, valor_total: d.valor,
@@ -131,25 +119,21 @@ Deno.serve(async (req) => {
           ? await sb.from('veiculo_documentos').update(row).eq('id', ex.id)
           : await sb.from('veiculo_documentos').insert({ ...row, created_by: u.user.id, ...(interno ? { tenant_id: p.data.tenant_id } : {}) })
         if (error) return json({ error: `Consulta feita, mas falhou ao gravar ${d.tipo} ${d.ano}: ${error.message}` }, 200)
-        gravados++
+        importacao.gravados++
       }
-      // Débitos importados antes que o Detran não lista mais foram quitados
       const chaves = new Set(debitos.map((d) => tag(d.chave)))
-      // TO can omit unsupported debt descriptions: absence alone is not proof of payment.
-      // TO: only SEFAZ IPVA guides are trusted for payment when that query succeeded.
-      const elegiveis = uf === 'GO' ? (atuais ?? []).filter((a: any) => String(a.observacoes ?? '').includes('[detran:IPVA-SEFAZGO-')) : uf === 'TO' ? (ipvaOk ? (atuais ?? []).filter((a: any) => String(a.observacoes ?? '').includes('[detran:IPVA-SEFAZTO-')) : []) : atuais ?? []
+      const elegiveis = (atuais ?? []).filter(a => podeQuitarAusente(uf, String(a.observacoes ?? ''), resumo.status))
       for (const a of elegiveis) {
         const m = String((a as any).observacoes ?? '').match(/\[detran:[^\]]+\]/)
         if (m && !chaves.has(m[0]) && (a as any).status_pagamento !== 'Pago') {
           const { error } = await sb.from('veiculo_documentos').update({ status_pagamento: 'Pago' }).eq('id', (a as any).id)
-          if (!error) quitados++
+          if (!error) importacao.quitados++
         }
       }
-      importacao = { gravados, quitados, debitos, aviso: avisoIpva }
     }
-    const { error: historyError } = await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: [...(out.data ?? []), ...dadosIpva.map((d: any) => ({ _fonte: epIpva, ...d }))], importacao, price: out.header?.price ?? null, created_by: u.user.id, ...(interno ? { tenant_id: p.data.tenant_id } : {}) })
+    const { error: historyError } = await salvarHistorico()
     if (historyError) return json({ error: 'Débitos consultados, mas não foi possível guardar os detalhes: ' + historyError.message }, 200)
-    return json({ ok: true, aviso: avisoIpva, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
+    return json({ ok: true, parcial: resumo.status === 'parcial', aviso: resumo.aviso, importacao: soPlacaRenavam ? importacao : null, data: resumo.response, price: resumo.price, receipt: resumo.receipt, history_saved: true })
   } catch (e) {
     console.error(e); return json({ error: String((e as Error).message ?? e) }, 500)
   }

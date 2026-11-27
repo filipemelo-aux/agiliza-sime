@@ -9,13 +9,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProcessingOverlay } from "@/components/ui/processing-overlay";
 import { ExternalLink } from "lucide-react";
 import { documentoDoProprietario } from "../../../supabase/functions/vehicle-debts-sync/proprietario";
+import { validarCadastroConsulta, type Fonte } from "../../../supabase/functions/vehicle-debts-sync/resultado";
+import { DetranFontes } from "./DetranFontes";
 
 const UFS = "AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" ");
 const LOGIN_UFS = ["MG", "RS", "SC", "SP"];
 // UFs cujos débitos (IPVA, licenciamento, multas) são gravados na tabela; usam só placa e RENAVAM
 const UFS_DEBITOS = ["MA", "PA", "TO", "GO"];
 const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-type Imp = { gravados: number; quitados: number; aviso?: string | null; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
+type Imp = { gravados: number; quitados: number; status?: string; fontes?: Fonte[]; aviso?: string | null; debitos: { tipo: string; ano: number; valor: number; descricao: string }[] } | null;
 
 const rotulo = (k: string) => k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -84,8 +86,11 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
   const [res, setRes] = useState<{ data: unknown[]; price: string | null; importacao: Imp } | null>(null);
 
   const consultar = async () => {
-    if (!vehicle) return;
+    if (!vehicle || loading) return;
+    const cadastroErro = validarCadastroConsulta(uf, vehicle.plate.replace(/[^A-Z0-9]/gi, "").toUpperCase(), String(info?.renavam ?? "").replace(/\D/g, ""), documento.replace(/\D/g, ""));
+    if (cadastroErro) { setErro(cadastroErro); return; }
     setLoading(true); setErro(null); setRes(null);
+    try {
     const { data, error } = await supabase.functions.invoke("vehicle-debts-sync", {
       body: { vehicle_id: vehicle.id, uf, chassi: chassi.trim() || undefined, documento: documento || undefined, login_cpf: loginCpf || undefined, login_senha: loginSenha || undefined },
     });
@@ -97,16 +102,21 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
     }
     if (!data?.ok) {
       const extra = Array.isArray(data?.errors) && data.errors.length ? ` — ${data.errors.join("; ")}` : "";
+      if (data?.importacao) setRes({ data: [], price: data.price, importacao: data.importacao });
+      if (data?.history_saved) onSaved?.();
       setErro(`${data?.error ?? "Consulta não concluída"}${extra}`); return;
     }
     setRes({ data: data.data, price: data.price, importacao: data.importacao ?? null });
     if (data.importacao) onSaved?.();
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível concluir a consulta. Os dados anteriores foram preservados.");
+    } finally { setLoading(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setRes(null); setErro(null); setLoginSenha(""); } }}>
       <DialogContent className="max-w-3xl">
-        <ProcessingOverlay open={loading} label="Consultando o Detran..." />
+        <ProcessingOverlay open={loading} label={uf === "TO" ? "Consultando Detran-TO e SEFAZ-TO..." : uf === "MA" ? "Consultando Detran-MA / SEFAZ-MA..." : "Consultando o Detran..."} />
         <DialogHeader><DialogTitle>Consultar débitos no Detran — {vehicle?.plate}</DialogTitle></DialogHeader>
         <div className="grid gap-3 sm:grid-cols-4 text-xs">
           <div><Label className="text-xs">UF do veículo</Label>
@@ -125,18 +135,21 @@ export function DetranConsultaDialog({ open, onOpenChange, vehicle, onSaved }: {
           </>}
         </div>
         {uf === "GO" && <p className="text-[11px] text-muted-foreground">Goiás: consulta o IPVA na SEFAZ-GO só com placa e RENAVAM. Licenciamento e multas do Detran-GO exigem gov.br do proprietário e não vêm nesta consulta.</p>}
+        {uf === "MA" && <p className="text-[11px] text-muted-foreground">Maranhão: o retorno do Detran inclui IPVA e outros débitos da SEFAZ-MA, quando disponíveis. Auto de infração tributário aparece como IPVA, separado das multas de trânsito.</p>}
+        {uf === "TO" && <p className="text-[11px] text-muted-foreground">Tocantins: Detran e SEFAZ são consultados separadamente. Se um órgão falhar, os dados disponíveis do outro são aproveitados.</p>}
         <p className="text-[11px] text-muted-foreground">Cada consulta é cobrada pela InfoSimples conforme a UF.</p>
         <div className="flex justify-end"><Button onClick={consultar} disabled={loading || !vehicle || !info?.renavam || (uf === "TO" && ![11, 14].includes(documento.replace(/\D/g, "").length)) || (!UFS_DEBITOS.includes(uf) && !chassi.trim())}>Consultar</Button></div>
         {erro && <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{erro}</div>}
-        {res && <div className="max-h-[50vh] overflow-y-auto text-xs space-y-2">
+        {res && <div className="text-xs space-y-2">
           {res.price && <div className="text-muted-foreground">Custo da consulta: R$ {res.price}</div>}
+          <DetranFontes fontes={res.importacao?.fontes} />
           {res.importacao?.aviso && <div className="rounded border border-warning/40 bg-warning/10 p-2">{res.importacao.aviso}</div>}
-          {res.importacao ? <div className="rounded border p-2 space-y-1">
+          {res.importacao?.status === "falha" ? null : res.importacao ? <div className="rounded border p-2 space-y-1">
             <div className="font-medium">Gravado na tabela: {res.importacao.gravados} débito(s){res.importacao.quitados ? ` · ${res.importacao.quitados} marcado(s) como pago (não constam mais no Detran)` : ""}</div>
             {res.importacao.debitos.length ? res.importacao.debitos.map((d, i) => <div key={i} className="flex justify-between gap-2 min-w-0"><span className="min-w-0 break-words [overflow-wrap:anywhere]">{d.tipo} {d.ano} — {d.descricao}</span><span className="font-mono shrink-0 whitespace-nowrap">{fmt(d.valor)}</span></div>)
-              : <div className="text-muted-foreground">Nenhum débito em aberto no Detran.</div>}
+              : <div className="text-muted-foreground">{res.importacao.status === "parcial" ? "Nenhum débito com valor identificado nas fontes disponíveis. Consulta incompleta." : "Nenhum débito com valor identificado nesta resposta."}</div>}
           </div> : <div className="rounded border p-2 text-muted-foreground">Esta UF retorna só restrições; nada foi gravado na tabela.</div>}
-          <details><summary className="cursor-pointer text-muted-foreground">Resposta completa do Detran</summary><Valor v={res.data} /></details>
+          {res.data.length > 0 && <details><summary className="cursor-pointer text-muted-foreground">Resposta dos órgãos consultados</summary><Valor v={res.data} /></details>}
         </div>}
       </DialogContent>
     </Dialog>
