@@ -329,7 +329,7 @@ export default function AdminFleetDocuments() {
             { key: "details", label: "Detalhes da última consulta", icon: FileSearch, mode: "single", disabled: !single, onClick: () => single && setDetalhesOpen(true) },
             { key: "fipe", label: "Valor FIPE / mercado", icon: BadgeDollarSign, mode: "single", disabled: !single, onClick: () => single && setFipeOpen(true) },
             { key: "print", label: "Imprimir relação dos selecionados", icon: Printer, mode: "single+batch", disabled: selected.size === 0 || printing, onClick: () => setPrintOpen(true) },
-            { key: "auto", label: "Configurar consulta automática", icon: SettingsIcon, mode: "create", disabled: selected.size > 0, onClick: () => setAutoOpen(true) },
+            { key: "auto", label: "Configurar consulta automática", icon: SettingsIcon, mode: "create", pinEnd: true, disabled: selected.size > 0, onClick: () => setAutoOpen(true) },
           ]}
           selectedCount={selected.size}
         />

@@ -48,6 +48,8 @@ export interface ToolbarAction {
   hidden?: boolean;
   /** quando habilitada, a ação é deslocada para o início da toolbar (ex.: Pagar) */
   priority?: boolean;
+  /** mantém a ação sempre no fim da toolbar (ex.: Configurações) */
+  pinEnd?: boolean;
 
 }
 
@@ -237,6 +239,7 @@ export function GlobalToolbar({ actions, selectedCount, children, className, fil
   const rank = (raw: ToolbarAction) => {
     const a = adapt(raw);
     const enabled = isActionEnabled(a.mode, selectedCount) && !a.disabled;
+    if (a.pinEnd) return 3;
     if (enabled && a.priority) return 0;
     return enabled ? 1 : 2;
   };
