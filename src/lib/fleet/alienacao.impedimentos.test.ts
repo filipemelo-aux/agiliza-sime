@@ -11,3 +11,9 @@ describe("intenção de venda", () => {
     expect(ex2({ impedimentos: "INTENCAO VENDA" })?.status).toBe("intencao_venda");
   });
 });
+
+import { normalizarOpcoes, OPCOES_PADRAO } from "./fleetRelacaoPdf";
+test("situação segue documentos atrasados", () => {
+  expect(normalizarOpcoes({ ...OPCOES_PADRAO, debitos: true, situacao: false }).situacao).toBe(true);
+  expect(normalizarOpcoes({ ...OPCOES_PADRAO, debitos: false, situacao: true }).situacao).toBe(false);
+});

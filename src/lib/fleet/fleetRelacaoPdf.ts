@@ -126,6 +126,9 @@ const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer":
 const TOM_LINHA: Record<string, string> = { "Vencido": "ton-v", "A vencer": "ton-a", "Em dia": "ton-e" };
 
 /** Um veículo só ganha a linha de débitos quando tem algo em aberto. */
+/** Situação (vencido/em dia) acompanha a escolha de documentos atrasados. */
+export const normalizarOpcoes = (op: RelacaoOpcoes): RelacaoOpcoes => ({ ...op, situacao: op.debitos });
+
 export function temDebitos(l: RelacaoLinha, op: RelacaoOpcoes): boolean {
   if (!op.debitos) return false;
   return l.total > 0 || l.multas > 0 || (l.licenciamento || 0) > 0 || (l.ipvaAnteriores || 0) > 0 || Object.values(l.porAno || {}).some((v) => v > 0);
@@ -181,7 +184,8 @@ export function capacidadePagina(i: number): number {
 }
 
 /** Distribui os veículos pelas páginas sem separar o bloco de identificação dos débitos. */
-export function montarPaginas(linhas: RelacaoLinha[], op: RelacaoOpcoes): PaginaRelacao[] {
+export function montarPaginas(linhas: RelacaoLinha[], opIn: RelacaoOpcoes): PaginaRelacao[] {
+  const op = normalizarOpcoes(opIn);
   const cap = (i: number) => capacidadePagina(i);
   const pages: PaginaRelacao[] = [];
   let cur: RelacaoLinha[] = [];
@@ -225,7 +229,8 @@ const valores = (l: RelacaoLinha, anosDesc: number[], m: (v: number) => string) 
   anosDesc.length ? [...anosDesc.map((a) => m(l.porAno?.[a] || 0)), ...extras(l).map(m)] : [];
 
 /** Monta o HTML completo (uma div .doc-page por página). */
-export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: RelacaoOpcoes, company: { name: string; docLine: string; address: string }): string {
+export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: RelacaoOpcoes, company: { name: string; docLine: string; address: string }): string {
+  const op = normalizarOpcoes(opIn);
   const ordenadas = linhas.some((l) => l.conjunto) ? linhas : [...linhas].sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
   const anosDesc = op.debitos ? [...anos].sort((a, b) => b - a) : [];
   const cols = COLS.filter((c) => op[c.key]);

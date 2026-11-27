@@ -373,7 +373,7 @@ export default function AdminFleetDocuments() {
             </div>
             <div className="grid gap-2 text-xs">
               <span className="font-medium">Colunas</span>
-              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Situação do veículo (alienação / intenção de venda)"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["fipe", "Valor de mercado (Tabela FIPE)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Situação do veículo (alienação / intenção de venda)"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total e situação)"], ["fipe", "Valor de mercado (Tabela FIPE)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={!!printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
                 </label>
