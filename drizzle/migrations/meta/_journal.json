@@ -414,6 +414,13 @@
       "when": 1795784068942,
       "tag": "0058_fleet_debt_auto_ufs",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1795794182725,
+      "tag": "0059_fleet_debt_manual_run",
+      "breakpoints": true
     }
   ]
 }

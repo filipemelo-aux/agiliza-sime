@@ -16,14 +16,14 @@ Deno.serve(async (req) => {
   const hoje = agora.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
   const dia = new Date(hoje + 'T12:00:00Z').getUTCDay()
   const hora = Number(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hourCycle: 'h23' }))
-  if (hora < 6) return json({ skipped: 'antes das 6h' })
   const inicioDia = new Date(hoje + 'T03:00:00Z').toISOString()
 
-  const { data: cfgs, error } = await svc.from('fleet_debt_auto_config').select('*').eq('enabled', true).eq('weekday', dia)
+  const { data: cfgs, error } = await svc.from('fleet_debt_auto_config').select('*').or(`and(enabled.eq.true,weekday.eq.${dia}),manual_run_date.eq.${hoje}`)
   if (error) return json({ error: error.message }, 500)
   const report: unknown[] = []
   for (const c of cfgs ?? []) {
     if (c.last_run_date === hoje) continue
+    if (c.manual_run_date !== hoje && hora < 6) continue
     const { data: veics } = await svc.from('vehicles').select('id, plate, owner_id')
       .eq('tenant_id', c.tenant_id).eq('fleet_type', 'propria').eq('is_active', true).not('renavam', 'is', null)
     const ownerIds = [...new Set((veics ?? []).map((v) => v.owner_id).filter(Boolean))]

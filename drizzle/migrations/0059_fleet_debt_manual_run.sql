@@ -1,0 +1,1 @@
+ALTER TABLE public.fleet_debt_auto_config ADD COLUMN IF NOT EXISTS manual_run_date date;

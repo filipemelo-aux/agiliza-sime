@@ -29,6 +29,23 @@ export function DebtAutoConfigDialog({ open, onOpenChange }: { open: boolean; on
     });
   }, [open]);
 
+  const [running, setRunning] = useState(false);
+  const consultarAgora = async () => {
+    if (ufs.length === 0) { toast.error("Selecione ao menos um estado para consultar."); return; }
+    setRunning(true);
+    const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const { data: tenantId } = await supabase.rpc("current_tenant_id");
+    const { error } = await supabase.from("fleet_debt_auto_config").upsert({
+      tenant_id: tenantId as string, enabled, weekday: Number(weekday), ufs, acting_user_id: user?.id ?? null,
+      manual_run_date: hoje, last_run_date: null, last_run_summary: null, updated_at: new Date().toISOString(),
+    });
+    if (error) { setRunning(false); toast.error("Não foi possível iniciar: " + error.message); return; }
+    supabase.functions.invoke("vehicle-debts-auto", { body: {} }).catch(() => {});
+    setRunning(false);
+    setSummary({ data: hoje, consultadas: 0, concluida: false });
+    toast.success("Consulta iniciada em segundo plano. As placas serão consultadas aos poucos ao longo do dia.");
+  };
+
   const salvar = async () => {
     if (enabled && ufs.length === 0) { toast.error("Selecione ao menos um estado para a consulta automática."); return; }
     setSaving(true);
@@ -73,7 +90,7 @@ export function DebtAutoConfigDialog({ open, onOpenChange }: { open: boolean; on
             </div>
           )}
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={salvar} disabled={saving}>Salvar</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" className="sm:mr-auto" onClick={consultarAgora} disabled={running || saving}>Consultar agora</Button><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={salvar} disabled={saving}>Salvar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -3524,6 +3524,7 @@ export type Database = {
           enabled: boolean
           last_run_date: string | null
           last_run_summary: Json | null
+          manual_run_date: string | null
           tenant_id: string
           ufs: string[]
           updated_at: string
@@ -3534,6 +3535,7 @@ export type Database = {
           enabled?: boolean
           last_run_date?: string | null
           last_run_summary?: Json | null
+          manual_run_date?: string | null
           tenant_id?: string
           ufs?: string[]
           updated_at?: string
@@ -3544,6 +3546,7 @@ export type Database = {
           enabled?: boolean
           last_run_date?: string | null
           last_run_summary?: Json | null
+          manual_run_date?: string | null
           tenant_id?: string
           ufs?: string[]
           updated_at?: string
