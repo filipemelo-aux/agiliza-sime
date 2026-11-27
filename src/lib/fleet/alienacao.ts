@@ -1,5 +1,5 @@
 /** Situação de alienação/gravame lida da resposta salva de uma consulta ao Detran. */
-export interface Alienacao { status: "alienado" | "livre"; texto: string }
+export interface Alienacao { status: "alienado" | "intencao_venda" | "livre"; texto: string }
 
 const ALIEN = /aliena|gravame|financ|arrendamento|reserva de dom/i;
 const LIVRE = /^(sem gravame|nenhuma informa|nada consta|sem restri|nao (ha|possui)|não (há|possui))/i;
@@ -27,6 +27,11 @@ export function extrairAlienacao(response: unknown): Alienacao | null {
     const credor = alien.match(/informad[oa] por\s+(.+?)(?:\s+em\s+\d|[.;]|$)/i)?.[1]
       ?? alien.match(/em favor d[eoa]\s+(.+?)(?:\s*\(|[.;]|$)/i)?.[1];
     return { status: "alienado", texto: credor ? norm(credor) : alien };
+  }
+  const venda = textos.find((t) => /inten[cç][aã]o\s+(de\s+)?venda/i.test(t));
+  if (venda) {
+    const para = venda.match(/venda\s+para\s+(.+?)(?:\s+registrad|[.;]|$)/i)?.[1];
+    return { status: "intencao_venda", texto: para ? norm(para) : "" };
   }
   return { status: "livre", texto: "Livre" };
 }

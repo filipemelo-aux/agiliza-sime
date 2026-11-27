@@ -116,7 +116,7 @@ const COLS: Col[] = [
   { key: "uf", label: "UF", width: "3%", px: utilPx(3), get: (l) => l.uf, nw: true },
   { key: "renavam", label: "RENAVAM", width: "7.8%", px: utilPx(7.8), get: (l) => l.renavam, nw: true },
   { key: "chassi", label: "Chassi", width: "7%", px: utilPx(7), get: (l) => l.chassi },
-  { key: "alienacao", label: "Alienação", width: "7.5%", px: utilPx(7.5), get: (l) => l.alienacao },
+  { key: "alienacao", label: "Situação do veículo", width: "7.5%", px: utilPx(7.5), get: (l) => l.alienacao },
   { key: "situacao", label: "Situação", width: "6.5%", px: utilPx(6.5), get: (l) => l.situacao },
 ];
 /** Soma dos pesos das colunas de identificação exibidas. */
@@ -264,6 +264,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], op: Re
     if (c.key === "situacao") return `<span class="${SITUACAO_CLASSE[t] || "st-n"}">${esc(t)}</span>`;
     if (c.key === "alienacao") {
       if (/^alienad/i.test(t)) return `<span class="al">${esc(t)}</span>`;
+      if (/^inten/i.test(t)) return `<span class="al">${esc(t)}</span>`;
       if (/^livre/i.test(t)) return `<span class="lv">${esc(t)}</span>`;
     }
     return esc(t);

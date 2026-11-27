@@ -246,7 +246,7 @@ export default function AdminFleetDocuments() {
         const porAno: Record<number, number> = {};
         for (const a of anosCol) porAno[a] = Math.round((l.ipvaAno[a] || 0) * 100) / 100;
         return { plate: l.plate, veiculo: `${l.brand || ""} ${l.model || ""}`.trim(), ano: l.year ? String(l.year) : "", uf: l.uf || "", renavam: l.renavam || "", chassi: l.chassis || "",
-          alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : "Livre") : "—",
+          alienacao: l.alienacao ? (l.alienacao.status === "alienado" ? `Alienado – ${l.alienacao.texto}` : l.alienacao.status === "intencao_venda" ? `Intenção de venda${l.alienacao.texto ? ` – ${l.alienacao.texto}` : ""}` : "Livre") : "—",
           situacao: LABEL[l.situacao], porAno, ipvaAnteriores: l.ipvaAnteriores, licenciamento: l.licTotal, multas: l.multasTotal, total: l.total, fipe: Number(l.fipe_valor || 0),
           cavalo: !!(vRes.data || []).find((v: any) => v.id === l.id && !['semirreboque', 'dolly', 'reboque'].includes(v.unit_category)),
           ipvaPorAnoTodos: l.ipvaAno, licPorAno: l.licAno, multasPorAno: l.multasAno };
@@ -276,9 +276,10 @@ export default function AdminFleetDocuments() {
     { key: "uf", header: "UF", width: "50px", align: "center", cell: (l) => l.uf ? <span className="font-mono font-medium">{l.uf}</span> : <span className="text-muted-foreground">—</span>, sortValue: (l) => l.uf || "zz" },
     { key: "fipe", header: "Valor FIPE", width: "130px", align: "right", sortValue: (l) => Number(l.fipe_valor || 0), footer: rodape((l) => Number(l.fipe_valor || 0)),
       cell: (l) => <span title={[l.fipe_descricao, l.fipe_referencia && `Ref. ${l.fipe_referencia}`].filter(Boolean).join(" · ")}>{moeda(Number(l.fipe_valor || 0))}</span> },
-    { key: "alienacao", header: "Alienação", width: "150px", sortValue: (l) => l.alienacao ? (l.alienacao.status === "alienado" ? `0${l.alienacao.texto}` : "1") : "2",
+    { key: "alienacao", header: "Situação do veículo", width: "150px", sortValue: (l) => l.alienacao ? (l.alienacao.status === "alienado" ? `0${l.alienacao.texto}` : l.alienacao.status === "intencao_venda" ? `1${l.alienacao.texto}` : "2") : "3",
       cell: (l) => !l.alienacao ? <span className="text-muted-foreground">—</span>
         : l.alienacao.status === "livre" ? <span className="text-success font-medium">Livre</span>
+        : l.alienacao.status === "intencao_venda" ? <span className="leading-tight block truncate" title={l.alienacao.texto}><span className="text-warning font-semibold">Intenção de venda</span>{l.alienacao.texto && <span className="block text-[10px] truncate">{l.alienacao.texto}</span>}</span>
         : <span className="leading-tight block truncate" title={l.alienacao.texto}><span className="text-destructive font-semibold">Alienado</span><span className="block text-[10px] truncate">{l.alienacao.texto}</span></span> },
     ...colunasAno,
     colValor("ipvaAnt", "IPVA ant.", (l) => l.ipvaAnteriores, "120px"),
@@ -372,7 +373,7 @@ export default function AdminFleetDocuments() {
             </div>
             <div className="grid gap-2 text-xs">
               <span className="font-medium">Colunas</span>
-              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Alienação"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["fipe", "Valor de mercado (Tabela FIPE)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
+              {([["veiculo", "Veículo (marca/modelo)"], ["ano", "Ano do veículo"], ["uf", "UF de registro"], ["renavam", "RENAVAM"], ["chassi", "Chassi"], ["alienacao", "Situação do veículo (alienação / intenção de venda)"], ["situacao", "Situação"], ["debitos", "Documentos atrasados (IPVA por ano, licenciamento, multas, total)"], ["fipe", "Valor de mercado (Tabela FIPE)"], ["resumo", "Resumo no início (cavalos e demais, por ano)"]] as [keyof RelacaoOpcoes, string][]).map(([k, rot]) => (
                 <label key={k} className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={!!printOp[k]} onCheckedChange={(v) => setPrintOp((o) => ({ ...o, [k]: !!v }))} />{rot}
                 </label>
