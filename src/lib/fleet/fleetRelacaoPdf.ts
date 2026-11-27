@@ -90,8 +90,7 @@ export const OPCOES_PADRAO: RelacaoOpcoes = { veiculo: true, ano: true, uf: true
 export const MARGIN_MM = 12;
 const PAGE_W_MM = 297, PAGE_H_MM = 210;
 const BODY_W_PX = 1030; // 1030px ≈ 272,5mm, dentro da área útil de 273mm (297 - 2 x 12)
-// Folga de 24px: as linhas com texto quebrado (alienação longa) ficam um pouco mais altas
-// que a estimativa, e sem essa margem a página estourava e gerava uma folha em branco.
+// Folga de 24px para bordas, cabeçalho e rodapé na captura A4.
 const USABLE_H_PX = Math.floor(((PAGE_H_MM - MARGIN_MM * 2) / 25.4) * 96) - 24; // ≈ 678px
 
 // Alturas estimadas (px) usadas para empacotar as linhas.
@@ -103,24 +102,18 @@ export const H_ID = 24, H_LINHA_EXTRA = 13, H_DEB = 32;
 
 export interface PaginaRelacao { linhas: RelacaoLinha[]; altura: number }
 
-/** Largura útil de texto numa coluna: % da tabela (12px mais estreita que a página) menos o padding da célula. */
-const utilPx = (pct: number) => (BODY_W_PX - 12) * (pct / 100) - 10;
-
-interface Col { key: keyof RelacaoOpcoes; label: string; width: string; px: number; get: (l: RelacaoLinha) => string; /** Texto curto que nunca pode quebrar (ano, UF, RENAVAM). */ nw?: boolean }
-// Pesos das colunas de identificação: recebem o espaço restante depois de reservar
-// somente a largura necessária para os valores, sem esticar as colunas de débitos.
-export const PLACA_PCT = 5.5;
+interface Col { key: keyof RelacaoOpcoes; label: string; fixed?: number; weight?: number; get: (l: RelacaoLinha) => string | undefined; nw?: boolean }
+// Tokens curtos têm largura fixa; só os textos longos recebem o espaço liberado.
+const PLACA_PX = 58;
 const COLS: Col[] = [
-  { key: "veiculo", label: "Veículo", width: "9%", px: utilPx(9), get: (l) => l.veiculo },
-  { key: "ano", label: "Ano", width: "3.8%", px: utilPx(3.8), get: (l) => l.ano, nw: true },
-  { key: "uf", label: "UF", width: "3%", px: utilPx(3), get: (l) => l.uf, nw: true },
-  { key: "renavam", label: "RENAVAM", width: "7.8%", px: utilPx(7.8), get: (l) => l.renavam, nw: true },
-  { key: "chassi", label: "Chassi", width: "7%", px: utilPx(7), get: (l) => l.chassi },
-  { key: "alienacao", label: "Situação do veículo", width: "7.5%", px: utilPx(7.5), get: (l) => l.alienacao },
-  { key: "situacao", label: "Situação", width: "6.5%", px: utilPx(6.5), get: (l) => l.situacao },
+  { key: "veiculo", label: "Veículo", weight: 1.2, get: (l) => l.veiculo },
+  { key: "ano", label: "Ano", fixed: 36, get: (l) => l.ano, nw: true },
+  { key: "uf", label: "UF", fixed: 30, get: (l) => l.uf, nw: true },
+  { key: "renavam", label: "RENAVAM", fixed: 90, get: (l) => l.renavam, nw: true },
+  { key: "chassi", label: "Chassi", weight: 1.3, get: (l) => l.chassi },
+  { key: "alienacao", label: "Sit. veículo", weight: 1.5, get: (l) => l.alienacao },
+  { key: "situacao", label: "Situação", fixed: 76, get: (l) => l.situacao },
 ];
-/** Soma dos pesos das colunas de identificação exibidas. */
-export const textoPct = (cols: Col[]) => cols.reduce((t, c) => t + parseFloat(c.width), 0);
 const SITUACAO_CLASSE: Record<string, string> = { "Vencido": "st-v", "A vencer": "st-a", "Em dia": "st-e", "Sem registro": "st-n" };
 // Tom de fundo da linha conforme a situação, como na tabela da tela (rowToneClass).
 const TOM_LINHA: Record<string, string> = { "Vencido": "ton-v", "A vencer": "ton-a", "Em dia": "ton-e" };
@@ -139,44 +132,8 @@ export function temTotais(linhas: RelacaoLinha[], op: RelacaoOpcoes): boolean {
   return !!op.fipe || linhas.some((l) => temDebitos(l, op));
 }
 
-// ---------- Medida de texto (prevê quantas linhas uma célula ocupa) ----------
-let _ctx: CanvasRenderingContext2D | null | undefined;
-const ctx2d = () => {
-  if (_ctx === undefined) {
-    // jsdom (ambiente de teste) não tem canvas: usa a estimativa por caractere.
-    if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent || "")) _ctx = null;
-    else try {
-      const c = document.createElement("canvas");
-      _ctx = c.getContext("2d");
-      if (_ctx) _ctx.font = "10.667px Arial"; // 8pt, a fonte da tabela
-    } catch { _ctx = null; }
-  }
-  return _ctx;
-};
-const _larguras = new Map<string, number>();
-const larguraTexto = (t: string): number => {
-  const s = (t || "").trim();
-  if (!s) return 0;
-  const hit = _larguras.get(s);
-  if (hit !== undefined) return hit;
-  const c = ctx2d();
-  // Sem canvas (ambiente de teste): 6,6px por caractere, o medido em textos de marca/modelo e alienação.
-  const w = c ? c.measureText(s).width : s.length * 6.6;
-  _larguras.set(s, w);
-  return w;
-};
-
-/** Linhas que o texto ocupa na coluna de `px` úteis. */
-const linhasDeTexto = (t: string, px: number) => Math.max(1, Math.ceil(larguraTexto(t) / Math.max(1, px)));
-
-const alturaLinha = (l: RelacaoLinha, op: RelacaoOpcoes): number => {
-  // A linha cresce conforme a coluna de texto que precisar de mais linhas (marca/modelo,
-  // chassi, alienação, situação…), senão a página estoura quando uma coluna estreita quebra.
-  let li = 1;
-  for (const c of COLS) if (op[c.key]) li = Math.max(li, linhasDeTexto(c.get(l) || "—", c.px));
-  // Uma linha por veículo (modelo da tela): sem a linha extra de débitos do modelo antigo.
-  return H_ID + H_LINHA_EXTRA * (li - 1);
-};
+// Todas as células ficam em uma linha; texto longo usa reticências, sem aumentar a altura.
+const alturaLinha = (_l: RelacaoLinha, _op: RelacaoOpcoes): number => H_ID;
 
 /** Altura disponível na página `i` (0 = primeira, com cabeçalho completo). */
 export function capacidadePagina(i: number): number {
@@ -249,13 +206,14 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
   const fipeTotal = ordenadas.reduce((t, l) => t + (l.fipe || 0), 0);
   const fipeChars = Math.max(0, ...ordenadas.map((l) => mc(l.fipe || 0).length), mc(fipeTotal).length);
   const fipePx = Math.max(88, Math.ceil(fipeChars * 5.6 + 6));
-  // Situação não participa da distribuição da sobra: 52px acomodam “Vencido”.
-  // As demais situações podem quebrar nos espaços, sem alargar a coluna.
-  const situacaoPx = 52;
-  const identificacaoPx = BODY_W_PX - 12 - rot.length * debitoPx - (colFipe ? fipePx : 0) - (op.situacao ? situacaoPx : 0);
-  const pesoTexto = PLACA_PCT + textoPct(cols.filter((c) => c.key !== "situacao"));
-  const larguraIdentificacao = (peso: number) => (identificacaoPx * peso / pesoTexto).toFixed(2);
-  const larguraColuna = (c: Col) => c.key === "situacao" ? String(situacaoPx) : larguraIdentificacao(parseFloat(c.width));
+  const fixosPx = PLACA_PX + cols.reduce((t, c) => t + (c.fixed || 0), 0)
+    + rot.length * debitoPx + (colFipe ? fipePx : 0);
+  const flexiveis = cols.filter((c) => !c.fixed);
+  const pesoTexto = flexiveis.reduce((t, c) => t + (c.weight || 1), 0);
+  const sobraPx = Math.max(0, BODY_W_PX - 12 - fixosPx);
+  const larguraColuna = (c: Col) => String(c.fixed || (sobraPx * (c.weight || 1) / (pesoTexto || 1)));
+  // Sem campos longos, preserva os trilhos fixos e deixa a sobra fora da tabela.
+  const tabelaPx = flexiveis.length ? BODY_W_PX - 12 : fixosPx;
   const numStyle = `style="width:${debitoPx}px"`;
   const fipeStyle = `style="width:${fipePx}px"`;
   const nCols = 1 + cols.length + rot.length + (colFipe ? 1 : 0);
@@ -264,7 +222,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
   const comTotais = temTotais(ordenadas, op);
   const soma = (f: (l: RelacaoLinha) => number) => ordenadas.reduce((t, l) => t + f(l), 0);
 
-  const celula = (c: Col, v: string) => {
+  const celula = (c: Col, v: string | undefined) => {
     const t = (v || "").trim() || "—";
     if (c.key === "situacao") return `<span class="${SITUACAO_CLASSE[t] || "st-n"}">${esc(t)}</span>`;
     if (c.key === "alienacao") {
@@ -277,13 +235,18 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
 
   const cabecalhoTexto = (cs: Col[]) => cs.map((c) => `<th${c.nw ? ' class="nw"' : ""} style="width:${larguraColuna(c)}px">${c.label}</th>`).join("");
   // Colgroup fixa os trilhos independentemente do padding dos cabeçalhos e dos colspans.
-  const colgroup = `<colgroup><col style="width:${larguraIdentificacao(PLACA_PCT)}px">${antesFipe.map((c) => `<col style="width:${larguraColuna(c)}px">`).join("")}${colFipe ? `<col ${fipeStyle}>` : ""}${depoisFipe.map((c) => `<col style="width:${larguraColuna(c)}px">`).join("")}${rot.map(() => `<col ${numStyle}>`).join("")}</colgroup>`;
-  const head = `<th class="pl" style="width:${larguraIdentificacao(PLACA_PCT)}px">Placa</th>${cabecalhoTexto(antesFipe)}${colFipe ? `<th class="num" ${fipeStyle}>Valor FIPE (R$)</th>` : ""}${cabecalhoTexto(depoisFipe)}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}`;
+  const colgroup = `<colgroup><col style="width:${PLACA_PX}px">${antesFipe.map((c) => `<col style="width:${larguraColuna(c)}px">`).join("")}${colFipe ? `<col ${fipeStyle}>` : ""}${depoisFipe.map((c) => `<col style="width:${larguraColuna(c)}px">`).join("")}${rot.map(() => `<col ${numStyle}>`).join("")}</colgroup>`;
+  const head = `<th class="pl" style="width:${PLACA_PX}px">Placa</th>${cabecalhoTexto(antesFipe)}${colFipe ? `<th class="num" ${fipeStyle}>Valor FIPE (R$)</th>` : ""}${cabecalhoTexto(depoisFipe)}${rot.map((r) => `<th class="num" ${numStyle}>${r} (R$)</th>`).join("")}`;
   // FIPE acompanha a identificação, logo após UF; débitos permanecem à direita.
   const rowId = (l: RelacaoLinha) => {
     const tom = TOM_LINHA[(l.situacao || "").trim()] || "";
     const cls = [l.conjunto ? "cj" : "", tom].filter(Boolean).join(" ");
-    const celulasTexto = (cs: Col[]) => cs.map((c) => `<td${c.nw ? ' class="nw"' : ""}>${celula(c, c.get(l))}</td>`).join("");
+    const celulasTexto = (cs: Col[]) => cs.map((c) => {
+      const compacta = !["veiculo", "ano", "uf"].includes(c.key);
+      const classes = [c.nw ? "nw" : "", compacta ? "compact" : ""].filter(Boolean).join(" ");
+      const titulo = c.nw && !compacta ? "" : ` title="${esc(c.get(l))}"`;
+      return `<td${classes ? ` class="${classes}"` : ""}${titulo}>${celula(c, c.get(l))}</td>`;
+    }).join("");
     return `<tr${cls ? ` class="${cls}"` : ""}><td class="pl">${esc(l.plate)}</td>${celulasTexto(antesFipe)}${colFipe ? `<td class="num">${mc(l.fipe || 0)}</td>` : ""}${celulasTexto(depoisFipe)}${valores(l, anosDesc, mc).map((v) => `<td class="num">${v}</td>`).join("")}</tr>`;
   };
 
@@ -296,9 +259,9 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
       : mc(soma((l) => extras(l)[i - anosDesc.length]))}</td>`).join("")}</tr></tfoot>` : "";
 
   const corpo = (p: PaginaRelacao, ultima: boolean) => p.linhas.length
-    ? `<table class="rel">${colgroup}<thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
+    ? `<table class="rel" style="width:${tabelaPx}px">${colgroup}<thead><tr>${head}</tr></thead><tbody>${p.linhas.map((l, i) => (l.conjunto && (i === 0 || p.linhas[i - 1].conjunto !== l.conjunto) ? `<tr class="gr"><td colspan="${nCols}">${esc(l.titulo || `Conjunto: ${l.conjunto}`)}</td></tr>` : "")
       + (!l.conjunto && temConjuntos && (i === 0 || p.linhas[i - 1].conjunto) ? `<tr class="gr av"><td colspan="${nCols}">Veículos sem conjunto no filtro aplicado<span class="av-nota"> (podem ter vínculo fora desta seleção)</span></td></tr>` : "") + rowId(l)).join("")}</tbody>${ultima ? totais : ""}</table>`
-    : (ultima && comTotais ? `<table class="rel">${colgroup}<thead><tr>${head}</tr></thead>${totais}</table>` : "");
+    : (ultima && comTotais ? `<table class="rel" style="width:${tabelaPx}px">${colgroup}<thead><tr>${head}</tr></thead>${totais}</table>` : "");
 
   // Resumo (opcional): página inicial com totais por ano de IPVA, licenciamento e multas, para cavalos e demais.
   // Os anos que têm coluna própria (os dois mais recentes) saem um a um; de 2024 para trás somam em "Anos anteriores".
@@ -353,11 +316,13 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
     table{border-collapse:collapse;table-layout:fixed}
     .rel{width:calc(100% - 12px)}
     .rel tr.cj td:first-child{box-shadow:inset 3px 0 0 #2B4C7E}
-    .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:top;word-break:normal;overflow-wrap:break-word}
+    .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px}
     .rel .nw{white-space:nowrap}
-    .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:.2px;padding:4px 5px}
+    .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:0;padding:4px 5px}
     .rel thead th.num{text-align:right;font-size:6pt;white-space:nowrap;padding:4px 2px}
     .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;white-space:nowrap}
+    .rel td.compact{font-size:7pt}
+    .rel tbody tr:not(.gr){height:24px}
     .rel td.num{text-align:right;font-family:'Courier New',monospace;font-size:7pt;white-space:nowrap;vertical-align:middle;padding:3px 2px}
     .rel tr.gr td{background:#e8eef7;color:#2B4C7E;font-weight:700;font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px;border-color:#c7d3e6}
     .rel tr.gr.av td{background:#f3f4f6;color:#374151;border-color:#d1d5db}
@@ -366,7 +331,7 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
     .rel tr.ton-a td{background:#fffbeb}
     .rel tr.ton-e td{background:#f0fdf4}
     .rel tfoot td{background:#f3f4f6;font-weight:700;border:1px solid #d1d5db;padding:4px 5px;font-size:8pt}
-    .rel tfoot td.num{font-family:'Courier New',monospace;font-size:6.4pt;padding:4px 2px}
+    .rel tfoot td.num{font-family:'Courier New',monospace;font-size:7pt;padding:4px 2px}
     .rel tfoot .tot-l{text-transform:uppercase;font-size:7pt;letter-spacing:.2px}
     .al,.st-v{color:#b91c1c;font-weight:600}.lv,.st-e{color:#15803d;font-weight:600}
     .st-a{color:#b45309;font-weight:600}.st-n{color:#6b7280}
