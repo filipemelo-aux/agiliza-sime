@@ -318,9 +318,9 @@ export function montarHtmlRelacao(linhas: RelacaoLinha[], anos: number[], opIn: 
     .rel tr.cj td:first-child{box-shadow:inset 3px 0 0 #2B4C7E}
     .rel th,.rel td{border:1px solid #d1d5db;padding:3px 5px;text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px}
     .rel .nw{white-space:nowrap}
-    .rel thead th{background:#f3f4f6;font-weight:700;font-size:7pt;text-transform:uppercase;letter-spacing:0;padding:4px 5px}
-    .rel thead th.num{text-align:right;font-size:6pt;white-space:nowrap;padding:4px 2px}
-    .rel .pl{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;white-space:nowrap}
+    .rel thead th{background:#f3f4f6;font-family:'Courier New',monospace;font-weight:700;font-size:6pt;text-transform:uppercase;letter-spacing:0;padding:4px 5px}
+    .rel thead th.num{text-align:right;white-space:nowrap;padding:4px 2px}
+    .rel td.pl{font-family:'Courier New',monospace;font-weight:700;font-size:8pt;white-space:nowrap}
     .rel td.compact{font-size:7pt}
     .rel tbody tr:not(.gr){height:24px}
     .rel td.num{text-align:right;font-family:'Courier New',monospace;font-size:7pt;white-space:nowrap;vertical-align:middle;padding:3px 2px}
