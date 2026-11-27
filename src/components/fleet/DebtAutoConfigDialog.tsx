@@ -8,12 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/lib/notice";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
+const UFS = ["GO", "MA", "PA", "TO"];
 const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 export function DebtAutoConfigDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { user } = useAuth();
   const [enabled, setEnabled] = useState(false);
   const [weekday, setWeekday] = useState("1");
+  const [ufs, setUfs] = useState<string[]>(UFS);
   const [summary, setSummary] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
@@ -21,15 +25,16 @@ export function DebtAutoConfigDialog({ open, onOpenChange }: { open: boolean; on
     if (!open) return;
     supabase.from("fleet_debt_auto_config").select("*").maybeSingle().then(({ data, error }) => {
       if (error) { toast.error("Não foi possível ler a configuração: " + error.message); return; }
-      setEnabled(!!data?.enabled); setWeekday(String(data?.weekday ?? 1)); setSummary(data?.last_run_summary ?? null);
+      setEnabled(!!data?.enabled); setWeekday(String(data?.weekday ?? 1)); setSummary(data?.last_run_summary ?? null); setUfs(data?.ufs ?? UFS);
     });
   }, [open]);
 
   const salvar = async () => {
+    if (enabled && ufs.length === 0) { toast.error("Selecione ao menos um estado para a consulta automática."); return; }
     setSaving(true);
     const { data: tenantId } = await supabase.rpc("current_tenant_id");
     const { error } = await supabase.from("fleet_debt_auto_config").upsert({
-      tenant_id: tenantId as string, enabled, weekday: Number(weekday), acting_user_id: user?.id ?? null, updated_at: new Date().toISOString(),
+      tenant_id: tenantId as string, enabled, weekday: Number(weekday), ufs, acting_user_id: user?.id ?? null, updated_at: new Date().toISOString(),
     });
     setSaving(false);
     if (error) { toast.error("Não foi possível salvar: " + error.message); return; }
@@ -42,13 +47,22 @@ export function DebtAutoConfigDialog({ open, onOpenChange }: { open: boolean; on
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Consulta automática de débitos</DialogTitle></DialogHeader>
         <div className="space-y-4 text-xs">
-          <p className="text-muted-foreground">Consulta em segundo plano todas as placas da frota própria (MA, PA, TO e GO, conforme a UF do proprietário) para acompanhar novas multas, IPVA e licenciamento. As consultas começam às 6h e são feitas aos poucos ao longo do dia; cada placa consome créditos da InfoSimples.</p>
+          <p className="text-muted-foreground">Consulta em segundo plano todas as placas da frota própria dos estados marcados abaixo, conforme a UF do proprietário, para acompanhar novas multas, IPVA e licenciamento. As consultas começam às 6h e são feitas aos poucos ao longo do dia; cada placa consome créditos da InfoSimples.</p>
           <div className="flex items-center justify-between"><Label className="text-xs">Ativar consulta automática</Label><Switch checked={enabled} onCheckedChange={setEnabled} /></div>
           <div><Label className="text-xs">Dia da semana</Label>
             <Select value={weekday} onValueChange={setWeekday} disabled={!enabled}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>{DIAS.map((d, i) => <SelectItem key={i} value={String(i)}>{d}</SelectItem>)}</SelectContent>
             </Select>
+          </div>
+          <div><Label className="text-xs">Estados a consultar (UF do proprietário)</Label>
+            <div className="mt-1 flex flex-wrap gap-4">
+              {UFS.map((uf) => (
+                <label key={uf} className="flex items-center gap-1.5 cursor-pointer">
+                  <Checkbox checked={ufs.includes(uf)} disabled={!enabled} onCheckedChange={(c) => setUfs((p) => c ? [...p, uf] : p.filter((x) => x !== uf))} />{uf}
+                </label>
+              ))}
+            </div>
           </div>
           {summary && (
             <div className="rounded-md border border-border p-2 space-y-1">

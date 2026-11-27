@@ -3525,6 +3525,7 @@ export type Database = {
           last_run_date: string | null
           last_run_summary: Json | null
           tenant_id: string
+          ufs: string[]
           updated_at: string
           weekday: number
         }
@@ -3534,6 +3535,7 @@ export type Database = {
           last_run_date?: string | null
           last_run_summary?: Json | null
           tenant_id?: string
+          ufs?: string[]
           updated_at?: string
           weekday?: number
         }
@@ -3543,6 +3545,7 @@ export type Database = {
           last_run_date?: string | null
           last_run_summary?: Json | null
           tenant_id?: string
+          ufs?: string[]
           updated_at?: string
           weekday?: number
         }

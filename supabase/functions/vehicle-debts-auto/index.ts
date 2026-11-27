@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       ? await svc.from('profiles').select('id, user_id, address_state').or(`id.in.(${ownerIds.join(',')}),user_id.in.(${ownerIds.join(',')})`)
       : { data: [] as any[] }
     const ufDe = (o: string | null) => String((donos ?? []).find((d: any) => d.id === o || d.user_id === o)?.address_state ?? '').trim().toUpperCase()
-    const elegiveis = (veics ?? []).map((v) => ({ ...v, uf: ufDe(v.owner_id) })).filter((v) => UFS.includes(v.uf))
+    const elegiveis = (veics ?? []).map((v) => ({ ...v, uf: ufDe(v.owner_id) })).filter((v) => UFS.includes(v.uf) && (c.ufs ?? UFS).includes(v.uf))
     const { data: feitas } = elegiveis.length
       ? await svc.from('vehicle_debt_consultas').select('vehicle_id').in('vehicle_id', elegiveis.map((v) => v.id)).gte('created_at', inicioDia)
       : { data: [] as any[] }

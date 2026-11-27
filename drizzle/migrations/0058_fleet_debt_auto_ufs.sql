@@ -1,0 +1,1 @@
+ALTER TABLE public.fleet_debt_auto_config ADD COLUMN ufs text[] NOT NULL DEFAULT ARRAY['MA','PA','TO','GO'];
