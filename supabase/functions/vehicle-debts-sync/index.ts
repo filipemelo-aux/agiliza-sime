@@ -12,6 +12,9 @@ const Body = z.object({
   login_cpf: z.string().max(20).optional(),
   login_senha: z.string().max(200).optional(),
   chassi: z.string().max(30).optional(),
+  // Somente no modo automático (chamada interna com a chave de serviço)
+  acting_user_id: z.string().uuid().optional(),
+  tenant_id: z.string().uuid().optional(),
 })
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -21,13 +24,26 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get('Authorization')
     if (!auth) return json({ error: 'Não autenticado' }, 401)
-    const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } })
-    const { data: u } = await sb.auth.getUser()
-    if (!u?.user) return json({ error: 'Não autenticado' }, 401)
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const interno = auth === `Bearer ${serviceKey}`
+    const sb = interno
+      ? createClient(Deno.env.get('SUPABASE_URL')!, serviceKey)
+      : createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } })
     const p = Body.safeParse(await req.json())
     if (!p.success) return json({ error: p.error.flatten().fieldErrors }, 400)
-    // RLS garante que o veículo é do tenant do usuário
-    const { data: v } = await sb.from('vehicles').select('plate, renavam, chassis, owner_id').eq('id', p.data.vehicle_id).maybeSingle()
+    let u: { user: { id: string | null } }
+    if (interno) {
+      if (!p.data.tenant_id) return json({ error: 'tenant_id obrigatório' }, 400)
+      u = { user: { id: p.data.acting_user_id ?? null } }
+    } else {
+      const { data } = await sb.auth.getUser()
+      if (!data?.user) return json({ error: 'Não autenticado' }, 401)
+      u = { user: { id: data.user.id } }
+    }
+    // RLS garante que o veículo é do tenant do usuário; no modo interno filtramos pelo tenant
+    let vq = sb.from('vehicles').select('plate, renavam, chassis, owner_id').eq('id', p.data.vehicle_id)
+    if (interno) vq = vq.eq('tenant_id', p.data.tenant_id!)
+    const { data: v } = await vq.maybeSingle()
     if (!v) return json({ error: 'Veículo não encontrado' }, 404)
     const novoChassi = (p.data.chassi || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
     if (novoChassi && novoChassi !== v.chassis) {
@@ -113,7 +129,7 @@ Deno.serve(async (req) => {
         const ex = (atuais ?? []).find((a: any) => String(a.observacoes ?? '').includes(tag(d.chave)))
         const { error } = ex
           ? await sb.from('veiculo_documentos').update(row).eq('id', ex.id)
-          : await sb.from('veiculo_documentos').insert({ ...row, created_by: u.user.id })
+          : await sb.from('veiculo_documentos').insert({ ...row, created_by: u.user.id, ...(interno ? { tenant_id: p.data.tenant_id } : {}) })
         if (error) return json({ error: `Consulta feita, mas falhou ao gravar ${d.tipo} ${d.ano}: ${error.message}` }, 200)
         gravados++
       }
@@ -131,7 +147,7 @@ Deno.serve(async (req) => {
       }
       importacao = { gravados, quitados, debitos, aviso: avisoIpva }
     }
-    const { error: historyError } = await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: [...(out.data ?? []), ...dadosIpva.map((d: any) => ({ _fonte: epIpva, ...d }))], importacao, price: out.header?.price ?? null, created_by: u.user.id })
+    const { error: historyError } = await sb.from('vehicle_debt_consultas').insert({ vehicle_id: p.data.vehicle_id, uf, endpoint, response: [...(out.data ?? []), ...dadosIpva.map((d: any) => ({ _fonte: epIpva, ...d }))], importacao, price: out.header?.price ?? null, created_by: u.user.id, ...(interno ? { tenant_id: p.data.tenant_id } : {}) })
     if (historyError) return json({ error: 'Débitos consultados, mas não foi possível guardar os detalhes: ' + historyError.message }, 200)
     return json({ ok: true, aviso: avisoIpva, importacao, data: out.data ?? [], price: out.header?.price ?? null, receipt: out.site_receipts ?? [] })
   } catch (e) {

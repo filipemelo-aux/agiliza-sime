@@ -3518,6 +3518,44 @@ export type Database = {
           },
         ]
       }
+      fleet_debt_auto_config: {
+        Row: {
+          acting_user_id: string | null
+          enabled: boolean
+          last_run_date: string | null
+          last_run_summary: Json | null
+          tenant_id: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          acting_user_id?: string | null
+          enabled?: boolean
+          last_run_date?: string | null
+          last_run_summary?: Json | null
+          tenant_id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Update: {
+          acting_user_id?: string | null
+          enabled?: boolean
+          last_run_date?: string | null
+          last_run_summary?: Json | null
+          tenant_id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_debt_auto_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folhas_pagamento: {
         Row: {
           confirmada_em: string | null
