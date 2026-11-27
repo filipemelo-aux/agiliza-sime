@@ -24,7 +24,7 @@ import { toast } from "@/lib/notice";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import {
-  FleetDocLike, FleetDocTipo, abertoPorAno, ANO_INICIAL_ABERTOS, FleetSituacao, ResumoTipo, resumoPorTipo, situacaoComConsulta, situacaoVeiculo,
+  FleetDocLike, FleetDocTipo, abertoPorAno, ANO_INICIAL_ABERTOS, FleetSituacao, ResumoTipo, resumoPorTipo, situacaoComConsulta, situacaoPorCategoria,
 } from "@/lib/fleet/fleetDocumentStatus";
 import { extrairAlienacao, type Alienacao } from "@/lib/fleet/alienacao";
 import { consultaSemDebitosConfirmados } from "../../supabase/functions/vehicle-debts-sync/resultado";
@@ -185,7 +185,7 @@ export default function AdminFleetDocuments() {
       const ds = porVeiculo.get(v.id) || [];
       const r = (t: FleetDocTipo) => resumoPorTipo(ds, t, hoje);
       const ipva = r("IPVA"), licenciamento = r("Licenciamento"), seguro = r("Seguro"), multas = r("Multa");
-      const situacao = situacaoComConsulta(situacaoVeiculo([ipva, licenciamento, seguro, multas]), consultasLimpas.has(v.id));
+      const situacao = situacaoComConsulta(situacaoPorCategoria(v, { ipva, licenciamento, seguro, multas }), consultasLimpas.has(v.id));
       return { ...v, alienacao: alienacoes.get(v.id) || null, uf: ufPorVeiculo.get(v.id) || null, ipva, licenciamento, seguro, multas, situacao, ...(() => {
         const ipvaAno = abertoPorAno(ds as any, "IPVA"), licAno = abertoPorAno(ds as any, "Licenciamento");
         const multasTotal = Object.values(abertoPorAno(ds as any, "Multa")).reduce((t, x) => t + x, 0);

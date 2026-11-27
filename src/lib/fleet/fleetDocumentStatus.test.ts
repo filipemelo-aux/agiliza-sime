@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { situacaoDocumento, resumoPorTipo, situacaoVeiculo, situacaoComConsulta } from "./fleetDocumentStatus";
+import { situacaoDocumento, resumoPorTipo, situacaoVeiculo, situacaoComConsulta, situacaoPorCategoria } from "./fleetDocumentStatus";
 
 const hoje = "2026-11-16";
 const doc = (o: any) => ({ tipo_documento: "IPVA", status_pagamento: "A Vencer", valor_total: 100, ...o });
@@ -31,6 +31,26 @@ describe("situação de documentos da frota", () => {
       { situacao: "a_vencer", vencimento: null, abertos: 1, valorAberto: 0 },
       { situacao: "sem_registro", vencimento: null, abertos: 0, valorAberto: 0 },
     ])).toBe("a_vencer");
+  });
+  it.each(["semirreboque", "dolly", "reboque"])("%s sem licenciamento em aberto fica em dia, sem IPVA ou consulta", categoria => {
+    const semRegistro = { situacao: "sem_registro" as const, vencimento: null, abertos: 0, valorAberto: 0 };
+    const ipvaVencido = { situacao: "vencido" as const, vencimento: "2026-01-01", abertos: 1, valorAberto: 100 };
+    expect(situacaoPorCategoria({ unit_category: categoria }, {
+      ipva: ipvaVencido, licenciamento: semRegistro, seguro: semRegistro, multas: semRegistro,
+    })).toBe("em_dia");
+  });
+  it("implemento com licenciamento vencido não fica em dia", () => {
+    const semRegistro = { situacao: "sem_registro" as const, vencimento: null, abertos: 0, valorAberto: 0 };
+    const licenciamento = { situacao: "vencido" as const, vencimento: "2026-01-01", abertos: 1, valorAberto: 157.33 };
+    expect(situacaoPorCategoria({ unit_category: "semirreboque" }, {
+      ipva: semRegistro, licenciamento, seguro: semRegistro, multas: semRegistro,
+    })).toBe("vencido");
+  });
+  it("veículo motorizado sem documentos continua sem registro", () => {
+    const semRegistro = { situacao: "sem_registro" as const, vencimento: null, abertos: 0, valorAberto: 0 };
+    expect(situacaoPorCategoria({ unit_category: "cavalo" }, {
+      ipva: semRegistro, licenciamento: semRegistro, seguro: semRegistro, multas: semRegistro,
+    })).toBe("sem_registro");
   });
   it("consulta ao Detran sem débitos deixa veículo sem registro em dia", () => {
     expect(situacaoComConsulta("sem_registro", true)).toBe("em_dia");

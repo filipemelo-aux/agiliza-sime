@@ -1,3 +1,5 @@
+import { isImplement } from "../vehicleUnits";
+
 export type FleetDocTipo = "IPVA" | "Licenciamento" | "Multa" | "Seguro";
 export type FleetSituacao = "vencido" | "a_vencer" | "em_dia" | "sem_registro";
 
@@ -61,6 +63,24 @@ export function situacaoVeiculo(resumos: ResumoTipo[]): FleetSituacao {
   let pior: FleetSituacao = "sem_registro";
   for (const r of resumos) if (PESO[r.situacao] > PESO[pior]) pior = r.situacao;
   return pior;
+}
+
+export interface ResumosDocumentosVeiculo {
+  ipva: ResumoTipo;
+  licenciamento: ResumoTipo;
+  seguro: ResumoTipo;
+  multas: ResumoTipo;
+}
+
+/** Implementos não têm IPVA: sem licenciamento em aberto, estão em dia. */
+export function situacaoPorCategoria(
+  veiculo: { unit_category?: string | null; vehicle_type?: string | null },
+  resumos: ResumosDocumentosVeiculo,
+): FleetSituacao {
+  if (isImplement(veiculo)) {
+    return resumos.licenciamento.abertos === 0 ? "em_dia" : resumos.licenciamento.situacao;
+  }
+  return situacaoVeiculo([resumos.ipva, resumos.licenciamento, resumos.seguro, resumos.multas]);
 }
 
 /**
